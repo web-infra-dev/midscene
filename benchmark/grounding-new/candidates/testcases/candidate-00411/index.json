@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00411",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the tab labeled “Focus mode”."
+  },
+  "instruction": {
+    "en": "switch to focus mode",
+    "zh": "切换到专注模式。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [240, 1016, 382, 503],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L1586",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#132",
+    "image": {
+      "format": "png",
+      "sha256": "f079f4ea41b82b4f46a22be3f23f5d179bd720f202ac5a273a8f2a1922a44041"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704180
+  }
+}

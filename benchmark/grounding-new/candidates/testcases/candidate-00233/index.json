@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00233",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target control must be identified by its task-completion function."
+  },
+  "instruction": {
+    "en": "Mark the task as done",
+    "zh": "将任务标记为已完成。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [662, 141, 722, 90],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L889",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#889",
+    "image": {
+      "format": "png",
+      "sha256": "8565f36fdc6a9a798ff7bc27345484ef1662dcc84ee2f809947f51e34f2c45ba"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00300",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The specified country option is identified by its position below the email field."
+  },
+  "instruction": {
+    "en": "Select 'United States' below the email input",
+    "zh": "选择邮箱输入框下方的“United States”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [146, 718, 188, 388],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1235",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1235",
+    "image": {
+      "format": "png",
+      "sha256": "8789bcc85abc5ff15eab46c6fd5e5c0ad3cb822a5da5967fbaea6f467c2cf38b"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-067",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by the visible language option for French."
+  },
+  "instruction": {
+    "en": "Change the language to French.",
+    "zh": "将语言切换为法语。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [309.1, 1080.7, 333.2, 731.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/697",
+    "image": {
+      "format": "png",
+      "sha256": "f1c2a501686194825ce065ced2a4796fc96d3632c328494d4912e6835bc04049"
+    },
+    "patch": "Rephrased the original English instruction “Change language to French” for grammatical clarity. Added instruction.zh by translating the English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

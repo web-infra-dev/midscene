@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-083",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested size is explicitly named and can be matched directly to the corresponding labeled option."
+  },
+  "instruction": {
+    "en": "Choose size 14.",
+    "zh": "选择尺寸 14。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [939.0, 1605.0, 973.0, 1523.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L1538",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2_128",
+    "image": {
+      "format": "png",
+      "sha256": "9f2cd7e5953486f58403398913aa9bc6b5151b62c9f907fe43023b6844677038"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction. The original groundTruth for size 14 was wider and taller than the radio control and its label, allowing points outside the visible target to be scored as correct. Tightened groundTruth from [922.0, 1633.0, 984.0, 1506.0] to [939.0, 1605.0, 973.0, 1523.0] in [top, right, bottom, left] pixel order, reducing the accepted region from 127 by 62 pixels to 82 by 34 pixels around the control and label. Updated category.reason to describe the revised annotation instead of attributing it to the original source. The instructions still request size 14, and category.item remains Basic Element.",
+    "collectedAt": 1792485870986
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00057",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its function of setting the image as wallpaper."
+  },
+  "instruction": {
+    "en": "Click to set this image as wallpaper",
+    "zh": "点击将此图片设为壁纸。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2200, 137, 2326, 10],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L538",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#538",
+    "image": {
+      "format": "png",
+      "sha256": "bd2fbe4f6c23acd5a4ae21ae757ad427c23d5d467b3011fb00b2985c50e108d2"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

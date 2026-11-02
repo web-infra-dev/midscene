@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00254",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the camera control used to take a photo."
+  },
+  "instruction": {
+    "en": "take a photo",
+    "zh": "拍摄照片。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [67, 1404, 136, 1315],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L254",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#21",
+    "image": {
+      "format": "png",
+      "sha256": "96ad2a35b87e296483f1671f4f16283e75b42bd36797e2eb7533e103cd60a265"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

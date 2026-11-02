@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00489",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The Los Angeles Lakers search suggestion is directly identified by its label."
+  },
+  "instruction": {
+    "en": "Click on \"Los Angeles Lakers\".",
+    "zh": "点击“Los Angeles Lakers”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [117.0, 632.0, 145.0, 164.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=198",
+    "image": {
+      "format": "jpeg",
+      "sha256": "b09b916f7185c0f42e4fcfd63223c06d277ccfe8f380f3245c277f3cd7ed796e"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

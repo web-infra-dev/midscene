@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00048",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested GPS traces are identified by their corresponding navigation label."
+  },
+  "instruction": {
+    "en": "check the gps traces",
+    "zh": "查看 GPS 轨迹。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [32, 1561, 78, 1372],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L2630",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#219",
+    "image": {
+      "format": "png",
+      "sha256": "5d740bf21a77c159bf658d147fc42ed8d888b72dd7d5b726a048e06461339b55"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00138",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the control for adding guests to an event."
+  },
+  "instruction": {
+    "en": "add guests",
+    "zh": "添加来宾。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [586, 1135, 708, 47],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L1382",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#115",
+    "image": {
+      "format": "png",
+      "sha256": "c4f65147d6320a9cbc2328103245ed5f86589024d324cd7b70af142f5547397f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

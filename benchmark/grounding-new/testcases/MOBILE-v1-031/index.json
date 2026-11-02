@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-031",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the custom-duration control because none of the displayed preset durations matches 34 minutes."
+  },
+  "instruction": {
+    "en": "I want a focus session that lasts exactly 34 minutes.",
+    "zh": "我期望一段恰好为 34 分钟的专注时间。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1704, 1040, 1928, 796],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L1550",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#129",
+    "image": {
+      "format": "png",
+      "sha256": "40ad28585f0e84a0eeb450fe9f53e7cfb7588c161efc7eed4075ca9140cc6a25"
+    },
+    "patch": "Replaced the original instruction “customize focus time” with a request for a focus session lasting exactly 34 minutes, and added instruction.zh by translating the revised English instruction. Updated category.reason to explain why the custom-duration control is needed; groundTruth remains on the same control.",
+    "collectedAt": 1793867704139
+  }
+}

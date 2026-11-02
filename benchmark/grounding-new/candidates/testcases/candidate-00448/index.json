@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00448",
+  "platform": "web",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "The calendar event is distinguished by the person and occasion named in the instruction."
+  },
+  "instruction": {
+    "en": "Select Sophie's birthday event",
+    "zh": "选择 Sophie 的生日活动。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [554.0, 710.0, 574.0, 585.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1037",
+    "image": {
+      "format": "png",
+      "sha256": "1bfbf744443b38d9457c6223c93907f42a0921a88d5c3d64b3d5ac2a58c2499d"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

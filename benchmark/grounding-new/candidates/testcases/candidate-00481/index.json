@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00481",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The next-track control advances playback to the next item."
+  },
+  "instruction": {
+    "en": "Click on the 'Next' button.",
+    "zh": "点击“Next”按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1847.0, 990.0, 2038.0, 799.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=233",
+    "image": {
+      "format": "png",
+      "sha256": "6638bff1bf0256e96f1aa0c2db8d6f49f44edc7e63bae599d1862b04e9a88210"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

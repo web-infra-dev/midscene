@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00212",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by the plus symbol in the bookmark icon."
+  },
+  "instruction": {
+    "en": "Click on the '+' icon.",
+    "zh": "点击“+”图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [100.0, 777.0, 180.2, 735.8],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=322",
+    "image": {
+      "format": "jpeg",
+      "sha256": "63cd3c4507c130cbae7645759d3dc0e33cb65e7f3d34f98da6b2cf5c1503b3a5"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

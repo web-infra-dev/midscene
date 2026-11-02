@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00093",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the setting for the sound played when the timer ends."
+  },
+  "instruction": {
+    "en": "Modify the alarm sound when timer ends",
+    "zh": "修改计时结束时的提示音。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [995, 1505, 1093, 839],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L5426",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#452",
+    "image": {
+      "format": "png",
+      "sha256": "cb6361e969939416445d5c61b589e0c77b511aab4ca56a43c2c61c2763c93389"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

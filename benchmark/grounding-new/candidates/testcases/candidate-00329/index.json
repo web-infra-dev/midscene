@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00329",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested button is identified by its SHOW RATES label."
+  },
+  "instruction": {
+    "en": "Click on \"SHOW RATES\".",
+    "zh": "点击“SHOW RATES”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [580.2, 760.0, 640.2, 549.9],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=336",
+    "image": {
+      "format": "jpeg",
+      "sha256": "3e71a37a2a9266cb06a0285ff8b3d18db142069070c4bccc43549256bdbed3f7"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

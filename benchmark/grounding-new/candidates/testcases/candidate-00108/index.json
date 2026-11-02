@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00108",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by the visible Health Details label."
+  },
+  "instruction": {
+    "en": "check health details",
+    "zh": "查看健康详情。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [908, 1122, 1037, 49],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L3302",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#275",
+    "image": {
+      "format": "png",
+      "sha256": "f83807e0101dfdfab1f01b3b465ca5c43c70ab83632d1aeb4698259af84a1f18"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

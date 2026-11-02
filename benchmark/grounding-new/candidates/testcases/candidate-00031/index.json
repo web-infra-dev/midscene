@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00031",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The product is identified directly by the specified model name."
+  },
+  "instruction": {
+    "en": "Click on \"HP - Envy 2-in-1 15.6\" Full HD Touch-Screen Laptop...\"",
+    "zh": "点击“HP - Envy 2-in-1 15.6\" Full HD Touch-Screen Laptop...”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [232.0, 1050.0, 381.0, 888.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=14",
+    "image": {
+      "format": "png",
+      "sha256": "f83ff2ffd7be8a27a6cabb8136d7391d99be23ac7f9b17f9ef84c4c092fc56fe"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

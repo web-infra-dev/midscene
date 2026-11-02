@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00089",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires identifying the first occurrence of a weekday in the specified month."
+  },
+  "instruction": {
+    "en": "Click on the first Friday of October",
+    "zh": "点击 10 月的第一个星期五。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [389.6, 955.0, 429.6, 909.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1359",
+    "image": {
+      "format": "png",
+      "sha256": "813038afc8cc17143250385e0de87b6a55c6b7229eb80b4171bfdbc09c2203bd"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-041",
+  "platform": "mobile",
+  "category": {
+    "item": "Color Recognition",
+    "reason": "The task distinguishes text elements by the color of their trailing markers, including two different shades of blue."
+  },
+  "instruction": {
+    "en": "Find the text with a bright blue marker at the end.",
+    "zh": "找到尾部有亮蓝色标记的文本。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [480, 705, 545, 535],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1043",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1043",
+    "image": {
+      "format": "png",
+      "sha256": "1b6a369aa8027bef9208b2c6a0e1bfcf76c9d3a3c01c1045ee7735a5d04cb8cc"
+    },
+    "patch": "Replaced the original instruction “View the address just under the site title” with an instruction to find the text with a bright blue marker at the end. Changed groundTruth from the address to the Health text, which is followed by a bright blue marker. Added instruction.zh by translating the revised English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00177",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the tag control associated with adding the specified tag."
+  },
+  "instruction": {
+    "en": "Add 'Important' as a tag",
+    "zh": "添加“Important”标签。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1211, 939, 1352, 141],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1399",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1399",
+    "image": {
+      "format": "png",
+      "sha256": "da26610ce2a30fd840dc6adabdb678d861933a08bb869c57643799331ea69691"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

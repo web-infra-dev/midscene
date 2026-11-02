@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00360",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The check-in date is explicitly identified in the calendar."
+  },
+  "instruction": {
+    "en": "Select April 29, 2025, as the check-in date",
+    "zh": "选择 2025 年 4 月 29 日作为入住日期。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [521.7, 828.6, 565.5, 788.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/360",
+    "image": {
+      "format": "png",
+      "sha256": "58447c576ae5149f2bb2308651d74b4593b196b07854a99b73ed733139c105d0"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

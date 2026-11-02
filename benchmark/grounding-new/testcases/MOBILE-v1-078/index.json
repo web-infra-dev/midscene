@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-078",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The 龙耀路 station marker on the map directly displays the station name and Line 11 badge requested by the instruction."
+  },
+  "instruction": {
+    "en": "Find Longyao Road (龙耀路) metro station on Line 11 on the map.",
+    "zh": "在地图上找到 11 号线龙耀路地铁站。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1150.0, 366.0, 1230.0, 210.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L7356",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "387",
+    "image": {
+      "format": "png",
+      "sha256": "1367733c35e0f27e2bf6c69a7ee2e870e99187a976fc75866d5c58239adb8f35"
+    },
+    "patch": "Revised the original English instruction to locate Longyao Road (龙耀路) metro station on Line 11 and added the corresponding Chinese instruction. The original description incorrectly placed the station marker inside a white rectangular box and described the Line 11 badge as a red circle; the final instruction omits those inaccurate visual details. Extended the ground-truth box's left boundary from 216 to 210 pixels and updated category.reason to identify the station name and Line 11 badge.",
+    "collectedAt": 1792485870444
+  }
+}

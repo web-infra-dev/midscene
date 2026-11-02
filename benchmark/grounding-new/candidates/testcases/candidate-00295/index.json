@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00295",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target time slot is identified by its displayed time."
+  },
+  "instruction": {
+    "en": "Select 9.30",
+    "zh": "选择 9:30。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [477.0, 867.4, 514.0, 779.1],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/82",
+    "image": {
+      "format": "png",
+      "sha256": "4759752378855ba31040bb686fc84a96b865ab095babf1912d2da8a153c7b427"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

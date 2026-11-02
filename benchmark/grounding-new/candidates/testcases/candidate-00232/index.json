@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00232",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the digit 6 key on the calculator."
+  },
+  "instruction": {
+    "en": "Click on '6'.",
+    "zh": "点击“6”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [725.5, 494.2, 955.8, 337.5],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=462",
+    "image": {
+      "format": "jpeg",
+      "sha256": "c4efe6062e086d1dead0a6f9d83e209d6e7e47d26b5fc8977c180b9cc11dbda5"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

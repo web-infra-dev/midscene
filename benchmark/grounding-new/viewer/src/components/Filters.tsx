@@ -7,6 +7,11 @@ interface FiltersProps {
   filters: FilterValues;
   onChange: (filters: FilterValues) => void;
   onClear: () => void;
+  batch?: {
+    value: string;
+    options: { value: string; text: string }[];
+    onChange: (value: string) => void;
+  };
 }
 
 function uniqueOptions(
@@ -27,6 +32,7 @@ export function Filters({
   filters,
   onChange,
   onClear,
+  batch,
 }: FiltersProps) {
   const [opened, setOpened] = useState<string | null>(null);
   const groups = useMemo(
@@ -76,6 +82,17 @@ export function Filters({
       aria-label="Filter testcases"
       onSubmit={(event) => event.preventDefault()}
     >
+      {batch && (
+        <FilterSelect
+          id="batch-filter"
+          label="Batch"
+          options={batch.options}
+          value={batch.value}
+          open={opened === 'batch'}
+          onOpenChange={(open) => setOpened(open ? 'batch' : null)}
+          onChange={batch.onChange}
+        />
+      )}
       {groups.map((group) => (
         <FilterSelect
           key={group.key}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00113",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the search control for browser tabs."
+  },
+  "instruction": {
+    "en": "serch tab",
+    "zh": "搜索标签页。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [168, 1122, 282, 49],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L3746",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#312",
+    "image": {
+      "format": "png",
+      "sha256": "43e8f5efe8558ec6f292ca54bdc453b28ddebb2f45b7b246d49682fc0a2dfabf"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

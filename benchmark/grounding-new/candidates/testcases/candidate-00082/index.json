@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00082",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its function of adding recipients."
+  },
+  "instruction": {
+    "en": "Use the option to add additional recipients",
+    "zh": "使用添加其他收件人的选项。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [452, 1080, 599, 933],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L973",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#973",
+    "image": {
+      "format": "png",
+      "sha256": "ef00977d3b997bafa0f88a0f632cf6ae461547027ac3fb0c0332ba5dec4f324f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

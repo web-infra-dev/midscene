@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-075",
+  "platform": "mobile",
+  "category": {
+    "item": "Color Recognition",
+    "reason": "The target is distinguished from other orange exclamation marks by the color of its background."
+  },
+  "instruction": {
+    "en": "Locate the orange exclamation mark on the gray background.",
+    "zh": "定位灰色背景的橙色感叹号。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1645.0, 718.0, 1701.0, 661.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1393",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1393",
+    "image": {
+      "format": "png",
+      "sha256": "ffdac44e957348be79fbe38b9f83861e85e44bca9ac2c742d3bc16b9f92cf2ec"
+    },
+    "patch": "Replaced the original instruction “Click to switch to web content” with a request to locate the orange exclamation mark on the gray background and added instruction.zh by translating the revised English instruction. Changed groundTruth from [136, 539, 283, 270] to [1645.0, 718.0, 1701.0, 661.0] in [top, right, bottom, left] pixel coordinates to cover the specified exclamation mark.",
+    "collectedAt": 1793776824833
+  }
+}

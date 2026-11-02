@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00293",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target control is identified by its function of returning to the previous screen."
+  },
+  "instruction": {
+    "en": "Click to go to the previous screen",
+    "zh": "点击返回上一个页面。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [144, 200, 249, 26],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1055",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1055",
+    "image": {
+      "format": "png",
+      "sha256": "88554c330398560fef38762be77efcda1576500b48c5bfbad30901a508aec9bf"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

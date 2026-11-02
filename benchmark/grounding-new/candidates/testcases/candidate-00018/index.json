@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00018",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the setting that controls whether post previews are shown."
+  },
+  "instruction": {
+    "en": "don't show post previews",
+    "zh": "不显示帖子预览。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1131, 482, 1176, 438],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L2030",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#169",
+    "image": {
+      "format": "png",
+      "sha256": "726097733533bace9a0adbf9177a2f582f8b601402de6018ce06462f251ba5ca"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

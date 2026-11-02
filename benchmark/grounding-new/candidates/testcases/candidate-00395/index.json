@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00395",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the settings row labeled “Manage Home screen shortcuts”."
+  },
+  "instruction": {
+    "en": "manage home screen shortcuts",
+    "zh": "管理主屏幕快捷方式。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [818, 1020, 1005, 68],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L1610",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#134",
+    "image": {
+      "format": "png",
+      "sha256": "bc7b9e62b5ee2b439aad5e5f176372609e442c87adbbc3d85c4c212e7bf9c002"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704173
+  }
+}

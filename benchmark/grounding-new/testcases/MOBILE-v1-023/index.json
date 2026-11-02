@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-023",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires identifying which of the two visible options is not yet selected so that both options can be selected."
+  },
+  "instruction": {
+    "en": "Select all items.",
+    "zh": "全选所有项目。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [706, 1043, 775, 970],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1055",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1055",
+    "image": {
+      "format": "png",
+      "sha256": "88554c330398560fef38762be77efcda1576500b48c5bfbad30901a508aec9bf"
+    },
+    "patch": "Replaced the original instruction “Click to go to the previous screen” with a request to select all items, and added instruction.zh by translating the revised English instruction. Changed groundTruth from [144, 200, 249, 26] to [706, 1043, 775, 970] in [top, right, bottom, left] pixel coordinates, moving the target from the Back button to the unselected America – Martinique option; Europe – Paris is already selected. Changed category.item from Functional to Reasoning and updated category.reason to explain the selected-state comparison.",
+    "collectedAt": 1793776824833
+  }
+}

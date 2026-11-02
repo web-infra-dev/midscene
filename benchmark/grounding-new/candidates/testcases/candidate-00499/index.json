@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00499",
+  "platform": "web",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "The target video must be distinguished from other Mars-related videos by its subject matter."
+  },
+  "instruction": {
+    "en": "Play the video explaining the physical characteristics of Mars",
+    "zh": "播放介绍火星物理特征的视频。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [320, 1183, 448, 937],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L5066",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#422",
+    "image": {
+      "format": "png",
+      "sha256": "65c5bde586088043dff51a20616eb29a3534f4312038181cbdc0c6e5b48760b4"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704204
+  }
+}

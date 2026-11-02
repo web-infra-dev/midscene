@@ -17,7 +17,7 @@ export default defineConfig({
     historyApiFallback: {
       rewrites: [
         {
-          from: /^\/(?:testcases(?:\/[^/]+)?|evaluations(?:\/[^/]+){0,2})?\/?$/,
+          from: /^\/(?:(?:testcases|candidates)(?:\/[^/]+)?|evaluations(?:\/[^/]+){0,2})?\/?$/,
           to: '/index.html',
         },
         { from: /./, to: ({ parsedUrl }) => parsedUrl.pathname },
@@ -28,6 +28,7 @@ export default defineConfig({
         if (
           request.url?.startsWith('/api/') ||
           request.url?.startsWith('/images/') ||
+          request.url?.startsWith('/candidate-images/') ||
           request.url?.startsWith('/results/')
         ) {
           void handleDatasetRequest(request, response);

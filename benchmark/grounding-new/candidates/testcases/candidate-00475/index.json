@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00475",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the add-to-cart button on the Black Myth: Wukong product page."
+  },
+  "instruction": {
+    "en": "add black myth to my steam cart",
+    "zh": "将《黑神话》加入 Steam 购物车。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [990, 1085, 1024, 976],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L4994",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#416",
+    "image": {
+      "format": "png",
+      "sha256": "df9b05d06e0c6fb8f8281261e46066bdb5a68976cbe64161026ecd888fa2d238"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704198
+  }
+}

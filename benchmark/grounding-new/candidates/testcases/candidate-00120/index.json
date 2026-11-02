@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00120",
+  "platform": "web",
+  "category": {
+    "item": "Refusal",
+    "reason": "The requested upload button is absent from the screenshot, so the task requires refusal."
+  },
+  "instruction": {
+    "en": "Click the upload button.",
+    "zh": "点击上传按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://github.com/xlang-ai/OSWorld-G/blob/daa6bd8e0e629f0917ad2984df930bf0bd967540/benchmark/OSWorld-G.json",
+    "dataset": "OSWorld-G",
+    "recordId": "2su9HTmO8V-1",
+    "image": {
+      "format": "png",
+      "sha256": "6d294062493372ce93c5deee133c27f7320a581251436c72aea158b511a8cf79"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

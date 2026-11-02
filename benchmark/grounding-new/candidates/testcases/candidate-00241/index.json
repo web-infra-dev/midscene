@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00241",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires recognizing the RSS subscription icon by its function."
+  },
+  "instruction": {
+    "en": "Click the icon for RSS feed subscription",
+    "zh": "点击用于订阅 RSS 信息源的图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [25, 1496, 41, 1480],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L173",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#173",
+    "image": {
+      "format": "png",
+      "sha256": "ed428e84f27dea2f2c98ae2799aacb700d0a046a7f4dfe77b7768c44222b725e"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

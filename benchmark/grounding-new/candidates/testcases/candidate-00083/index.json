@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00083",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The sign-in button is directly identified by the specified provider name."
+  },
+  "instruction": {
+    "en": "log in with google account",
+    "zh": "使用 Google 账号登录。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2172, 1203, 2300, 78],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L5450",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#454",
+    "image": {
+      "format": "jpeg",
+      "sha256": "c256c91f3945530090db67a1d54883d027c398fb0ed8f3d59c2a27c0bc7d8aa9"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

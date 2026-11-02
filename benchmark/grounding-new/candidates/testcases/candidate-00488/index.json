@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00488",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The Partnerships topic label directly identifies the requested article filter."
+  },
+  "instruction": {
+    "en": "Filter articles to show those related to Partnerships",
+    "zh": "筛选出与 Partnerships 相关的文章。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [165.5, 598.4, 194.0, 477.9],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/375",
+    "image": {
+      "format": "png",
+      "sha256": "722bf791bef23d902f79b0ccf379904877e39d191372e4f4efa9089b24cdac92"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

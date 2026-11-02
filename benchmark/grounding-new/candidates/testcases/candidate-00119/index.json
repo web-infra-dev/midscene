@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00119",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested travel month is identified by its label in the date selector."
+  },
+  "instruction": {
+    "en": "Looks for trips in September",
+    "zh": "查找九月的行程。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [380.0, 985.2, 448.0, 891.8],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/417",
+    "image": {
+      "format": "png",
+      "sha256": "e7dc0788f82aabf3fa5f2034ed882c4198916a6c2b521fd35ade9419ada7a965"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

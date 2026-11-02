@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00367",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its function as the advertisement close control."
+  },
+  "instruction": {
+    "en": "close the ad banner",
+    "zh": "关闭广告横幅。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1259, 2011, 1295, 1969],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L2378",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#198",
+    "image": {
+      "format": "png",
+      "sha256": "60a0796857d2445266b85677f40b101ca2589f923c35ddc79991f435fb16cf95"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704159
+  }
+}

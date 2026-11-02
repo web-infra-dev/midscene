@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00214",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified as the Arsenal F.C. logo in the article."
+  },
+  "instruction": {
+    "en": "open the logo of arsenal f.c ",
+    "zh": "打开阿森纳足球俱乐部的标志图片。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [747, 2287, 1291, 1798],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L3446",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#287",
+    "image": {
+      "format": "png",
+      "sha256": "db2eaccc94aee813517d332af11b0dd166dab71b395a62b0843305efe6d553ef"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

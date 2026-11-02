@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00470",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by its visible label or element type: type 2,500 in square meters."
+  },
+  "instruction": {
+    "en": "Type 2,500 in square meters",
+    "zh": "在平方米输入框中输入 2,500。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [579, 1022, 716, 561],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L404",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#404",
+    "image": {
+      "format": "png",
+      "sha256": "c3499337fc7fb707ab95810cbab954e5b6d79fb682e84023fde4165d567e8a10"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814764
+  }
+}

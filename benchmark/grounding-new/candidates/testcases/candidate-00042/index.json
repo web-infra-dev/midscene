@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00042",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target input is identified by its position beside the arrow."
+  },
+  "instruction": {
+    "en": "Enter 'hoody' in the box beside the arrow",
+    "zh": "在箭头旁边的输入框中输入“hoody”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [173, 917, 246, 168],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L769",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#769",
+    "image": {
+      "format": "png",
+      "sha256": "dfcdef023123f38aaaea9de88d507920a98e826b5f1510225878ee3ae64b9091"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

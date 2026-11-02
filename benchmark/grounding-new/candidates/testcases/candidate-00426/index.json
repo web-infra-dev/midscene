@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00426",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its interface function: select to view optional reminders."
+  },
+  "instruction": {
+    "en": "Select to view optional reminders",
+    "zh": "选择查看可选提醒。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [304, 1054, 430, 858],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L589",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#589",
+    "image": {
+      "format": "png",
+      "sha256": "0f8bea118284bda26d71b59bb10809f6c3b33ab672caf6f8f0ec4f0f429b12fc"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814758
+  }
+}

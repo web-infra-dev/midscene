@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00172",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by the statistics tab label."
+  },
+  "instruction": {
+    "en": "Click on \"Arrest & Citation Statistics\".",
+    "zh": "点击“Arrest & Citation Statistics”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [143.0, 595.0, 187.0, 392.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=389",
+    "image": {
+      "format": "jpeg",
+      "sha256": "d03a57944a809ad130ae38c356d27ec497f4577d71b56639f48dc9e9ddaffe34"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

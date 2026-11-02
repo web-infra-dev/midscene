@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00008",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the pagination control that advances to the next page."
+  },
+  "instruction": {
+    "en": "next page",
+    "zh": "前往下一页。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1231, 790, 1301, 712],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L1406",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#117",
+    "image": {
+      "format": "png",
+      "sha256": "8fd4c545e9b8de86241fdddee84bb50d59390e52a8b0aef4a5ed71f8c6122f80"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

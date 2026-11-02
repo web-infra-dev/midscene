@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00277",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target button is specified by its row and ordinal position."
+  },
+  "instruction": {
+    "en": "Click the first button on the top row",
+    "zh": "点击最上面一行的第一个按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [798, 360, 1216, 42],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1061",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1061",
+    "image": {
+      "format": "png",
+      "sha256": "2752b2a5adf6ed4aea32fbc33510223339a075847adf9047ca9d4e641f60101a"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

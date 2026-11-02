@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00491",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the watch face labeled “Snoopy”."
+  },
+  "instruction": {
+    "en": "select snoopy as watch face",
+    "zh": "选择 Snoopy 表盘。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [538, 817, 1106, 419],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L5858",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#488",
+    "image": {
+      "format": "jpeg",
+      "sha256": "42454748f8fcd335372cabe4ca53c92bb1e9e18befd7c280ef757040a8e1ae70"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704202
+  }
+}

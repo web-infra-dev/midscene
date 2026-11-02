@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-028",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task tests mapping the request to open a personal profile to the appropriate navigation control."
+  },
+  "instruction": {
+    "en": "Click to enter the personal profile page.",
+    "zh": "点击进入个人信息页面。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [99.0, 185.0, 243.0, 43.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L1388",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#row=99",
+    "image": {
+      "format": "png",
+      "sha256": "b30b15aa93ad28a62776dd2c1d6ac09d3a70315cfbeae78d565a91afb75da4bf"
+    },
+    "patch": "Revised the English and Chinese instructions to specify the personal profile page instead of the personal homepage, distinguishing it from the Home tab. Revised category.reason to describe mapping the profile request to its navigation control.",
+    "collectedAt": 1792485870258
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00428",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The first available show is identified by comparing available dates in the calendar."
+  },
+  "instruction": {
+    "en": "Click on the first available show",
+    "zh": "点击第一场可选演出。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [561.9, 348.6, 596.7, 255.1],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1030",
+    "image": {
+      "format": "png",
+      "sha256": "ebaa6dc085e238fa2e4f06b6e50f32f538731252bd035b9c33149c1fcda03a64"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

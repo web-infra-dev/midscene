@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00397",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The Search recalls button is explicitly identified by its label."
+  },
+  "instruction": {
+    "en": "Click on \"Search recalls\".",
+    "zh": "点击“Search recalls”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [539.4, 1224.0, 595.4, 1025.4],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=189",
+    "image": {
+      "format": "jpeg",
+      "sha256": "731038bdd83c5cab6413df52d8558bf27dfe01ee8a5ddf4ca04ecd6e99c5c210"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

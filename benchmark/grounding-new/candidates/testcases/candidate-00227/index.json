@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00227",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task identifies the map link for the named accommodation."
+  },
+  "instruction": {
+    "en": "Show hu Roma Camping In Town location on map",
+    "zh": "在地图上显示 hu Roma Camping In Town 的位置。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [715.7, 677.3, 729.9, 586.4],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/368",
+    "image": {
+      "format": "png",
+      "sha256": "f1b0348e32236237b39c160eb3d334f6012b2178ceed1d3639010e57b60d7a2f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

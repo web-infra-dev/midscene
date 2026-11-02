@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00500",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The dictionary suggestion directly names the requested expression."
+  },
+  "instruction": {
+    "en": "Get more information about 'feel good'",
+    "zh": "找到关于“feel good”的更多信息。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [381.4, 420.9, 398.9, 355.1],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1329",
+    "image": {
+      "format": "png",
+      "sha256": "f5d720f6600f9af66ed875619b9d6d9f2d3b7b41150488d11ba5b132f7f0e476"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

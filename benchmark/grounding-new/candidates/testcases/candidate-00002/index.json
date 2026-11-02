@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00002",
+  "platform": "mobile",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "The target is distinguished from other filter options by its ordinal position."
+  },
+  "instruction": {
+    "en": "Select the eighth filter option",
+    "zh": "选择第八个筛选选项。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1611, 101, 1666, 52],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1427",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1427",
+    "image": {
+      "format": "png",
+      "sha256": "ce493488b9d709de50b7ff31f996558d2ed7ecaf8b6a6f7133b15d379486ab22"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

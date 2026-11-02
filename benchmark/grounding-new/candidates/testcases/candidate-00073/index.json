@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00073",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the control that dismisses the notification box."
+  },
+  "instruction": {
+    "en": "close the notification box",
+    "zh": "关闭通知框。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2050, 1098, 2173, 978],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L3362",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#280",
+    "image": {
+      "format": "png",
+      "sha256": "ad44b86ff1eee35401e3bea5223b11d593a6c5d418b472e292784b73af5aade9"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

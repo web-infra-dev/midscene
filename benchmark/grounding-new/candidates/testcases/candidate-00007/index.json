@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00007",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by the function of adding an attachment."
+  },
+  "instruction": {
+    "en": "Click to add an attachment.",
+    "zh": "点击添加附件。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [156, 827, 282, 700],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L996",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#996",
+    "image": {
+      "format": "png",
+      "sha256": "1e1bd8fbf6410de18694d94b4b2ac26d1ccca0d907a9e24a0523338e25510264"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

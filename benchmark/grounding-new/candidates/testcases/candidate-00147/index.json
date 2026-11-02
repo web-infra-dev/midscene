@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00147",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task identifies the navigation link for account registration."
+  },
+  "instruction": {
+    "en": "Go to the registration page",
+    "zh": "进入注册页面。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [373.7, 417.6, 395.7, 337.6],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1193",
+    "image": {
+      "format": "png",
+      "sha256": "e44f28a4564103deb9e51ee575474a881778ac9488840a434f7700778ecad029"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

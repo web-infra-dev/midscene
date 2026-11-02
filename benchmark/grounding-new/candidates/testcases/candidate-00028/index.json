@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00028",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the input area for the submission body."
+  },
+  "instruction": {
+    "en": "input the body of the submission",
+    "zh": "输入提交内容的正文。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [782, 1332, 1281, 98],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L1922",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#160",
+    "image": {
+      "format": "png",
+      "sha256": "66dc42e1b2a76e31a7f877997ea806b0815c446721b2c3e9fafd0880a1f7f760"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

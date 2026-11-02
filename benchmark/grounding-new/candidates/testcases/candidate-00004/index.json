@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00004",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified directly by its visible Flexible dates label."
+  },
+  "instruction": {
+    "en": "Click on flexible dates",
+    "zh": "点击“Flexible dates”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [233.0, 607.5, 269.0, 483.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/207",
+    "image": {
+      "format": "png",
+      "sha256": "aaecd7d5995f15c2dad05565cd7ce2a70ddf79362f8cc265ed88a3f0e5dbd1b4"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-071",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires restricting the return flights by arrival time and comparing their prices while keeping the selected outbound flight fixed."
+  },
+  "instruction": {
+    "en": "With the selected outbound flight unchanged, select the cheapest return flight that arrives between 10:00 and 10:30.",
+    "zh": "在已选中的出发航班不变的情况下，选择 10:00 ~ 10:30 间到达的价格最便宜的到达航班。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1467, 1080, 1715, 548],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L21030",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#1502",
+    "image": {
+      "format": "png",
+      "sha256": "8afecc9b2745123beeddbb4090bdc3de86915d661cc1dfd06fdc783af2f32c93"
+    },
+    "patch": "Replaced the original instruction to find the “08-14 Thursday” date tab with an instruction to select the cheapest return flight arriving between 10:00 and 10:30 while keeping the selected outbound flight unchanged. Changed groundTruth from [345, 333, 440, 175] to [1467, 1080, 1715, 548] in [top, right, bottom, left] pixel coordinates, moving the target from the date tab to the 08:00–10:10 return flight with a ¥600 price increment. Assigned the Reasoning category to describe the time-window and price comparison.",
+    "collectedAt": 1792485870416
+  }
+}

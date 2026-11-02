@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00404",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target date is explicitly given and visible in the calendar."
+  },
+  "instruction": {
+    "en": "15/05/2025",
+    "zh": "选择 2025 年 5 月 15 日。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [440.7, 602.0, 478.7, 564.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/149",
+    "image": {
+      "format": "png",
+      "sha256": "d840ed04668e369e962082ef3fc4f2016b7ae2b1d4ccf2044a390563221effba"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

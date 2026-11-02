@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00213",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target input field is located relative to the clear icon."
+  },
+  "instruction": {
+    "en": "Enter 'Salvador Dali' next to the clear icon",
+    "zh": "在清除图标旁输入“Salvador Dali”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [136, 933, 325, 126],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1078",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1078",
+    "image": {
+      "format": "png",
+      "sha256": "06f19420786fb968095f7ba02fe585eb2283b93c13239f9997ab58ae3ef69bdd"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

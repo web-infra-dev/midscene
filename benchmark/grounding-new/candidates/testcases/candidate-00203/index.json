@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00203",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task identifies the account navigation entry on the Amazon page."
+  },
+  "instruction": {
+    "en": "Navigate to the Amazon account page",
+    "zh": "进入 Amazon 账户页面。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [25.2, 979.8, 40.6, 890.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/716",
+    "image": {
+      "format": "png",
+      "sha256": "ef38fa7fc759b8240cfcd6f6aff48465080bcfded314031bef65cffa05d66296"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

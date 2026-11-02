@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00283",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is the navigation entry for returning to the site home page."
+  },
+  "instruction": {
+    "en": "Navigate to home page",
+    "zh": "进入首页。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [30.0, 254.0, 74.0, 78.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00003-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1581",
+    "image": {
+      "format": "png",
+      "sha256": "017dec681e38ce93e3e52d0ac1895910a0ea8ca7a92a6df434af4b6acb4ea6f5"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00258",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the calendar entry on the home screen."
+  },
+  "instruction": {
+    "en": "view the calandar ",
+    "zh": "查看日历。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [74, 831, 346, 221],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L5486",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#457",
+    "image": {
+      "format": "png",
+      "sha256": "64da6be71083e8bf23a8f10d2102c79b675dc7c9eb083e624ea8ba212dcce4c2"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

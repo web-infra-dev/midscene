@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-050",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by the function of a navigation item that opens project report tools."
+  },
+  "instruction": {
+    "en": "Open the project report tools from the left navigation.",
+    "zh": "从左侧导航栏打开项目报告工具。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [442.0, 452.0, 500.0, 35.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L3040",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#217",
+    "image": {
+      "format": "png",
+      "sha256": "cd8837ca635c0fb9eb06d4f11848c9641ed271e504e5fe802ce98161d46dc03f"
+    },
+    "patch": "The original instruction requested 'Generate project report', but the annotated target is the Reporting entry in the left navigation. Locating that entry represents opening the report tools, not completing report generation, so the requested outcome exceeded the single action represented by the groundTruth. Rewrote both instructions to open the project report tools from the left navigation and updated category.reason to describe entering the reporting page. The Functional category and the existing groundTruth on the Reporting navigation item are preserved.",
+    "collectedAt": 1792485870864
+  }
+}

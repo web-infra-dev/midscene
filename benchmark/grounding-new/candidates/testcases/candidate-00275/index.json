@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00275",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target calendar control navigates to the requested month."
+  },
+  "instruction": {
+    "en": "View June calendar",
+    "zh": "查看六月日历。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [262.0, 1059.0, 282.0, 1039.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/501",
+    "image": {
+      "format": "png",
+      "sha256": "dfb9d88fb7f6a9bc431385d9ad0f54b7ead56922694d5753f61a3a8ae1ad6dbe"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

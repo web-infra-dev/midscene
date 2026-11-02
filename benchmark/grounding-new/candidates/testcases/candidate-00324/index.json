@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00324",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The control labeled Auto-Replenish enables the requested recurring purchase function."
+  },
+  "instruction": {
+    "en": "Enable auto-replenish",
+    "zh": "启用自动补货。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [363.0, 423.5, 445.1, 223.8],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1388",
+    "image": {
+      "format": "png",
+      "sha256": "fff5373d9d9ce1df0117e3c95e83b833df7b2fe0679667b7373cc76aa8b43e88"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

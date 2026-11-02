@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00229",
+  "platform": "mobile",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "The target shoe size is specified by both its size and availability."
+  },
+  "instruction": {
+    "en": "Select available size 9 shoes",
+    "zh": "选择有货的 9 码鞋。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [953, 358, 1008, 309],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1052",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1052",
+    "image": {
+      "format": "png",
+      "sha256": "2591f240472b526bfca09a685f8ba479773a107d6ae11a4e6bfb0ecb015707d5"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

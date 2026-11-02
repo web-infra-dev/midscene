@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00476",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires finding the last available date within August."
+  },
+  "instruction": {
+    "en": "Select last available date in August",
+    "zh": "选择 8 月最后一个可选日期。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [547.2, 997.5, 595.2, 955.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/771",
+    "image": {
+      "format": "png",
+      "sha256": "fcf9df858ff6fdfa8ab8e6cdfcb88c02a0692982afdaca11a4beecf6a59182f3"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

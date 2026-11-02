@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00392",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The Products navigation control leads to the product information."
+  },
+  "instruction": {
+    "en": "Browse product details",
+    "zh": "浏览产品详情。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [24.8, 210.1, 60.8, 123.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/112",
+    "image": {
+      "format": "png",
+      "sha256": "9d1366902699f2f91c69362acc6055bc825a4fd636ea77ab287f463d34c2303a"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

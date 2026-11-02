@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00199",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the control for reporting the post."
+  },
+  "instruction": {
+    "en": "Report post",
+    "zh": "举报帖子。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [883.0, 685.0, 925.0, 604.1],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/694",
+    "image": {
+      "format": "png",
+      "sha256": "a49d136fb5b7dbbb1d7b172ab41550eb71f5e9406961f645bcbbe7b6ff6586ee"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

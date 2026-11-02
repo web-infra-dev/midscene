@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00447",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The next-page arrow must be located within the Browse by Category section rather than another carousel."
+  },
+  "instruction": {
+    "en": "View the next page of the browse by category section",
+    "zh": "查看按类别浏览区域的下一页。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [893, 1475, 1005, 1431],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L4862",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#405",
+    "image": {
+      "format": "png",
+      "sha256": "c8fd4326f2a6a1197ded5bb6138269bd6a4bbcacfbc488ca996b5933465e84c0"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704192
+  }
+}

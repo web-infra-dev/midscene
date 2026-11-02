@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00117",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested activity is identified by the Utility biking label."
+  },
+  "instruction": {
+    "en": "Click to select Utility biking",
+    "zh": "点击选择“Utility biking”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [777, 1010, 924, 70],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1041",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1041",
+    "image": {
+      "format": "png",
+      "sha256": "76478bcacab4b37e07b0ee829da4b2ada354fec49aba98782b2d094ce77a351f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

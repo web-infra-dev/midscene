@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00375",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the navigation link labeled “The Letters”."
+  },
+  "instruction": {
+    "en": "check the letters",
+    "zh": "查看信件。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [509, 2360, 629, 1295],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L2162",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#180",
+    "image": {
+      "format": "png",
+      "sha256": "f42ff5a1aee1ddd8add2acfef5b319be142413ec58fbf10f928bc46fcfd3309b"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704162
+  }
+}

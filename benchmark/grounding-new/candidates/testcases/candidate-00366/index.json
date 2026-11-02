@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00366",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its interface function: click to adjust the text size."
+  },
+  "instruction": {
+    "en": "Click to adjust the text size",
+    "zh": "点击调整文字大小。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [149, 828, 275, 702],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1000",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1000",
+    "image": {
+      "format": "png",
+      "sha256": "4f4d9aa466e20748c5224ed226fd3d6f8c2895a41a8b7abbbdb3d8900cd7a438"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814757
+  }
+}

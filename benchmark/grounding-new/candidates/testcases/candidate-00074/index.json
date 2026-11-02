@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00074",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the entry for shopping for the named brand’s products."
+  },
+  "instruction": {
+    "en": "Shop for Neutrogena products",
+    "zh": "购买 Neutrogena 产品。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [75.6, 904.2, 165.5, 176.5],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00003-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1576",
+    "image": {
+      "format": "png",
+      "sha256": "7765d9f64cc4c7594bfd64d4dc5f2bb2c48fbaac6e23b0ca3bf04aa21101d178"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00243",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the field labeled for an email address."
+  },
+  "instruction": {
+    "en": "Enter email address",
+    "zh": "输入邮箱地址。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [324.7, 669.4, 360.7, 80.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/447",
+    "image": {
+      "format": "png",
+      "sha256": "9be73cfdd653a1ff432038b0b25417d13c2f12fe3ae374adb0604a7392a214a8"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00292",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the Homeowner link in the site navigation."
+  },
+  "instruction": {
+    "en": "Click on \"Homeowner\"",
+    "zh": "点击“Homeowner”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [8.0, 1019.1, 56.0, 908.9],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=304",
+    "image": {
+      "format": "jpeg",
+      "sha256": "0a6900f0acdedab367e6be73366d3cfc5cecae5a0eb590959655d2d23f8a4870"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

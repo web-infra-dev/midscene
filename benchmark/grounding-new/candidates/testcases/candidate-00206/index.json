@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00206",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the option for keeping the user logged in."
+  },
+  "instruction": {
+    "en": "let website remember account information for no logging in the next year",
+    "zh": "让网站记住账户信息，使未来一年无需登录。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [796, 161, 853, 104],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L3602",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#300",
+    "image": {
+      "format": "png",
+      "sha256": "fe8f7163deecf2324f2115d0fad4e28fc86d6ed1834fcaac302df201c0c2de43"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

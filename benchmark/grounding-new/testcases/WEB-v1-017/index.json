@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-017",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The Forest Green swatch has its color name directly underneath it, so the visible label identifies the target without requiring color recognition."
+  },
+  "instruction": {
+    "en": "Click on the \"Forest Green\" circle.",
+    "zh": "点击“Forest Green”的圆形。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [793.0, 1335.0, 833.0, 1295.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-18K/resolve/f061eba2b7e3fffcf511694f15ad3ca38898ab9e/data/train-00008-of-00019.parquet",
+    "dataset": "GroundUI-18K",
+    "recordId": "data/train-00008-of-00019.parquet#682",
+    "image": {
+      "format": "png",
+      "sha256": "24cc7e58755633f0cfb22c6264c6191e4eccc590b3170d2e7439fb401560585a"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction. Changed category.item from Color Recognition to Basic Element and updated category.reason because the named Forest Green swatch can be identified by its visible label. Narrowed the ground truth from [769.0, 1395.0, 843.0, 1235.0] to [793.0, 1335.0, 833.0, 1295.0] to fit the Forest Green circular swatch and its selection outline.",
+    "collectedAt": 1792485870672
+  }
+}

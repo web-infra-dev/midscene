@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00225",
+  "platform": "mobile",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "The desired menu control is distinguished by its association with the second paper-flower video."
+  },
+  "instruction": {
+    "en": "Click for more actions on second paper flower video",
+    "zh": "点击第二个纸花视频的更多操作。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1716, 1070, 1763, 1023],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L760",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#760",
+    "image": {
+      "format": "png",
+      "sha256": "a8ba5b53d630bceff2aaf6ec656d643e1832c2e55923f1449e578a69c2dbc0c2"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00063",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the setting that controls repetition."
+  },
+  "instruction": {
+    "en": "set the repeat mode",
+    "zh": "设置重复模式。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1395, 1121, 1529, 49],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L878",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#73",
+    "image": {
+      "format": "png",
+      "sha256": "ba54e669dc3581019210784a462a6cbf1cec6a54a12c927c9d8c157fcc4af1f2"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

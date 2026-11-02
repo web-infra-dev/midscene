@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00088",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested forum is identified by matching its name."
+  },
+  "instruction": {
+    "en": "choose the forum of askreddit",
+    "zh": "选择 AskReddit 论坛。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [756, 453, 824, 97],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L1958",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#163",
+    "image": {
+      "format": "png",
+      "sha256": "c9796c8dd24c162269f36cd71fd57516d28fb8d0219001f78276da8e137763c8"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

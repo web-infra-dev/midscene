@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00307",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the settings row labeled “Battery”."
+  },
+  "instruction": {
+    "en": "check battery usage",
+    "zh": "查看电池使用情况。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [923, 1073, 1102, 15],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L2750",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#229",
+    "image": {
+      "format": "png",
+      "sha256": "c9919c9dfe840881dfa2ff7e3559ff6fb37197ac583434c170e2bcf86ca43423"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704137
+  }
+}

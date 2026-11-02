@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00376",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target favorite control is identified by the second hotel’s position in the list."
+  },
+  "instruction": {
+    "en": "Add the second hotel to favorites",
+    "zh": "将第二家酒店加入收藏。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [644.0, 536.5, 676.0, 504.5],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/862",
+    "image": {
+      "format": "png",
+      "sha256": "cea9a16384614821d3f5a7eb2a6abf890bf0bc9a2a673a6d4a24d601a945462e"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

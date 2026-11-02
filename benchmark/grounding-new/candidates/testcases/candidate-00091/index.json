@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00091",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by directly matching the displayed numeric text."
+  },
+  "instruction": {
+    "en": "Click on \"886.7M\"",
+    "zh": "点击“886.7M”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [975.2, 747.8, 1002.2, 657.8],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=360",
+    "image": {
+      "format": "jpeg",
+      "sha256": "e2415dd79f162923aee9b57792f2840512f39950a9cfe75b5fd49a890fc50cff"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

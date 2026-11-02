@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-098",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires identifying the correct person from the legend and reasoning about the chronological order of their meetings."
+  },
+  "instruction": {
+    "en": "Click on Mike's last meeting of the week.",
+    "zh": "点击 Mike 本周最后一场会议。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [276.0, 903.0, 695.0, 829.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/373",
+    "image": {
+      "format": "png",
+      "sha256": "3f065fe13ee5cdf96bb8a5302c82c50458000b0c5d52333d4bd6559863d9d555"
+    },
+    "patch": "Changed the instruction from Betty's last meeting of the week to Mike's and added instruction.zh by translating the revised English instruction. Moved the ground truth from Betty's Friday Council Meeting to Mike's Thursday Course Social Media meeting.",
+    "collectedAt": 1792485871025
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00369",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by its distinctive hexagonal outline."
+  },
+  "instruction": {
+    "en": "Click on the hexagon icon.",
+    "zh": "点击六边形图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [105.0, 1028.0, 235.0, 905.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=223",
+    "image": {
+      "format": "jpeg",
+      "sha256": "b361a73b6d8bb0518e2236fe2ead1430a9e1b72ee6019b04ede38e3a28e1acb3"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

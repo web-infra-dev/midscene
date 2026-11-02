@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00107",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target icon is specified by its position between two other controls."
+  },
+  "instruction": {
+    "en": "Press the icon between attach and options",
+    "zh": "点击附件和选项之间的图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [156, 954, 282, 827],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L687",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#687",
+    "image": {
+      "format": "png",
+      "sha256": "5b3907e3ab7d9b8f47393252e8b7c1a26f2e271363752ade2646e0e358cf1a9e"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00231",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task identifies the date control that opens the check-in calendar."
+  },
+  "instruction": {
+    "en": "Open calendar to change the start date of stay",
+    "zh": "打开日历以更改入住开始日期。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [149.1, 498.7, 168.8, 426.3],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/877",
+    "image": {
+      "format": "png",
+      "sha256": "2e04be32d6e781026ee84c2c03e792ba0b5ad27f05932d1ab639e8bde3e475c8"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

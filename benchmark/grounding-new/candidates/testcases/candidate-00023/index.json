@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00023",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the navigation control that returns to settings."
+  },
+  "instruction": {
+    "en": "back to settings",
+    "zh": "返回设置页面。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [155, 299, 260, 13],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L5114",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#426",
+    "image": {
+      "format": "png",
+      "sha256": "09c64f4b3a5d236a6065fb666d16b9cc8da5c959298fe4f68dc9e1018a719381"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

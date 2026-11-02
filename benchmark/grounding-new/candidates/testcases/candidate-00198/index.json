@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00198",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the control for accepting the privacy policy."
+  },
+  "instruction": {
+    "en": "agree this privacy policy",
+    "zh": "同意该隐私政策。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2075, 1024, 2287, 548],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L1826",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#152",
+    "image": {
+      "format": "jpeg",
+      "sha256": "1a3fbedb1859ee7e2eea15ed68343e0a8c4d0ce84ffe6e0d004ba11879804c23"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

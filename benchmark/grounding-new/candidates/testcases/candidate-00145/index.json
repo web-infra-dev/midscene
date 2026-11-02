@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00145",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task identifies the control used to order or filter items by popularity."
+  },
+  "instruction": {
+    "en": "Filter to show most popular items",
+    "zh": "筛选显示最受欢迎的商品。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [861, 56, 881, 36],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L12",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#12",
+    "image": {
+      "format": "png",
+      "sha256": "a14f711d3a486b0d30ed090eb1b5ab7875b6b750030aaecea58d2d5d87828827"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

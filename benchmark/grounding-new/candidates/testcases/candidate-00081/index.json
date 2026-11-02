@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00081",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target search field is identified by directly matching its displayed prompt."
+  },
+  "instruction": {
+    "en": "Click on \"Hi, James! What can we help you find today?\"",
+    "zh": "点击“Hi, James! What can we help you find today?”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [16.0, 714.6, 56.0, 282.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=205",
+    "image": {
+      "format": "jpeg",
+      "sha256": "4be88c52006bd00b49c7441ea4874e71d37feb49829650f789857635f8de0e3c"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

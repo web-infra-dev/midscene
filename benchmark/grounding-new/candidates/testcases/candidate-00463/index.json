@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00463",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the book-category link labeled “Drama”."
+  },
+  "instruction": {
+    "en": "view drama books",
+    "zh": "查看戏剧类图书。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1015, 600, 1037, 450],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L4634",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#386",
+    "image": {
+      "format": "png",
+      "sha256": "c374098e11ee77e331834af743722354b8bd930e73211fdf02e4fd9141a484c0"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704196
+  }
+}

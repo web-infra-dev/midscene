@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00450",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The input field is identified by its position above the recent searches."
+  },
+  "instruction": {
+    "en": "Type 'digital illustrations' in the field above recent searches",
+    "zh": "在最近搜索记录上方的输入框中输入 digital illustrations。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [147, 941, 273, 207],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L737",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#737",
+    "image": {
+      "format": "png",
+      "sha256": "d0b53eab8fd51c0a13864a01c8e9069cc90223bb7170995b9ac41221747d41c3"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814761
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00362",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its interface function: enable or disable notifications for scheduled updates."
+  },
+  "instruction": {
+    "en": "Enable or disable notifications for scheduled updates.",
+    "zh": "开启或关闭定时更新通知。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1400, 1039, 1475, 890],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1027",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1027",
+    "image": {
+      "format": "png",
+      "sha256": "450b5dfb97a690e873cbb95da7f539f8ead8101a9e6573a2e7b38691e45088ff"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814757
+  }
+}

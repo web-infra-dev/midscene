@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00052",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its function of adding an alarm."
+  },
+  "instruction": {
+    "en": "Click to add a new alarm",
+    "zh": "点击添加新闹钟。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1833, 666, 2085, 414],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L941",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#941",
+    "image": {
+      "format": "png",
+      "sha256": "dfbcb2610bb8849b9d30b5cee1944593a463b8d80efe0bd87103919ba52dd742"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

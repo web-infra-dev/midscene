@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00410",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The date control is identified by its position above the amount."
+  },
+  "instruction": {
+    "en": "Click the date button above the amount",
+    "zh": "点击金额上方的日期按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [283, 772, 378, 308],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L738",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#738",
+    "image": {
+      "format": "png",
+      "sha256": "230bce5e89ccb39eca7042426543fb27b2125b4a37cac9eeeb3872a4ca14c9e9"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814758
+  }
+}

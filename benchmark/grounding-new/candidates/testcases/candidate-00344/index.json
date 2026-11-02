@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00344",
+  "platform": "web",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "The event is distinguished by its association with the Framework calendar."
+  },
+  "instruction": {
+    "en": "Select Framework event on the calendar",
+    "zh": "选择日历上的 Framework 事件。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [337.0, 692.6, 361.0, 414.8],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/662",
+    "image": {
+      "format": "png",
+      "sha256": "ef4c602dc2ab9b8bd5dd41ee7bab5fb3c2b4c60b4900d59bfbf3c3c8d0f20e34"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

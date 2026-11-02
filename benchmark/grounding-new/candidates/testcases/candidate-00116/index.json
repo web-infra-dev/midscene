@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00116",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by the Cancel button in the permission dialog."
+  },
+  "instruction": {
+    "en": "Click on \"Cancel\"",
+    "zh": "点击“Cancel”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2066.0, 540.0, 2249.0, 113.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=213",
+    "image": {
+      "format": "jpeg",
+      "sha256": "74d85a233888d8dcfdc93f0a2eaf40a063e98b9b475cd0125e9cb0d24437f978"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

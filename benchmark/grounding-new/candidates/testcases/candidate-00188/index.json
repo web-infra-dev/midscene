@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00188",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the Watchlists link in the finance navigation bar."
+  },
+  "instruction": {
+    "en": "Click on \"Watchlists\".",
+    "zh": "点击“Watchlists”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [87.0, 227.0, 125.0, 155.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=320",
+    "image": {
+      "format": "jpeg",
+      "sha256": "ef874c0fadbfd51130e1f1ddf625da7e642a69908019bb13a6ce73ab7c00abba"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

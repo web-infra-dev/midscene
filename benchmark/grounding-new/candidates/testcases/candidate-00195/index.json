@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00195",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target image is distinguished by its ordinal position in the gallery."
+  },
+  "instruction": {
+    "en": "Select fifth image in gallery",
+    "zh": "选择图片库中的第五张图片。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [424.2, 92.1, 488.2, 28.1],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/134",
+    "image": {
+      "format": "png",
+      "sha256": "642d8a8d3d2f41fc9fb3a7c96dbf6b114dff32ac12c664d42087a5c3df97030a"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

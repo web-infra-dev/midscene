@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00431",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the clock tab labeled “Alarm”."
+  },
+  "instruction": {
+    "en": "view alarm",
+    "zh": "查看闹钟。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2276, 522, 2453, 352],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L914",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#76",
+    "image": {
+      "format": "png",
+      "sha256": "c88ad62ab5ec3d3f25f3f17f7f492476e87a86bdfe371955b3afa0c23167c320"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704187
+  }
+}

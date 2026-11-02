@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00434",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The input field is identified by its position above the time zone list."
+  },
+  "instruction": {
+    "en": "Type 'Toronto' in the field above time zones",
+    "zh": "在时区上方的输入框中输入 Toronto。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [315, 1001, 372, 79],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L537",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#537",
+    "image": {
+      "format": "png",
+      "sha256": "54859405cf0a74dfea254b8e951e9807def18f96eb59b110dee7e2409ae57578"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814759
+  }
+}

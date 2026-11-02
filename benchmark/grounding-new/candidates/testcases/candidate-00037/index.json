@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00037",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target icon is identified by its email settings function."
+  },
+  "instruction": {
+    "en": "Click the icon for more email settings",
+    "zh": "点击查看更多邮件设置的图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [156, 1080, 282, 954],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1406",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1406",
+    "image": {
+      "format": "png",
+      "sha256": "f97a34d0731c1b8850a4fec4e61b05eca97ac686e4f01553b7ec01d17e8e45eb"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

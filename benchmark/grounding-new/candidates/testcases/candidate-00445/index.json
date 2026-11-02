@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00445",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The three-line menu icon opens the application navigation menu."
+  },
+  "instruction": {
+    "en": "Click on the menu icon.",
+    "zh": "点击菜单图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [63.2, 126.0, 199.8, 0.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=253",
+    "image": {
+      "format": "jpeg",
+      "sha256": "3224106cfaa0c0d1968657842473f7a54bd7688eaa15ee82ab3b2f5021d525a2"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

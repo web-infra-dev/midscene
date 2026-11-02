@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00166",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by the Type option in the sort menu."
+  },
+  "instruction": {
+    "en": "sort by file's types",
+    "zh": "按文件类型排序。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [834, 1020, 940, 548],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L1910",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#159",
+    "image": {
+      "format": "jpeg",
+      "sha256": "88f2cf05ac238d4f4edae01e79b8d2372de3d66c00446b2e6da9d09b4f9c0afb"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00092",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its function of applying the Favorites filter."
+  },
+  "instruction": {
+    "en": "Select to apply the Favorites filter.",
+    "zh": "选择应用 Favorites 筛选条件。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [326, 1044, 408, 828],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L869",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#869",
+    "image": {
+      "format": "png",
+      "sha256": "cec9350f0c74cb4bbd9efa26c3d78ad7242ef4552d7751c9ddd3f5d774f33d1c"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00157",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target is distinguished by its position on the right side of the search bar."
+  },
+  "instruction": {
+    "en": "Use the right icon in search bar",
+    "zh": "使用搜索栏右侧的图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2125, 993, 2290, 867],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L752",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#752",
+    "image": {
+      "format": "png",
+      "sha256": "a947d56edbc160bf084001944db1a0747ef5f68f02d4e519f7739b883744570c"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

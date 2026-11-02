@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00186",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the meeting-join control."
+  },
+  "instruction": {
+    "en": "join a meeting",
+    "zh": "加入会议。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [296, 248, 541, 28],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L4046",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#337",
+    "image": {
+      "format": "jpeg",
+      "sha256": "958ff6c2dd516dfd3d3fee8ca309dd079a82bdcd0385c1232ccfbf2ff98a3fd7"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

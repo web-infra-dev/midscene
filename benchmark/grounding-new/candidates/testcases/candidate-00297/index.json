@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00297",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target button opens additional settings."
+  },
+  "instruction": {
+    "en": "Click the options button for more settings.",
+    "zh": "点击选项按钮以查看更多设置。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [146, 1080, 272, 975],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L650",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#650",
+    "image": {
+      "format": "png",
+      "sha256": "83b342ccbf439d397d06c9339ac962d489c9fea3b7a999ef89e1b68b72d881c9"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-054",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires understanding the current layout and identifying the control that switches to another layout."
+  },
+  "instruction": {
+    "en": "I would like to switch to a different layout.",
+    "zh": "期望换一种布局模式。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [35.0, 2989.0, 96.0, 2890.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L6764",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#483",
+    "image": {
+      "format": "png",
+      "sha256": "7c29bb3f01df0562c24f0036ae52d2daee7d9fa47384b56c9536a5a085bf4843"
+    },
+    "patch": "Changed the instruction from displaying hotels in a card-based layout to switching to a different layout, added instruction.zh by translating the revised instruction, and updated category.reason to explain the functional basis for locating the layout-switching control.",
+    "collectedAt": 1792485870898
+  }
+}

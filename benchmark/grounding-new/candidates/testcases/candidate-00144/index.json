@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00144",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is a numerical value in the price filter."
+  },
+  "instruction": {
+    "en": "Click on '679'.",
+    "zh": "点击“679”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [421.0, 569.0, 461.0, 411.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=309",
+    "image": {
+      "format": "jpeg",
+      "sha256": "b966d7e448b0c66645440e8a12ea27de7d2f52e24ab035e749d537cce1c66e18"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

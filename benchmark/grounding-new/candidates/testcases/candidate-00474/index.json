@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00474",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by its visible label or element type: type example@example.com in the subscription email field."
+  },
+  "instruction": {
+    "en": "Type example@example.com in the subscription email field",
+    "zh": "在订阅邮箱输入框中输入 example@example.com。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [964, 1836, 990, 1674],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L139",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#139",
+    "image": {
+      "format": "png",
+      "sha256": "deccae6d63809e8ee5382d1476c763a8a78eea4a1055deca38aa8c61b02105c6"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814764
+  }
+}

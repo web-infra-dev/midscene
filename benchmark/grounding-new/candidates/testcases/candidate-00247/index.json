@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00247",
+  "platform": "web",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "The product is distinguished by its specified device type and display size."
+  },
+  "instruction": {
+    "en": "Click on the 10.9 inch ipad ",
+    "zh": "点击 10.9 英寸的 iPad。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [207.1, 227.7, 505.1, 59.7],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1350",
+    "image": {
+      "format": "png",
+      "sha256": "394a63b103715499e268f0723ac858327f419760c521bbb1960aea6de61f31c8"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

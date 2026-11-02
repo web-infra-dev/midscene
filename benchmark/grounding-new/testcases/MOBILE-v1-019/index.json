@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-019",
+  "platform": "mobile",
+  "category": {
+    "item": "Fine-grained Manipulation",
+    "reason": "The task requires precise localization of the current position of one price-slider handle while distinguishing it from the other handle."
+  },
+  "instruction": {
+    "en": "Locate the current position of the minimum-price slider in the price filter.",
+    "zh": "定位价格筛选器最低价滑块的当前位置。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [524.0, 536.0, 612.0, 452.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/mobile/ANumericRange240json/A1Slider100.json#L23",
+    "dataset": "FineState-Bench",
+    "recordId": "mobile/ANumericRange240json/A1Slider100.json#22",
+    "image": {
+      "format": "png",
+      "sha256": "e15e3f36ea98d68eca5e383a0c4ca3d8f317439dec5037fdc9dfa5663fea57b3"
+    },
+    "patch": "Added instruction.zh by translating the revised English instruction. The original instruction identified the target as the leftmost price slider. Revised the instruction to identify the minimum-price slider in the price filter, making its role explicit. Shifted groundTruth from [537.0, 544.0, 625.0, 460.0] to [524.0, 536.0, 612.0, 452.0] in [top, right, bottom, left] pixel coordinates, centering the existing-size box on the minimum-price handle. Updated category.reason to distinguish the minimum- and maximum-price handles.",
+    "collectedAt": 1792485870224
+  }
+}

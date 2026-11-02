@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00264",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The list icon is identified by its function of displaying categories."
+  },
+  "instruction": {
+    "en": "Click on the list icon to view categories.",
+    "zh": "点击列表图标以查看分类。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [73.8, 954.0, 199.8, 828.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=265",
+    "image": {
+      "format": "jpeg",
+      "sha256": "c373e4544cac9cc9cdef2e6345e1dc6da94a50e5dfbdde343af576b0d7991a15"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

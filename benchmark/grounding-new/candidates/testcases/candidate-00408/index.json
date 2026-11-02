@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00408",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target date is explicitly given and visible in the calendar."
+  },
+  "instruction": {
+    "en": "Click on 18th of april",
+    "zh": "点击 4 月 18 日。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [433.6, 774.3, 481.8, 726.1],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1326",
+    "image": {
+      "format": "png",
+      "sha256": "e153efd1eec3041eb44f6ab4bc4941f9b5d09a5a1abc6d311da2060cf8f5ce43"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00380",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The section to expand is directly named by its visible label."
+  },
+  "instruction": {
+    "en": "Expand the 'Conjunctions' section",
+    "zh": "展开“Conjunctions”部分。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [721.2, 645.5, 760.6, 169.9],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/180",
+    "image": {
+      "format": "png",
+      "sha256": "267c46bd8d678bedfc59330dc1870c07b5d8d1029e23736fe8b7773f5129645f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

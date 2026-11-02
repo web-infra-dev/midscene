@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00210",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by the visible True Crime navigation label."
+  },
+  "instruction": {
+    "en": "check the books on true crime",
+    "zh": "查看真实犯罪类书籍。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [112, 1115, 200, 898],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L2210",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#184",
+    "image": {
+      "format": "png",
+      "sha256": "bf4296edc6dcb6351c34a8ce41c9375a1fd5ad59d85dd51d78f70894f62e150a"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

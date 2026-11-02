@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00053",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the keyboard control that dismisses the input method."
+  },
+  "instruction": {
+    "en": "fold input method",
+    "zh": "收起输入法。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1554, 1049, 1652, 894],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L2102",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#175",
+    "image": {
+      "format": "jpeg",
+      "sha256": "3a4a29c1a6c7e0b38e824c3e20c441a86690322655d1ffdf4f8dc42e525176a6"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

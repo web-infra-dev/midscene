@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00050",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The request requires identifying a control associated with allowing a pop-up window."
+  },
+  "instruction": {
+    "en": "Allow the pop-up window",
+    "zh": "允许弹出窗口。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [231.3, 1052.0, 292.1, 944.5],
+  "reference": {
+    "url": "https://github.com/xlang-ai/OSWorld-G/blob/daa6bd8e0e629f0917ad2984df930bf0bd967540/benchmark/OSWorld-G.json",
+    "dataset": "OSWorld-G",
+    "recordId": "hMjkRFL62H-0",
+    "image": {
+      "format": "png",
+      "sha256": "155d495b69dff3fc07eb4120f42af45bf6eee0d7c59d95571dd74e87d4d9929f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

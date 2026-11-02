@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00010",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target is identified by its position below the email address."
+  },
+  "instruction": {
+    "en": "Open the twitter under the email",
+    "zh": "打开电子邮件下方的 Twitter 链接。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [539.0, 549.6, 564.4, 523.7],
+  "reference": {
+    "url": "https://github.com/xlang-ai/OSWorld-G/blob/daa6bd8e0e629f0917ad2984df930bf0bd967540/benchmark/OSWorld-G.json",
+    "dataset": "OSWorld-G",
+    "recordId": "mJAfD5H9gZ-0",
+    "image": {
+      "format": "png",
+      "sha256": "853856ba868cbab58ad0cd71e7dd1a39f7a47276ae80ecaf08a2f65576547309"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

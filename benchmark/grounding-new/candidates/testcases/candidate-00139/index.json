@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00139",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is the control used to submit a search on the page."
+  },
+  "instruction": {
+    "en": "Perform search",
+    "zh": "执行搜索。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [205.0, 851.4, 237.0, 559.3],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1385",
+    "image": {
+      "format": "png",
+      "sha256": "a7197f69e17a3150b379e8bc559a0d2ec507fadf7926befe633ac97deaa31a92"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

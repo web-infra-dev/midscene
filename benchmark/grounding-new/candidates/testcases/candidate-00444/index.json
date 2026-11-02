@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00444",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The end date is explicitly given and visible in the calendar."
+  },
+  "instruction": {
+    "en": "Hit 14th of May as an end date",
+    "zh": "选择 5 月 14 日作为结束日期。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [659.6, 595.7, 704.4, 550.3],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/152",
+    "image": {
+      "format": "png",
+      "sha256": "85c826a2af9e89ef8c0feb2e4c22a007f9bfd787a009d167b2d8dcc700556570"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

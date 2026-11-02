@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-095",
+  "platform": "mobile",
+  "category": {
+    "item": "Fine-grained Manipulation",
+    "reason": "Locating the intersection of a vertical line and a plotted curve requires precise point-level positioning within the chart."
+  },
+  "instruction": {
+    "en": "Select the intersection point of the black vertical line and the blue line chart.",
+    "zh": "选择黑色竖线与蓝色折线图的交点。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [814.0, 780.5, 845.0, 764.5],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/mobile/ANumericRange240json/A5ChartPoint40.json#L8",
+    "dataset": "FineState-Bench",
+    "recordId": "mobile/ANumericRange240json/A5ChartPoint40.json#7",
+    "image": {
+      "format": "png",
+      "sha256": "8649b16fc3c460e1423ffe93ede47241e5a02fe5d8c10f49324c5aab5218709b"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction. Shifted the ground-truth box 1.5 pixels to the right, from [814.0, 779.0, 845.0, 763.0] to [814.0, 780.5, 845.0, 764.5] (top, right, bottom, left), to center it on the intersection.",
+    "collectedAt": 1792485870503
+  }
+}

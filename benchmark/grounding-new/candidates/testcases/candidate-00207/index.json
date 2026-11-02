@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00207",
+  "platform": "web",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "The target booking option is distinguished by both weekday and time."
+  },
+  "instruction": {
+    "en": "Choose Sunday at 6pm",
+    "zh": "选择周日下午 6 点。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [291.4, 1027.0, 390.0, 940.8],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1081",
+    "image": {
+      "format": "png",
+      "sha256": "09d2b2cbf76c1b84f9ba2708a894a831ea8c4b8007cbc39fc68c05b8d526d641"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

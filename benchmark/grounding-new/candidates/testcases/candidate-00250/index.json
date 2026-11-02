@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00250",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the control that closes the note panel."
+  },
+  "instruction": {
+    "en": "close the note bar",
+    "zh": "关闭备注栏。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [220, 745, 310, 675],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L2978",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#248",
+    "image": {
+      "format": "png",
+      "sha256": "ee75fa8251a460df023577bad6ded8b179bf277031250f2cd9e9638c31eea07f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

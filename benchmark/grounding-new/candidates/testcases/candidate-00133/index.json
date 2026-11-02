@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00133",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the control that displays song lyrics."
+  },
+  "instruction": {
+    "en": "switch to song lyric",
+    "zh": "切换到歌词。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2276, 349, 2417, 198],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L5354",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#446",
+    "image": {
+      "format": "png",
+      "sha256": "17b52672277874b1c4b140f22cd4c368643f6213b57ee749e4a530beb05a96a1"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

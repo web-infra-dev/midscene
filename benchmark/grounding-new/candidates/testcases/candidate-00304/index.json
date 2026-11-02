@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00304",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The date must be identified by relating Christmas to the preceding Sunday in the calendar."
+  },
+  "instruction": {
+    "en": "Choose the Sunday before Christmas",
+    "zh": "选择圣诞节前的星期日。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [708.4, 444.3, 753.2, 429.2],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1426",
+    "image": {
+      "format": "png",
+      "sha256": "c48a285e07cd3d793e92f0f44121b775b2ba4343087a969388267ddbbc41b7aa"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00472",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The Clear control removes the currently selected departure date."
+  },
+  "instruction": {
+    "en": "Clear selected departure date",
+    "zh": "清除已选的出发日期。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [757.6, 373.2, 778.6, 327.5],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1429",
+    "image": {
+      "format": "png",
+      "sha256": "fc0dc9a5e5ed6d7f413393c77eb95549b34ae7d7941272d3af5ca2d7e926c4e8"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

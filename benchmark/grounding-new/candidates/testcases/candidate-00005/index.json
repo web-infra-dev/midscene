@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00005",
+  "platform": "web",
+  "category": {
+    "item": "Refusal",
+    "reason": "The source annotation classifies the requested action as requiring refusal."
+  },
+  "instruction": {
+    "en": "Change the hour of the time to 9 AM.",
+    "zh": "将时间的小时数改为上午 9 点。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://github.com/xlang-ai/OSWorld-G/blob/daa6bd8e0e629f0917ad2984df930bf0bd967540/benchmark/OSWorld-G.json",
+    "dataset": "OSWorld-G",
+    "recordId": "35h7FwTKtF-1",
+    "image": {
+      "format": "png",
+      "sha256": "f5547951de19f2e814d480beaf949e75bae2d20714e616a0d192d971b0fd943b"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

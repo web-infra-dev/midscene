@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00078",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested solution category is identified by the corresponding navigation label."
+  },
+  "instruction": {
+    "en": "view solution of ai",
+    "zh": "查看 AI 解决方案。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [276, 1159, 364, 598],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L542",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#45",
+    "image": {
+      "format": "png",
+      "sha256": "a94e11752900dcf215d7531e8e1a14c225c637b9dd34f250a82b6bec34240ac6"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

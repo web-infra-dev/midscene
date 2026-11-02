@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00100",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its function of accepting cookies."
+  },
+  "instruction": {
+    "en": "Accept the cookies",
+    "zh": "接受 Cookie。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1013.2, 1727.1, 1049.8, 1608.2],
+  "reference": {
+    "url": "https://github.com/xlang-ai/OSWorld-G/blob/daa6bd8e0e629f0917ad2984df930bf0bd967540/benchmark/OSWorld-G.json",
+    "dataset": "OSWorld-G",
+    "recordId": "SSkeqHyDHI-0",
+    "image": {
+      "format": "png",
+      "sha256": "3bf8f5be30180ba4b978a33987469cc5f93455ae2b67770371fd28ebccc7ad58"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

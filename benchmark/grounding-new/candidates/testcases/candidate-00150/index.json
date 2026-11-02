@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00150",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested news section is identified by its visible label."
+  },
+  "instruction": {
+    "en": "show news",
+    "zh": "显示新闻。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [126, 446, 238, 125],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L4586",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#382",
+    "image": {
+      "format": "jpeg",
+      "sha256": "1001155a98aea41fa6f138e848c59717e3d1f1475dc88bec26f45a1635248cac"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

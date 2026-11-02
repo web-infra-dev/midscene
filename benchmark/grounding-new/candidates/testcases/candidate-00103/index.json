@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00103",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the control that dismisses the alert."
+  },
+  "instruction": {
+    "en": "close the alart window",
+    "zh": "关闭提示窗口。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [144, 1797, 191, 1750],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L4034",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#336",
+    "image": {
+      "format": "png",
+      "sha256": "5fc2b022554aa83ca1f6db7b97db8eda85dcec4f88190e4996a424a2b854e192"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

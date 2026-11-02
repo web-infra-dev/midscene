@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00201",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target three-dot icon is identified by its position on the right."
+  },
+  "instruction": {
+    "en": "Click the three-dot icon on the right",
+    "zh": "点击右侧的三点图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2877, 1395, 3039, 1314],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L955",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#955",
+    "image": {
+      "format": "png",
+      "sha256": "57048f4c5b11ce5d6f02796e93bece14d1c04d26be60509926ff2724f652ac77"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00328",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The time selector opens the booking-time dropdown."
+  },
+  "instruction": {
+    "en": "View timing drop down menu",
+    "zh": "查看时间下拉菜单。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [409.0, 1027.0, 457.0, 879.2],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1347",
+    "image": {
+      "format": "png",
+      "sha256": "1a6f1a98e9bf5111389ed11de1535a56f405378e6c9b56b6838eeb1b58391b6c"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

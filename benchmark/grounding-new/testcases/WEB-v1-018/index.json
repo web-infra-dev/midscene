@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-018",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The target date is identified by interpreting the price color legend and comparing the dates in May in the lowest displayed price tier."
+  },
+  "instruction": {
+    "en": "Find the earliest date in May with the lowest price.",
+    "zh": "找到 5 月日期最早且价格最便宜的日期。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [536, 653, 578, 611],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1456",
+    "image": {
+      "format": "png",
+      "sha256": "feb25a458b9a9918f3b849be69564a726bdf30aac0fb6f35f2f8b701760966c5"
+    },
+    "patch": "Replaced the original instruction “Click to select a return date” with a request to find the earliest date in May with the lowest price, and added a corresponding Chinese instruction. Changed groundTruth from [236.7, 821.4, 296.7, 738.6] to [536, 653, 578, 611] in [top, right, bottom, left] pixel coordinates, moving the target from the return-date field to May 8, the earliest May date in the lowest displayed price tier. Changed category.item from Functional to Reasoning and updated category.reason to describe the price and date comparison.",
+    "collectedAt": 1793867311106
+  }
+}

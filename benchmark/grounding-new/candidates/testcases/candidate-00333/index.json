@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00333",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The Reservations tab is explicitly identified by its label."
+  },
+  "instruction": {
+    "en": "Click on \"Reservations\".",
+    "zh": "点击“Reservations”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1408.8, 577.5, 1441.8, 434.2],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=431",
+    "image": {
+      "format": "jpeg",
+      "sha256": "662efdfb07fb7fe839b5ab6551ba2368261cbf2ab353d0d13b558e210bc81396"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

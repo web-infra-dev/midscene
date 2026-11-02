@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00346",
+  "platform": "web",
+  "category": {
+    "item": "Small Target",
+    "reason": "The requested checkbox is a small control that requires precise localization."
+  },
+  "instruction": {
+    "en": "Check the box below the email field",
+    "zh": "勾选电子邮箱输入框下方的复选框。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [143, 35, 156, 22],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1234",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1234",
+    "image": {
+      "format": "png",
+      "sha256": "4da1605a62d021127b4cd386be140cb280eb100205a61d4ccd9237cc136418a3"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814757
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00391",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the App Store download badge."
+  },
+  "instruction": {
+    "en": "download in apple app store",
+    "zh": "在 Apple App Store 下载。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [829, 735, 908, 497],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L3086",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#257",
+    "image": {
+      "format": "png",
+      "sha256": "38d6f7941f044b6d3a9a262b5caf870a51b844f3878f7efaf6b82ae43ae52cae"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704170
+  }
+}

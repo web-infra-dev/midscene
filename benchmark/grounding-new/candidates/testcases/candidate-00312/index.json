@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00312",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The next-month control changes the calendar to the requested month."
+  },
+  "instruction": {
+    "en": "Go to April",
+    "zh": "前往四月。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [329.6, 1056.6, 356.6, 1035.6],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1372",
+    "image": {
+      "format": "png",
+      "sha256": "366ff236b3caabb731f14f2a731e980fc272904072ac5aa8be537aeed8bd5029"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

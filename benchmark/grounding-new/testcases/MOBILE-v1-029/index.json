@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-029",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires interpreting the alarm time picker and identifying the minute control that sets the displayed time to 6:45."
+  },
+  "instruction": {
+    "en": "Set the alarm to 6:45.",
+    "zh": "将闹钟调整为 6 点 45 分。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [675, 250, 735, 190],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=466",
+    "image": {
+      "format": "jpeg",
+      "sha256": "ca5693c2051f2bbf06eadb906dc0b79d6cdaf206e3bf9ee8c797b2c26e9d50cf"
+    },
+    "patch": "Replaced the original instruction “Click on \"830\".” with an instruction to set the alarm to 6:45, and added instruction.zh by translating the revised English instruction. Changed groundTruth from [1001.5, 609.8, 1094.5, 530.2] to [675, 250, 735, 190] in [top, right, bottom, left] pixel coordinates, moving the target from the 830 control to the 45-minute position on the clock. Changed category.item from Basic Element to Functional and updated category.reason to describe the alarm time picker.",
+    "collectedAt": 1793867571070
+  }
+}

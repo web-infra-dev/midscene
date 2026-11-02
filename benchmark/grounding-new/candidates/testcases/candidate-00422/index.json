@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00422",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The quantity selector is identified by its position next to Add to Cart."
+  },
+  "instruction": {
+    "en": "Select the quantity next to Add to Cart",
+    "zh": "选择 Add to Cart 旁的数量。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1226, 274, 1313, 37],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1368",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1368",
+    "image": {
+      "format": "png",
+      "sha256": "9098c8df1bf7e790748195f4b3ba41281329a0b0e585b8adcc50b86ae893dd98"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814758
+  }
+}

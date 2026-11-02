@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00496",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The Trending menu option directly identifies the requested repository page."
+  },
+  "instruction": {
+    "en": "Navigate to the Trending repositories page",
+    "zh": "前往热门仓库页面。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [325.5, 665.3, 360.6, 393.5],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1464",
+    "image": {
+      "format": "png",
+      "sha256": "114d6d203a93048a481504936e6caff59cd50ccfd0f3a5207969cea82831b57d"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

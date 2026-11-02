@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00278",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested paper is distinguished by its displayed title."
+  },
+  "instruction": {
+    "en": "open 'retrospect and prospect in computer-based translation' paper",
+    "zh": "打开“retrospect and prospect in computer-based translation”论文。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [480, 1842, 535, 1014],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L3590",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#299",
+    "image": {
+      "format": "png",
+      "sha256": "e957d5938753068216e55107ff661b2ee74bd83a7fdbd7238f50e73159458dde"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-087",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The instruction combines activity type and recency; however, only one visible entry matches the activity type, so recency does not distinguish among visible candidates."
+  },
+  "instruction": {
+    "en": "View the details of your most recent indoor run.",
+    "zh": "查看最近一次室内跑步的详细信息。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2065.0, 1128.0, 2299.0, 50.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L56262",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "2961",
+    "image": {
+      "format": "png",
+      "sha256": "65e217f2523f43a20b09903a08d719a40be0c349372645b92ef6902e8072de35"
+    },
+    "patch": "Revised the original English instruction to request the most recent indoor running activity rather than the end-of-August walk, and added the corresponding Chinese instruction. Moved the ground-truth box from the August 31 Outdoor Walk card [1643.0, 1128.0, 1875.0, 50.0] to the July 17 Indoor Run card [2065.0, 1128.0, 2299.0, 50.0] (top, right, bottom, left). Updated category.reason to explain the visible activity-type distinction.",
+    "collectedAt": 1792485870485
+  }
+}

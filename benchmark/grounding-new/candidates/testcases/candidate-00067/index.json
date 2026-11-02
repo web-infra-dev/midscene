@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00067",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by the function of selecting the metric system."
+  },
+  "instruction": {
+    "en": "Select the metric system",
+    "zh": "选择公制单位。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [880, 774, 904, 748],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1139",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1139",
+    "image": {
+      "format": "png",
+      "sha256": "13f4f33314b5c249a280e19868b8ee00e37275765f03a22267182d8703999045"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

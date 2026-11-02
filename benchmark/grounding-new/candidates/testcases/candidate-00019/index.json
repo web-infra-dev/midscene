@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00019",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified directly by its visible day label."
+  },
+  "instruction": {
+    "en": "Click on 'day'",
+    "zh": "点击“day”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [16.4, 1016.9, 55.2, 969.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/471",
+    "image": {
+      "format": "png",
+      "sha256": "60b452c22be03d62ef35c0e26830c36db9603b0f93d52cd56e734ec280b07bc5"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00416",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested product category is named in the navigation bar."
+  },
+  "instruction": {
+    "en": "Navigate to the AirPods section",
+    "zh": "进入 AirPods 栏目。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [0.0, 537.0, 43.8, 494.3],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/613",
+    "image": {
+      "format": "png",
+      "sha256": "5a168cbfddaa9e983e27b1776c7634702adcd789e87a2009c7f7ddcf3c8efc07"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

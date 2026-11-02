@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00298",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the control for creating a new post."
+  },
+  "instruction": {
+    "en": "post a new article",
+    "zh": "发布一篇新文章。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [119, 1052, 220, 926],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L4118",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#343",
+    "image": {
+      "format": "jpeg",
+      "sha256": "9eebae5ab520f7ea677c34fa96b0e8c33766712b660d4a4f7b957856b1b36af5"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

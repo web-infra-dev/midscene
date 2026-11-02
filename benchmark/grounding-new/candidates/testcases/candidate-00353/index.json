@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00353",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The OK button is explicitly identified by its label."
+  },
+  "instruction": {
+    "en": "Click on \"OK\".",
+    "zh": "点击“OK”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1311.2, 810.0, 1456.0, 0.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=330",
+    "image": {
+      "format": "jpeg",
+      "sha256": "12eb8ccd7d1fb325703fb0a77a4493c06bd8293b13b0d2d6405a9c3b785b8ce3"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

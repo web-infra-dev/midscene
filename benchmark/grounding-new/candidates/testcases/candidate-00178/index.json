@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00178",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by the visible Submissions tab label."
+  },
+  "instruction": {
+    "en": "check the submissions",
+    "zh": "查看提交内容。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [172, 492, 247, 269],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L1994",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#166",
+    "image": {
+      "format": "png",
+      "sha256": "e5961c0758dc3e396cc48bc14ea2c716854cd2ab1058f083d476c94e923a8830"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

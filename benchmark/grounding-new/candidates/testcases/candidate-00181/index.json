@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00181",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target arrow is distinguished by its position on the right."
+  },
+  "instruction": {
+    "en": "Click the arrow on the right side",
+    "zh": "点击右侧的箭头。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1130, 1057, 1343, 924],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1094",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1094",
+    "image": {
+      "format": "png",
+      "sha256": "8ee37d2e47646cbba7cb6caf12a828cf06e94b83847517da64757d38e6193883"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

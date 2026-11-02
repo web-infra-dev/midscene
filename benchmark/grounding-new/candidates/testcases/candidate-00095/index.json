@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00095",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target image is identified by its position in the second row."
+  },
+  "instruction": {
+    "en": "Choose the picture in the middle of row 2.",
+    "zh": "选择第二行中间的图片。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [304.2, 722.1, 412.2, 614.1],
+  "reference": {
+    "url": "https://github.com/xlang-ai/OSWorld-G/blob/daa6bd8e0e629f0917ad2984df930bf0bd967540/benchmark/OSWorld-G.json",
+    "dataset": "OSWorld-G",
+    "recordId": "CSX8vMhbjY-0",
+    "image": {
+      "format": "png",
+      "sha256": "28d312124f28cf5a7c3f8eb0f745ab69c88a1266797b96c1f87ddf39ba9b2de7"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

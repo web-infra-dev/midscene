@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00418",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The icon is identified by its position to the right of the calendar icon."
+  },
+  "instruction": {
+    "en": "Click the icon right of calendar",
+    "zh": "点击日历右侧的图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [128, 975, 254, 848],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L615",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#615",
+    "image": {
+      "format": "png",
+      "sha256": "fc831cbff74831397b3c7998ea21ef674a173c00f6bac34d72aa6ea723f834a2"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814758
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00193",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target field is specified by its position above the Add location control."
+  },
+  "instruction": {
+    "en": "Enter 'My New Title' above 'Add location'.",
+    "zh": "在“Add location”上方输入“My New Title”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [145, 1356, 313, 84],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L791",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#791",
+    "image": {
+      "format": "png",
+      "sha256": "873fe0e0c222ead585ceb965afd11d17237c8db93bbb4685c6dc35850c73a610"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

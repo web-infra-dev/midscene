@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00003",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested city name directly identifies the weather card."
+  },
+  "instruction": {
+    "en": "check the weather of ottawa",
+    "zh": "查看渥太华的天气。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2386, 1219, 2706, 51],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L5906",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#492",
+    "image": {
+      "format": "jpeg",
+      "sha256": "898bdb10828f156a99ebf081500e658186302d9393d9f3bd37380bf760286e78"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

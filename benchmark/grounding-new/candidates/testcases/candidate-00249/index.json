@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00249",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target input field is identified by its position next to the voice icon."
+  },
+  "instruction": {
+    "en": "Type in the box beside voice icon",
+    "zh": "在语音图标旁边的输入框中输入。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [139, 953, 265, 168],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1101",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1101",
+    "image": {
+      "format": "png",
+      "sha256": "842a43beff433f1112e1b3bc4ca229844f8f25cd43bfa8da31734ceb2ad01eb3"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

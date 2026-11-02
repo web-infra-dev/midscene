@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00386",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its interface function: click to view only unplayed episodes."
+  },
+  "instruction": {
+    "en": "Click to view only unplayed episodes",
+    "zh": "点击只查看未播放的节目。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [730, 1080, 856, 540],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L994",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#994",
+    "image": {
+      "format": "png",
+      "sha256": "369737a9425a63afe00b33ff862a2f32d832f5e6e1a030a99c7672e39e25c909"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814757
+  }
+}

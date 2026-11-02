@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00368",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The Search button is explicitly named in the form."
+  },
+  "instruction": {
+    "en": "Search button ",
+    "zh": "找到搜索按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [208.0, 806.0, 256.0, 727.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1321",
+    "image": {
+      "format": "png",
+      "sha256": "055053c051977b04c0ec0ce42e04868baa545b44d681987af1d7f42db7182dbe"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

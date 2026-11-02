@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00440",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The Testimonials tab names the requested course-review section."
+  },
+  "instruction": {
+    "en": "View testimonials for the Business Value and Project Management Specialization",
+    "zh": "查看“Business Value and Project Management Specialization”的学员评价。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [936.0, 492.1, 979.8, 381.4],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00003-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1559",
+    "image": {
+      "format": "png",
+      "sha256": "3e25d83ec172be3c1f6df5e783799c3b4825208804cfae325ae59e4ac8dc5b0c"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

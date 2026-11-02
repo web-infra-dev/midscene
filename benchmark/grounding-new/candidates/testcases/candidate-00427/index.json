@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00427",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its function as the travel-mode selector."
+  },
+  "instruction": {
+    "en": "choosing the travel mode",
+    "zh": "选择出行方式。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [403, 653, 469, 74],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L2750",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#229",
+    "image": {
+      "format": "png",
+      "sha256": "900e5fa70c7453a1ebae4ca6f35aa0269b4a0483839bd0cb1707e7992efa96ac"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704186
+  }
+}

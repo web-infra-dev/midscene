@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00221",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task identifies the field used to name the alarm."
+  },
+  "instruction": {
+    "en": "Enter 'Morning Alarm' as the alarm's name",
+    "zh": "将闹钟名称输入为“Morning Alarm”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [666, 934, 818, 146],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L833",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#833",
+    "image": {
+      "format": "png",
+      "sha256": "30266917a7e8b8cfa9c5996bb91d4cd49b2abc9543b11439e71d2f7981f31620"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

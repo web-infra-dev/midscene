@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00104",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested section is identified by its named label in the football navigation."
+  },
+  "instruction": {
+    "en": "Navigate to the All Teams section in the Football category",
+    "zh": "打开足球类目中的“All Teams”栏目。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [173.2, 837.3, 190.7, 749.7],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1072",
+    "image": {
+      "format": "png",
+      "sha256": "10a529822fa8cb8349ee71819d92102f7dcea2c78f34f6c375b357618da01529"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

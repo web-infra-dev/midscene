@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00187",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by the drama genre label in the navigation."
+  },
+  "instruction": {
+    "en": "Navigate to drama genre",
+    "zh": "进入剧情类目。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [214.0, 896.6, 229.0, 861.5],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/872",
+    "image": {
+      "format": "png",
+      "sha256": "b18e8f541161cfea829494541c25b55147b8766fc1ffcaad5f7dd1ee88755671"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

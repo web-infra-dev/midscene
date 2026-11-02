@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00402",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target date is immediately to the left of July 19 in the calendar."
+  },
+  "instruction": {
+    "en": "Click date left of July 19th",
+    "zh": "点击 7 月 19 日左侧的日期。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1377, 491, 1482, 399],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L383",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#383",
+    "image": {
+      "format": "png",
+      "sha256": "3c249d586ed840207fd54d2b827de01ba0f6828af00e1cc9104a8dfab7026e63"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814758
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00396",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The Women’s Super League link names the requested league."
+  },
+  "instruction": {
+    "en": "Navigate to the Women's Super League page",
+    "zh": "进入女子超级联赛页面。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [702.5, 746.4, 723.4, 548.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/113",
+    "image": {
+      "format": "png",
+      "sha256": "38ed604d94f27ce0b8ffbc5c51847f73cda1b6999b390653d853f1ad29bd541f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

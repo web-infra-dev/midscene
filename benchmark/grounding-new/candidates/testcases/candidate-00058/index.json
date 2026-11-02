@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00058",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested user diaries are identified by their corresponding navigation label."
+  },
+  "instruction": {
+    "en": "view user diaries",
+    "zh": "查看用户日记。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [26, 1645, 81, 1456],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L2894",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#241",
+    "image": {
+      "format": "png",
+      "sha256": "e3d5823e0ec1e66cbb55d418264877a7b355f1c239526b89b5f48b2ff9c26192"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00090",
+  "platform": "web",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "The target is distinguished by the content and location of the advertisement."
+  },
+  "instruction": {
+    "en": "Close the ad about the \"stay connected while traveling\" on the left side of the web page",
+    "zh": "关闭网页左侧关于旅行时保持联网的广告。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [186.0, 247.1, 201.2, 231.8],
+  "reference": {
+    "url": "https://github.com/xlang-ai/OSWorld-G/blob/daa6bd8e0e629f0917ad2984df930bf0bd967540/benchmark/OSWorld-G.json",
+    "dataset": "OSWorld-G",
+    "recordId": "zU0WHpKAjl-0",
+    "image": {
+      "format": "png",
+      "sha256": "d11a609c2ad42190b4e23018932e7f9806b7608e8b7a608059a56f04f0bc4a9a"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

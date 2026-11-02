@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00230",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the product photo associated with the displayed listing."
+  },
+  "instruction": {
+    "en": "view the product photo",
+    "zh": "查看商品图片。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [595, 1246, 1436, 239],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L4346",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#362",
+    "image": {
+      "format": "png",
+      "sha256": "71a399eaa43f20885788eee1a8caeab6fcf9a6d249633af7124ee755b662cb4c"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

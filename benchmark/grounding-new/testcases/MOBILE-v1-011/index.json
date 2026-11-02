@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-011",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires combining match-participant information with match status to identify the requested event."
+  },
+  "instruction": {
+    "en": "View information about the match involving China that has not started yet.",
+    "zh": "查看尚未开始的有中国参加的比赛信息。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1481.0, 1073.0, 1686.9, 3.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L52652",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "2771",
+    "image": {
+      "format": "png",
+      "sha256": "7f197531c7f061de4879cd66c2787b95efffa089b7ebc5c80359c01b5c595c81"
+    },
+    "patch": "Added instruction.zh by translating the revised English instruction. The original instruction named the China and Cameroon youth teams, which identified the target match without needing to use its not-started status. Revised the instruction to request the match involving China that has not started, removing the opponent and youth-team clues. The screenshot also shows a finished match involving China and other not-started matches without China, so both the participant and status distinguish the target. Updated category.reason to describe this reasoning; the target match and ground-truth box are unchanged.",
+    "collectedAt": 1792485870201
+  }
+}

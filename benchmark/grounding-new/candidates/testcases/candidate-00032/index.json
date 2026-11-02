@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00032",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target field is identified by its position above the message body."
+  },
+  "instruction": {
+    "en": "Type 'Project Update' above the message body",
+    "zh": "在消息正文上方输入“Project Update”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [601, 1038, 753, 42],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L824",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#824",
+    "image": {
+      "format": "png",
+      "sha256": "43331ec809cc45bae3491cd0b87509adcf69799e0ad50c12bea0ff8215323677"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

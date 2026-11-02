@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00163",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested parking facility is identified by its name in the results."
+  },
+  "instruction": {
+    "en": "Book online for LAZ Parking - The 1 Hotel Brooklyn Bridge Garage",
+    "zh": "在线预订 LAZ Parking - The 1 Hotel Brooklyn Bridge Garage。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [388.0, 441.7, 422.0, 96.4],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/130",
+    "image": {
+      "format": "png",
+      "sha256": "052f4ffad357bc414af26d0b84382ca22d444f5f8f5c8579ffbfa35f0f11f82a"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

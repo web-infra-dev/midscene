@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00182",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested track is distinguished by its displayed title."
+  },
+  "instruction": {
+    "en": "play the opening the channel (mixed)",
+    "zh": "播放《Opening the Channel (Mixed)》。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1015, 1094, 1179, 83],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L5282",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#440",
+    "image": {
+      "format": "png",
+      "sha256": "88780bbef77a74e78efe788a4988604f0e67c45ea56070de5601bcc665415a16"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00373",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The See more link is explicitly identified by its visible label."
+  },
+  "instruction": {
+    "en": "Click on \"See more >\"",
+    "zh": "点击“See more >”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [537.5, 1264.0, 562.1, 952.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=141",
+    "image": {
+      "format": "jpeg",
+      "sha256": "d2a3e2c4af48e7c3ceb56d1e977596344b182e90be1e0bf1e25492a6ebbbc362"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

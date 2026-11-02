@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00498",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its interface function: select the option to use imperial measurements."
+  },
+  "instruction": {
+    "en": "Select the option to use imperial measurements",
+    "zh": "选择使用英制单位的选项。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [334, 800, 358, 774],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1187",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1187",
+    "image": {
+      "format": "png",
+      "sha256": "911f4567e160e03fbd8a5c46f70f48e29c9421880a488ea9c0eb397ea1f89fd7"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814766
+  }
+}

@@ -643,11 +643,12 @@ export function ModelPerformanceChart({
       .map(({ passRate }) => passRate)
       .filter((value) => Number.isFinite(value) && value >= 0 && value <= 1);
     if (!values.length) return [0, 100];
-    const minimum = Math.floor(Math.min(...values) * 20) * 5;
+    const lowestPassRate = Math.min(...values);
+    const minimum = Math.floor(lowestPassRate * 20) * 5;
     const maximum = Math.ceil(Math.max(...values) * 20) * 5;
     return minimum === maximum
       ? [Math.max(0, minimum - 5), Math.min(100, maximum + 5)]
-      : [minimum, maximum];
+      : [Math.max(0, (Math.ceil(lowestPassRate * 20) - 1) * 5), maximum];
   }, [models]);
   const axis = useMemo(
     () => createElapsedTimeAxis(elapsedTimes, elapsedTimeP50),

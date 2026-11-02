@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00045",
+  "platform": "web",
+  "category": {
+    "item": "Refusal",
+    "reason": "The requested upward puzzle-slider movement is not available in the screenshot."
+  },
+  "instruction": {
+    "en": "Move the puzzle slider upwards",
+    "zh": "将拼图滑块向上移动。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://github.com/xlang-ai/OSWorld-G/blob/daa6bd8e0e629f0917ad2984df930bf0bd967540/benchmark/OSWorld-G.json",
+    "dataset": "OSWorld-G",
+    "recordId": "Cf4yF5Buvk-2",
+    "image": {
+      "format": "png",
+      "sha256": "74a0cde9a3e9dde4d7aa008ea0265a6517642c70ccfe0884aedde15f267fa784"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

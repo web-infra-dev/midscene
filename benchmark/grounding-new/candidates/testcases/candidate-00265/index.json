@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00265",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the article bookmark control."
+  },
+  "instruction": {
+    "en": "Click to bookmark this article",
+    "zh": "点击收藏这篇文章。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [170, 1058, 244, 984],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L848",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#848",
+    "image": {
+      "format": "png",
+      "sha256": "baff18e3870858f56ea416cdce52a41012035d6c1d7128667c39d10eb93e46b8"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

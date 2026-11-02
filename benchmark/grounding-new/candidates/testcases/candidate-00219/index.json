@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00219",
+  "platform": "web",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "The target event is distinguished by its person and home-office description."
+  },
+  "instruction": {
+    "en": "Click on Mark's home office event",
+    "zh": "点击 Mark 的家庭办公活动。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [146.0, 844.7, 162.0, 730.6],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/991",
+    "image": {
+      "format": "png",
+      "sha256": "45f54c579919936fb2c8a65b30bbfa2c4f96c1f2a9468e1ad8b93c106804d4b8"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

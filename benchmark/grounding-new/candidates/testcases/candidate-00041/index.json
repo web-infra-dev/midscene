@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00041",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target setting is identified by directly matching the specified location text."
+  },
+  "instruction": {
+    "en": "Click on \"Champaign, IL - Follow me\"",
+    "zh": "点击“Champaign, IL - Follow me”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [283.0, 490.5, 322.8, 148.5],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=393",
+    "image": {
+      "format": "jpeg",
+      "sha256": "f04dc0009c2f2468e1980e9ac9b0f030e2022ec7ff7efda86984dcc90cd06fb8"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

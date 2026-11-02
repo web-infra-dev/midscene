@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00122",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target icon is located using its position next to the attachment control."
+  },
+  "instruction": {
+    "en": "Click the icon next to attachment",
+    "zh": "点击附件旁边的图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [148, 954, 274, 827],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L907",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#907",
+    "image": {
+      "format": "png",
+      "sha256": "09f79faa56601d4a0baf21b5f4f57d58cfbb3e0e045b6135b3294ac6a70865e0"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00443",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the camera mode labeled “50MP”."
+  },
+  "instruction": {
+    "en": "open high resolution 50mp mode",
+    "zh": "打开 50 MP 高分辨率模式。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [390, 532, 819, 121],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L3806",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#317",
+    "image": {
+      "format": "png",
+      "sha256": "12c368d42fa5dd764752577dfd20dbce1842b16cb9c0d0c35ebc5af99811ede2"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704192
+  }
+}

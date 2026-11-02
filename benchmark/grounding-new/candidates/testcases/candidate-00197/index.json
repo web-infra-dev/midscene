@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00197",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The requested accommodation option is distinguished by its ordinal position."
+  },
+  "instruction": {
+    "en": "Choose the second accommodation style",
+    "zh": "选择第二种住宿类型。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1034, 28, 1047, 15],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1200",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1200",
+    "image": {
+      "format": "png",
+      "sha256": "3ba90e9f409a5040aa11aaca0a1ad3e0bc533fee66e23314314ec50c12c2543f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

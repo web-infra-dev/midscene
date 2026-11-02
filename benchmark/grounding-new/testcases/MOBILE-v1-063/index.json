@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-063",
+  "platform": "mobile",
+  "category": {
+    "item": "Color Recognition",
+    "reason": "The task distinguishes the red CNN text on a green background from other CNN text by color and background."
+  },
+  "instruction": {
+    "en": "Find the red CNN text on the green background.",
+    "zh": "找到绿色背景的红色 CNN 文本。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1125, 1030, 1190, 930],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L640",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#640",
+    "image": {
+      "format": "png",
+      "sha256": "75034cdb208d545be1e02704c63ca33276b707f166a035c5f607e45db303b3e9"
+    },
+    "patch": "Replaced the original instruction ‘Click the icon to share this content’ with an instruction to find the red CNN text on the green background. Changed groundTruth from the share icon to the red CNN text over the video. Added instruction.zh by translating the revised English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

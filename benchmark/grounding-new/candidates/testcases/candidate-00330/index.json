@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00330",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target is the second selectable day in the Repeat section."
+  },
+  "instruction": {
+    "en": "Select the second toggle in repeat section",
+    "zh": "选择重复设置区域中的第二个开关。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1790, 336, 1869, 215],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1413",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1413",
+    "image": {
+      "format": "png",
+      "sha256": "3a032c84e7623f3fd0208c128323cb374e794c26e6aace4968cbe3393fe7343d"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814756
+  }
+}

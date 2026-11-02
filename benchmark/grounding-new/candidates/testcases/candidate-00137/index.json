@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00137",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The requested button is identified by its position below the tags."
+  },
+  "instruction": {
+    "en": "Click the button at the bottom below tags.",
+    "zh": "点击标签下方底部的按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1952, 824, 2060, 257],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L959",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#959",
+    "image": {
+      "format": "png",
+      "sha256": "b0b678b3f00fe53afad0f97355e5359beef08cda246dbaaef7452b9a04853247"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

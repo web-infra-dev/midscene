@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00323",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the tab labeled “Notes”."
+  },
+  "instruction": {
+    "en": "open notes",
+    "zh": "打开备忘录。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [260, 369, 406, 44],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L2138",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#178",
+    "image": {
+      "format": "png",
+      "sha256": "c8d4e3da2ca79a5b8ac5cb17bc5b72bd6019afea808c6ef2f2c1dce8b293b609"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704140
+  }
+}

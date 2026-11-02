@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-009",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The deep learning link is named directly in the visible Hyponyms list; locate that text link."
+  },
+  "instruction": {
+    "en": "Open the \"deep learning\" link under Hyponyms on the wiki page.",
+    "zh": "打开 wiki 页面中 Hyponyms 下的“deep learning”链接。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1078.0, 781.0, 1127.0, 552.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L67434",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "L2_annotations.json#3549",
+    "image": {
+      "format": "png",
+      "sha256": "0eb48e7bc5225df5428a36ee69cbe2ebb395809cfc337ebd3a5c5ba0b99d37ac"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction. The original instruction described a machine-learning technique that 'uses multiple processing layers', but the screenshot does not explain how that description maps to the deep learning link under Hyponyms. Selecting the intended link therefore depended on machine-learning background knowledge rather than the visible interface alone. Rewrote both instructions to name the deep learning link and its Hyponyms section directly, preserving the original target and groundTruth. Changed category.item from Reasoning to Basic Element and updated category.reason because the revised task is direct text-link localization.",
+    "collectedAt": 1792485870633
+  }
+}

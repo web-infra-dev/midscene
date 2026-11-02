@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00291",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target calendar control navigates to the next month."
+  },
+  "instruction": {
+    "en": "Move to next month",
+    "zh": "切换到下个月。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [498.5, 1391.0, 523.5, 1366.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1386",
+    "image": {
+      "format": "png",
+      "sha256": "0eafbc8aae494cb3ba85a1a5f7371016cd81dff7f30b53615c0d4c1be1cdad25"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

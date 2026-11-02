@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00151",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task identifies the control for choosing dates."
+  },
+  "instruction": {
+    "en": "Choose dates",
+    "zh": "选择日期。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [70.0, 170.0, 110.0, 10.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1252",
+    "image": {
+      "format": "png",
+      "sha256": "aec2af8e2abaca370ef9d857f3a9d6ed8fdc8756f015262d116017af610db3af"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00161",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The address is identified by its position immediately below the site title."
+  },
+  "instruction": {
+    "en": "View the address just under the site title",
+    "zh": "查看网站标题正下方的地址。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [216, 458, 259, 200],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1043",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1043",
+    "image": {
+      "format": "png",
+      "sha256": "1b6a369aa8027bef9208b2c6a0e1bfcf76c9d3a3c01c1045ee7735a5d04cb8cc"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

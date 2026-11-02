@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00439",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the link labeled “Contact Sales”."
+  },
+  "instruction": {
+    "en": "contact sales",
+    "zh": "联系销售。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [981, 1710, 1101, 1307],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L602",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#50",
+    "image": {
+      "format": "png",
+      "sha256": "6bc5b6beb7181b6bb6a71b1277ea0550c01643c42dee08024c2846d0f6695398"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704191
+  }
+}

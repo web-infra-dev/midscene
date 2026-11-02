@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00171",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task identifies the calendar control used to navigate to another month."
+  },
+  "instruction": {
+    "en": "Move to September",
+    "zh": "切换到九月。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [223.0, 1208.5, 259.0, 1172.5],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/11",
+    "image": {
+      "format": "png",
+      "sha256": "cde3b074b6e72e7f9b08526f236b59adfa995818e7f1c20ae1dca229fb72e060"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

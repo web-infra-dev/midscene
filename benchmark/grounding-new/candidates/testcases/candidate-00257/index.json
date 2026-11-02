@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00257",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target control is identified by its function of resetting the input."
+  },
+  "instruction": {
+    "en": "Reset the input field",
+    "zh": "重置输入字段。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2134, 1064, 2315, 818],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1020",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1020",
+    "image": {
+      "format": "png",
+      "sha256": "5fef58e17cc6719501a3d0cbae915c45cc89c7116cb83a47141253f5245826da"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

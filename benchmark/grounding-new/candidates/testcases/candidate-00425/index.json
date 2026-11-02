@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00425",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The Residence Halls navigation link is explicitly identified by its label."
+  },
+  "instruction": {
+    "en": "Click on \"Residence Halls\".",
+    "zh": "点击“Residence Halls”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [246.5, 443.0, 289.5, 319.1],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=393",
+    "image": {
+      "format": "jpeg",
+      "sha256": "0308b2e77ea434de029622f1ce092ad7c281c59076fdea5e2f4ac62bc1c7f4e7"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

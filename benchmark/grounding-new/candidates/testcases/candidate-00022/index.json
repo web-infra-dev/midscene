@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00022",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target input is identified by its position below the Company input."
+  },
+  "instruction": {
+    "en": "Enter 1234567890 below company input",
+    "zh": "在 Company 输入框下方输入 1234567890。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1412, 933, 1564, 137],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L749",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#749",
+    "image": {
+      "format": "png",
+      "sha256": "58dda415b63aefbdeb229414d2fd60f8a1028d1756f6151961f29bf4a6436111"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00259",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by the Europe label in the news navigation."
+  },
+  "instruction": {
+    "en": "Navigate to the Europe section",
+    "zh": "进入欧洲栏目。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [108.5, 602.8, 140.3, 546.9],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1405",
+    "image": {
+      "format": "png",
+      "sha256": "21efb853802be28ac294dabe58768a44d9359c05b04c5e5d6a342aa45dbda3ba"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

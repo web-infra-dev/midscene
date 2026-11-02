@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00394",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by its visible label or element type: enter celsius value as 15."
+  },
+  "instruction": {
+    "en": "Enter Celsius value as 15",
+    "zh": "将摄氏温度输入为 15。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [610, 1022, 747, 561],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1330",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1330",
+    "image": {
+      "format": "png",
+      "sha256": "c15d2cb0dc6200fef0a358834f8d72bac96fc33ed660b43135abfc2e9036d0a1"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814758
+  }
+}

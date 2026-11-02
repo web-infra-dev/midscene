@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00237",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target option controls whether the user remains logged in."
+  },
+  "instruction": {
+    "en": "Select to stay logged in next time.",
+    "zh": "选择下次保持登录状态。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [452, 187, 465, 174],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L87",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#87",
+    "image": {
+      "format": "png",
+      "sha256": "3ffcb3c8e1f2cf484e8e311080fe692b13dd87e4906d39c6d401c6931856a3a2"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

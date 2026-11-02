@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00336",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The All Chips filter removes the restriction to a specific chip type."
+  },
+  "instruction": {
+    "en": "Show all MacBook Pro models regardless of chip type",
+    "zh": "显示所有 MacBook Pro 型号，不限定芯片类型。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [582.0, 488.8, 618.1, 403.3],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/454",
+    "image": {
+      "format": "png",
+      "sha256": "a38c1b70af05c05af3a908af2da364231d90189a99757adb553d8b278a6888b6"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

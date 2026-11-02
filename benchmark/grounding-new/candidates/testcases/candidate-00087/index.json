@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00087",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target dropdown is identified by its position below Archives."
+  },
+  "instruction": {
+    "en": "Use the dropdown below Archives to select",
+    "zh": "使用 ARCHIVES 下方的下拉菜单进行选择。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [501, 153, 534, 3],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1136",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1136",
+    "image": {
+      "format": "png",
+      "sha256": "ff43f7de188f99ff86e9c830cc8168041635a74cde90d58bdc250b9db15a0ea9"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

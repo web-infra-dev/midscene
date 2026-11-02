@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00495",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the search field labeled “Search Wikidata”."
+  },
+  "instruction": {
+    "en": "input word to search in wikidata",
+    "zh": "输入词语以在 Wikidata 中搜索。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [116, 2372, 184, 1940],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L3314",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#276",
+    "image": {
+      "format": "png",
+      "sha256": "ddb077584ca827e6640714dd134c8c9b35b23e2ad83c108418efa4ca11822269"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704203
+  }
+}

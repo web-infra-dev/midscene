@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00486",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target button is identified by its position below the size 11 display."
+  },
+  "instruction": {
+    "en": "Click the button below the size 11 display",
+    "zh": "点击尺码 11 下方的按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2068, 284, 2115, 60],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L972",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#972",
+    "image": {
+      "format": "png",
+      "sha256": "02f383c0f53bb7fe92612616a6be7e34ebfaf3028c692f11cba4c509a3e605d6"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814765
+  }
+}

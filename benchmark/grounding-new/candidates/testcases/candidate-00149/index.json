@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00149",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target date is distinguished by its row and ordinal position."
+  },
+  "instruction": {
+    "en": "Click the second date in row five",
+    "zh": "点击第五行的第二个日期。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1522, 381, 1606, 324],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L887",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#887",
+    "image": {
+      "format": "png",
+      "sha256": "1df824d0e783e10f6ebc66e8e33ca22c737f692b9b3b0299879be0c546624636"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00128",
+  "platform": "mobile",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "The removal control is distinguished by its association with the Calculator entry."
+  },
+  "instruction": {
+    "en": "exclude the control of calculator",
+    "zh": "从控制中心移除计算器控件。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1370, 214, 1476, 88],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L5738",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#478",
+    "image": {
+      "format": "jpeg",
+      "sha256": "0ebc229295bc2435ef3515c354e09b66bc2e761a5181d1198ee89e871c8b7e08"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

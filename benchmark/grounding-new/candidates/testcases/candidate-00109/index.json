@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00109",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The task identifies a date in the calendar by its numeric value."
+  },
+  "instruction": {
+    "en": "06/03/2026",
+    "zh": "06/03/2026。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [697.0, 487.7, 741.0, 443.7],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/763",
+    "image": {
+      "format": "png",
+      "sha256": "61fb566a36d8634d083c534c7e9a9de1c6b2877d05cdb2f74ca203cbef35bc3f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

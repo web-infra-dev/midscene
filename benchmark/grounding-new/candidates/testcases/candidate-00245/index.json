@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00245",
+  "platform": "mobile",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "The target product image is distinguished by its association with the named purchaser."
+  },
+  "instruction": {
+    "en": "click the product photo for Sahil's purchase",
+    "zh": "点击 Sahil 所购买商品的图片。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [977, 1000, 1113, 919],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L855",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#855",
+    "image": {
+      "format": "png",
+      "sha256": "3806902ecc750f2463a8d5fc8a20c0e29a67309261f5ae60b017591fdb57c774"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00487",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the link named “Arsenal F.C. records & Player records”."
+  },
+  "instruction": {
+    "en": "open arsenal f.c. records and player records webpage",
+    "zh": "打开 Arsenal F.C. records and player records 网页。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [193, 2212, 245, 1586],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L3746",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#312",
+    "image": {
+      "format": "png",
+      "sha256": "51f4cf9c5c2b8a36a2f8b84d4cb567dbec286d664081d4f7d004178ca59d4bf0"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704201
+  }
+}

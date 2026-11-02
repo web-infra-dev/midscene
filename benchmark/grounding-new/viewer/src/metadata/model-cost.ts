@@ -154,6 +154,23 @@ export const modelCosts = {
       outputTokensPerSecond: 98,
     },
   },
+  'gpt-6.1-terra': {
+    source: 'OpenRouter',
+    url: 'https://openrouter.ai/openai/gpt-6.1-terra',
+    observedAt: '2026-11-04T08:21:56Z',
+    pricing: {
+      basis: 'model-page-header',
+      currency: 'USD',
+      inputPerToken: 1 / 1_000_000,
+      outputPerToken: 5 / 1_000_000,
+    },
+    performance: {
+      basis: 'best-per-metric',
+      percentile: 'p50',
+      timeToFirstTokenMs: 1_740,
+      outputTokensPerSecond: 85,
+    },
+  },
   'gpt-5.6-sol': {
     source: 'OpenRouter',
     url: 'https://openrouter.ai/openai/gpt-5.6-sol',

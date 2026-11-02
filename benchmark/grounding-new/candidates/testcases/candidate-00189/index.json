@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00189",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The task directly identifies the input field used for search."
+  },
+  "instruction": {
+    "en": "Enter 'mona lisa' in the search field",
+    "zh": "在搜索框中输入“mona lisa”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [147, 912, 273, 189],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1040",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1040",
+    "image": {
+      "format": "png",
+      "sha256": "613c127054f9ffd0e856d6d5d80d653ddca731ad8c2ba9a497cd57f436313ed6"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

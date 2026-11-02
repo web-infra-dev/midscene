@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00280",
+  "platform": "mobile",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "The target folder is specified by its label and the combination of app icons it contains."
+  },
+  "instruction": {
+    "en": "Click on the \"Travel\" folder containing the apps with icons of a paper airplane, a dolphin, a red train symbol, a camel, the Uber logo, and a map.",
+    "zh": "点击“Travel”文件夹，其中包含纸飞机、海豚、红色火车标志、骆驼、Uber 标志和地图图标的应用。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1601.0, 1091.0, 2139.0, 610.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=231",
+    "image": {
+      "format": "png",
+      "sha256": "28facb44afde661473ac842b44f4c7d360d1f85d8e8f66c3942738b98aa6b78e"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

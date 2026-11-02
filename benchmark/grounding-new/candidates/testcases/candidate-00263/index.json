@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00263",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested grammar topic is identified by its visible title."
+  },
+  "instruction": {
+    "en": "Learn about 'Using English' grammar topic",
+    "zh": "了解“Using English”语法主题。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [784.7, 666.4, 824.2, 150.2],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/764",
+    "image": {
+      "format": "png",
+      "sha256": "b959f2a803a4cd036cc5dd4d63239a48a4070979c2e4affee8a90ce63b715e17"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

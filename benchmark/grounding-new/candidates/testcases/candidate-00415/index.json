@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00415",
+  "platform": "web",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "The sandals must be identified among multiple products before selecting their add-to-cart button."
+  },
+  "instruction": {
+    "en": "add the sandals to cart",
+    "zh": "将凉鞋加入购物车。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1005, 1267, 1073, 1037],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L1526",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#127",
+    "image": {
+      "format": "png",
+      "sha256": "a600ef1c8e2df50324925acd2ddc79c51c78297e3da1765a40c6a13571da74aa"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704181
+  }
+}

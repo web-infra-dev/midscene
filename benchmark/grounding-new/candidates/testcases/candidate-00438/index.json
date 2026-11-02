@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00438",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The requested icon is the middle item in a group of three icons."
+  },
+  "instruction": {
+    "en": "Click the middle icon in the set",
+    "zh": "点击这一组图标中间的图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2211, 938, 2337, 812],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L696",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#696",
+    "image": {
+      "format": "png",
+      "sha256": "2f5e8a83ddee9505247a8971060dc0f4e00a305940ff8fd859fe170b334cab41"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814759
+  }
+}

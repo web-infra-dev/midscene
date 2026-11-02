@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00432",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The Return field opens the return-date selection."
+  },
+  "instruction": {
+    "en": "Click to select a return date",
+    "zh": "点击以选择返程日期。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [236.7, 821.4, 296.7, 738.6],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1456",
+    "image": {
+      "format": "png",
+      "sha256": "feb25a458b9a9918f3b849be69564a726bdf30aac0fb6f35f2f8b701760966c5"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

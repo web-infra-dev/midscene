@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00070",
+  "platform": "web",
+  "category": {
+    "item": "Refusal",
+    "reason": "The requested sign-out control is absent from the screenshot, so the task requires refusal."
+  },
+  "instruction": {
+    "en": "Sign out the Travel website.",
+    "zh": "退出旅行网站的登录。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://github.com/xlang-ai/OSWorld-G/blob/daa6bd8e0e629f0917ad2984df930bf0bd967540/benchmark/OSWorld-G.json",
+    "dataset": "OSWorld-G",
+    "recordId": "Dd5jH9nufm-2",
+    "image": {
+      "format": "png",
+      "sha256": "43c85009a0e5b6e878cae6841ccb1737e82d03d4fa3e2271820b4468dbaf400a"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

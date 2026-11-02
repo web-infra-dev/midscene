@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00184",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the onboarding confirmation button with the specified label."
+  },
+  "instruction": {
+    "en": "Click on \"Got it\".",
+    "zh": "点击“Got it”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1787.5, 755.2, 1924.0, 324.8],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=379",
+    "image": {
+      "format": "jpeg",
+      "sha256": "05cde9910f578bd839c68aa1d329f9d152143181da88ec6a3680268a08517c6e"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

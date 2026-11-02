@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00167",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The calendar date is identified by the specified day, month and year."
+  },
+  "instruction": {
+    "en": "31 July 2025",
+    "zh": "2025 年 7 月 31 日。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [448.0, 732.0, 488.0, 692.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/244",
+    "image": {
+      "format": "png",
+      "sha256": "68018356101baf8f201844a4888d81ece9734e5ec5ff6d63a50d67bd144399b2"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00165",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target icon must be recognized by its menu-opening function."
+  },
+  "instruction": {
+    "en": "Click the icon for opening menu",
+    "zh": "点击打开菜单的图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [138, 1080, 264, 953],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L372",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#372",
+    "image": {
+      "format": "png",
+      "sha256": "8bfc61e9336915129bb3bf9a0eeac349df78afa028bfda85e312e9ea47bf0e85"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

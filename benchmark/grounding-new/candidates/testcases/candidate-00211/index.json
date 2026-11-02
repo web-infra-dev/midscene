@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00211",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is the control for selecting the travel dates."
+  },
+  "instruction": {
+    "en": "Choose travel dates",
+    "zh": "选择旅行日期。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [212.0, 638.3, 260.0, 349.2],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/667",
+    "image": {
+      "format": "png",
+      "sha256": "0a5f4fb850d077cd8ecb3b14060c68781299abab33af2fbdc61c805ea9b96002"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

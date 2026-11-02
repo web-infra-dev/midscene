@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00296",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the Submit button on the application form."
+  },
+  "instruction": {
+    "en": "Click on \"Submit\".",
+    "zh": "点击“Submit”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [335.1, 1034.2, 370.3, 910.2],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=308",
+    "image": {
+      "format": "jpeg",
+      "sha256": "7ee9b25c5b2ac3fdcc00a59d638f223b207f49ea1dc027584ed12e7c122f45a3"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

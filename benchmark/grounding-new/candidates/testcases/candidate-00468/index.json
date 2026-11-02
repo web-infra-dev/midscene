@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00468",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested date is explicitly specified in the calendar."
+  },
+  "instruction": {
+    "en": "Select 26 April",
+    "zh": "选择 4 月 26 日。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [549.8, 261.5, 582.8, 230.6],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/407",
+    "image": {
+      "format": "png",
+      "sha256": "6d9186a3680102646804efc8a44424d81c05225b9e44b00de7335e5b15b69fc0"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

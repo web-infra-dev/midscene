@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00311",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The image is identified by the visible Wikimedia Hackathon 2023 caption."
+  },
+  "instruction": {
+    "en": "open the picture of the wikimedia hackathon 2023",
+    "zh": "打开 Wikimedia Hackathon 2023 的图片。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [579, 2437, 787, 1636],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L3698",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#308",
+    "image": {
+      "format": "png",
+      "sha256": "a8d1587404079a12d70f8d06b293fa09875d174b9993d1c38004f5bfe9b36353"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704138
+  }
+}

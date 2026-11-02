@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00358",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The search field is identified by its position next to the search button."
+  },
+  "instruction": {
+    "en": "Type 'trackpants' near the search button",
+    "zh": "在搜索按钮旁的输入框中输入 trackpants。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [457, 893, 600, 41],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1070",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1070",
+    "image": {
+      "format": "png",
+      "sha256": "09e2deb68788ab6ec5535bca3a34d6820053555cb50a2b1be9ead4c118701a87"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814757
+  }
+}

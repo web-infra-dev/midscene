@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00255",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target control starts the network speed test."
+  },
+  "instruction": {
+    "en": "Start the speedtest",
+    "zh": "开始网速测试。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [505.0, 650.0, 685.0, 470.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00003-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1518",
+    "image": {
+      "format": "png",
+      "sha256": "5664b68127cc9a17cc7d8c377e4ca6e30590062a50a7b4d7d4071affb29cefd4"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

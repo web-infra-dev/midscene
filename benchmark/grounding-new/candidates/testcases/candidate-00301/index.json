@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00301",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The Online Degrees navigation link is explicitly identified by its label."
+  },
+  "instruction": {
+    "en": "Click on \"Online Degrees\".",
+    "zh": "点击“Online Degrees”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [186.0, 118.0, 205.0, 12.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=19",
+    "image": {
+      "format": "png",
+      "sha256": "de806eb8b396e032c61d4ad3415908bc0cb91c91de5630266ff23af22d3f2b0f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00420",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The checkbox controls whether results update as the map moves."
+  },
+  "instruction": {
+    "en": "Toggle updating results when map moves",
+    "zh": "切换地图移动时更新结果的选项。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1066.4, 114.0, 1090.5, 89.9],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1303",
+    "image": {
+      "format": "png",
+      "sha256": "3cea16b436ba1e642114f80f93672f504c94d93233eeb6f7ac0cb17bcc060d71"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

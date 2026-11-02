@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00381",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The time field is identified by the displayed 10:00 AM value."
+  },
+  "instruction": {
+    "en": "Click on \"Time 10:00 AM\".",
+    "zh": "点击“Time 10:00 AM”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [237.0, 1083.3, 299.0, 971.3],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=157",
+    "image": {
+      "format": "jpeg",
+      "sha256": "bce74b93ee5eaa8d7737edb5e2db7800e74245b80d701188f09cae239c820df2"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

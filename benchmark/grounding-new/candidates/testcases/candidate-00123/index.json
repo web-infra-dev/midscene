@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00123",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires recognizing the control that expands the editor to full screen."
+  },
+  "instruction": {
+    "en": "full screen display",
+    "zh": "全屏显示。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [778, 2503, 844, 2429],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L218",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#18",
+    "image": {
+      "format": "png",
+      "sha256": "3fd4087de15a167055edabe303eca5cbff61ae6f97f5c4ee0a3b20927e76a72b"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00153",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target input field is identified by its visible fruits text."
+  },
+  "instruction": {
+    "en": "Type 'berries' in the bar with 'fruits'",
+    "zh": "在写有“fruits”的输入栏中输入“berries”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [304, 921, 404, 179],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L854",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#854",
+    "image": {
+      "format": "png",
+      "sha256": "96aac34efa0f0190e6c43558ce1e53ebe88b8d86d4aa2b791c16b6e0dda1d04b"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

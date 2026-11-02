@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00134",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is the calendar control for navigating to a later month."
+  },
+  "instruction": {
+    "en": "View calendar for subsequent months",
+    "zh": "查看后续月份的日历。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [297.6, 658.0, 341.6, 614.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1317",
+    "image": {
+      "format": "png",
+      "sha256": "ea0c6c3fb7dfdf120cc596e20a3dcc422e31cf113d5d65046766a078c8769434"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

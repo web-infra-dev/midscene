@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00356",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The Compare properties control enables comparison of the listed properties."
+  },
+  "instruction": {
+    "en": "Compare properties",
+    "zh": "比较房源。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [341.0, 228.3, 365.0, 180.3],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1212",
+    "image": {
+      "format": "png",
+      "sha256": "c965a1f9930eb811bd4a9ef3fbc9bae8903378bc57b8c2ddbf50544f8597996d"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00169",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires recognizing the icon used to share the content."
+  },
+  "instruction": {
+    "en": "Click the icon to share this content",
+    "zh": "点击分享此内容的图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [170, 942, 244, 868],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L640",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#640",
+    "image": {
+      "format": "png",
+      "sha256": "75034cdb208d545be1e02704c63ca33276b707f166a035c5f607e45db303b3e9"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

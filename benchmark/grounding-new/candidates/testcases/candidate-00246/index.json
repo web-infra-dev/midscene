@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00246",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the setting used to change the app language."
+  },
+  "instruction": {
+    "en": "switch language",
+    "zh": "切换语言。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1208, 1125, 1345, 41],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L5054",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#421",
+    "image": {
+      "format": "png",
+      "sha256": "de9b98284d0a7d55ea30213797fef022c926ce7ebf0e2a7034280a26b510d65d"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

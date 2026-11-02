@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00471",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the button labeled “15-day forecast”."
+  },
+  "instruction": {
+    "en": "display 15-day weather forecast",
+    "zh": "显示 15 天天气预报。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2184, 1032, 2363, 64],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L2198",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#183",
+    "image": {
+      "format": "png",
+      "sha256": "77e8be9f142d6820fc1d2653ea3455b62ca32d79807a6e6a181e04ee72888312"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704197
+  }
+}

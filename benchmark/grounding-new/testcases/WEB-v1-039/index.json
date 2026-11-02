@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-039",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires comparing the positions of visible coffee shops with the 杭州东站 map marker to identify the closest one."
+  },
+  "instruction": {
+    "en": "Find the coffee shop closest to 杭州东站.",
+    "zh": "找到离杭州东站最近的咖啡厅。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1170.0, 2002.0, 1208.0, 1888.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L3306",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#236",
+    "image": {
+      "format": "png",
+      "sha256": "5a03736ef8cb7a4264430e4d49368acc931b6d7c21ad48c24d304728652e1839"
+    },
+    "patch": "Replaced the original English and Chinese route-planning instructions with a bilingual request to find the coffee shop closest to 杭州东站. Changed groundTruth from [388.0, 733.0, 493.0, 626.0] to [1170.0, 2002.0, 1208.0, 1888.0] in [top, right, bottom, left] pixel coordinates, moving the target from the route-planning control to the 星巴克 map marker and label. Changed category.item to Reasoning and updated category.reason to describe comparing locations.",
+    "collectedAt": 1792485870803
+  }
+}

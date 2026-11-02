@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00049",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The task identifies a navigation entry by its visible Word Lists label."
+  },
+  "instruction": {
+    "en": "Go to word lists",
+    "zh": "进入单词列表。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [453.7, 942.6, 483.3, 781.4],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/214",
+    "image": {
+      "format": "png",
+      "sha256": "677652ab7bf1199eec6e4250f5083e85484ab9c37165a267e2b1a783d8a3e008"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

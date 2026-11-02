@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00183",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target stream is distinguished by its position as the second item."
+  },
+  "instruction": {
+    "en": "Watch the second stream",
+    "zh": "观看第二个直播。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [267.7, 740.0, 449.2, 418.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/610",
+    "image": {
+      "format": "png",
+      "sha256": "8090e29b8f6646294bb1b5042161ad4120b765e516354cacd31f6019678afd64"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00319",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its function as the playlist control."
+  },
+  "instruction": {
+    "en": "check the play list",
+    "zh": "查看播放列表。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2278, 961, 2419, 810],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L5270",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#439",
+    "image": {
+      "format": "png",
+      "sha256": "b395117af8e61d57a4b0659df8e2e3fc6d16855e8f33d1155d06f272ed3201de"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704139
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00492",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The Hide empty columns checkbox controls the display of empty calendar columns."
+  },
+  "instruction": {
+    "en": "Hide empty columns",
+    "zh": "隐藏空列。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [141.0, 501.0, 155.0, 487.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1174",
+    "image": {
+      "format": "png",
+      "sha256": "6192f2c259f4cc8cf3ad8649d578f33baa9a5de531a513b2fe046ba5ecfec587"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

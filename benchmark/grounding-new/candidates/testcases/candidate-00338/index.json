@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00338",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The arrow is identified by its position beside the Podcasts title."
+  },
+  "instruction": {
+    "en": "Click the arrow beside the Podcasts title",
+    "zh": "点击 Podcasts 标题旁边的箭头。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [149, 144, 275, 18],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1477",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1477",
+    "image": {
+      "format": "png",
+      "sha256": "edbce27c7c06140b4a91711a5a7cd8ff3a6a7ba5c321c168f3f48b4674616be4"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814756
+  }
+}

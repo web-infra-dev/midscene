@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00261",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target dropdown is specified by its position above the Add to Cart button."
+  },
+  "instruction": {
+    "en": "Select the dropdown above 'Add to Cart'.",
+    "zh": "选择“Add to Cart”上方的下拉菜单。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1346, 319, 1437, 83],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1057",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1057",
+    "image": {
+      "format": "png",
+      "sha256": "55000706a6e9f4917cff8b25124b1289a5cb0924c96b6f8c985adaf0a73e64a3"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

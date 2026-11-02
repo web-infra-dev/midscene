@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00461",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The income tax estimation link is identified by its displayed text."
+  },
+  "instruction": {
+    "en": "Click on \"estimate how much Income Tax you should pay this year\"",
+    "zh": "点击“estimate how much Income Tax you should pay this year”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [126.0, 718.0, 149.0, 265.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=319",
+    "image": {
+      "format": "jpeg",
+      "sha256": "27e306cb2987895abe6443315513e4f9891df5f10785029c7f4f229b6bb702bc"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

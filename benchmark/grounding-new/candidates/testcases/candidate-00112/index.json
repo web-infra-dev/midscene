@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00112",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target dropdown is specified by its position next to the To field."
+  },
+  "instruction": {
+    "en": "Click the dropdown next to 'To' field",
+    "zh": "点击“To”字段旁边的下拉菜单。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [457, 1033, 582, 982],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L840",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#840",
+    "image": {
+      "format": "png",
+      "sha256": "af1224d32ffa09f4d08b698f0cbd89497c7940dbeccce48f7fd287da4373d671"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

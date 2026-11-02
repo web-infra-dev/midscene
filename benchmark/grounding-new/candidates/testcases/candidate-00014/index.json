@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00014",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the entry associated with applying to the named university’s master’s program."
+  },
+  "instruction": {
+    "en": "Apply to the Northeastern Master's program",
+    "zh": "申请 Northeastern 的硕士项目。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [429.0, 804.8, 819.4, 540.5],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/913",
+    "image": {
+      "format": "png",
+      "sha256": "a5ae81dcc3790ca8810f8a7a6e4a7a262bfa02a4571a09836de47833664722be"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

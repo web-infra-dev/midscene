@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00442",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The link field is identified by its position below the description."
+  },
+  "instruction": {
+    "en": "Add a link below the description",
+    "zh": "在描述下方添加链接。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1305, 1038, 1362, 42],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L938",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#938",
+    "image": {
+      "format": "png",
+      "sha256": "9da7307112f76a111f937b96dfc0b089adb2a6da2f79410faeb8edd18f851c4d"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814759
+  }
+}

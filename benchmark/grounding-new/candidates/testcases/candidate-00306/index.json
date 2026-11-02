@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00306",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by its visible label or element type: enter boeing747 news in search field."
+  },
+  "instruction": {
+    "en": "Enter Boeing747 news in search field",
+    "zh": "在搜索框中输入 Boeing747 news。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [10, 2373, 50, 2133],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L135",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#135",
+    "image": {
+      "format": "png",
+      "sha256": "483e38af97ea8c98cb29736de2565e9c019e1b3d5ad7d41cb5e75e0310053e26"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814755
+  }
+}

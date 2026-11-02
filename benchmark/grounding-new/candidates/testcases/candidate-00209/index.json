@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00209",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The relevant dropdown is distinguished by its ordinal position."
+  },
+  "instruction": {
+    "en": "Select 1953 in the first dropdown",
+    "zh": "在第一个下拉菜单中选择 1953。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [65, 382, 101, 31],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L9",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#9",
+    "image": {
+      "format": "png",
+      "sha256": "3a43c0a086fd938e3a1991ea74c431c993e3151c78844e899f714f626cc902e3"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

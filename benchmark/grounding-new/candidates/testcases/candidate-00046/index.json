@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00046",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target action is directly identified by its visible text."
+  },
+  "instruction": {
+    "en": "Click on \"Use in TikTok Video Editor\".",
+    "zh": "点击“Use in TikTok Video Editor”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [403.0, 373.5, 443.0, 334.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=186",
+    "image": {
+      "format": "jpeg",
+      "sha256": "9a33d93fa0c6618cd074068ce8ae24cf1b5b30ca0ed28d546374ae650e461a25"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

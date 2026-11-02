@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00068",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested book is identified by matching its title."
+  },
+  "instruction": {
+    "en": "check the book named Ms. Rachel",
+    "zh": "查看名为“Ms. Rachel”的书。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [579, 1074, 772, 871],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L5174",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#431",
+    "image": {
+      "format": "png",
+      "sha256": "7f823b5738601e73e9da7045055ee3dfb3e820190978585c2e1e20f51534af6b"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

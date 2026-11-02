@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-099",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by its pentagonal shape among the displayed shapes."
+  },
+  "instruction": {
+    "en": "Find the pentagon.",
+    "zh": "找到五边形。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2079.0, 687.0, 2275.0, 482.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=220",
+    "image": {
+      "format": "png",
+      "sha256": "7303f569579000423865527f10ec41f11ccb8fccb0ca977b970aef0b30f8ef07"
+    },
+    "patch": "Replaced the original instruction “Click on the circle.” with a request to find the pentagon and added instruction.zh by translating the revised English instruction. Changed groundTruth from [956.0, 1092.0, 1217.0, 771.0] to [2079.0, 687.0, 2275.0, 482.0] in [top, right, bottom, left] pixel coordinates to cover the pentagon.",
+    "collectedAt": 1793776824833
+  }
+}

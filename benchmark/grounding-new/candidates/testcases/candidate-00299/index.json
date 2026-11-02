@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00299",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task identifies the calendar control needed to navigate to the requested month."
+  },
+  "instruction": {
+    "en": "January 2026",
+    "zh": "2026 年 1 月。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [305.7, 728.0, 349.7, 684.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1182",
+    "image": {
+      "format": "png",
+      "sha256": "cb99e6d98ff7c9d64ac207728c775256bf643ed632896dfc82be6c5243a2a30b"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

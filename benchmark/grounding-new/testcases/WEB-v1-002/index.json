@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-002",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the control for shopping for the named brand’s products."
+  },
+  "instruction": {
+    "en": "Shop for Neutrogena products.",
+    "zh": "购买 Neutrogena 产品。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [105.0, 878.0, 136.0, 768.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00003-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1576",
+    "image": {
+      "format": "png",
+      "sha256": "7765d9f64cc4c7594bfd64d4dc5f2bb2c48fbaac6e23b0ca3bf04aa21101d178"
+    },
+    "patch": "Added punctuation to the original English instruction and added instruction.zh by translating it. Narrowed groundTruth from [75.6, 904.2, 165.5, 176.5] to [105.0, 878.0, 136.0, 768.0] in [top, right, bottom, left] pixel coordinates, focusing on the visible SHOP NOW button instead of the surrounding advertisement.",
+    "collectedAt": 1793763122996
+  }
+}

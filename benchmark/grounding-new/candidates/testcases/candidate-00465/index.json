@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00465",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The CUISINE navigation item is explicitly identified by its label."
+  },
+  "instruction": {
+    "en": "Click on \"CUISINE\".",
+    "zh": "点击“CUISINE”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [82.0, 683.3, 128.0, 615.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=222",
+    "image": {
+      "format": "jpeg",
+      "sha256": "8746695aeba65ef4fee2b1445c554126b2438852088da2c599857a41140f955e"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

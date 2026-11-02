@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00069",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the control for refining the current search query."
+  },
+  "instruction": {
+    "en": "Refine the current search query",
+    "zh": "细化当前搜索查询。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [272.9, 186.3, 304.7, 81.1],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/870",
+    "image": {
+      "format": "png",
+      "sha256": "8458b0f12b01c4f6b415277eb649c61acdcd1a353c54f1ddbfdbeecfa43a4353"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

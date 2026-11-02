@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00479",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the button labeled “New issue”."
+  },
+  "instruction": {
+    "en": "create a new issue",
+    "zh": "创建新的 issue。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [204, 2534, 274, 2344],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L158",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#13",
+    "image": {
+      "format": "png",
+      "sha256": "4198d939543eea7b6a32fb07835e80efcbf958c4bad198f80d85d95c23aa52d1"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704198
+  }
+}

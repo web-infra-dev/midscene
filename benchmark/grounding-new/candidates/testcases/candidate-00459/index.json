@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00459",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its function as the browser search field for the privacy report request."
+  },
+  "instruction": {
+    "en": "search for the privacy report of a website",
+    "zh": "搜索网站的隐私报告。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2154, 1089, 2292, 82],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L3770",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#314",
+    "image": {
+      "format": "png",
+      "sha256": "0f7c6a9358346426864e78f00e73e58bc40f2446f7e2c2a832b4230efa4889c0"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704195
+  }
+}

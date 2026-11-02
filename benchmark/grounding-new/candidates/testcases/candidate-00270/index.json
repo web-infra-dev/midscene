@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00270",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the control that opens messages."
+  },
+  "instruction": {
+    "en": "show all messages",
+    "zh": "显示全部消息。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2220, 1042, 2350, 908],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L4694",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#391",
+    "image": {
+      "format": "jpeg",
+      "sha256": "31b2faff7797c4390cfa757e4eb5935a6c58c518faa038444278980fcd015d6d"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00390",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its interface function: toggle the switch to control autoplay."
+  },
+  "instruction": {
+    "en": "Toggle the switch to control autoplay",
+    "zh": "切换自动播放开关。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1531, 1032, 1608, 944],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L920",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#920",
+    "image": {
+      "format": "png",
+      "sha256": "52d7199dd3097121ee456b9488a8227aadf9dd76317e12e369c0512e895b65e0"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814758
+  }
+}

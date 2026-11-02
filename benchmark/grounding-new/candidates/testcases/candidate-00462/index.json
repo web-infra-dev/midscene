@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00462",
+  "platform": "web",
+  "category": {
+    "item": "Small Target",
+    "reason": "The requested checkbox is a small control that requires precise localization."
+  },
+  "instruction": {
+    "en": "Select the first checkbox under Type",
+    "zh": "选择 Type 下的第一个复选框。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [891, 56, 911, 36],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L174",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#174",
+    "image": {
+      "format": "png",
+      "sha256": "ae3b7a5de6408b6750b8b56611e609192519edf983a17f854fe366d1d5207345"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814763
+  }
+}

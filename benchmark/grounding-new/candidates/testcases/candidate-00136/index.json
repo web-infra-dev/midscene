@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00136",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the Locations link in the page navigation."
+  },
+  "instruction": {
+    "en": "Click on \"Locations\".",
+    "zh": "点击“Locations”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [50.0, 1059.0, 69.0, 997.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=218",
+    "image": {
+      "format": "jpeg",
+      "sha256": "ed40027ab5222345aca3184ae2a0a4da76b5c4503c6a5e759684126bdace4939"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

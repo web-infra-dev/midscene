@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00281",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is the filtering control associated with a ten-percent discount."
+  },
+  "instruction": {
+    "en": "Select for 10% discount products",
+    "zh": "选择筛选优惠 10% 的商品。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [222, 56, 242, 36],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L74",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#74",
+    "image": {
+      "format": "png",
+      "sha256": "ee38b70c7a6a8f07b87fee226367566f4fbed95e625e2cc81222c1d578572f61"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

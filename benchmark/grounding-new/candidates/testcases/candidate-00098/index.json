@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00098",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the video control for replaying the current video."
+  },
+  "instruction": {
+    "en": "Replay the current video",
+    "zh": "重新播放当前视频。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [445, 798, 544, 681],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L5198",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#433",
+    "image": {
+      "format": "png",
+      "sha256": "f11d8b9c413213129cceb382bcf675c10f43a3e77df0b45b5a1b55dc10ced84f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

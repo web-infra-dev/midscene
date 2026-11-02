@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00084",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires recognizing the calendar control that advances to the next month."
+  },
+  "instruction": {
+    "en": "View next month's calendar",
+    "zh": "查看下个月的日历。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [344.0, 819.0, 388.0, 775.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00003-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1617",
+    "image": {
+      "format": "png",
+      "sha256": "a5111c12607cfbeca70d3e971e756fd2d805f459d329b653c6265d7bdb3e69b1"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

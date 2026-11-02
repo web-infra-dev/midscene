@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00173",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its function of enabling experience tracking."
+  },
+  "instruction": {
+    "en": "Enable experience tracking",
+    "zh": "启用体验跟踪。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [767, 127, 787, 80],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1212",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1212",
+    "image": {
+      "format": "png",
+      "sha256": "27cdfae447cf87b9b5840090b6f9327fe56e307695d7f985448afd6c21e39de0"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

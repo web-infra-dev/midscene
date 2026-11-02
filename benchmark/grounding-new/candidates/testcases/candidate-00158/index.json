@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00158",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires recognizing the app’s search control."
+  },
+  "instruction": {
+    "en": "search in this app",
+    "zh": "在应用内搜索。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [339, 309, 588, 121],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L4526",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#377",
+    "image": {
+      "format": "jpeg",
+      "sha256": "a5ebe20e1bd0241afd6e065b9ef9081527674154bbe57f0792f976d7f6214fe8"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

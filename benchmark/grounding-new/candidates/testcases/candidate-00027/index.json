@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00027",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its function of sorting results in ascending order."
+  },
+  "instruction": {
+    "en": "Select to order results ascending",
+    "zh": "选择按升序排列结果。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [677, 1298, 690, 1285],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1241",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1241",
+    "image": {
+      "format": "png",
+      "sha256": "5dcc090c9a63bb64d1b951a362c4d296e7a6a62c7697156b7159d4d665c1535b"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

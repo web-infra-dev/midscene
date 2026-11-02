@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-061",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires identifying which product belongs to the book category from its visible characteristics rather than matching a supplied product name."
+  },
+  "instruction": {
+    "en": "Select the image of the product that belongs to the book category on the page.",
+    "zh": "选择页面中属于书籍类的商品图片。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1658.0, 1147.0, 1832.0, 1006.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L1094",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#78",
+    "image": {
+      "format": "png",
+      "sha256": "e00b7c341866a5c6d225ced19e16cb5fd7a26af182da4d15329f38c9f8273ac1"
+    },
+    "patch": "Revised instruction.en to request a single image, matching the only book-category product in the screenshot and its ground truth. Revised category.reason to explain that the task requires identifying the book from its visible characteristics rather than matching a supplied product name.",
+    "collectedAt": 1792485870922
+  }
+}

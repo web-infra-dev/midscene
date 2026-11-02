@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00273",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target action is identified by its function of modifying the reminder."
+  },
+  "instruction": {
+    "en": "Click the option to modify this reminder",
+    "zh": "点击修改此提醒的选项。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1473, 750, 1629, 540],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L976",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#976",
+    "image": {
+      "format": "png",
+      "sha256": "75c41aedeaefe94a9dc8ac8c7fa14ba64123bc80e02c32182b7f50ac3eed0b6e"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00452",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The existing search field is the control used to change the search query."
+  },
+  "instruction": {
+    "en": "Change search terms",
+    "zh": "更改搜索词。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [18.0, 572.7, 54.0, 310.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/48",
+    "image": {
+      "format": "png",
+      "sha256": "d4705b0019135440b4f50c19f03501f010d719923c654be4fcab05799b624b9e"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

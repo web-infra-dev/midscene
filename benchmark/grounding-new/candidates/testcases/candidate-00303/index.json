@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00303",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the button labeled “Sign Up” on the Zoom welcome screen."
+  },
+  "instruction": {
+    "en": "sign up to zoom ",
+    "zh": "注册 Zoom。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1993, 1143, 2146, 34],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L3698",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#308",
+    "image": {
+      "format": "png",
+      "sha256": "41d6391127bd32853f54a2b49274758d80b7f7ab07184398694c01061f15aeb7"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704136
+  }
+}

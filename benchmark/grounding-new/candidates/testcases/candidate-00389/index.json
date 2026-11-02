@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00389",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The Kitchen Remodel filter is directly identified by its label."
+  },
+  "instruction": {
+    "en": "Click on \"Kitchen Remodel\".",
+    "zh": "点击“Kitchen Remodel”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [471.6, 595.5, 487.6, 579.5],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=243",
+    "image": {
+      "format": "jpeg",
+      "sha256": "d7e0b7f97178dc4e70c2e9890ec11dd60278c8211f6ea6f02e6ba50170bb0fea"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

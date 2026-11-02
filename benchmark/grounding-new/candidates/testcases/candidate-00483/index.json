@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00483",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the GitHub app icon identified by its visible label."
+  },
+  "instruction": {
+    "en": "open github app",
+    "zh": "打开 GitHub 应用。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [586, 1040, 834, 808],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L2558",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#213",
+    "image": {
+      "format": "png",
+      "sha256": "9d0131c40b5b646914f6d2864f750c38d0dbf8606d517000a9127db0ebf6dc33"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704199
+  }
+}

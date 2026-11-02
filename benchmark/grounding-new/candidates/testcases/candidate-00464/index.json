@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00464",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The Coursera logo is the navigation control for the site homepage."
+  },
+  "instruction": {
+    "en": "Navigate to the Coursera homepage",
+    "zh": "前往 Coursera 首页。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [57.0, 175.4, 88.8, 48.2],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1159",
+    "image": {
+      "format": "png",
+      "sha256": "cf6ad0e89bc0aa5e3d7e5a192f5073e2db30a68bd113e8a49ae8ed105e6e65e8"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

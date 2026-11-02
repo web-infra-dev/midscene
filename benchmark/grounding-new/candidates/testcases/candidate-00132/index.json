@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00132",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task identifies the control used to filter by the number of bedrooms."
+  },
+  "instruction": {
+    "en": "Select the number of bedrooms needed",
+    "zh": "选择所需的卧室数量。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [438, 1054, 470, 944],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L127",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#127",
+    "image": {
+      "format": "png",
+      "sha256": "3428b55917fe572ae8a88905cff7c34e1f35a44048ca6fb167cc13faa891e5b1"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

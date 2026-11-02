@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00401",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The number 1 is identified by its position within the Beds filter."
+  },
+  "instruction": {
+    "en": "Click on '1' under the 'Beds' filter.",
+    "zh": "点击“Beds”筛选条件下的“1”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [240.0, 744.3, 280.0, 687.2],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=236",
+    "image": {
+      "format": "jpeg",
+      "sha256": "b0f8db160b30e0aab247b51e7cc941bf93db3d24b61f10a4a5984956ab02a35c"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

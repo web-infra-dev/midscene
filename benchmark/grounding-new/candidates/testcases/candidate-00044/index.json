@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00044",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The task identifies a calendar date directly by its month and day."
+  },
+  "instruction": {
+    "en": "Click on 30 April",
+    "zh": "点击 4 月 30 日。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [721.2, 577.5, 756.2, 541.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/812",
+    "image": {
+      "format": "png",
+      "sha256": "ea4a429b679b577282c0ef2c326c6ec1ce93c18aad8c0a05246c6c23a6798529"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

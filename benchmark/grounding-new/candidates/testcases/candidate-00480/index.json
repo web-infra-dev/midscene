@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00480",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The Women navigation entry directly names the requested collection."
+  },
+  "instruction": {
+    "en": "Browse women collection ",
+    "zh": "浏览女士系列。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [58.5, 68.4, 73.5, 10.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/917",
+    "image": {
+      "format": "png",
+      "sha256": "6a124d9040deda7b838d8cc00c63ab5dea4e4ecbe74c8f656876b3975e39c62e"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

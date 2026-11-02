@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00316",
+  "platform": "web",
+  "category": {
+    "item": "Small Target",
+    "reason": "The named login option is identified by its small checkbox."
+  },
+  "instruction": {
+    "en": "Remember-me checkmark for the login",
+    "zh": "选中登录时的“Remember me”复选框。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [301.0, 278.5, 325.0, 254.5],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1224",
+    "image": {
+      "format": "png",
+      "sha256": "98fbd85516e8591f3ca1ec8d026c19b3da48ed564407c162438014295705bcf6"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

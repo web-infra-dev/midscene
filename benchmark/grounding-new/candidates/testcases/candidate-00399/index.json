@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00399",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the settings row labeled “More Dark mode options”."
+  },
+  "instruction": {
+    "en": "change dark mode options",
+    "zh": "更改深色模式选项。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1517, 1028, 1712, 19],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L2342",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#195",
+    "image": {
+      "format": "png",
+      "sha256": "8aaa5c5ff83990773eb33be797f56dbb9c0a323262240c9b54a69a9a01bb3ccf"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704173
+  }
+}

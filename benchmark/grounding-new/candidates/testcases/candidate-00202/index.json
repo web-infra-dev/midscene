@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00202",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the control for creating an alarm."
+  },
+  "instruction": {
+    "en": "add a new alarm",
+    "zh": "添加一个闹钟。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [60, 2333, 127, 2253],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L5990",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#499",
+    "image": {
+      "format": "png",
+      "sha256": "f9273767914ff442bbc62ed167c0b81b383cc7650b68bfb2bb690cd2f5c9114f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

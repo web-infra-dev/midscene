@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-003",
+  "platform": "mobile",
+  "category": {
+    "item": "Specialized Icon",
+    "reason": "The task requires recognizing a camera-specific shooting icon among other camera controls, making it a specialized-icon identification task."
+  },
+  "instruction": {
+    "en": "Enable dynamic shooting.",
+    "zh": "开启动态拍摄。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [136.0, 822.0, 244.0, 714.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L3878",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#323",
+    "image": {
+      "format": "jpeg",
+      "sha256": "c9a86f924c5e14a5f6b87ca5f2c62fb242a0f55457887a4a944f851f8ae7bf3c"
+    },
+    "patch": "Reworded instruction.en to request enabling dynamic shooting and added instruction.zh by translating it. Adjusted the ground-truth box from [134.0, 825.0, 242.0, 699.0] to [136.0, 822.0, 244.0, 714.0] (top, right, bottom, left), making it square and centering it on the dynamic shooting button.",
+    "collectedAt": 1792485870178
+  }
+}

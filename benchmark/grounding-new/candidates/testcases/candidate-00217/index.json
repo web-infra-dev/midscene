@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00217",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target checkbox is identified by its position below the website field."
+  },
+  "instruction": {
+    "en": "Click the checkbox below the website input",
+    "zh": "点击网站输入框下方的复选框。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [497, 52, 510, 40],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1227",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1227",
+    "image": {
+      "format": "png",
+      "sha256": "17d3cfff8cc677a01cb0d4d49ed82badb24c50bfcd6614d7b3d3501d7425693a"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

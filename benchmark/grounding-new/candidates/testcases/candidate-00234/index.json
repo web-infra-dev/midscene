@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00234",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested discussion is distinguished by its displayed title."
+  },
+  "instruction": {
+    "en": "view the information of book lover or not?",
+    "zh": "查看“Book lover or not?”的相关信息。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [960, 970, 1108, 185],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L1790",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#149",
+    "image": {
+      "format": "png",
+      "sha256": "b9ec93b59eda5b132cb8304d32bb1787932b6fd6280bf239c5c2e19b0837080d"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

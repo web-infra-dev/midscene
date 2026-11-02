@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00310",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The date is located immediately to the left of the 13th in the calendar."
+  },
+  "instruction": {
+    "en": "Select the date on the left of 13th",
+    "zh": "选择 13 日左侧的日期。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1248, 307, 1353, 215],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L857",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#857",
+    "image": {
+      "format": "png",
+      "sha256": "80de57b908015d182f6bc4fc22f260316684b1d90984a1cbf56fb5815f53e7d1"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814756
+  }
+}

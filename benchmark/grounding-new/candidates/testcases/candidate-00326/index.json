@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00326",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target is the second button in the top navigation row."
+  },
+  "instruction": {
+    "en": "Click on the second button at the top.",
+    "zh": "点击顶部的第二个按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [453, 514, 537, 309],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L776",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#776",
+    "image": {
+      "format": "png",
+      "sha256": "16ab5cdb785fb10b58d6e1301f4327901d3aed4ab545ef67173377962f3635b8"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814756
+  }
+}

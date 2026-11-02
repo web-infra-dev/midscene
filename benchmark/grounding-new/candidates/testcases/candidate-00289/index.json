@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00289",
+  "platform": "web",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "The requested checkbox is distinguished by its association with the third item."
+  },
+  "instruction": {
+    "en": "Select the checkbox to compare the third item",
+    "zh": "选择用于比较第三个商品的复选框。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [50, 1218, 66, 1202],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1215",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1215",
+    "image": {
+      "format": "png",
+      "sha256": "4fe34040ac94c91a97189d6f7532d70c7883ba1be31a8be60e7ad6bc42c1762d"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

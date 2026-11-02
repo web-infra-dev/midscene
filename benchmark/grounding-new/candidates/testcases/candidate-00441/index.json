@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00441",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The All link is distinguished by its location within the Vehicle Services section."
+  },
+  "instruction": {
+    "en": "Click on \"All\" under the \"Vehicle Services\" section.",
+    "zh": "点击“Vehicle Services”部分中的“All”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [432.2, 891.5, 457.2, 839.9],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=292",
+    "image": {
+      "format": "jpeg",
+      "sha256": "8e54ef90e0851305bca3ab33cca1c501c03b4995644054f28c90da6072e0bbda"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00262",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by the visible Automation navigation label."
+  },
+  "instruction": {
+    "en": "open automation",
+    "zh": "打开自动化。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [340, 604, 433, 33],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L2918",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#243",
+    "image": {
+      "format": "png",
+      "sha256": "bcb961fa628d8f508abbc1f6391f8e1ee5ffc4c7160b30450cb39739d4d532fc"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

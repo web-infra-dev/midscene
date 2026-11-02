@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00124",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by matching the specified grammar expression."
+  },
+  "instruction": {
+    "en": "Navigate to information about 'As ... as + possibility'",
+    "zh": "查看关于“As ... as + possibility”的信息。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [422.0, 503.1, 439.5, 355.1],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1078",
+    "image": {
+      "format": "png",
+      "sha256": "1f8ea20c262b6661b254f356b6a1312a3fb96df153471825404eb332740b5f32"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

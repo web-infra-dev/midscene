@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00339",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the navigation link labeled “Forums”."
+  },
+  "instruction": {
+    "en": "check the forums",
+    "zh": "查看论坛。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [15, 485, 97, 304],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L1706",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#142",
+    "image": {
+      "format": "png",
+      "sha256": "05d85b7e9c802e174ff22f42c9858bdf4215a4b37d3e568bf1f48626c170d3fe"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704144
+  }
+}

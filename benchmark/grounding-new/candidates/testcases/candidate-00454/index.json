@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00454",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The menu icon is identified by its position next to the Unit Converter title."
+  },
+  "instruction": {
+    "en": "Click the icon next to the title",
+    "zh": "点击标题旁的图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [152, 163, 299, 16],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L581",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#581",
+    "image": {
+      "format": "png",
+      "sha256": "b51e379ba453433f6882ff76a606ea04213dd7baa1c14e1a7238d261970a169c"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814762
+  }
+}

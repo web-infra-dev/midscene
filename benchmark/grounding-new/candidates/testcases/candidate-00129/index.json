@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00129",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task identifies the navigation control for browsing the product catalog."
+  },
+  "instruction": {
+    "en": "View product catalog",
+    "zh": "查看产品目录。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [113.0, 1050.3, 185.0, 45.7],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/40",
+    "image": {
+      "format": "png",
+      "sha256": "296bf73bf05dd896d5c0eea62d65fef122808e6feeb8daf3722a6bd6af62295d"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

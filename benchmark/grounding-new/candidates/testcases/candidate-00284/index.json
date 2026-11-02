@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00284",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by the organizational-chart button label."
+  },
+  "instruction": {
+    "en": "Click on \"View Organizational Chart\"",
+    "zh": "点击“View Organizational Chart”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [116.1, 503.0, 156.1, 265.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=300",
+    "image": {
+      "format": "jpeg",
+      "sha256": "bd14d2dc1d20ba8a7a6e58d2ee3f1e87fffc82b2ab0d9dca28d5e4693c1d8f86"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00164",
+  "platform": "web",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "The destination must be distinguished from other Tokyo-related search suggestions."
+  },
+  "instruction": {
+    "en": "Click on \"Tokyo\" (Tokyo Prefecture, Japan).",
+    "zh": "点击“Tokyo”（日本东京都）。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [550.0, 1043.5, 622.0, 236.5],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=196",
+    "image": {
+      "format": "jpeg",
+      "sha256": "40a312862120605eb76d152e7019d44f232e81d1f1033d23f2de5bf3d983fb1f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00251",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires finding the second Friday in the displayed October calendar."
+  },
+  "instruction": {
+    "en": "Select the second Friday in October",
+    "zh": "选择十月的第二个星期五。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [417.0, 420.0, 465.0, 372.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/398",
+    "image": {
+      "format": "png",
+      "sha256": "618ab99d542e45e13894e8bbcafdbdc2b3d4a5316ab7033f6c288c1f2ae995e5"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

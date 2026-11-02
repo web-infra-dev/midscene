@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00342",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target dropdown is located next to the Filter control."
+  },
+  "instruction": {
+    "en": "Select the dropdown next to Filter button",
+    "zh": "选择 Filter 按钮旁边的下拉菜单。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [71, 197, 124, 15],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L76",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#76",
+    "image": {
+      "format": "png",
+      "sha256": "8d39c1a6c50258182366ef5c528461242d44db450ad846054763a1f5327e380b"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814756
+  }
+}

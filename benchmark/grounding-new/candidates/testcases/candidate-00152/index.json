@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00152",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the filter button labeled Filter by Date."
+  },
+  "instruction": {
+    "en": "Click on \"Filter by Date\"",
+    "zh": "点击“Filter by Date”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [351.0, 326.3, 383.0, 200.9],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=91",
+    "image": {
+      "format": "jpeg",
+      "sha256": "7a3517d47f90b5f67439663defd24f0aec83ba4a2005c852f7718b6fd08533fc"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

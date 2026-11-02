@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-006",
+  "platform": "mobile",
+  "category": {
+    "item": "Color Recognition",
+    "reason": "Several circular dots have the same shape and no color labels; blue is the directly decisive condition."
+  },
+  "instruction": {
+    "en": "A solid blue circular color option button in the color selection panel.",
+    "zh": "颜色选择面板中的纯蓝色圆形颜色选项按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2004.7, 884.0, 2074.6, 819.1],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L7185",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "378",
+    "image": {
+      "format": "png",
+      "sha256": "065ed33870b3dec2a0a704553b28655b74a682dbf7e30cc10979a0131319b574"
+    },
+    "patch": "Added instruction.zh by translating the revised English instruction. Removed the screen-bottom location clue from the instruction because it was redundant and made the target easier to locate. Retained the color selection panel as the target context, along with the original ground-truth box and Color Recognition category.",
+    "collectedAt": 1792485870188
+  }
+}

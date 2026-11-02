@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00159",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task identifies the control that opens the departure-date calendar."
+  },
+  "instruction": {
+    "en": "Open calendar to select departure date",
+    "zh": "打开日历以选择出发日期。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [429.6, 834.1, 483.3, 696.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/606",
+    "image": {
+      "format": "png",
+      "sha256": "3f8ea8aa2619ba6a02419ffd15a93afa030998b37a55e13532061d27920ff362"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

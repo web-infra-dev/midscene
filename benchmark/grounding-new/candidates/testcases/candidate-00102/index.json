@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00102",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by the Aldrop Bolts filter label."
+  },
+  "instruction": {
+    "en": "Select to filter by Aldrop Bolts",
+    "zh": "选择按“Aldrop Bolts”筛选。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [733, 101, 788, 53],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1433",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1433",
+    "image": {
+      "format": "png",
+      "sha256": "59e3b40cdeaee15de495dcf5237577a02ca805447b376828bd41523d69e028a4"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00407",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the input field labeled “Product Name”."
+  },
+  "instruction": {
+    "en": "enter product name",
+    "zh": "输入商品名称。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [637, 1281, 700, 354],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L1574",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#131",
+    "image": {
+      "format": "png",
+      "sha256": "969bf4e4d006ba3dc7eaea8bead97de2d0c467e3e3f205a7db1b36bc97706c08"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704178
+  }
+}

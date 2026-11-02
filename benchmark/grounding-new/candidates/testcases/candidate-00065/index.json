@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00065",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by matching the privacy policy link."
+  },
+  "instruction": {
+    "en": "Check the privacy policy of delta.com",
+    "zh": "查看 delta.com 的隐私政策。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [675.9, 262.5, 691.2, 174.3],
+  "reference": {
+    "url": "https://github.com/xlang-ai/OSWorld-G/blob/daa6bd8e0e629f0917ad2984df930bf0bd967540/benchmark/OSWorld-G.json",
+    "dataset": "OSWorld-G",
+    "recordId": "BT7yWIQyPi-1",
+    "image": {
+      "format": "png",
+      "sha256": "613a2213b993011d20ba7432b1ad50702152cc65491c58e63ef6178ff8a7c99c"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

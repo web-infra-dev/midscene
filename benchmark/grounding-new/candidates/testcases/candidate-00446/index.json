@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00446",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The link is identified by its position under the Related topics heading."
+  },
+  "instruction": {
+    "en": "Click the button under related topics",
+    "zh": "点击相关主题下方的按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2033, 1038, 2160, 42],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L871",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#871",
+    "image": {
+      "format": "png",
+      "sha256": "7f3d5b0347f4584fd870af6a620735ef08693d132f25af9ad07e2c77ce37e3c0"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814760
+  }
+}

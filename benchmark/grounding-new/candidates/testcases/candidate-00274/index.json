@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00274",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the app-update toggle and its current state."
+  },
+  "instruction": {
+    "en": "disable automatic app updates",
+    "zh": "关闭应用自动更新。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1627, 1077, 1738, 918],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L3290",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#274",
+    "image": {
+      "format": "png",
+      "sha256": "637da4240075d9620819d02aa5655f55fc0571271ebf702017bcc54a711fafdd"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

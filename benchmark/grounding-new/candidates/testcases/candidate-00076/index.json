@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00076",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested action is directly identified by the Share icon."
+  },
+  "instruction": {
+    "en": "Click on the 'Share' icon.",
+    "zh": "点击“Share”图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [154.0, 296.2, 203.5, 246.8],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=366",
+    "image": {
+      "format": "jpeg",
+      "sha256": "41d3ef2de0e63650441dab0dc06a9f2f341e08fcc94bfa8da71db934f6bcd128"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

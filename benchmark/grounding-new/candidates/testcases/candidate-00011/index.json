@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00011",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires locating the control associated with switching alert types."
+  },
+  "instruction": {
+    "en": "Click on \"On\" to toggle the alert types.",
+    "zh": "点击“On”以切换提醒类型。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [226.8, 1080.0, 373.8, 0.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=476",
+    "image": {
+      "format": "jpeg",
+      "sha256": "2c7b24800d71f77f6a5f4b11cd97efb32b184c570112f2ccc1b818f747e16e77"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

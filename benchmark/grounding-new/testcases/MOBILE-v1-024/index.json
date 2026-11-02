@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-024",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the current-city selector in the hotel search bar as the control for changing cities."
+  },
+  "instruction": {
+    "en": "Change the current city.",
+    "zh": "切换当前城市。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [100, 230, 201, 121],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L576",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#row=41",
+    "image": {
+      "format": "png",
+      "sha256": "88dcb44f3122cb1a8cbb083fc760d71900392fdb036743282cb3b111656b5e80"
+    },
+    "patch": "Replaced the original instruction to expand the advanced filter panel with a request to change the current city. Changed groundTruth from [226, 994, 293, 858] to [100, 230, 201, 121] in [top, right, bottom, left] pixel coordinates, moving the target from the filter control to the Hangzhou city selector in the search bar. Updated category.reason to describe the city-selection function.",
+    "collectedAt": 1792485870233
+  }
+}

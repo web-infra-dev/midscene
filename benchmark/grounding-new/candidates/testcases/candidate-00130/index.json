@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00130",
+  "platform": "web",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "The target is distinguished by its ordinal position among the authors of the specified book."
+  },
+  "instruction": {
+    "en": "Click the name of the second author of the book \"Natural Language Processing with Transformers, Revised Edition\"",
+    "zh": "点击“Natural Language Processing with Transformers, Revised Edition”一书第二位作者的姓名。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [338.2, 916.1, 361.1, 790.8],
+  "reference": {
+    "url": "https://github.com/xlang-ai/OSWorld-G/blob/daa6bd8e0e629f0917ad2984df930bf0bd967540/benchmark/OSWorld-G.json",
+    "dataset": "OSWorld-G",
+    "recordId": "mMBNkv9deo-1",
+    "image": {
+      "format": "png",
+      "sha256": "5ba4cfea2d3f2679e25bd3bc77882f09c374db8bb93133e4fce923062a2b39d9"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

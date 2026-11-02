@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00215",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires determining the last date in the displayed month."
+  },
+  "instruction": {
+    "en": "Click on the last day of the month",
+    "zh": "点击该月的最后一天。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [596.0, 316.8, 646.0, 268.3],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/77",
+    "image": {
+      "format": "png",
+      "sha256": "1b148f505820fb085d6354afdb0130509644731b1de899b26e352616345b193f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

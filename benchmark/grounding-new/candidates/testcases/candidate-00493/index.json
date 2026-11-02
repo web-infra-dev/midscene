@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00493",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by the magnifying-glass symbol in the search control."
+  },
+  "instruction": {
+    "en": "Click on the magnifying glass icon.",
+    "zh": "点击放大镜图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [368.0, 1177.2, 394.0, 1152.5],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=270",
+    "image": {
+      "format": "jpeg",
+      "sha256": "bd21d29561fd6233136485e0414d8f82d7e334ede5e3c8cd7066dd5affc57528"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

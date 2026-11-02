@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00114",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is the link used to view copyright information."
+  },
+  "instruction": {
+    "en": "View copyright information",
+    "zh": "查看版权信息。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1018.2, 608.3, 1041.2, 551.3],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/285",
+    "image": {
+      "format": "png",
+      "sha256": "e8810b0f5471019fa8c0a6d3644d5d6657c8419e714ac24f6ca814b75bb25999"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

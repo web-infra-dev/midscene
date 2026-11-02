@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-099",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires comparing product prices before using relative position to identify the corresponding favorite control."
+  },
+  "instruction": {
+    "en": "Find the item adjacent to the left of the highest-priced item and click to add it to your favorites.",
+    "zh": "找到价格最高商品左侧相邻的商品，点击收藏。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1122.0, 1340.0, 1173.0, 1293.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L13204",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#943",
+    "image": {
+      "format": "png",
+      "sha256": "40a18815e216ed365bbf97452a4df486ebaf5cbb843d2126b96dc5ed70a5e135"
+    },
+    "patch": null,
+    "collectedAt": 1792485871026
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00414",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its interface function: click the button to manage food topic updates."
+  },
+  "instruction": {
+    "en": "Click the button to manage food topic updates.",
+    "zh": "点击管理美食主题更新的按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [157, 1038, 262, 722],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L874",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#874",
+    "image": {
+      "format": "png",
+      "sha256": "94091f91e28f2f83b60f11b892c10e9f03b97951e4ad234acffb23ada337555b"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814758
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00424",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The add-search-term control inserts another search field."
+  },
+  "instruction": {
+    "en": "Add another search term field",
+    "zh": "添加另一个搜索条件输入框。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [360.6, 392.4, 386.9, 257.6],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/720",
+    "image": {
+      "format": "png",
+      "sha256": "e683ed98aa778447b21b437d69b1c8b45c95749e2a6edd8e605fcf2fde01bf48"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

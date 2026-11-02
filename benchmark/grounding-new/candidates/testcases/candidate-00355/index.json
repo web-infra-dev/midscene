@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00355",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the dropdown labeled “Use-Case”."
+  },
+  "instruction": {
+    "en": "select a use-case",
+    "zh": "选择一种使用场景。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1037, 646, 1134, 109],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L722",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#60",
+    "image": {
+      "format": "png",
+      "sha256": "739b02aee60de4c201df2a245f87dbd0fc36151cb6fe5e43a00e84508495f67b"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704153
+  }
+}

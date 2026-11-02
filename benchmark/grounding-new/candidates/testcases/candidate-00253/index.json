@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00253",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The task identifies a calendar element by its specified date."
+  },
+  "instruction": {
+    "en": "Click the icon for July 13th",
+    "zh": "点击 7 月 13 日对应的图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1300, 675, 1405, 583],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1064",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1064",
+    "image": {
+      "format": "png",
+      "sha256": "69fe9db1d1b2bdb198bad63b4cbe37ff49cada50f2f84d1060a53efe21b3b43d"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

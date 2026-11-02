@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00111",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the visible menu icon in the application header."
+  },
+  "instruction": {
+    "en": "Click on the menu icon.",
+    "zh": "点击菜单图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [7.0, 115.5, 122.5, 0.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=413",
+    "image": {
+      "format": "jpeg",
+      "sha256": "8e491f4b73b33fdd38cdff2f8fb05adefb413ed71e102602c88f437176a45a3b"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

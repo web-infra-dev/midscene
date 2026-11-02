@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00143",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The task locates the field labeled for entering a job title."
+  },
+  "instruction": {
+    "en": "Enter job title",
+    "zh": "输入职位名称。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [406.8, 1023.0, 460.8, 820.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/388",
+    "image": {
+      "format": "png",
+      "sha256": "caea1b5ed5ea74dc8b4a70bc340c21d2c646557848856325ba9a74503bcf1807"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

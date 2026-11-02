@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00170",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the Wi-Fi control and understanding its toggle function."
+  },
+  "instruction": {
+    "en": "turn off wifi",
+    "zh": "关闭 Wi-Fi。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [423, 528, 708, 68],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L2858",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#238",
+    "image": {
+      "format": "jpeg",
+      "sha256": "187ee65f95f2e0066fa9d8673e3518e1879dcf2e992c9c2d53c345e3c2fe581a"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

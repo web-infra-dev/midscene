@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00141",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target control must be recognized as the action for adding an attachment."
+  },
+  "instruction": {
+    "en": "Click to add an attachment",
+    "zh": "点击添加附件。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [156, 827, 282, 700],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L596",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#596",
+    "image": {
+      "format": "png",
+      "sha256": "591acd16b5ee4595b92214399118591233bafc6dd74b0ad9fb10e3362cb5cd5d"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

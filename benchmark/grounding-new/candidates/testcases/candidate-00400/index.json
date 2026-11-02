@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00400",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested page number is visible in the pagination controls."
+  },
+  "instruction": {
+    "en": "Navigate to page 5 of the search results",
+    "zh": "前往搜索结果的第 5 页。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [394.6, 608.3, 430.7, 572.1],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1026",
+    "image": {
+      "format": "png",
+      "sha256": "18be40c8b9001659189346aa345e9de42c7d3c7101cc45764803703486eb5ae8"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

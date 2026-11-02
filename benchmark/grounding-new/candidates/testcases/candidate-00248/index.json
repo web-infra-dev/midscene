@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00248",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by the weather search field placeholder."
+  },
+  "instruction": {
+    "en": "Click on \"Search City or Zip\"",
+    "zh": "点击“Search City or Zip”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [28.0, 793.5, 72.2, 148.5],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=435",
+    "image": {
+      "format": "jpeg",
+      "sha256": "a406aed9a9f71466f623b3827f9633455a7306c8ce6b6d57800f2ad1353535f1"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

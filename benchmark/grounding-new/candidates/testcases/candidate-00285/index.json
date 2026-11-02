@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00285",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The task identifies a date by its numeric day in the calendar."
+  },
+  "instruction": {
+    "en": "Select the seventeenth day from the calendar",
+    "zh": "在日历中选择 17 日。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1308, 485, 1413, 381],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L980",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#980",
+    "image": {
+      "format": "png",
+      "sha256": "9f26ae357affbc3f6f8fc90a8836e2e1fcab29d67137c302dedc61e9b66c372c"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

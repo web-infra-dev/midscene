@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00497",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The Settings menu item is explicitly identified by its visible label."
+  },
+  "instruction": {
+    "en": "Click on \"Settings\".",
+    "zh": "点击“Settings”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1756.0, 1080.0, 1882.0, 0.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=294",
+    "image": {
+      "format": "jpeg",
+      "sha256": "3c3e43b125071233f6a010bc63081f2b8f1445759369bc062907ee148735ef08"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

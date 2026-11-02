@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00321",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The requested plus control is identified by its position next to Rooms."
+  },
+  "instruction": {
+    "en": "Click on the '+' button next to 'Rooms'.",
+    "zh": "点击“Rooms”旁边的“+”按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [141.2, 777.0, 190.8, 661.5],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=395",
+    "image": {
+      "format": "jpeg",
+      "sha256": "a2ca452c8f4b683e5e17fd3f05b2eee8b61aa22d9ce8fcab8709769102221d14"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

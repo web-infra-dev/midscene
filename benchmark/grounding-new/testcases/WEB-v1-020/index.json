@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-020",
+  "platform": "web",
+  "category": {
+    "item": "Fine-grained Manipulation",
+    "reason": "The task requires precisely locating the intersection of sector boundaries and the outer edge of a pie chart, not simply identifying the chart or a sector."
+  },
+  "instruction": {
+    "en": "Select the intersection of the boundary between \"综合广告\" and \"Email\" with the edge of the pie chart.",
+    "zh": "选中“综合广告”与“Email”的交界线和饼图边缘的交点。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1250.0, 616.0, 1288.0, 584.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/web/ANumericRange240json/A5ChartPoint40.json#L8",
+    "dataset": "FineState-Bench",
+    "recordId": "web/ANumericRange240json/A5ChartPoint40.json#7",
+    "image": {
+      "format": "png",
+      "sha256": "f62d7f4b5387e9b6a5d30e0424f1847901b0fa47d47e8ae37e9a007d24087133"
+    },
+    "patch": "Clarified the English instruction to identify the intersection of the boundary between the two chart segments with the chart edge, and replaced the translated label 'Display Ads' with '综合广告' as shown in the screenshot. Added instruction.zh by translating the revised English instruction while preserving the original chart labels.",
+    "collectedAt": 1792485870677
+  }
+}

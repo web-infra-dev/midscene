@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00332",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested time is explicitly displayed among the time options."
+  },
+  "instruction": {
+    "en": "Click 1 in the morning",
+    "zh": "点击凌晨 1 点。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [405.1, 792.5, 446.1, 704.5],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/383",
+    "image": {
+      "format": "png",
+      "sha256": "a351c92111ca35bcde6a8b4807855931b4f4c6a101001d5b92f670efcd20d8c1"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

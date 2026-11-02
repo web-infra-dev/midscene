@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00140",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The task directly identifies the back arrow in the video interface."
+  },
+  "instruction": {
+    "en": "Click on the back arrow icon.",
+    "zh": "点击返回箭头图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [25.8, 82.5, 75.2, 33.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=416",
+    "image": {
+      "format": "jpeg",
+      "sha256": "b769397ef07c62aa160b54105af99c07b1be85002314f5d62df8042c7d44ae1b"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

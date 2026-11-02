@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00080",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its function of filtering games for watches."
+  },
+  "instruction": {
+    "en": "Check games for watch",
+    "zh": "查看适用于手表的游戏。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [204.1, 837.5, 231.3, 742.7],
+  "reference": {
+    "url": "https://github.com/xlang-ai/OSWorld-G/blob/daa6bd8e0e629f0917ad2984df930bf0bd967540/benchmark/OSWorld-G.json",
+    "dataset": "OSWorld-G",
+    "recordId": "LdCkFpQ8JY-0",
+    "image": {
+      "format": "png",
+      "sha256": "b8ad540e5447b81b4f32a9b4e5f614f7bd724c593034ac9da28536558bfae0db"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00279",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task identifies the control that confirms the destination selection."
+  },
+  "instruction": {
+    "en": "Confirm the selected destination and close the dropdown",
+    "zh": "确认选定的目的地并关闭下拉菜单。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [432.9, 794.6, 481.1, 746.4],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/365",
+    "image": {
+      "format": "png",
+      "sha256": "912bc000bf9f14a746828920cad1381966a78c38688c9e889f3fcab5cdc6d594"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00266",
+  "platform": "web",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "The star control is distinguished by the specified repository name."
+  },
+  "instruction": {
+    "en": "star the awesome-huggingface project",
+    "zh": "为 awesome-huggingface 项目加星。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [593, 1461, 621, 1402],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L4526",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#377",
+    "image": {
+      "format": "png",
+      "sha256": "19a42eafe3316378704af9fcaad42ab942bde166f0a25d06f05e971c0b552b2a"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

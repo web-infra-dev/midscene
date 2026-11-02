@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00337",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The Organizational Chart menu item is explicitly named."
+  },
+  "instruction": {
+    "en": "Click on \"Organizational Chart\".",
+    "zh": "点击“Organizational Chart”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [383.4, 367.0, 410.4, 161.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=301",
+    "image": {
+      "format": "jpeg",
+      "sha256": "9742b395c1bab75ba50184aeb0516ad1e243c0034ecbd03e6f8043bb4a3e1261"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

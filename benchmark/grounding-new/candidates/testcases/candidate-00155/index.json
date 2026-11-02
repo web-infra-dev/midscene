@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00155",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by the Golf section in the sports navigation."
+  },
+  "instruction": {
+    "en": "Navigate to the Golf section",
+    "zh": "进入高尔夫栏目。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [134.8, 529.4, 152.3, 482.2],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/821",
+    "image": {
+      "format": "png",
+      "sha256": "c4a8f9627f8b32b5bcb442305c790feba3c07b6701b19297527aff46fbdcc822"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

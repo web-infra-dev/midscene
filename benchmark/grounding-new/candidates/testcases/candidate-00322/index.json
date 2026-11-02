@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00322",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its interface function: select the option for continuous location access."
+  },
+  "instruction": {
+    "en": "Select the option for continuous location access",
+    "zh": "选择始终允许访问位置信息的选项。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1128, 136, 1224, 72],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L963",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#963",
+    "image": {
+      "format": "png",
+      "sha256": "0aa2c8c011e80f40d4020d948dff098e4e031d542c0e95a17cd90199c2f6555c"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814756
+  }
+}

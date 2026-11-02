@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00282",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires recognizing the close control on the message box."
+  },
+  "instruction": {
+    "en": "close the message box",
+    "zh": "关闭消息框。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [851, 794, 896, 748],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L2090",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#174",
+    "image": {
+      "format": "png",
+      "sha256": "911a0df60409f8c475ce2f27a8ba5efb240836d93b2f5db01bc57a2668805d6b"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

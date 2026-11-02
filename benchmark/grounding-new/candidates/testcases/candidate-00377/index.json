@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00377",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The Lyrics tab is explicitly identified by its label."
+  },
+  "instruction": {
+    "en": "Click on \"Lyrics\".",
+    "zh": "点击“Lyrics”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1908.2, 1080.0, 2029.0, 627.8],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=367",
+    "image": {
+      "format": "jpeg",
+      "sha256": "15e553114fbc44c6f090d3d67172a92a3c48f27e317d851018ad8bd6711c6974"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

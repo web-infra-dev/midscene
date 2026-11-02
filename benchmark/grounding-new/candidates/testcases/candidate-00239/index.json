@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00239",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task identifies the date-filter option for events taking place today."
+  },
+  "instruction": {
+    "en": "Search for events today",
+    "zh": "搜索今天的活动。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [288.0, 328.0, 316.0, 192.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1387",
+    "image": {
+      "format": "png",
+      "sha256": "964843dba647e4da7f3efd415557c5f9fc9e73d739a61750c3545dafce721b18"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

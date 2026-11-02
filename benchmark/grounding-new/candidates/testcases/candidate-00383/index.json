@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00383",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its function as the control for clearing the search query."
+  },
+  "instruction": {
+    "en": "delete the entered search query",
+    "zh": "删除已输入的搜索内容。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [295, 1329, 378, 1262],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L2306",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#192",
+    "image": {
+      "format": "png",
+      "sha256": "512512dc6c0c30cb22e57e1a6ff4deda84978daf29ad69b22a6d34b5ea8e0007"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704166
+  }
+}

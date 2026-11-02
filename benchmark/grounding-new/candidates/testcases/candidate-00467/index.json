@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00467",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the link labeled “Privacy Policy”."
+  },
+  "instruction": {
+    "en": "view privacy policy",
+    "zh": "查看隐私政策。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [870, 2043, 940, 1834],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L1034",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#86",
+    "image": {
+      "format": "png",
+      "sha256": "7cb32a7d9c7c413edfbd5866db860e5374fe942c5355c1b1b2dd25a44fba68ee"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704196
+  }
+}

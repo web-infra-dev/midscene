@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00290",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires recognizing the browser control for downloads."
+  },
+  "instruction": {
+    "en": "open downloads page",
+    "zh": "打开下载页面。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [293, 2129, 464, 1987],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L3038",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#253",
+    "image": {
+      "format": "png",
+      "sha256": "f81ca40465bcd25d47ee65d23dac1b97c018e8ad81dfc3a2845d7baadd9d3a82"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

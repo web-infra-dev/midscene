@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00038",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the control that hides the sidebar."
+  },
+  "instruction": {
+    "en": "hide sidebar",
+    "zh": "隐藏侧边栏。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [131, 434, 191, 330],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L3806",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#317",
+    "image": {
+      "format": "png",
+      "sha256": "fea3ffe28ecf47adb67d128a66ff9cba2b114a34266a375e3fcada52ba2ba31e"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-022",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The task requires using the specified settings row and the position next to its displayed value to distinguish one icon among similar controls."
+  },
+  "instruction": {
+    "en": "Find the icon next to \"Off\" in the \"Schedule Dark mode\" section.",
+    "zh": "找到“Schedule Dark mode”部分中“Off”旁边的图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1419.0, 1042.0, 1485.0, 964.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/spatial_grounding.json#L408",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/spatial_grounding.json#29",
+    "image": {
+      "format": "png",
+      "sha256": "2b01fe8c45f4581de298717cf8a3af5f5d1a77f8a9111d6efaf71a807053596c"
+    },
+    "patch": "Clarified category.reason to describe using a settings row and its adjacent value as spatial anchors for distinguishing similar icons. Both instructions and the ground-truth box are unchanged.",
+    "collectedAt": 1792485870231
+  }
+}

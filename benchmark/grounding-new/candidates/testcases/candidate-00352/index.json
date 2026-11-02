@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00352",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The Day view control switches the calendar to a daily view."
+  },
+  "instruction": {
+    "en": "View calendar day by day",
+    "zh": "按天查看日历。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [64.0, 779.9, 94.0, 741.9],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1431",
+    "image": {
+      "format": "png",
+      "sha256": "052f0582becd4be0e460462c77e8944a3e2c99596a71f6891fc49aad5d4d1940"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

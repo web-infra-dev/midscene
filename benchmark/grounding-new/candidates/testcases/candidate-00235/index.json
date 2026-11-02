@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00235",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target control updates the search using the currently visible map area."
+  },
+  "instruction": {
+    "en": "Search for results in the visible map area",
+    "zh": "搜索地图可见区域内的结果。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [68.0, 850.5, 87.7, 742.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1179",
+    "image": {
+      "format": "png",
+      "sha256": "689d905431f332a79f22dc44190354a4976395d1c7a4561bf410dce09cd2299b"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

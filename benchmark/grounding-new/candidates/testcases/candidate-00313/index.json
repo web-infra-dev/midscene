@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00313",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The MovingHelp link is explicitly named in the navigation menu."
+  },
+  "instruction": {
+    "en": "Click on \"MovingHelp\"",
+    "zh": "点击“MovingHelp”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [163.0, 1231.0, 204.0, 1023.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=60",
+    "image": {
+      "format": "png",
+      "sha256": "34008777bf5eefac01fa2e6d52ab280786f5fe761a29ef13a37b7b4da20c71e8"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867571070
+  }
+}

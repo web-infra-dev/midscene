@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00110",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its function of opening team news."
+  },
+  "instruction": {
+    "en": "Check News of NFL teams",
+    "zh": "查看 NFL 球队的新闻。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [236.3, 648.9, 250.1, 594.4],
+  "reference": {
+    "url": "https://github.com/xlang-ai/OSWorld-G/blob/daa6bd8e0e629f0917ad2984df930bf0bd967540/benchmark/OSWorld-G.json",
+    "dataset": "OSWorld-G",
+    "recordId": "0lp8IshCDB-0",
+    "image": {
+      "format": "png",
+      "sha256": "153f07cf01608752967bc8ab1a0369ed3f47884d27567ee9588fb116ea0bf0ac"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

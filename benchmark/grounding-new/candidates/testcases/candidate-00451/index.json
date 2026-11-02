@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00451",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the health category labeled “Nutrition”."
+  },
+  "instruction": {
+    "en": "view more details about nutrition",
+    "zh": "查看更多营养详情。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2015, 1211, 2175, 67],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L5822",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#485",
+    "image": {
+      "format": "jpeg",
+      "sha256": "69d7e452b634a9a40a78bf199a8f05b87f7cef39c73de0d29eadf4034ba2266d"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704193
+  }
+}

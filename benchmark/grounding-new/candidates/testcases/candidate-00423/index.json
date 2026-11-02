@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00423",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target is the product link in the first item listed in the cart."
+  },
+  "instruction": {
+    "en": "check the detailed information of the first product in the cart",
+    "zh": "查看购物车中第一件商品的详细信息。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [611, 2428, 697, 1914],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L4022",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#335",
+    "image": {
+      "format": "png",
+      "sha256": "b979dcfe9c9435f72c6245f63a615d9c2f1e92de010b25c8c1726eaf9727c7e7"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704185
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00191",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target calendar event is identified by the specified participant name."
+  },
+  "instruction": {
+    "en": "Click event with Li Tsiesin",
+    "zh": "点击有 Li Tsiesin 的活动。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [425.4, 1079.0, 441.4, 724.6],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/948",
+    "image": {
+      "format": "png",
+      "sha256": "4d56a19a0c5a0345cd022985a59e4a8c7dfac3442678fb5ad652bb5ffa32fa15"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

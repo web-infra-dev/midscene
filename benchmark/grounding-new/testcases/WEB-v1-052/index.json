@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-052",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The request requires matching an appearance-setting option to its automatic theme-switching function."
+  },
+  "instruction": {
+    "en": "Automatically switch between light and dark mode based on the theme.",
+    "zh": "根据主题自动切换浅色和深色模式。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [739.0, 2967.0, 774.0, 2933.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L7968",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#569",
+    "image": {
+      "format": "png",
+      "sha256": "6c93049abaa30b38e3928dd56e60c5947eb2382d75d2d632f3f3fe47102cc923"
+    },
+    "patch": "Revised category.reason to explain the testcase-specific localization basis: The request requires matching an appearance-setting option to its automatic theme-switching function.",
+    "collectedAt": 1792485870880
+  }
+}

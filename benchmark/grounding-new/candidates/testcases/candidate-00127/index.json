@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00127",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the field associated with delivery timing."
+  },
+  "instruction": {
+    "en": "Enter 123456 in the field for delivery timelines",
+    "zh": "在填写配送时间的字段中输入 123456。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [385, 845, 513, 36],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L722",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#722",
+    "image": {
+      "format": "png",
+      "sha256": "e2e5d88a664fd36fdbc0b668c9bb2a28ff7178af161c1a9db3899912708fa96a"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

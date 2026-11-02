@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-097",
+  "platform": "web",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "Multiple news items have similar title layouts; the displayed posting age distinguishes the intended item."
+  },
+  "instruction": {
+    "en": "Find the headline posted 13 hours ago.",
+    "zh": "找到 13 小时前发布的标题。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1523.0, 1777.0, 1626.0, 950.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L13470",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#962",
+    "image": {
+      "format": "png",
+      "sha256": "b53b191b8cd21c3a17b5abddfde50806d371e8282f60d021dadcba51fa167e1d"
+    },
+    "patch": "Removed the request to view details from both instructions, leaving the task as locating the headline posted 13 hours ago.",
+    "collectedAt": 1792485871023
+  }
+}

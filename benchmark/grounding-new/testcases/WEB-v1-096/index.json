@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-096",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires reasoning about the order of tasks within the specified phase to identify the successor."
+  },
+  "instruction": {
+    "en": "Find the next task after \"确定装修风格与核心...\" in Phase One, and click to view.",
+    "zh": "找到第一阶段中的“确定装修风格与核心...”的下一个任务，点击查看。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [662.0, 1899.0, 734.0, 1488.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L8150",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#582",
+    "image": {
+      "format": "png",
+      "sha256": "6df414aa536dfc7595e11a2d1e9ab835370feaa0543412cc1c18e2e806544b25"
+    },
+    "patch": "Replaced the translated task title in instruction.en with the exact on-screen text \"确定装修风格与核心...\" and added instruction.zh by translating the instruction. Extended the ground truth's left edge from 1526.0 to 1488.0 to include the task's expansion triangle.",
+    "collectedAt": 1792485871021
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00460",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The Top Critics option directly identifies the requested recommendations."
+  },
+  "instruction": {
+    "en": "View top critics' recommendations",
+    "zh": "查看顶级评论家的推荐。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [129.5, 265.8, 175.5, 149.2],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1390",
+    "image": {
+      "format": "png",
+      "sha256": "5102189f70bd11a1d25c473b872691ead445c87f0dc5510ff25fe5451cb51a81"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

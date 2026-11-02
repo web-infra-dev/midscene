@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00040",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its voice-search function."
+  },
+  "instruction": {
+    "en": "Search by voice input",
+    "zh": "通过语音输入进行搜索。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [144.7, 997.1, 174.7, 967.0],
+  "reference": {
+    "url": "https://github.com/xlang-ai/OSWorld-G/blob/daa6bd8e0e629f0917ad2984df930bf0bd967540/benchmark/OSWorld-G.json",
+    "dataset": "OSWorld-G",
+    "recordId": "XBQyRfME3f-2",
+    "image": {
+      "format": "png",
+      "sha256": "9ee52cf1c780db5f8b12fc89cbe94cfcd61890a05776961d1e9babd8a97d0f58"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

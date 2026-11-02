@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00320",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested page is identified by the direct speech link in the suggestions."
+  },
+  "instruction": {
+    "en": "Navigate to the page for direct speech",
+    "zh": "进入直接引语页面。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [541.4, 450.5, 559.0, 355.1],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/584",
+    "image": {
+      "format": "png",
+      "sha256": "33eec9c381d46f53ac0c6a60931ea090f677429c2fd9bf36bc1fb5455d956ef1"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867311106
+  }
+}

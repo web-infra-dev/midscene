@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00185",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target control is identified by its function of switching to web content."
+  },
+  "instruction": {
+    "en": "Click to switch to web content",
+    "zh": "点击切换到网页内容。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [136, 539, 283, 270],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1393",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1393",
+    "image": {
+      "format": "png",
+      "sha256": "ffdac44e957348be79fbe38b9f83861e85e44bca9ac2c742d3bc16b9f92cf2ec"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

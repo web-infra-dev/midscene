@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00226",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the control that opens further information."
+  },
+  "instruction": {
+    "en": "view more information",
+    "zh": "查看更多信息。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [164, 1121, 250, 1035],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L1070",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#89",
+    "image": {
+      "format": "png",
+      "sha256": "427923e422b581e0f939e9969bf70eb7174ebcccc635cce2203f7d013e946d2d"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

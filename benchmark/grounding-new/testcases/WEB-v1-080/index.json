@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-080",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the control that performs the requested action of liking the issue."
+  },
+  "instruction": {
+    "en": "Like this issue.",
+    "zh": "点赞此 issue。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [700.0, 649.0, 767.0, 542.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L326",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2_27",
+    "image": {
+      "format": "png",
+      "sha256": "a94884520f0e18f556f5b6256eb6016a22df0c54f0ae8891f91631ef2171c894"
+    },
+    "patch": "Changed the original instruction from explicitly naming the thumbs-up icon to requesting the action of liking the issue, and added instruction.zh by translating the revised English instruction. Changed category.item from Basic Element to Functional and updated category.reason to describe the requested function.",
+    "collectedAt": 1792485870978
+  }
+}

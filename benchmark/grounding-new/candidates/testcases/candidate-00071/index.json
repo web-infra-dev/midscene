@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00071",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested trip option is directly identified by its visible label."
+  },
+  "instruction": {
+    "en": "Click on \"One way\".",
+    "zh": "点击“One way”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [586.0, 355.4, 606.3, 274.3],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=152",
+    "image": {
+      "format": "jpeg",
+      "sha256": "6738d4540d2028329b17368f33007de7bbbaffd8e0dd896c0d2c73c592003cbe"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

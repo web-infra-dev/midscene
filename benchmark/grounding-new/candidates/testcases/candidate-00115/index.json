@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00115",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its function as the verification-character input."
+  },
+  "instruction": {
+    "en": "Place to input the characters",
+    "zh": "找到输入字符的位置。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [504.4, 797.6, 536.3, 539.2],
+  "reference": {
+    "url": "https://github.com/xlang-ai/OSWorld-G/blob/daa6bd8e0e629f0917ad2984df930bf0bd967540/benchmark/OSWorld-G.json",
+    "dataset": "OSWorld-G",
+    "recordId": "J7nmwdoXTR-0",
+    "image": {
+      "format": "png",
+      "sha256": "73a0b4e7ec0030f3e6b093985b00e4c10db3ea6fc9ce4221cd3ceb9caf9ba7a1"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

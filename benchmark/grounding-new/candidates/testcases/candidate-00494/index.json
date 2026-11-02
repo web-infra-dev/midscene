@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00494",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target icon is identified by its position between the attachment and more-options icons."
+  },
+  "instruction": {
+    "en": "Click the icon between Attach file and More options",
+    "zh": "点击位于添加附件和更多选项之间的图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [156, 954, 282, 827],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L685",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#685",
+    "image": {
+      "format": "png",
+      "sha256": "faf73c7a8b72252d22062d803ed9a73aa315dfbc66cd69ac18825dc26bbe883e"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814766
+  }
+}

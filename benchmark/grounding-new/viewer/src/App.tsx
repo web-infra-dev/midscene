@@ -25,6 +25,8 @@ const emptyFilters: Filters = {
   outcome: '',
 };
 
+type CandidateBatch = { number: number; candidates: string[] };
+
 function compareNames(left: string, right: string) {
   return left < right ? -1 : left > right ? 1 : 0;
 }
@@ -618,6 +620,10 @@ function EvaluationReport({
 function App() {
   const [pathname, setPathname] = useState(window.location.pathname);
   const [testcases, setTestcases] = useState<TestcaseView[]>([]);
+  const [candidates, setCandidates] = useState<TestcaseView[]>([]);
+  const [candidateBatches, setCandidateBatches] = useState<CandidateBatch[]>(
+    [],
+  );
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [zoom, setZoom] = useState<'fit' | 'actual'>('fit');
   const [showGT, setShowGT] = useState(true);
@@ -632,6 +638,10 @@ function App() {
     'loading',
   );
   const [loadError, setLoadError] = useState('');
+  const [candidateLoadStatus, setCandidateLoadStatus] = useState<
+    'loading' | 'ready' | 'error'
+  >('loading');
+  const [candidateLoadError, setCandidateLoadError] = useState('');
   const [loadRevision, setLoadRevision] = useState(0);
   const caseLinks = useRef(new Map<string, HTMLAnchorElement>());
   const parts = useMemo(() => {
@@ -642,10 +652,28 @@ function App() {
     }
   }, [pathname]);
   const isTestcases = parts[0] === 'testcases' && parts.length <= 2;
+  const isCandidates = parts[0] === 'candidates' && parts.length <= 2;
+  const isCaseBrowser = isTestcases || isCandidates;
+  const casePath = isCandidates ? '/candidates' : '/testcases';
+  const candidateBatch = isCandidates
+    ? (candidateBatches.find((batch) => batch.candidates.includes(parts[1])) ??
+      candidateBatches.at(-1))
+    : undefined;
+  const activeTestcases = useMemo(() => {
+    if (!isCandidates) return testcases;
+    if (!candidateBatch) return candidates;
+    const names = new Set(candidateBatch.candidates);
+    return candidates.filter((testcase) => names.has(testcase.name));
+  }, [isCandidates, testcases, candidates, candidateBatch]);
+  const activeLoadStatus = isCandidates ? candidateLoadStatus : loadStatus;
   const isEvaluations = parts[0] === 'evaluations' && parts.length <= 3;
   const evaluationId = isEvaluations ? (parts[1] ?? '') : '';
   const resultId = isEvaluations && parts.length === 3 ? parts[2] : undefined;
-  const scope = isTestcases ? 'testcases' : evaluationId;
+  const scope = isCandidates
+    ? `${casePath}:${candidateBatch?.number ?? ''}`
+    : isTestcases
+      ? casePath
+      : evaluationId;
   const evaluationPath = `/evaluations/${encodeURIComponent(evaluationId)}`;
   const results = useMemo(
     () =>
@@ -655,12 +683,12 @@ function App() {
     [evaluationData, evaluationId],
   );
   const casesByName = useMemo(
-    () => new Map(testcases.map((testcase) => [testcase.name, testcase])),
-    [testcases],
+    () => new Map(activeTestcases.map((testcase) => [testcase.name, testcase])),
+    [activeTestcases],
   );
   const filtered = useMemo(
-    () => filterTestcases(testcases, filters),
-    [testcases, filters],
+    () => filterTestcases(activeTestcases, filters),
+    [activeTestcases, filters],
   );
   const filteredResults = useMemo(() => {
     const names = new Set(filtered.map((testcase) => testcase.name));
@@ -680,13 +708,13 @@ function App() {
   const modelResults = selectedResult
     ? results.filter((result) => getModelDisplayName(result) === selectedModel)
     : [];
-  const entries = isTestcases
+  const entries = isCaseBrowser
     ? filtered.map((testcase) => ({
         id: testcase.name,
         name: testcase.name,
         testcase,
         result: undefined as EvaluationResult | undefined,
-        href: `/testcases/${encodeURIComponent(testcase.name)}`,
+        href: `${casePath}/${encodeURIComponent(testcase.name)}`,
       }))
     : filteredResults
         .filter((result) => getModelDisplayName(result) === selectedModel)
@@ -697,11 +725,13 @@ function App() {
           result,
           href: `${evaluationPath}/${encodeURIComponent(result.id)}`,
         }));
-  const totalEntries = isTestcases ? testcases.length : modelResults.length;
-  const selectedId = isTestcases ? (parts[1] ?? entries[0]?.id) : resultId;
+  const totalEntries = isCaseBrowser
+    ? activeTestcases.length
+    : modelResults.length;
+  const selectedId = isCaseBrowser ? (parts[1] ?? entries[0]?.id) : resultId;
   const selectedIndex = entries.findIndex((entry) => entry.id === selectedId);
   const selected = casesByName.get(
-    isTestcases ? (selectedId ?? '') : (selectedResult?.input.testcase ?? ''),
+    isCaseBrowser ? (selectedId ?? '') : (selectedResult?.input.testcase ?? ''),
   );
   const loadingEvaluation =
     isEvaluations &&
@@ -745,7 +775,7 @@ function App() {
       const url = new URL(link.href);
       if (
         url.origin !== window.location.origin ||
-        !/^\/(testcases|evaluations)(\/|$)/.test(url.pathname)
+        !/^\/(testcases|candidates|evaluations)(\/|$)/.test(url.pathname)
       )
         return;
       event.preventDefault();
@@ -761,15 +791,14 @@ function App() {
 
   useEffect(() => {
     if (
-      ((isTestcases && selected) || (resultId && selectedResult)) &&
+      ((isCaseBrowser && selected) || (resultId && selectedResult)) &&
       selectedIndex < 0
     )
       setFilters(emptyFilters);
-  }, [isTestcases, selected, resultId, selectedResult, selectedIndex]);
+  }, [isCaseBrowser, selected, resultId, selectedResult, selectedIndex]);
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoadStatus('loading');
     setLoadError('');
     async function load() {
       try {
@@ -782,6 +811,7 @@ function App() {
         const data: { testcases: TestcaseView[] } = await response.json();
         if (controller.signal.aborted) return;
         setTestcases(data.testcases);
+        setLoadError('');
         setLoadStatus('ready');
       } catch (error) {
         if (controller.signal.aborted) return;
@@ -794,6 +824,39 @@ function App() {
     void load();
     return () => controller.abort();
   }, [loadRevision]);
+
+  useEffect(() => {
+    if (!isCandidates) return;
+    const controller = new AbortController();
+    setCandidateLoadError('');
+    async function load() {
+      try {
+        const response = await fetch('/api/candidates', {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        if (!response.ok)
+          throw new Error(
+            `Failed to load candidates (HTTP ${response.status})`,
+          );
+        const data: { testcases: TestcaseView[]; batches: CandidateBatch[] } =
+          await response.json();
+        if (controller.signal.aborted) return;
+        setCandidates(data.testcases);
+        setCandidateBatches(data.batches.sort((a, b) => a.number - b.number));
+        setCandidateLoadError('');
+        setCandidateLoadStatus('ready');
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setCandidateLoadError(
+          error instanceof Error ? error.message : 'Failed to load candidates',
+        );
+        setCandidateLoadStatus('error');
+      }
+    }
+    void load();
+    return () => controller.abort();
+  }, [isCandidates, loadRevision]);
 
   useEffect(() => {
     if (!isEvaluations) return;
@@ -858,7 +921,7 @@ function App() {
   const nextPath =
     selectedIndex >= 0 ? entries[selectedIndex + 1]?.href : undefined;
   useEffect(() => {
-    if (!isTestcases && !resultId) return;
+    if (!isCaseBrowser && !resultId) return;
     function onKeyDown(event: KeyboardEvent) {
       const target = event.target;
       if (
@@ -888,25 +951,32 @@ function App() {
     }
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [isTestcases, resultId, previousPath, nextPath, go]);
+  }, [isCaseBrowser, resultId, previousPath, nextPath, go]);
 
   useEffect(() => {
-    document.title = `${selectedResult ? `${selectedResult.input.testcase} · ${selectedModel} · ${evaluationId}` : isTestcases ? (selected?.name ?? 'Testcases') : evaluationId ? `Evaluation ${evaluationId}` : 'Evaluations'} · Midscene Grounding Benchmark`;
-  }, [selected, selectedResult, selectedModel, isTestcases, evaluationId]);
+    document.title = `${selectedResult ? `${selectedResult.input.testcase} · ${selectedModel} · ${evaluationId}` : isCaseBrowser ? (selected?.name ?? (isCandidates ? 'Candidates' : 'Testcases')) : evaluationId ? `Evaluation ${evaluationId}` : 'Evaluations'} · Midscene Grounding Benchmark`;
+  }, [
+    selected,
+    selectedResult,
+    selectedModel,
+    isCaseBrowser,
+    isCandidates,
+    evaluationId,
+  ]);
 
   useEffect(() => {
     if (selectedId)
       caseLinks.current.get(selectedId)?.scrollIntoView({ block: 'nearest' });
-  }, [selectedId, loadStatus, loadingEvaluation]);
+  }, [selectedId, activeLoadStatus, loadingEvaluation]);
 
   function updateFilters(values: Filters) {
     setFilters(values);
-    const matches = filterTestcases(testcases, values);
-    if (isTestcases && !matches.some((item) => item.name === selectedId)) {
+    const matches = filterTestcases(activeTestcases, values);
+    if (isCaseBrowser && !matches.some((item) => item.name === selectedId)) {
       go(
         matches[0]
-          ? `/testcases/${encodeURIComponent(matches[0].name)}`
-          : '/testcases',
+          ? `${casePath}/${encodeURIComponent(matches[0].name)}`
+          : casePath,
         true,
       );
     } else if (
@@ -927,17 +997,23 @@ function App() {
     }
   }
 
-  const error = loadError || (isEvaluations ? evaluationError : '');
+  const error =
+    (isCandidates ? candidateLoadError : loadError) ||
+    (isEvaluations ? evaluationError : '');
   const emptyTitle =
-    loadStatus === 'loading' || loadingEvaluation
+    activeLoadStatus === 'loading' || loadingEvaluation
       ? 'Loading…'
       : error
         ? 'Failed to Load'
         : resultId
           ? 'Result Not Found'
-          : isTestcases && parts[1]
-            ? 'Testcase Not Found'
-            : 'No Matching Testcases';
+          : isCaseBrowser && parts[1]
+            ? isCandidates
+              ? 'Candidate Not Found'
+              : 'Testcase Not Found'
+            : isCandidates
+              ? 'No Matching Candidates'
+              : 'No Matching Testcases';
 
   return (
     <>
@@ -959,18 +1035,49 @@ function App() {
             Testcases
           </a>
           <a
+            href="/candidates"
+            aria-current={isCandidates ? 'page' : undefined}
+          >
+            Candidates
+          </a>
+          <a
             href="/evaluations"
             aria-current={isEvaluations ? 'page' : undefined}
           >
             Evaluations
           </a>
         </nav>
-        {(isTestcases || resultId) && (
+        {(isCaseBrowser || resultId) && (
           <FilterBar
-            testcases={testcases}
+            testcases={activeTestcases}
             filters={filters}
             onChange={updateFilters}
             onClear={() => updateFilters(emptyFilters)}
+            batch={
+              isCandidates && candidateBatch
+                ? {
+                    value: String(candidateBatch.number),
+                    options: candidateBatches.map((batch) => ({
+                      value: String(batch.number),
+                      text: `Batch ${batch.number} (${batch.candidates.length})`,
+                    })),
+                    onChange: (value) => {
+                      const batch = candidateBatches.find(
+                        (item) => String(item.number) === value,
+                      );
+                      const first = batch?.candidates.find((name) =>
+                        candidates.some((candidate) => candidate.name === name),
+                      );
+                      setFilters(emptyFilters);
+                      go(
+                        first
+                          ? `/candidates/${encodeURIComponent(first)}`
+                          : '/candidates',
+                      );
+                    },
+                  }
+                : undefined
+            }
           />
         )}
       </header>
@@ -1058,15 +1165,19 @@ function App() {
             <p className="list-empty">No evaluations yet.</p>
           )}
         </main>
-      ) : isTestcases || resultId ? (
+      ) : isCaseBrowser || resultId ? (
         <div className="app-shell">
           <aside
             className="sidebar"
             aria-label={
-              isTestcases ? 'Testcases' : `${selectedModel ?? 'Model'} results`
+              isCaseBrowser
+                ? isCandidates
+                  ? 'Candidates'
+                  : 'Testcases'
+                : `${selectedModel ?? 'Model'} results`
             }
           >
-            {!isTestcases && (
+            {!isCaseBrowser && (
               <div className="sidebar-heading">
                 <h1>
                   <a href={evaluationPath}>
@@ -1077,7 +1188,13 @@ function App() {
             )}
             <nav
               className="case-navigation"
-              aria-label={isTestcases ? 'Testcases' : 'Results'}
+              aria-label={
+                isCaseBrowser
+                  ? isCandidates
+                    ? 'Candidates'
+                    : 'Testcases'
+                  : 'Results'
+              }
             >
               <ol id="case-list" className="case-list">
                 {entries.map((entry) => (
@@ -1121,10 +1238,12 @@ function App() {
               </ol>
               {!entries.length && (
                 <p className="list-empty">
-                  {loadingEvaluation || loadStatus === 'loading'
+                  {loadingEvaluation || activeLoadStatus === 'loading'
                     ? 'Loading…'
-                    : isTestcases
-                      ? 'No matching testcases'
+                    : isCaseBrowser
+                      ? isCandidates
+                        ? 'No matching candidates'
+                        : 'No matching testcases'
                       : 'No matching results'}
                 </p>
               )}
@@ -1136,15 +1255,15 @@ function App() {
                 className="result-count"
                 aria-live="polite"
               >
-                {loadStatus === 'loading' || loadingEvaluation
+                {activeLoadStatus === 'loading' || loadingEvaluation
                   ? 'Loading…'
-                  : `${entries.length} / ${totalEntries} ${isTestcases ? 'testcase' : 'result'}${totalEntries === 1 ? '' : 's'}`}
+                  : `${entries.length} / ${totalEntries} ${isCaseBrowser ? (isCandidates ? 'candidate' : 'testcase') : 'result'}${totalEntries === 1 ? '' : 's'}`}
               </output>
             </div>
           </aside>
           <main id="main" className="main">
-            {loadStatus === 'ready' &&
-            (isTestcases ? selected : selectedResult) ? (
+            {activeLoadStatus === 'ready' &&
+            (isCaseBrowser ? selected : selectedResult) ? (
               <div id="case-detail" className="case-detail">
                 <header className="case-heading">
                   <div className="case-heading-text">
@@ -1211,7 +1330,7 @@ function App() {
                 {selected ? (
                   <div className="case-workspace">
                     <ScreenshotPanel
-                      key={`${scope}:${selected.name}`}
+                      key={`${scope}:${selected.name}:${selected.imageUrl}`}
                       testcase={selected}
                       zoom={zoom}
                       onZoomChange={setZoom}

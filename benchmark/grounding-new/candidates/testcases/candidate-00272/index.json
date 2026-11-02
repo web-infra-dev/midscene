@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00272",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the close control in the Sales menu header."
+  },
+  "instruction": {
+    "en": "Click on the 'X' button to close the Sales menu.",
+    "zh": "点击“X”按钮关闭“Sales”菜单。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [27.0, 671.0, 102.0, 592.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=79",
+    "image": {
+      "format": "png",
+      "sha256": "1bb043e1133c49d94938daaf8773b1a7234933b76a8a2ab27d3ca2c57ba1def1"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

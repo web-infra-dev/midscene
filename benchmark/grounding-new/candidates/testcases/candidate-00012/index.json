@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00012",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The instruction describes a search action and requires locating the search control."
+  },
+  "instruction": {
+    "en": "Search frech fries",
+    "zh": "搜索“frech fries”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [179, 933, 241, 189],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L727",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#727",
+    "image": {
+      "format": "png",
+      "sha256": "a8c9e70dafb0de089b7dd72c5eca4b004fe77b51e4cce25051ce1c1681af79c1"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793763122996
+  }
+}

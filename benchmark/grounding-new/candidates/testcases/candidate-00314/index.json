@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00314",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its interface function: click to scroll to top."
+  },
+  "instruction": {
+    "en": "Click to scroll to top",
+    "zh": "点击返回页面顶部。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1035, 1902, 1077, 1858],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1180",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1180",
+    "image": {
+      "format": "png",
+      "sha256": "285c5fcf30060f5f9762a8da51ef51b7f229c966a249859bc65a82a850b2ca9f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814756
+  }
+}

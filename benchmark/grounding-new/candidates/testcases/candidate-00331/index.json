@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00331",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the tab labeled “Shared”."
+  },
+  "instruction": {
+    "en": "view shared",
+    "zh": "查看共享内容。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2286, 667, 2435, 503],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L1178",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#98",
+    "image": {
+      "format": "png",
+      "sha256": "73aeaa94a48459f6b05bc4169241de1d4786407f44a2cff1f370513cb067e352"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704142
+  }
+}

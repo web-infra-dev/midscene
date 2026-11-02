@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00478",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The share icon is identified by its position beside the bookmark icon."
+  },
+  "instruction": {
+    "en": "Click the first icon next to bookmark",
+    "zh": "点击书签旁的第一个图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [170, 942, 244, 868],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1107",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1107",
+    "image": {
+      "format": "png",
+      "sha256": "5081213ea92c17ca3237dd4de2d2c6416eea128460dd7df26a998884f52255ce"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814764
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00269",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target control is identified by its function of changing the website language."
+  },
+  "instruction": {
+    "en": "Select to change the website language",
+    "zh": "选择更改网站语言。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1015, 1890, 1065, 1693],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L7",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#7",
+    "image": {
+      "format": "png",
+      "sha256": "5e8d6933a9407fce5300f0464fa577877171ac329335fac64145a9dde898456b"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

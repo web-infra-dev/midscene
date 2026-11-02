@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00327",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The instruction directly names the visible “Try It Free” button."
+  },
+  "instruction": {
+    "en": "tap \"try it free\"",
+    "zh": "点击 “Try It Free”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1540, 917, 1649, 257],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L1022",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#85",
+    "image": {
+      "format": "png",
+      "sha256": "3d5646f7e34a7ec282672b9da8b015eb79a265f609b3b9bdf3fca6ee627eb3e3"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867704141
+  }
+}

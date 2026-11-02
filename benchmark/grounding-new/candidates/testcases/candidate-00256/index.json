@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00256",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the matching recent location entry."
+  },
+  "instruction": {
+    "en": "Click on \"Texas, United States\"",
+    "zh": "点击“Texas, United States”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [790.8, 1038.0, 840.2, 42.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=289",
+    "image": {
+      "format": "jpeg",
+      "sha256": "5e65e42299485caf6f1196b091dce5069b517c8df82d82da47a59bcbebe7140a"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

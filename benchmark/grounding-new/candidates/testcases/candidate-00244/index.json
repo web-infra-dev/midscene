@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00244",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the matching choice in the start-date dropdown."
+  },
+  "instruction": {
+    "en": "Click on \"Within 1-2 weeks\".",
+    "zh": "点击“Within 1-2 weeks”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [397.0, 773.6, 438.0, 472.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=268",
+    "image": {
+      "format": "jpeg",
+      "sha256": "75f3c3ae4f54a119d2ca49c3d8e3a1ccc5e706f3c3ac0f812ce97c1ae44dee5f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

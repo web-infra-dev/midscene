@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-088",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The restaurant photo card is identified directly by its visible restaurant label and image."
+  },
+  "instruction": {
+    "en": "Browse more pictures of the restaurants at this hotel.",
+    "zh": "浏览这家酒店关于餐厅的更多图片。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1707, 949, 2021, 520],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L55882",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "2941",
+    "image": {
+      "format": "png",
+      "sha256": "2440890eaf69f99511ed91b3a1fd3db16c76b51694d4475113ac06cff7d752e0"
+    },
+    "patch": "Replaced the original English instruction to browse pictures of the free workout space with an instruction to browse the hotel’s restaurant pictures, and added instruction.zh by translating the revised instruction. Changed groundTruth from [1707, 496, 2021, 70] to [1707, 949, 2021, 520] in [top, right, bottom, left] pixel coordinates, moving the target from the Fitness Room card to the 2 Restaurants card. Assigned the Basic Element category to reflect direct identification by the restaurant label and image.",
+    "collectedAt": 1792485870487
+  }
+}

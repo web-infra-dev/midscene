@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00294",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by the visible Stop timer menu label."
+  },
+  "instruction": {
+    "en": "stop timer",
+    "zh": "停止计时器。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [653, 840, 790, 35],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L4166",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#347",
+    "image": {
+      "format": "jpeg",
+      "sha256": "f2a4e8421511f605c47aca92649483fc089df1c4f41685c88c642d052162e41b"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

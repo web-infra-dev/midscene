@@ -1,0 +1,25 @@
+{
+  "name": "candidate-00205",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target option is identified by its function of filtering reviews by weight."
+  },
+  "instruction": {
+    "en": "Select to filter reviews by weight",
+    "zh": "选择按重量筛选评论。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [37, 138, 69, 81],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1146",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1146",
+    "image": {
+      "format": "png",
+      "sha256": "74638b55c33945bb0933b140fe43cc16845138bdf6b0c69f094d0c93dc31ba0d"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}
