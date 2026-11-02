@@ -563,6 +563,7 @@ ${generateAgentReportComment(agentDump)}`;
       // (merge/delete) never have to guess the mode from the filesystem.
       [DATA_SCREENSHOT_MODE_ATTR]: this.screenshotMode,
       ...this.reportAttributes,
+      'data-report-kind': 'agent',
     };
   }
 

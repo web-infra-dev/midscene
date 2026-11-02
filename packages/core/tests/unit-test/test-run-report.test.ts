@@ -435,7 +435,71 @@ describe('TestRunReportAssembler', () => {
     ).toThrow('present in multiple reports');
   });
 
-  it('removes the stale artifact when overwrite switches output modes', () => {
+  it.each(['sync', 'async'] as const)(
+    'preserves unrelated sibling files when %s assembly publishes either format',
+    async (mode) => {
+      const root = temporaryDirectory();
+      const assembler = new TestRunReportAssembler();
+      for (const outputFormat of [
+        'single-html',
+        'html-and-external-assets',
+      ] as const) {
+        const outputDir = join(root, outputFormat);
+        mkdirSync(outputDir);
+        const sibling =
+          outputFormat === 'single-html'
+            ? join(outputDir, 'run')
+            : join(outputDir, 'run.html');
+        const sentinel =
+          outputFormat === 'single-html'
+            ? join(sibling, 'user-notes.txt')
+            : sibling;
+        if (outputFormat === 'single-html') mkdirSync(sibling);
+        writeFileSync(sentinel, 'unrelated');
+        for (const overwrite of [false, true]) {
+          const options = {
+            outputDir,
+            reportFileName: 'run',
+            sources: [],
+            buildRunnerDump: runnerDump,
+            outputFormat,
+            overwrite,
+          };
+          const output =
+            mode === 'sync'
+              ? assembler.assemble(options)
+              : await assembler.assembleAsync(options);
+          expect(readFileSync(sentinel, 'utf8')).toBe('unrelated');
+          expect(existsSync(output)).toBe(true);
+        }
+      }
+    },
+  );
+
+  it('rejects one concurrent asynchronous assembly for each output format', async () => {
+    const root = temporaryDirectory();
+    const assembler = new TestRunReportAssembler();
+    for (const outputFormat of [
+      'single-html',
+      'html-and-external-assets',
+    ] as const) {
+      const options = {
+        outputDir: join(root, outputFormat),
+        reportFileName: 'run',
+        sources: [],
+        buildRunnerDump: runnerDump,
+        outputFormat,
+      };
+      const results = await Promise.allSettled([
+        assembler.assembleAsync(options),
+        assembler.assembleAsync(options),
+      ]);
+      expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+      expect(results.filter((r) => r.status === 'rejected')).toHaveLength(1);
+    }
+  });
+
+  it('preserves the sibling artifact when overwrite switches output modes', () => {
     const root = temporaryDirectory();
     const outputDir = join(root, 'output');
     const assembler = new TestRunReportAssembler();
@@ -457,7 +521,7 @@ describe('TestRunReportAssembler', () => {
       overwrite: true,
       outputFormat: 'html-and-external-assets',
     });
-    expect(existsSync(standalonePath)).toBe(false);
+    expect(existsSync(standalonePath)).toBe(true);
     expect(existsSync(directoryPath)).toBe(true);
 
     const restoredStandalonePath = assembler.assemble({
@@ -467,7 +531,7 @@ describe('TestRunReportAssembler', () => {
       buildRunnerDump: runnerDump,
       overwrite: true,
     });
-    expect(existsSync(join(outputDir, 'mode-switch'))).toBe(false);
+    expect(existsSync(join(outputDir, 'mode-switch'))).toBe(true);
     expect(existsSync(restoredStandalonePath)).toBe(true);
   });
 });

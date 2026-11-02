@@ -69,6 +69,8 @@ Each run generates two types of output artifacts. Their exact paths are printed 
   Note: The schema of `summary.json` may evolve across versions; external tools consuming this file should align with the actual output of the installed version.
 - **HTML visual report**: Can be opened directly in a browser after tests finish. It provides a complete log of case outcomes, screenshots for each step, input/output arguments, error traces, and Agent visual replay to help diagnose issues quickly. The output directory is controlled by `output.reportDir` in the configuration file (defaults to `midscene_run/report/`), independent of the structured results directory.
 
+Keep the complete results directory for programmatic analysis; the final report can be shared independently.
+
 ### Exit codes
 
 You can determine the overall outcome of a test run from the CLI exit code:
@@ -80,7 +82,16 @@ You can determine the overall outcome of a test run from the CLI exit code:
 
 ### Report archiving
 
-Reports default to a single HTML file: `midscene_run/report/midscene-e2e-<runId>.html`. When external screenshot mode is enabled, the report directory contains `index.html` and a `screenshots/` directory; preserve the entire directory when archiving or uploading artifacts. See [Run in GitHub Actions](#run-in-github-actions) for CI artifact configuration.
+Reports default to a single HTML file: `midscene_run/report/midscene-e2e-<runId>.html`. To choose the delivery format, set `output.reportFormat` in `midscene.config.ts`:
+
+```ts
+output: {
+  reportFormat: 'single-html', // default: open the HTML directly, including offline
+  // reportFormat: 'html-and-external-assets',
+}
+```
+
+When using `html-and-external-assets`, preserve the entire report directory when archiving or uploading, and view it over HTTP. See [Run in GitHub Actions](#run-in-github-actions) for CI artifact configuration.
 
 ### Link to a specific step (URL hash)
 
