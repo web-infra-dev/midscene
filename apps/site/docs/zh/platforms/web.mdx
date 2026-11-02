@@ -14,7 +14,7 @@ Midscene 可以在三种浏览器中操作网页：Midscene Chrome 插件、由 
 
 2. 在 Chrome 的扩展列表中打开 **Midscene**，浏览器右侧会出现 Midscene 侧边栏。
 
-插件中保存的模型配置只存在于浏览器内。测试和脚本会读取各自的模型配置。
+插件中保存的模型配置只存在于浏览器内，测试和脚本不会读取它，需要单独配置模型。
 
 ## Playwright {#playwright}
 
@@ -43,7 +43,7 @@ pnpm add -D @midscene/web puppeteer
 
 在 Playground 中验证 Chrome 插件。打开[开始使用](../get-started?platform=web&scene=playground)，页面已为你选好 Web 和 Playground，选择模型接入方式后，按步骤执行一次 `aiAct` 操作和一次 `aiAssert` 断言。断言通过即表示插件和模型调用都正常。
 
-Playground 在插件中运行，不使用 Playwright 或 Puppeteer 的浏览器。如需验证这类浏览器，请在同一页面选择「创建 Midscene Test 项目」或「接入 JavaScript 测试工程」，第一次运行测试时会用到它。Chrome Bridge 请执行[连接检查](../bridge-mode#verify-connection)。
+Playground 在插件中运行，不使用 Playwright 或 Puppeteer 的浏览器。如需验证这类浏览器，请在同一页面选择「创建 Midscene Test 项目」或「接入 JavaScript 测试工程」，按步骤第一次运行测试时就会用到这类浏览器。Chrome Bridge 请执行[连接检查](../bridge-mode#verify-connection)。
 
 ## 常见问题
 

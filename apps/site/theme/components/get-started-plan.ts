@@ -111,7 +111,9 @@ export function planSteps(selection: CompleteSelection): StepId[] {
     steps.push('sdk-integrate');
   }
 
-  steps.push('next-steps');
+  if (scene !== 'playground') {
+    steps.push('next-steps');
+  }
   return steps;
 }
 

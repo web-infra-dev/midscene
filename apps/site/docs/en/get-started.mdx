@@ -25,7 +25,7 @@ import WebPlaygroundCheck from './common/web-playground-check.mdx';
 import SiwcExtension from './common/siwc-extension.mdx';
 import SiwcCliLogin from './common/siwc-cli-login.mdx';
 
-# Get started
+# Get started {#get-started}
 
 A first run needs three things: the target browser or device, a way to use Midscene, and a model. Answer the questions below to get the steps for your combination. Each path ends with a successful action and assertion that you can inspect.
 
@@ -278,7 +278,9 @@ Open [TodoMVC](https://todomvc.com/examples/react/dist/#/) in the current tab an
 <GetStartedWhen platform="web">
 
 ```bash
-pnpm dlx @midscene/test create my-tests --platform web --package-manager pnpm
+pnpm dlx @midscene/test create my-tests \
+  --platform web \
+  --package-manager pnpm
 cd my-tests
 ```
 
@@ -287,7 +289,9 @@ cd my-tests
 <GetStartedWhen platform="android">
 
 ```bash
-pnpm dlx @midscene/test create my-tests --platform android --package-manager pnpm
+pnpm dlx @midscene/test create my-tests \
+  --platform android \
+  --package-manager pnpm
 cd my-tests
 ```
 
@@ -296,7 +300,9 @@ cd my-tests
 <GetStartedWhen platform="ios">
 
 ```bash
-pnpm dlx @midscene/test create my-tests --platform ios --package-manager pnpm
+pnpm dlx @midscene/test create my-tests \
+  --platform ios \
+  --package-manager pnpm
 cd my-tests
 ```
 
@@ -305,7 +311,9 @@ cd my-tests
 <GetStartedWhen platform="harmonyos">
 
 ```bash
-pnpm dlx @midscene/test create my-tests --platform harmony --package-manager pnpm
+pnpm dlx @midscene/test create my-tests \
+  --platform harmony \
+  --package-manager pnpm
 cd my-tests
 ```
 
@@ -314,7 +322,9 @@ cd my-tests
 <GetStartedWhen platform="desktop">
 
 ```bash
-pnpm dlx @midscene/test create my-tests --platform computer --package-manager pnpm
+pnpm dlx @midscene/test create my-tests \
+  --platform computer \
+  --package-manager pnpm
 cd my-tests
 ```
 
@@ -474,13 +484,6 @@ Then follow [Integrate with Vitest](./sdk/vitest) and choose the same platform i
 
 ## Next steps
 
-<GetStartedWhen scene="playground">
-
-- **Write tests**: Change your answer to **What do you want to do first?** and choose **Create a Midscene Test project** or **Add to a JavaScript test project**. Settings entered in Playground are stored by the browser and are not shared with projects.
-- **Understand the APIs you just used**: Read [The basics](./basics).
-
-</GetStartedWhen>
-
 <GetStartedWhen scene="test" platform="web">
 
 - **Test your own site**: In `cases/todo.yaml`, replace the TodoMVC setup in `beforeEach` with a `gotoUrl` Node for your URL, then describe the steps with `aiAct` and `aiAssert`. See [Built-in Nodes across platforms](./midscene-test/builtin-nodes).
@@ -529,8 +532,4 @@ Then follow [Integrate with Vitest](./sdk/vitest) and choose the same platform i
 
 </GetStarted>
 
-## Other ways to use Midscene
-
-- **Let an AI coding agent operate your UI**: Install [Midscene Skills](./skills).
-- **Reuse your desktop Chrome sessions**: Use [Chrome Bridge](./bridge-mode).
-- **Run automation without a test runner**: [Write standalone automation scripts](./sdk/standalone).
+Want to try another platform or way to use Midscene? [Back to top](#get-started) to change your selections.

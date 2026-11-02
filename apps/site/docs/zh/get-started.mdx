@@ -25,11 +25,11 @@ import WebPlaygroundCheck from './common/web-playground-check.mdx';
 import SiwcExtension from './common/siwc-extension.mdx';
 import SiwcCliLogin from './common/siwc-cli-login.mdx';
 
-# 开始使用
+# 开始使用 {#get-started}
 
-第一次运行需要准备三样东西：目标浏览器或设备、使用 Midscene 的方式，以及模型。回答下面的问题，页面会列出对应组合的步骤。每条路径都以一次可在结果中查看的操作和断言结束。
+第一次运行 Midscene 前，需要确定三件事：目标浏览器或设备、使用 Midscene 的方式，以及使用的模型。回答下面的问题后，页面会列出对应组合的步骤。无论选择哪种组合，最后都会执行一次操作和一次断言，并可以在结果中查看执行过程。
 
-页面地址会记录你的选择，可以收藏或分享给其他人。
+页面地址会记录你的选择，你可以收藏该地址或分享给其他人。
 
 <GetStarted lang="zh">
 
@@ -278,7 +278,9 @@ MIDSCENE_MODEL_FAMILY="gpt-6"
 <GetStartedWhen platform="web">
 
 ```bash
-pnpm dlx @midscene/test create my-tests --platform web --package-manager pnpm
+pnpm dlx @midscene/test create my-tests \
+  --platform web \
+  --package-manager pnpm
 cd my-tests
 ```
 
@@ -287,7 +289,9 @@ cd my-tests
 <GetStartedWhen platform="android">
 
 ```bash
-pnpm dlx @midscene/test create my-tests --platform android --package-manager pnpm
+pnpm dlx @midscene/test create my-tests \
+  --platform android \
+  --package-manager pnpm
 cd my-tests
 ```
 
@@ -296,7 +300,9 @@ cd my-tests
 <GetStartedWhen platform="ios">
 
 ```bash
-pnpm dlx @midscene/test create my-tests --platform ios --package-manager pnpm
+pnpm dlx @midscene/test create my-tests \
+  --platform ios \
+  --package-manager pnpm
 cd my-tests
 ```
 
@@ -305,7 +311,9 @@ cd my-tests
 <GetStartedWhen platform="harmonyos">
 
 ```bash
-pnpm dlx @midscene/test create my-tests --platform harmony --package-manager pnpm
+pnpm dlx @midscene/test create my-tests \
+  --platform harmony \
+  --package-manager pnpm
 cd my-tests
 ```
 
@@ -314,7 +322,9 @@ cd my-tests
 <GetStartedWhen platform="desktop">
 
 ```bash
-pnpm dlx @midscene/test create my-tests --platform computer --package-manager pnpm
+pnpm dlx @midscene/test create my-tests \
+  --platform computer \
+  --package-manager pnpm
 cd my-tests
 ```
 
@@ -352,7 +362,7 @@ MIDSCENE_MODEL_FAMILY="gpt-6"
 
 </GetStartedWhen>
 
-验证模型连通性与 Midscene 兼容性。该命令读取当前目录下的 `.env`，不需要浏览器或设备：
+运行以下命令，检查模型能否连通、是否与 Midscene 兼容。该命令只读取当前目录下的 `.env`，不需要浏览器或设备：
 
 ```bash
 pnpm exec midscene-test model verify
@@ -474,13 +484,6 @@ pnpm dlx @midscene/test@latest model verify
 
 ## 下一步
 
-<GetStartedWhen scene="playground">
-
-- **编写测试**：修改「你想先做什么？」的答案，选择「创建 Midscene Test 项目」或「接入 JavaScript 测试工程」。Playground 中填写的配置保存在浏览器中，不会同步到工程。
-- **了解刚才使用的 API**：阅读[基本概念](./basics)。
-
-</GetStartedWhen>
-
 <GetStartedWhen scene="test" platform="web">
 
 - **测试自己的网站**：在 `cases/todo.yaml` 中，将 `beforeEach` 里的 TodoMVC 初始化步骤替换为打开你的 URL 的 `gotoUrl` Node，再用 `aiAct` 和 `aiAssert` 描述步骤。请参阅[各平台预置 Node](./midscene-test/builtin-nodes)。
@@ -514,7 +517,7 @@ pnpm dlx @midscene/test@latest model verify
 <GetStartedWhen scene="test">
 
 - **编写和组织用例**：[编写 YAML 用例](./midscene-test/writing)介绍了输入、变量、标签和 hooks。
-- **在 CI 中运行**：[在 GitHub Actions 中运行](./midscene-test/running#在-github-actions-中运行)。
+- **在 CI 中运行**：请参阅[在 GitHub Actions 中运行](./midscene-test/running#在-github-actions-中运行)。
 
 </GetStartedWhen>
 
@@ -529,8 +532,4 @@ pnpm dlx @midscene/test@latest model verify
 
 </GetStarted>
 
-## 其他使用方式
-
-- **让 AI 编程助手操作界面**：安装 [Midscene Skills](./skills)。
-- **复用桌面 Chrome 的登录状态**：使用 [Chrome Bridge](./bridge-mode)。
-- **不借助测试框架运行自动化**：[编写独立自动化脚本](./sdk/standalone)。
+想尝试其他平台或使用方式？[返回页头](#get-started)切换选项。

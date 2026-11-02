@@ -64,14 +64,17 @@ describe('get started plan', () => {
       if (!devicePlayground) {
         expect(['install-extension', 'install-node']).toContain(steps[0]);
       }
-      expect(steps.at(-1)).toBe('next-steps');
+      const playground = selection.scene === 'playground';
+      expect(steps.includes('next-steps')).toBe(!playground);
       expect(
         steps.filter((id) => modelSteps.includes(id as never)),
       ).toHaveLength(1);
       expect(
         steps.filter((id) => deviceSteps.includes(id as never)),
       ).toHaveLength(selection.platform === 'web' ? 0 : 1);
-      expect(finalSteps[selection.scene]).toContain(steps.at(-2));
+      expect(finalSteps[selection.scene]).toContain(
+        steps.at(playground ? -1 : -2),
+      );
     });
   }
 
