@@ -8,13 +8,22 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import MidsceneReporter from '@/playwright/reporter';
-import { ExecutionDump, ReportGenerator, ScreenshotItem } from '@midscene/core';
+import {
+  ExecutionDump,
+  ReportGenerator,
+  ReportImageStore,
+  ScreenshotItem,
+} from '@midscene/core';
 import * as agentActual from '@midscene/core/agent' with {
   rstest: 'importActual',
 };
-import { ReportMergingTool, readReportActionDump } from '@midscene/core/report';
+import {
+  ReportMergingTool,
+  readReportActionDump,
+  readReportDumpScripts,
+} from '@midscene/core/report';
 import * as sharedUtils from '@midscene/shared/utils';
 import type { TestCase, TestResult } from '@playwright/test/reporter';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
@@ -27,6 +36,8 @@ rs.mock('@midscene/core/agent', () => ({
   ...agentActual,
   printReportMsg: rs.fn(),
 }));
+const png =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
 
 describe('MidsceneReporter', () => {
   let tempDir: string;
@@ -62,8 +73,6 @@ describe('MidsceneReporter', () => {
       screenshotMode: format,
       autoPrint: false,
     });
-    const png =
-      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
     generator.onExecutionUpdate(
       new ExecutionDump({
         id: name,
@@ -116,6 +125,73 @@ describe('MidsceneReporter', () => {
   });
 
   describe('report collection', () => {
+    it.each(
+      (['inline', 'directory'] as const).flatMap((source) =>
+        (['merged', 'separate'] as const).flatMap((mode) =>
+          (['single-html', 'html-and-external-assets'] as const).map(
+            (outputFormat) => ({ source, mode, outputFormat }),
+          ),
+        ),
+      ),
+    )(
+      'keeps timeout status, retry metadata and images: $source -> $mode/$outputFormat',
+      async ({ source, mode, outputFormat }) => {
+        const reporter = new MidsceneReporter({ type: mode, outputFormat });
+        const reportPath = await createReportFile(
+          'source',
+          'successful Agent actions',
+          source,
+        );
+        reporter.onTestEnd(
+          {
+            id: 'host',
+            title: 'host times out',
+            parent: { title: 'suite' },
+            annotations: [
+              { type: 'MIDSCENE_DUMP_ANNOTATION', description: reportPath },
+            ],
+          } as TestCase,
+          { status: 'timedOut', duration: 500, retry: 1 } as TestResult,
+        );
+        await reporter.onEnd();
+        expect(existsSync(reportPath)).toBe(false);
+        const [name] = readdirSync(outputDir);
+        const output = join(
+          outputDir,
+          name,
+          outputFormat === 'single-html' ? '' : 'index.html',
+        );
+        const [{ openTag, content }] = readReportDumpScripts(output);
+        const attributes = Object.fromEntries(
+          [...openTag.matchAll(/([^\s=]+)="([^"]*)"/g)].map(
+            ([, key, value]) => [key, decodeURIComponent(value)],
+          ),
+        );
+        expect(attributes).toMatchObject({
+          playwright_test_status: 'timedOut',
+          playwright_test_duration: '500',
+          playwright_test_id: 'host(retry #1)',
+          playwright_test_title: 'host times out(retry #1)',
+        });
+        const dump = JSON.parse(content);
+        expect(dump.executions[0].name).toBe('successful Agent actions');
+        const refs = dump.executions[0].tasks[0].recorder.map(
+          (item: any) => item.screenshot,
+        );
+        expect(refs.map((ref: any) => ref.capturedAt)).toEqual([0, 1]);
+        const images = new ReportImageStore({
+          reportPath: output,
+          mode: outputFormat === 'single-html' ? 'inline' : 'directory',
+        });
+        const bytes = refs.map((ref: any) => images.loadDataUri(ref));
+        expect(bytes).toEqual([png, png]);
+        if (outputFormat === 'html-and-external-assets')
+          expect(
+            readdirSync(join(dirname(output), 'screenshots')),
+          ).toHaveLength(1);
+      },
+    );
+
     it('should ignore tests without Midscene annotations', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
       const mergeSpy = rs.spyOn<any, any>(

@@ -116,7 +116,7 @@ describe('portable report delivery', () => {
     },
   );
 
-  it('preserves Test hierarchy and failures through directory and single-file exports', async () => {
+  it('preserves Test runner metadata through directory and single-file exports', async () => {
     const input = await source('inline');
     const runner = {
       schemaVersion: 1,
