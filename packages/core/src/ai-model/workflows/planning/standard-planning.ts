@@ -239,7 +239,7 @@ export async function standardPlan(
   const memoriesSection = memoriesText ? `\n\n${memoriesText}` : '';
 
   const observationText = conversationHistory.pendingFeedbackMessage
-    ? `${conversationHistory.pendingFeedbackMessage}. The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.`
+    ? `${conversationHistory.pendingFeedbackMessage}. Here is the latest screenshot. Please continue according to the instruction.`
     : 'This is the current screenshot.';
   const latestObservation: ConversationMessage = {
     role: 'user',

@@ -1,6 +1,9 @@
-import { checkPlanFreshness } from '@/agent/plan-freshness';
+import {
+  checkPlanFreshness,
+  evaluatePlanFreshness,
+} from '@/agent/plan-freshness';
 import { ScreenshotItem } from '@/screenshot-item';
-import type { UIContext } from '@/types';
+import type { ExecutionTask, UIContext } from '@/types';
 import { imageDifference } from '@midscene/shared/img';
 import { describe, expect, it } from '@rstest/core';
 import sharp from 'sharp';
@@ -147,5 +150,45 @@ describe('planning screen freshness', () => {
       (await checkPlanFreshness([tap], context(before), await screenshot()))
         ?.changed,
     ).toBe(false);
+  });
+  it('uses the post-calling observation and records the screen decision', async () => {
+    const before = await screenshot();
+    const after = await screenshot({
+      left: 140,
+      top: 10,
+      width: 30,
+      height: 30,
+    });
+    const task = {
+      taskId: 'plan-1',
+      uiContext: context(before),
+      recorder: [
+        {
+          type: 'screenshot',
+          timing: 'after-calling',
+          ts: Date.now(),
+          screenshot: after,
+        },
+      ],
+    } as ExecutionTask;
+    expect(
+      (await evaluatePlanFreshness(task, [tap], 'execution-1', 1))?.changed,
+    ).toBe(true);
+    expect(task.log?.planFreshness).toMatchObject({
+      executionId: 'execution-1',
+      taskId: 'plan-1',
+      decision: 'replan',
+      changedPixels: 900,
+    });
+  });
+
+  it('does not silently bypass the guard if the post-planning observation is missing', async () => {
+    const task = {
+      taskId: 'plan-1',
+      uiContext: context(await screenshot()),
+    } as ExecutionTask;
+    await expect(
+      evaluatePlanFreshness(task, [tap], 'execution-1', 1),
+    ).rejects.toThrow('post-planning screenshots');
   });
 });

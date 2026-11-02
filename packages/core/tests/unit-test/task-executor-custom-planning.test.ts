@@ -240,7 +240,7 @@ describe('TaskExecutor custom planning adapters', () => {
       .spyOn(executor, 'convertPlanToExecutable')
       .mockResolvedValue({ tasks: [] });
     const guard = rs
-      .spyOn(freshness, 'checkPlanFreshness')
+      .spyOn(freshness, 'evaluatePlanFreshness')
       .mockResolvedValueOnce({
         changed: true,
         changedPixels: 100,
@@ -261,9 +261,25 @@ describe('TaskExecutor custom planning adapters', () => {
         },
       ]),
       defaultModel(),
+      undefined,
+      false,
+      undefined,
+      'balance',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      true,
     );
     expect(guard).toHaveBeenCalledTimes(2);
     expect(convert).toHaveBeenCalledTimes(1);
+    const calls = rs.mocked(callAIWithStringResponse).mock.calls;
+    expect(JSON.stringify(calls[1][0])).toContain(
+      'The planned action was NOT executed',
+    );
+    expect(JSON.stringify(calls[1][0])).not.toContain(
+      'The previous action has been executed',
+    );
   });
 
   it('stops at the planning limit without ever executing a continuously stale plan', async () => {
@@ -283,7 +299,7 @@ describe('TaskExecutor custom planning adapters', () => {
     const convert = rs
       .spyOn(executor, 'convertPlanToExecutable')
       .mockResolvedValue({ tasks: [] });
-    rs.spyOn(freshness, 'checkPlanFreshness').mockResolvedValue({
+    rs.spyOn(freshness, 'evaluatePlanFreshness').mockResolvedValue({
       changed: true,
       changedPixels: 100,
       dimensionsChanged: false,
@@ -299,8 +315,65 @@ describe('TaskExecutor custom planning adapters', () => {
           },
         ]),
         defaultModel(),
+        undefined,
+        false,
+        undefined,
+        'balance',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        true,
       ),
     ).rejects.toThrow('planning cycle limit');
     expect(convert).not.toHaveBeenCalled();
+  });
+  it('records a failed plan if screen comparison fails, without executing actions', async () => {
+    const executor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
+      replanningCycleLimit: 2,
+      actionSpace: [],
+    });
+    const convert = rs.spyOn(executor, 'convertPlanToExecutable');
+    rs.spyOn(freshness, 'evaluatePlanFreshness').mockRejectedValue(
+      new Error('invalid screenshot'),
+    );
+    rs.mocked(callAIWithStringResponse).mockResolvedValue({ content: '' });
+    await expect(
+      executor.action(
+        'open target',
+        createCustomPlanningModel(),
+        defaultModel(),
+        undefined,
+        false,
+        undefined,
+        'balance',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        true,
+      ),
+    ).rejects.toThrow('Failed to check screen freshness: invalid screenshot');
+    expect(convert).not.toHaveBeenCalled();
+  });
+
+  it('does not compare screens by default', async () => {
+    const executor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
+      replanningCycleLimit: 2,
+      actionSpace: [],
+    });
+    const guard = rs.spyOn(freshness, 'evaluatePlanFreshness');
+    rs.spyOn(executor, 'convertPlanToExecutable').mockResolvedValue({
+      tasks: [],
+    });
+    rs.mocked(callAIWithStringResponse).mockResolvedValue({ content: '' });
+    await executor.action(
+      'open target',
+      createCustomPlanningModel(),
+      defaultModel(),
+    );
+    expect(guard).not.toHaveBeenCalled();
   });
 });

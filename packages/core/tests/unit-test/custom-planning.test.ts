@@ -36,7 +36,7 @@ describe('custom planning messages', () => {
   it('consumes pending feedback in the latest screenshot message', async () => {
     const conversationHistory = new ConversationHistory();
     conversationHistory.pendingFeedbackMessage =
-      'Current time: 2026-06-16 19:35:17 (YYYY-MM-DD HH:mm:ss)';
+      'The planned action was NOT executed: the screen changed while planning';
 
     const messages = await buildCustomPlanningMessages(
       {
@@ -54,6 +54,9 @@ describe('custom planning messages', () => {
     );
 
     expect(conversationHistory.pendingFeedbackMessage).toBe('');
+    expect(JSON.stringify(messages)).not.toContain(
+      'The previous action has been executed',
+    );
     expect(messages.at(-2)).toMatchObject({
       type: 'input-message',
       message: expect.objectContaining({
@@ -62,7 +65,7 @@ describe('custom planning messages', () => {
           expect.objectContaining({
             type: 'text',
             text: expect.stringContaining(
-              'Current time: 2026-06-16 19:35:17 (YYYY-MM-DD HH:mm:ss). The previous action has been executed',
+              'The planned action was NOT executed: the screen changed while planning. Here is the latest screenshot.',
             ),
           }),
         ],
