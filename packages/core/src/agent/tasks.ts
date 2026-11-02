@@ -584,6 +584,8 @@ export class TaskExecutor {
     });
 
     let replanCount = 0;
+    let consecutiveScreenChangeReplans = 0;
+    const screenChangeReplanLimit = 2;
     const yamlFlow: MidsceneYamlFlowItem[] = [];
     const replanningCycleLimit =
       replanningCycleLimitOverride ?? this.replanningCycleLimit;
@@ -871,6 +873,13 @@ export class TaskExecutor {
         }
       }
       if (freshness?.changed) {
+        if (consecutiveScreenChangeReplans >= screenChangeReplanLimit) {
+          return appendFailedPlan(
+            `Task stopped: the screen kept changing during planning after ${screenChangeReplanLimit} consecutive screen-change replans. No action from the rejected plans was executed. Wait for the page to settle before trying again.`,
+            planIndex,
+          );
+        }
+        ++consecutiveScreenChangeReplans;
         this.setPendingFeedbackMessage(
           conversationHistory,
           await this.getTimeString(),
@@ -927,6 +936,9 @@ export class TaskExecutor {
         );
         try {
           await session.appendAndRun(executables.tasks);
+          if (executables.tasks.some((task) => task.type === 'Action Space')) {
+            consecutiveScreenChangeReplans = 0;
+          }
           this.setPendingFeedbackMessage(
             conversationHistory,
             initialTimeString,
