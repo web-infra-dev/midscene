@@ -195,6 +195,10 @@ afterAll:
   return format === 'single-html' ? delivery : join(delivery, 'index.html');
 }
 
+// These integration cases generate and convert several real reports. Allow for
+// coverage instrumentation and other projects sharing the CI runner.
+const pipelineTimeout = 30_000;
+
 describe('real Test artifacts through report tools', () => {
   it.each(formats)(
     'exports %s runner-only reports and explicitly rejects Agent-detail extraction',
@@ -235,6 +239,7 @@ describe('real Test artifacts through report tools', () => {
         ).rejects.toThrow('No report dump scripts');
       }
     },
+    pipelineTimeout,
   );
 
   it.each(formats)(
@@ -317,6 +322,7 @@ describe('real Test artifacts through report tools', () => {
         expect(combined.runner.projects).toHaveLength(4);
       }
     },
+    pipelineTimeout,
   );
 
   it.each(formats)(
@@ -370,6 +376,7 @@ describe('real Test artifacts through report tools', () => {
         expect(markdown.screenshotFiles.every(existsSync)).toBe(true);
       }
     },
+    pipelineTimeout,
   );
 
   it.each(formats)(
@@ -425,5 +432,6 @@ describe('real Test artifacts through report tools', () => {
       expect(health(second.runner)).toEqual(health(first.runner));
       expect(attempts(second.runner)).toEqual(attempts(first.runner));
     },
+    pipelineTimeout,
   );
 });
