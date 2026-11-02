@@ -35,16 +35,14 @@ Put aggregation rules, serialization limits, state transitions and functional ca
 
 Generated fixtures belong in ignored `dist/`. Keep the static pages unchanged during a run; concurrent builds clean that directory. When another build must run concurrently, copy the generated static pages to a temporary directory and adjust the static server's path in `midscene.config.ts` to serve that snapshot.
 
-### CI shards
+### Concurrent CI execution
 
-CI runs all YAML files across four machines. `MIDSCENE_REPORT_SHARD=1/4` selects
-one duration-balanced shard; omit it to run the complete suite locally. New YAML
-files are discovered automatically. Each shard keeps a separate report, linked
-from the combined CI report page. AI assertions, retries, and per-file browser
-isolation are unchanged.
+CI runs the complete YAML suite on one machine, with at most four files active.
+Each file has its own context, Page and Agent; only the browser and static server
+are shared. Steps inside a file remain sequential. New YAML files are discovered
+automatically, and all results appear in one native report. AI assertions and
+retry settings are unchanged. Local runs use the same concurrency limit.
 
-The preparation job records its checked-out commit. All Report shards and the
-combined report job check out that same SHA, including when a manually selected
-branch moves during the run. Ordinary events use the event SHA. The shared
-runtime artifact is retained for 7 days so failed shards can be retried across
-a weekend without rerunning preparation. After it expires, rerun all jobs.
+Builds, fixtures and tests use one checkout. Ordinary events check out the event
+SHA; manual runs resolve the selected branch once. A failed-job rerun rebuilds
+its fixtures and runtime, so it does not depend on an expiring shared artifact.

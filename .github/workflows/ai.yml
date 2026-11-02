@@ -144,21 +144,19 @@ jobs:
         if [ "${{ steps.e2e-tests-report.outcome }}" == "failure" ]; then echo "  - e2e:report"; fi
         exit 1
 
-  report-prepare:
+  e2e-report:
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: always() && (needs.changes.result != 'success' || needs.changes.outputs.code == 'true')
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
-    outputs:
-      sha: ${{ steps.source.outputs.sha }}
     steps:
+    - name: Check change detection
+      env:
+        RESULT: ${{ needs.changes.result }}
+      run: test "$RESULT" = success
+
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
         ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.sha }}
-
-    - name: Record report source commit
-      id: source
-      shell: bash
-      run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
     - name: Setup Node.js and pnpm
       uses: ./.github/actions/setup-node-pnpm
@@ -187,109 +185,28 @@ jobs:
       with:
         command: node apps/report/scripts/generate-demo-report.mjs
 
-    - name: Pack report runtime and fixtures
-      run: tar -czf "$RUNNER_TEMP/report-runtime.tgz" packages/*/dist apps/report/dist
-
-    - name: Share report runtime and fixtures
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: report-runtime
-        path: ${{ runner.temp }}/report-runtime.tgz
-        compression-level: 0
-        retention-days: 7
-        if-no-files-found: error
-
-  report-shard:
-    needs: [changes, report-prepare]
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: ['1/4', '2/4', '3/4', '4/4']
-    env:
-      MIDSCENE_REPORT_SHARD: ${{ matrix.shard }}
-    steps:
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      with:
-        ref: ${{ needs.report-prepare.outputs.sha }}
-
-    - name: Setup Node.js and pnpm
-      uses: ./.github/actions/setup-node-pnpm
-
-    - name: Cache pnpm store
-      id: pnpm-cache
-      uses: ./.github/actions/pnpm-cache/restore
-
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile --ignore-scripts
-
-    - name: Save pnpm store
-      if: steps.pnpm-cache.outputs.cache-hit != 'true'
-      uses: ./.github/actions/pnpm-cache/save
-
-    - name: Setup Puppeteer browser
-      uses: ./.github/actions/setup-puppeteer-browser
-
-    - name: Download shared report runtime
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-      with:
-        name: report-runtime
-        path: ${{ runner.temp }}/report-runtime
-
-    - name: Restore report runtime and fixtures
-      run: |
-        tar -xzf "$RUNNER_TEMP/report-runtime/report-runtime.tgz"
-        node scripts/validate-core-report-template.mjs
-
     - name: Prepare AI CI
       id: ai-ci
       uses: ./.github/actions/ai-ci
 
-    - name: Run apps/report e2e shard
+    - name: Run apps/report e2e
       id: e2e-tests-app-report
       uses: web-infra-dev/midscene-action@5ef922b20a69d69a0f34639c4c867ba2049f6ede # v1
       env:
         NODE_OPTIONS: ${{ steps.ai-ci.outputs.node-options }}
       with:
         working-directory: apps/report
-        command: node ../../packages/test/bin/midscene-test --config ./e2e/midscene.config.ts
-        artifact-name: e2e-app-report-output-${{ strategy.job-index }}
-        publish-pages: false
+        command: /usr/bin/time -v -o "$RUNNER_TEMP/report-resources.txt" node ../../packages/test/bin/midscene-test --config ./e2e/midscene.config.ts
+        artifact-name: e2e-app-report-output
+        publish-pages: true
+        cloudflare-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        cloudflare-account-id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
 
-  # Preserve the existing required-check name while all shards finish independently.
-  e2e-report:
-    needs: [changes, report-prepare, report-shard]
-    if: always() && (needs.changes.result != 'success' || needs.changes.outputs.code == 'true')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-        with:
-          ref: ${{ needs.report-prepare.outputs.sha }}
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          pattern: e2e-app-report-output-*
-          path: ${{ runner.temp }}/report-shards
-      - name: Prepare combined report index
-        run: node scripts/prepare-ci-report-shards.mjs "$RUNNER_TEMP/report-shards" "$RUNNER_TEMP/report-publication"
-      - name: Publish all report shards
-        id: publication
-        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: '4.136.3'
-          packageManager: npm
-          workingDirectory: ${{ runner.temp }}/report-publication
-          command: preview --name run-${{ github.run_id }}-${{ github.run_attempt }}
-      - name: Link published reports
-        env:
-          REPORT_URL: ${{ steps.publication.outputs.preview-deployment-url }}
-        run: |
-          test -n "$REPORT_URL"
-          echo "[Open all Report E2E shards]($REPORT_URL)" >> "$GITHUB_STEP_SUMMARY"
-      - name: Check all report shards
-        if: always()
-        env:
-          RESULT: ${{ needs.report-shard.result }}
-        run: test "$RESULT" = success
+    - name: Upload report resource measurements
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: report-resources
+        path: ${{ runner.temp }}/report-resources.txt
+        retention-days: 7
+        if-no-files-found: ignore

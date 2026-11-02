@@ -1,16 +1,18 @@
 import { once } from 'node:events';
-import { readdirSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineNode, z } from '@midscene/test';
-import { defineProjectSetup, defineTestProject } from '@midscene/test/config';
+import {
+  defineFileSetup,
+  defineProjectSetup,
+  defineTestProject,
+} from '@midscene/test/config';
 import { createMidsceneNodes } from '@midscene/test/midscene';
 import { PuppeteerAgent } from '@midscene/web/puppeteer';
 import { config as loadEnv } from 'dotenv';
 import puppeteer, { type Browser } from 'puppeteer';
 import sirv from 'sirv';
-import { shardFiles } from '../../../scripts/ci-shard.mjs';
 
 const reportRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 // Exported settings take precedence; app-local settings override repository defaults.
@@ -101,32 +103,28 @@ const setup = defineProjectSetup<ReportContext>({
   },
 });
 
-// Successful run 41050875912, seconds per file. Discovery includes future YAMLs.
-const files = shardFiles(
-  readdirSync(resolve(reportRoot, 'e2e')).filter((file) =>
-    file.endsWith('.yaml'),
-  ),
-  process.env.MIDSCENE_REPORT_SHARD,
-  {
-    'detail-panel.yaml': 661,
-    'midscene-test-late-failure.yaml': 79,
-    'midscene-test-lifecycle.yaml': 285,
-    'midscene-test-overview.yaml': 1175,
-    'midscene-test-report.yaml': 1244,
-    'player-only.yaml': 16,
-    'report-merged.yaml': 271,
-    'report-mobile.yaml': 229,
-    'report-single.yaml': 679,
-    'sidebar-navigation.yaml': 228,
-    'theme-toggle.yaml': 152,
-    'timeline-interaction.yaml': 129,
+// The browser/server are shared, but each file owns its mutable Agent slot.
+const fileSetup = defineFileSetup<ReportContext, ReportContext>({
+  name: 'report-file',
+  setup({ projectContext }) {
+    if (!projectContext) throw new Error('Report project setup is missing.');
+    return { browser: projectContext.browser, baseUrl: projectContext.baseUrl };
   },
-).map((file) => `e2e/${file}`);
+});
 
 export default defineTestProject<ReportContext>({
   // midscene-action publishes a report directory whose entry is index.html.
   output: { reportFormat: 'html-and-external-assets' },
-  projects: [{ name: 'report', setup, files: { include: files }, retry: 0 }],
+  projects: [
+    {
+      name: 'report',
+      setup,
+      fileSetup,
+      files: { include: ['e2e/*.yaml'] },
+      maxConcurrentFiles: 4,
+      retry: 0,
+    },
+  ],
 
   nodes: [
     openReport,
@@ -141,5 +139,5 @@ export default defineTestProject<ReportContext>({
     }),
   ],
   // Files share the browser/server, but own their context, Page and Agent.
-  test: { maxConcurrentFiles: 1, bail: 0, testTimeout: 600_000 },
+  test: { maxConcurrentFiles: 4, bail: 0, testTimeout: 600_000 },
 });
