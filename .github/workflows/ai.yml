@@ -42,7 +42,7 @@ jobs:
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
-        ref: ${{ github.event.inputs.branch || github.ref }}
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.sha }}
 
     - name: Setup Node.js and pnpm
       uses: ./.github/actions/setup-node-pnpm
@@ -148,10 +148,17 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
-        ref: ${{ github.event.inputs.branch || github.ref }}
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.sha }}
+
+    - name: Record report source commit
+      id: source
+      shell: bash
+      run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
     - name: Setup Node.js and pnpm
       uses: ./.github/actions/setup-node-pnpm
@@ -189,7 +196,7 @@ jobs:
         name: report-runtime
         path: ${{ runner.temp }}/report-runtime.tgz
         compression-level: 0
-        retention-days: 1
+        retention-days: 7
         if-no-files-found: error
 
   report-shard:
@@ -205,7 +212,7 @@ jobs:
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
-        ref: ${{ github.event.inputs.branch || github.ref }}
+        ref: ${{ needs.report-prepare.outputs.sha }}
 
     - name: Setup Node.js and pnpm
       uses: ./.github/actions/setup-node-pnpm
@@ -252,11 +259,13 @@ jobs:
 
   # Preserve the existing required-check name while all shards finish independently.
   e2e-report:
-    needs: [changes, report-shard]
+    needs: [changes, report-prepare, report-shard]
     if: always() && (needs.changes.result != 'success' || needs.changes.outputs.code == 'true')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ needs.report-prepare.outputs.sha }}
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: e2e-app-report-output-*

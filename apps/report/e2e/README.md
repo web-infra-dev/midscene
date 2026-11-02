@@ -42,3 +42,9 @@ one duration-balanced shard; omit it to run the complete suite locally. New YAML
 files are discovered automatically. Each shard keeps a separate report, linked
 from the combined CI report page. AI assertions, retries, and per-file browser
 isolation are unchanged.
+
+The preparation job records its checked-out commit. All Report shards and the
+combined report job check out that same SHA, including when a manually selected
+branch moves during the run. Ordinary events use the event SHA. The shared
+runtime artifact is retained for 7 days so failed shards can be retried across
+a weekend without rerunning preparation. After it expires, rerun all jobs.
