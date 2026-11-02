@@ -58,7 +58,7 @@ export function createPuppeteerBrowserPageManager({
     adapter: createPuppeteerBrowserAdapter(browser, pageScope),
     getActivePage: () => webPage.underlyingPage as PuppeteerPage,
     setActivePageValue: (page) => {
-      webPage.underlyingPage = page;
+      webPage.setPage(page);
     },
     autoFollowNewPage: runtimeOptions.autoFollowNewPage,
     newPageTimeout: runtimeOptions.newPageTimeout,

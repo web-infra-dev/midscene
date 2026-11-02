@@ -216,7 +216,7 @@ export class Page<
   underlyingPage: InterfaceType;
   protected waitForNavigationTimeout: number;
   protected waitForNetworkIdleTimeout: number;
-  private viewportSize?: Size;
+  protected viewportSize?: Size;
   private onBeforeInvokeAction?: AbstractInterface['beforeInvokeAction'];
   private onAfterInvokeAction?: AbstractInterface['afterInvokeAction'];
   private customActions?: DeviceAction<any>[];
