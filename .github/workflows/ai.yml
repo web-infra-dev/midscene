@@ -196,7 +196,7 @@ jobs:
         NODE_OPTIONS: ${{ steps.ai-ci.outputs.node-options }}
       with:
         working-directory: apps/report
-        command: /usr/bin/time -v -o "$RUNNER_TEMP/report-resources.txt" node ../../packages/test/bin/midscene-test --config ./e2e/midscene.config.ts
+        command: python3 ../../scripts/ci-measure.py "$RUNNER_TEMP/report-resources.json" node ../../packages/test/bin/midscene-test --config ./e2e/midscene.config.ts
         artifact-name: e2e-app-report-output
         publish-pages: true
         cloudflare-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -207,6 +207,6 @@ jobs:
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: report-resources
-        path: ${{ runner.temp }}/report-resources.txt
+        path: ${{ runner.temp }}/report-resources.json
         retention-days: 7
         if-no-files-found: ignore
