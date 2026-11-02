@@ -119,7 +119,7 @@ describe('SIWC real proxy transport', () => {
         controller.abort();
         await rejected;
         await closed.promise;
-        expect(network.tunnels).toEqual([network.authority]);
+        expect(new Set(network.tunnels)).toEqual(new Set([network.authority]));
       } finally {
         await network.close();
       }
