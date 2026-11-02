@@ -1,0 +1,151 @@
+.get-started {
+  margin: 24px 0;
+}
+
+.get-started-question {
+  margin: 0 0 16px;
+  padding: 16px;
+  border: 1px solid var(--rp-c-divider);
+  border-radius: 12px;
+}
+
+.get-started-question legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  font-weight: 600;
+}
+
+/* Each question fades in as the previous one is answered. */
+.get-started-question {
+  animation: get-started-question-in 0.3s ease-out;
+}
+
+/* The unanswered question is the one to act on next. */
+.get-started-question-pending {
+  border-color: var(--rp-c-brand);
+}
+
+.get-started-question-pending .get-started-options span {
+  border-color: color-mix(in srgb, var(--rp-c-brand) 40%, var(--rp-c-divider));
+}
+
+.get-started-choose {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--rp-c-brand) 15%, transparent);
+  color: var(--rp-c-brand);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@keyframes get-started-question-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .get-started-question {
+    animation: none;
+  }
+}
+
+.get-started-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.get-started-options label {
+  position: relative;
+  cursor: pointer;
+}
+
+.get-started-options input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.get-started-options span {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  height: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--rp-c-divider);
+  border-radius: 8px;
+  background: var(--rp-c-bg);
+  color: var(--rp-c-text-1);
+}
+
+.get-started-options small {
+  color: var(--rp-c-text-2);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.get-started-options label:hover span {
+  border-color: var(--rp-c-brand);
+}
+
+.get-started-options input:checked + span {
+  border-color: var(--rp-c-brand);
+  box-shadow: inset 0 0 0 1px var(--rp-c-brand);
+}
+
+.get-started-options input:focus-visible + span {
+  outline: 2px solid var(--rp-c-brand);
+  outline-offset: 3px;
+}
+
+.get-started-status {
+  color: var(--rp-c-text-2);
+}
+
+.get-started-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Each step is its own section, so its h2 matches the Rspress
+   `h2:first-of-type::before` divider rule. Draw the divider on the section
+   instead and hide that pseudo-element. */
+.get-started-step {
+  margin-top: 3rem;
+  padding-top: 3rem;
+  border-top: 1px solid var(--rp-c-divider-light);
+}
+
+.get-started-step-label {
+  margin: 0 0 4px;
+  color: var(--rp-c-text-2);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.get-started-step > h2 {
+  margin-top: 0;
+}
+
+.get-started-step > h2::before {
+  display: none;
+}

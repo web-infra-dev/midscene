@@ -182,12 +182,8 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Getting started',
           },
           {
-            text: 'Try the GUI Agent',
-            link: '/quick-start',
-          },
-          {
-            text: 'Start with Midscene Test',
-            link: '/midscene-test/use',
+            text: 'Get started',
+            link: '/get-started',
           },
           {
             text: 'Control any platform with Skills',
@@ -437,12 +433,8 @@ export default defineConfig(async () => {
             sectionHeaderText: '开始使用',
           },
           {
-            text: '快速体验 GUI Agent',
-            link: '/zh/quick-start',
-          },
-          {
-            text: '创建 Midscene Test E2E 项目',
-            link: '/zh/midscene-test/use',
+            text: '开始使用',
+            link: '/zh/get-started',
           },
           {
             text: '使用 Skills 控制任意平台',
@@ -771,6 +763,7 @@ export default defineConfig(async () => {
                 'model-config#verify-model-connectivity',
               ],
               ['cli', 'yaml-script-runner'],
+              ['quick-start', 'get-started?scene=playground&platform=web'],
               [
                 'blog-programming-practice-using-structured-api',
                 'basics#javascript-orchestration',
@@ -948,7 +941,7 @@ export default defineConfig(async () => {
           },
           {
             from: '^/quick-experience(?:\\.html)?/?$',
-            to: '/quick-start#chrome-extension',
+            to: '/get-started?scene=playground&platform=web',
           },
           {
             from: '^/quick-experience-with-android(?:\\.html)?/?$',
@@ -988,7 +981,7 @@ export default defineConfig(async () => {
           },
           {
             from: '^/zh/quick-experience(?:\\.html)?/?$',
-            to: '/zh/quick-start#chrome-extension',
+            to: '/zh/get-started?scene=playground&platform=web',
           },
           {
             from: '^/zh/batch-yaml(?:\\.html)?/?$',

@@ -1,4 +1,13 @@
 import { ModelConfigCard, ModelConfigSection } from '@theme';
+import DoubaoSeedModelCard from './common/model-cards/doubao-seed-model.mdx';
+import QwenModelCard from './common/model-cards/qwen.mdx';
+import DeepseekModelCard from './common/model-cards/deepseek.mdx';
+import GeminiModelCard from './common/model-cards/gemini.mdx';
+import GptModelCard from './common/model-cards/gpt.mdx';
+import KimiModelCard from './common/model-cards/kimi.mdx';
+import XiaomiMimoModelCard from './common/model-cards/xiaomi-mimo.mdx';
+import GlmVModelCard from './common/model-cards/glm-v.mdx';
+import AntLingModelCard from './common/model-cards/ant-ling.mdx';
 
 # Use a model API key
 
@@ -32,18 +41,7 @@ Each configuration requires a Base URL, API key, model name, and `MIDSCENE_MODEL
 
 Configuration example (`doubao-seed-2-1-turbo-260628`):
 
-<ModelConfigCard
-  providers={[
-    {
-      name: "Volcano Engine",
-      href: "https://console.volcengine.com/ark",
-      baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
-      modelName: "doubao-seed-2-1-turbo-260628",
-    },
-  ]}
-  openRouterModel="bytedance-seed/seed-2-1-turbo"
-  modelFamily="doubao-seed"
-/>
+<DoubaoSeedModelCard />
 
 If your Volcano Engine account has Fast Tier quota enabled, add the extra request body below to use it. This usually improves model response speed by about 30%-50%.
 
@@ -73,18 +71,7 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
 
 Configuration example (`qwen3.7-plus`):
 
-<ModelConfigCard
-  providers={[
-    {
-      name: "Alibaba Cloud",
-      href: "https://modelstudio.console.alibabacloud.com/ap-southeast-1/settings/api-key",
-      baseUrl: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-      modelName: "qwen3.7-plus",
-    },
-  ]}
-  openRouterModel="qwen/qwen3.7-plus"
-  modelFamily={{ value: "qwen3", comment: "If you use another Qwen version, replace this with the corresponding model family" }}
-/>
+<QwenModelCard />
 
 The Alibaba Cloud example uses the Singapore region. The API key, Base URL, and model must belong to the same region. For other regions, see [Regions and endpoints](https://www.alibabacloud.com/help/en/model-studio/regions).
 
@@ -106,18 +93,7 @@ Midscene supports DeepSeek starting from v1.12.0.
 
 Configuration example (`deepseek-flash`):
 
-<ModelConfigCard
-  providers={[
-    {
-      name: "DeepSeek",
-      href: "https://platform.deepseek.com/api_keys",
-      baseUrl: "https://api.deepseek.com",
-      modelName: "deepseek-flash",
-    },
-  ]}
-  openRouterModel="deepseek/deepseek-v4.1-flash"
-  modelFamily="deepseek"
-/>
+<DeepseekModelCard />
 
 </ModelConfigSection>
 
@@ -136,18 +112,7 @@ Configuration example (`deepseek-flash`):
 
 Configuration example (`gemini-3.5-flash`):
 
-<ModelConfigCard
-  providers={[
-    {
-      name: "Google AI Studio",
-      href: "https://aistudio.google.com/apikey",
-      baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/",
-      modelName: "gemini-3.5-flash",
-    },
-  ]}
-  openRouterModel="google/gemini-3.5-flash"
-  modelFamily="gemini"
-/>
+<GeminiModelCard />
 
 </ModelConfigSection>
 
@@ -176,19 +141,7 @@ To connect using your ChatGPT subscription, see [Use a ChatGPT subscription](./c
 
 Configuration example (`gpt-6-sol`):
 
-<ModelConfigCard
-  providers={[
-    {
-      name: "OpenAI",
-      href: "https://platform.openai.com/api-keys",
-      baseUrl: { value: "https://api.openai.com/v1", comment: "Or your compatible endpoint" },
-      modelName: "gpt-6-sol",
-      responses: true,
-    },
-  ]}
-  openRouterModel="openai/gpt-6-sol"
-  modelFamily="gpt-6"
-/>
+<GptModelCard />
 
 **Enable Fast mode (`service_tier="fast"`)**
 
@@ -226,18 +179,7 @@ To reuse a Codex CLI session, see [Use Codex App Server](./chatgpt-subscription#
 
 Configuration example (`kimi-k3`):
 
-<ModelConfigCard
-  providers={[
-    {
-      name: "Moonshot AI",
-      href: "https://platform.kimi.com/",
-      baseUrl: "https://api.moonshot.cn/v1",
-      modelName: "kimi-k3",
-    },
-  ]}
-  openRouterModel="moonshotai/kimi-k3"
-  modelFamily={{ value: "kimi3", comment: "For kimi-k2.6, use \"kimi\"" }}
-/>
+<KimiModelCard />
 
 </ModelConfigSection>
 
@@ -255,18 +197,7 @@ Configuration example (`kimi-k3`):
 
 Configuration example (`mimo-v2.6-pro`):
 
-<ModelConfigCard
-  providers={[
-    {
-      name: "Xiaomi MiMo",
-      href: "https://platform.xiaomimimo.com/",
-      baseUrl: "https://api.xiaomimimo.com/v1",
-      modelName: "mimo-v2.6-pro",
-    },
-  ]}
-  openRouterModel="xiaomi/mimo-v2.6-pro"
-  modelFamily="xiaomi-mimo"
-/>
+<XiaomiMimoModelCard />
 
 </ModelConfigSection>
 
@@ -285,24 +216,7 @@ Configuration example (`mimo-v2.6-pro`):
 
 Configuration example (`glm-5v-turbo`):
 
-<ModelConfigCard
-  providers={[
-    {
-      name: "Z.AI (Global)",
-      href: "https://z.ai/manage-apikey/apikey-list",
-      baseUrl: "https://api.z.ai/api/paas/v4",
-      modelName: "glm-5v-turbo",
-    },
-    {
-      name: "BigModel (CN)",
-      href: "https://bigmodel.cn/usercenter/proj-mgmt/apikeys",
-      baseUrl: "https://open.bigmodel.cn/api/paas/v4",
-      modelName: "glm-5v-turbo",
-    },
-  ]}
-  openRouterModel="z-ai/glm-5v-turbo"
-  modelFamily="glm-v"
-/>
+<GlmVModelCard />
 
 **Learn more about the open-source GLM-4.6V model**
 
@@ -315,18 +229,7 @@ Configuration example (`glm-5v-turbo`):
 
 ### Ant Ling {#ant-ling}
 
-<ModelConfigCard
-  providers={[
-    {
-      name: "Ant Ling",
-      href: "https://developer.ant-ling.com/",
-      baseUrl: "https://api.ant-ling.com/v1",
-      modelName: "Ling-3.0-flash-VL",
-    },
-  ]}
-  openRouterModel="inclusionai/ling-3.0-flash-vl"
-  modelFamily="ant-ling"
-/>
+<AntLingModelCard />
 
 :::info Screenshot dimensions
 

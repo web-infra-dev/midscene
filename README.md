@@ -122,7 +122,7 @@ Start with [Create and use test projects](https://midscenejs.com/midscene-test/u
 
 - **Write YAML test cases** — [create a Midscene Test project](https://midscenejs.com/midscene-test/use).
 - **Add visual capabilities to existing tests** — [Playwright](https://midscenejs.com/integrate-with-playwright) for web apps, [Vitest](https://midscenejs.com/sdk/vitest) for mobile and desktop apps.
-- **Try it before writing tests** — the [Chrome extension](https://midscenejs.com/quick-start) or a [Playground for mobile or desktop](https://midscenejs.com/platforms).
+- **Try it before writing tests** — the [Chrome extension](https://midscenejs.com/get-started?scene=playground&platform=web) or a [Playground for mobile or desktop](https://midscenejs.com/platforms).
 - **Run standalone automation scripts** — the [JavaScript SDK](https://midscenejs.com/sdk/standalone).
 - **Let your AI agent operate the UI** — [Midscene Skills](https://midscenejs.com/skills).
 

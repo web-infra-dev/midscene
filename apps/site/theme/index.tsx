@@ -41,3 +41,9 @@ export {
 } from './components/SdkPlatform';
 
 export { SdkPrerequisites } from './components/SdkPrerequisites';
+
+export {
+  GetStarted,
+  GetStartedStep,
+  GetStartedWhen,
+} from './components/GetStarted';
