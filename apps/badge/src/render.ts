@@ -1,4 +1,4 @@
-import { LOGO_64, LOGO_96, LOGO_RATIO } from './logo';
+import { LOGO_96, LOGO_RATIO } from './logo';
 
 export type BadgeStyle = 'flat' | 'large' | 'card';
 export type BadgeTheme = 'light' | 'dark';
@@ -87,40 +87,56 @@ function svg(w: number, h: number, title: string, body: string) {
 const ariaLabel = (pass: number, fail: number) =>
   `Midscene Test: ${pass} passed, ${fail} failed`;
 
-/** Single line, 20px high: same height as shields.io badges. */
-function renderFlat(pass: number, fail: number) {
-  const h = 20;
-  const title = 'E2E';
-  const logoW = 14;
-  const passText = `${pass} passed`;
-  const failText = `${fail} failed`;
-  const segA = 6 + logoW + 4 + textWidth(title) + 7;
-  const segB = 6 + 10 + 3 + textWidth(passText) + 7;
-  const segC = 6 + 10 + 3 + textWidth(failText) + 7;
-  const w = Math.ceil(segA + segB + segC);
-  const xB = segA;
-  const xC = segA + segB;
-  const failColor = fail > 0 ? COLORS.fail : COLORS.zero;
-  const body = `<linearGradient id="s" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient><clipPath id="r"><rect width="${w}" height="${h}" rx="3"/></clipPath><g clip-path="url(#r)"><rect width="${segA}" height="${h}" fill="#fff"/><rect x="${xB}" width="${segB}" height="${h}" fill="${COLORS.pass}"/><rect x="${xC}" width="${segC}" height="${h}" fill="${failColor}"/><rect width="${w}" height="${h}" fill="url(#s)"/></g><rect x=".5" y=".5" width="${w - 1}" height="${h - 1}" rx="2.5" fill="none" stroke="#D0D7DE"/><image x="6" y="${(h - logoW * LOGO_RATIO) / 2}" width="${logoW}" height="${logoW * LOGO_RATIO}" href="${LOGO_64}"/><g font-family="${FONT}">${text(6 + logoW + 4, 14, title, { fill: COLORS.slate })}${check(xB + 5, 5)}${text(xB + 19, 14, passText, { shadow: true })}${cross(xC + 5, 5)}${text(xC + 19, 14, failText, { shadow: true })}</g>`;
-  return svg(w, h, ariaLabel(pass, fail), body);
-}
+// Single-line palette. The label uses the logo outline color so the logo's
+// outline melts into the background and the logo reads as part of the label.
+const LINE_COLORS = {
+  label: COLORS.slate,
+  pass: '#2DA44E',
+  fail: '#CF222E',
+  zero: '#8C959F',
+};
 
-/** Single line, 28px high: for standalone display at the top of a README. */
-function renderLarge(pass: number, fail: number) {
-  const h = 28;
-  const size = 12;
+const LINE_SIZES = {
+  // 20px: same height as shields.io badges.
+  flat: {
+    h: 20,
+    size: 11,
+    bold: false,
+    logoW: 16,
+    pad: 6,
+    rx: 3,
+    baseline: 14,
+    sw: 1.8,
+  },
+  // 28px: for standalone display at the top of a README.
+  large: {
+    h: 28,
+    size: 12,
+    bold: true,
+    logoW: 22,
+    pad: 9,
+    rx: 6,
+    baseline: 18.5,
+    sw: 2,
+  },
+};
+
+/** Single line: [logo E2E | ✓ N passed | ✕ N failed]. */
+function renderLine(pass: number, fail: number, variant: 'flat' | 'large') {
+  const { h, size, bold, logoW, pad, rx, baseline, sw } = LINE_SIZES[variant];
   const title = 'E2E';
-  const logoW = 20;
   const passText = `${pass} passed`;
   const failText = `${fail} failed`;
-  const segA = 9 + logoW + 7 + textWidth(title, size, true) + 11;
-  const segB = 10 + 10 + 5 + textWidth(passText, size, true) + 11;
-  const segC = 10 + 10 + 5 + textWidth(failText, size, true) + 11;
+  const segA = pad - 1 + logoW + 4 + textWidth(title, size, true) + pad;
+  const segB = pad + 10 + 4 + textWidth(passText, size, bold) + pad;
+  const segC = pad + 10 + 4 + textWidth(failText, size, bold) + pad;
   const w = Math.ceil(segA + segB + segC);
   const xB = segA;
   const xC = segA + segB;
-  const failColor = fail > 0 ? COLORS.fail : COLORS.zero;
-  const body = `<clipPath id="r"><rect width="${w}" height="${h}" rx="6"/></clipPath><g clip-path="url(#r)"><rect width="${segA}" height="${h}" fill="#fff"/><rect x="${xB}" width="${segB}" height="${h}" fill="${COLORS.pass}"/><rect x="${xC}" width="${segC}" height="${h}" fill="${failColor}"/><rect x="${xC}" width="1" height="${h}" fill="#000" fill-opacity=".12"/></g><rect x=".5" y=".5" width="${w - 1}" height="${h - 1}" rx="5.5" fill="none" stroke="#D0D7DE"/><image x="9" y="${(h - logoW * LOGO_RATIO) / 2}" width="${logoW}" height="${logoW * LOGO_RATIO}" href="${LOGO_64}"/><g font-family="${FONT}">${text(9 + logoW + 7, 18.5, title, { size, bold: true, fill: COLORS.slate })}${check(xB + 10, 9, '#fff', 2)}${text(xB + 25, 18.5, passText, { size, bold: true })}${cross(xC + 10, 9, '#fff', 2)}${text(xC + 25, 18.5, failText, { size, bold: true })}</g>`;
+  const glyphY = (h - 10) / 2;
+  const logoH = logoW * LOGO_RATIO;
+  const failColor = fail > 0 ? LINE_COLORS.fail : LINE_COLORS.zero;
+  const body = `<clipPath id="r"><rect width="${w}" height="${h}" rx="${rx}"/></clipPath><g clip-path="url(#r)"><rect width="${segA}" height="${h}" fill="${LINE_COLORS.label}"/><rect x="${xB}" width="${segB}" height="${h}" fill="${LINE_COLORS.pass}"/><rect x="${xC}" width="${w - xC}" height="${h}" fill="${failColor}"/></g><image x="${pad - 2}" y="${((h - logoH) / 2).toFixed(2)}" width="${logoW}" height="${logoH.toFixed(2)}" href="${LOGO_96}"/><g font-family="${FONT}">${text(pad + logoW + 2, baseline, title, { size, bold: true, shadow: true })}${check(xB + pad - 2, glyphY, '#fff', sw)}${text(xB + pad + 12, baseline, passText, { size, bold, shadow: true })}${cross(xC + pad - 2, glyphY, '#fff', sw)}${text(xC + pad + 12, baseline, failText, { size, bold, shadow: true })}</g>`;
   return svg(w, h, ariaLabel(pass, fail), body);
 }
 
@@ -181,9 +197,9 @@ function renderCard(pass: number, fail: number, theme: BadgeTheme) {
 export function renderBadge({ pass, fail, style, theme }: BadgeOptions) {
   switch (style) {
     case 'flat':
-      return renderFlat(pass, fail);
+      return renderLine(pass, fail, 'flat');
     case 'large':
-      return renderLarge(pass, fail);
+      return renderLine(pass, fail, 'large');
     case 'card':
       return renderCard(pass, fail, theme);
   }

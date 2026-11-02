@@ -42,7 +42,7 @@ pnpm --filter @midscene/badge typecheck
 pnpm --filter @midscene/badge deploy     # requires `wrangler login`
 ```
 
-The logo is embedded as base64 PNGs because GitHub camo blocks external
-resources inside SVG images. `assets/logo-*.png` are downscaled copies of
-`apps/site/docs/public/images/brand/midscene-icon.png`. After replacing them,
+The logo is embedded as a base64 PNG because GitHub camo blocks external
+resources inside SVG images. `assets/logo-96.png` is a downscaled copy of
+`apps/site/docs/public/images/brand/midscene-icon.png`. After replacing it,
 run `pnpm --filter @midscene/badge generate-logo` to regenerate `src/logo.ts`.

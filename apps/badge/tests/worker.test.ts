@@ -84,9 +84,9 @@ describe('renderBadge', () => {
       style: 'flat',
       theme: 'light',
     });
-    expect(failed).toContain('fill="#D73A49"');
-    expect(clean).not.toContain('fill="#D73A49"');
-    expect(clean).toContain('fill="#8B949E"');
+    expect(failed).toContain('fill="#CF222E"');
+    expect(clean).not.toContain('fill="#CF222E"');
+    expect(clean).toContain('fill="#8C959F"');
   });
 
   it('grows with the digit count', () => {
