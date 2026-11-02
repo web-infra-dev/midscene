@@ -72,7 +72,9 @@ async function createNetwork(handler: RequestListener) {
   };
 }
 
-afterEach(() => rs.unstubAllEnvs());
+afterEach(() => {
+  rs.unstubAllEnvs();
+});
 
 describe('SIWC real proxy transport', () => {
   it('reads the complete delayed body after the dispatcher starts closing', async () => {
