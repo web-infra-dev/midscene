@@ -53,8 +53,9 @@ checkout. Pull requests run tests, type checking, and a Worker bundle dry run.
 Relevant changes merged into `main` deploy automatically; the **Badge service**
 workflow also supports **Run workflow** on `main`. Other branches only validate.
 
-The workflow uses the existing repository secret `CLOUDFLARE_API_TOKEN` and
-variable `CLOUDFLARE_ACCOUNT_ID`, following the report publishing workflow.
+The workflow uses the dedicated repository secret `CLOUDFLARE_BADGE_API_TOKEN` and
+variable `CLOUDFLARE_ACCOUNT_ID`. The badge token is independent of the report
+publishing token.
 The token must allow Workers script deployment and custom-domain management
 for the Web Infra account and the `midscenejs.com` zone; a Pages-only token is
 not sufficient. Do not use a developer's Wrangler OAuth credentials in CI.
