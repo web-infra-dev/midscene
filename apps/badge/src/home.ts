@@ -1,4 +1,5 @@
 import { LOGO_96 } from './logo';
+import { BADGE_ORIGIN } from './site';
 
 export type HomeLanguage = 'zh' | 'en';
 
@@ -195,6 +196,11 @@ export function renderHome(
   language: HomeLanguage = 'en',
 ): string {
   const t = copy[language];
+  const title =
+    language === 'zh'
+      ? 'Midscene Test Badge — Markdown E2E 测试结果徽章'
+      : 'Midscene Test Badge — E2E test results for Markdown';
+  const canonical = `${BADGE_ORIGIN}/?lang=${language}`;
   const cards = queries
     .map((query, index) => {
       const path = escapeHtml(`/e2e?${query}`);
@@ -204,7 +210,23 @@ export function renderHome(
     })
     .join('');
   return `<!doctype html>
-<html lang="${language === 'zh' ? 'zh-CN' : 'en'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#ffffff"><title>Midscene Test · ${t.previews}</title>
+<html lang="${language === 'zh' ? 'zh-CN' : 'en'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#ffffff"><title>${title}</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta name="description" content="${escapeHtml(t.intro)}">
+<link rel="canonical" href="${canonical}">
+<link rel="alternate" hreflang="en" href="${BADGE_ORIGIN}/?lang=en">
+<link rel="alternate" hreflang="zh" href="${BADGE_ORIGIN}/?lang=zh">
+<link rel="alternate" hreflang="x-default" href="${BADGE_ORIGIN}/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Midscene Test Badge">
+<meta property="og:title" content="${title}">
+<meta property="og:description" content="${escapeHtml(t.intro)}">
+<meta property="og:url" content="${canonical}">
+<meta property="og:locale" content="${language === 'zh' ? 'zh_CN' : 'en_US'}">
+<meta property="og:locale:alternate" content="${language === 'zh' ? 'en_US' : 'zh_CN'}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="${title}">
+<meta name="twitter:description" content="${escapeHtml(t.intro)}">
 <style>${STYLE}</style></head><body>
 <header class="nav"><div class="nav-inner"><a class="brand" href="${SITE}"><img class="logo" src="${LOGO_96}" alt="Midscene" width="23" height="22">Midscene Test<span>/ Badge</span></a><nav class="languages" aria-label="${t.language}"><a href="/?lang=zh" lang="zh-CN"${language === 'zh' ? ' aria-current="page"' : ''}>中文</a><a href="/?lang=en" lang="en"${language === 'en' ? ' aria-current="page"' : ''}>English</a></nav></div></header>
 <main>

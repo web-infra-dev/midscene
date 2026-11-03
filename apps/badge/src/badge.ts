@@ -5,6 +5,7 @@ import {
   type BadgeTheme,
   renderBadge,
 } from './render';
+import { siteResponse } from './site';
 
 // Bump when the rendered output changes so edge caches pick up the new design.
 export const BADGE_VERSION = '1';
@@ -88,6 +89,8 @@ export function handleRequest(request: Request): Response {
     });
   }
 
+  const discovery = siteResponse(request);
+  if (discovery) return discovery;
   const url = new URL(request.url);
   if (url.pathname === '/') {
     return new Response(
