@@ -198,6 +198,8 @@ export MIDSCENE_RUN_DIR="/tmp/midscene_output"
 - `output/` - 执行操作产生的业务文件
 - `tmp/` - 执行过程中的临时文件
 
+旧 YAML 的执行快照及诊断图片统一保存在 `test-results/<recordingId>/records/`。同一个 Agent 连续运行 YAML 时共用记录目录，每次保留独立快照。最终 HTML 报告仍放在 `report/`，外置报告包含交付所需的图片。搬运诊断快照时，请完整保留 `records/`，以便其中的相对图片路径继续有效。
+
 更多全局运行参数请参考[运行时配置](./reference/#runtime-configuration)。
 
 ## 如何提升运行效率？

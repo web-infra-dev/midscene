@@ -206,6 +206,8 @@ The directory contains the following subdirectories:
 - `output/` - Business files produced during execution
 - `tmp/` - Temporary execution files
 
+Legacy YAML execution snapshots and their diagnostic images are stored together under `test-results/<recordingId>/records/`. Consecutive YAML calls on one Agent share a recording directory and keep separate snapshots. Final HTML reports remain under `report/`; external reports include their own images for delivery. Keep `records/` together when moving diagnostic snapshots so their relative image links continue to work.
+
 For global runtime options, see [Runtime configuration](./reference/#runtime-configuration).
 
 ## How do I control the report player's default replay style via a link?

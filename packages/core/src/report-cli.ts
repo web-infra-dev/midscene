@@ -1,17 +1,11 @@
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  statSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
 import { z } from 'zod';
 import {
   readReportRunnerDump,
   streamReportDumpScripts,
 } from './dump/report-artifact-reader';
-import { resolveScreenshotSource } from './dump/screenshot-store';
+import { ReportImageExporter } from './dump/report-image-export';
 import { deriveCaseStatus } from './dump/task-status';
 import {
   ReportMergingTool,
@@ -20,7 +14,6 @@ import {
   splitReportHtmlByExecution,
 } from './report';
 import { reportToMarkdown } from './report-markdown';
-import type { MarkdownAttachment } from './report-markdown';
 import { collectReportSummary } from './report-stats';
 import type { ReportFileAttributes, TestStatus } from './types';
 import { ReportActionDump } from './types';
@@ -73,45 +66,6 @@ export interface MergeReportFilesResult {
   mergedReportPath: string;
 }
 
-function writeAttachmentFromReport(
-  attachment: MarkdownAttachment,
-  opts: {
-    htmlPath: string;
-    screenshotsDir: string;
-    writtenFiles: Set<string>;
-  },
-): void {
-  const { suggestedFileName, id, mimeType } = attachment;
-  if (opts.writtenFiles.has(suggestedFileName)) return;
-
-  const absolutePath = path.join(opts.screenshotsDir, suggestedFileName);
-
-  const resolved = resolveScreenshotSource(attachment.sourceRef ?? null, {
-    reportPath: opts.htmlPath,
-    fallbackId: id,
-    fallbackMimeType: (mimeType || 'image/png') as 'image/png' | 'image/jpeg',
-  });
-
-  if (resolved.type === 'data-uri') {
-    const rawBase64 = resolved.dataUri.replace(
-      /^data:image\/[a-zA-Z+]+;base64,/,
-      '',
-    );
-    writeFileSync(absolutePath, Buffer.from(rawBase64, 'base64'));
-    opts.writtenFiles.add(suggestedFileName);
-    return;
-  }
-
-  if (!existsSync(resolved.filePath)) {
-    throw new Error(
-      `Cannot resolve screenshot "${id}" for markdown attachment from ${opts.htmlPath}`,
-    );
-  }
-
-  copyFileSync(resolved.filePath, absolutePath);
-  opts.writtenFiles.add(suggestedFileName);
-}
-
 async function markdownFromReport(
   htmlPath: string,
   outputDir: string,
@@ -132,28 +86,32 @@ async function markdownFromReport(
     executions,
   });
 
-  const result = reportToMarkdown(mergedReport);
+  const images = new ReportImageExporter(htmlPath, screenshotsDir);
+  const result = reportToMarkdown(mergedReport, {
+    resolveScreenshotFileName: (attachment) =>
+      images.write(
+        attachment.sourceRef ?? {
+          type: 'midscene_screenshot_ref',
+          id: attachment.id,
+          capturedAt: 0,
+          mimeType: (attachment.mimeType ?? 'image/png') as
+            | 'image/png'
+            | 'image/jpeg',
+          storage: 'inline',
+        },
+        attachment.base64Data,
+      ),
+  });
 
   const markdownFiles: string[] = [];
-  const writtenScreenshots = new Set<string>();
 
   const mdPath = path.join(outputDir, 'report.md');
   writeFileSync(mdPath, result.markdown, 'utf-8');
   markdownFiles.push(mdPath);
 
-  for (const attachment of result.attachments) {
-    writeAttachmentFromReport(attachment, {
-      htmlPath,
-      screenshotsDir,
-      writtenFiles: writtenScreenshots,
-    });
-  }
-
   return {
     markdownFiles,
-    screenshotFiles: Array.from(writtenScreenshots)
-      .sort()
-      .map((f) => path.join(screenshotsDir, f)),
+    screenshotFiles: images.files,
   };
 }
 

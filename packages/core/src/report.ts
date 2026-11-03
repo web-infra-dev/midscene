@@ -1,6 +1,5 @@
 import {
   appendFileSync,
-  copyFileSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -25,20 +24,14 @@ import {
   streamDumpScriptsSync,
   streamImageScriptsToFile,
 } from './dump/html-utils';
-import {
-  imageRefFileExtension,
-  normalizeStoredImageRef,
-} from './dump/image-reference';
+import { normalizeStoredImageRef } from './dump/image-reference';
 import {
   readReportArtifactManifest,
   readReportDumpScripts,
   readReportRunnerDump,
   streamReportDumpScripts,
 } from './dump/report-artifact-reader';
-import {
-  parseBase64ImageDataUrl,
-  resolveImageSource,
-} from './dump/screenshot-store';
+import { ReportImageExporter } from './dump/report-image-export';
 export {
   readReportActionDump,
   readReportArtifactManifestAsync,
@@ -1136,11 +1129,7 @@ export function collectDedupedExecutions(
 
 function externalizeImagesInExecution(
   execution: IExecutionDump,
-  opts: {
-    htmlPath: string;
-    screenshotsDir: string;
-    writtenFiles: Set<string>;
-  },
+  images: ReportImageExporter,
 ): void {
   const visit = (node: unknown): void => {
     if (Array.isArray(node)) {
@@ -1154,23 +1143,8 @@ function externalizeImagesInExecution(
 
     const ref = normalizeStoredImageRef(node);
     if (ref) {
-      const ext = imageRefFileExtension(ref);
-      const fileName = `${ref.id}.${ext}`;
+      const fileName = images.write(ref);
       const relativePath = `./screenshots/${fileName}`;
-      const absolutePath = path.join(opts.screenshotsDir, fileName);
-
-      if (!opts.writtenFiles.has(fileName)) {
-        const resolved = resolveImageSource(ref, {
-          reportPath: opts.htmlPath,
-        });
-        if (resolved.type === 'data-uri') {
-          const { rawBase64 } = parseBase64ImageDataUrl(resolved.dataUri);
-          writeFileSync(absolutePath, Buffer.from(rawBase64, 'base64'));
-        } else {
-          copyFileSync(resolved.filePath, absolutePath);
-        }
-        opts.writtenFiles.add(fileName);
-      }
 
       ref.storage = 'file';
       ref.path = relativePath;
@@ -1199,17 +1173,13 @@ export function splitReportHtmlByExecution(
   mkdirSync(screenshotsDir, { recursive: true });
 
   const executionJsonFiles: string[] = [];
-  const writtenScreenshotFiles = new Set<string>();
+  const images = new ReportImageExporter(htmlPath, screenshotsDir);
   const { baseDump, executions } = collectDedupedExecutions(htmlPath);
 
   let fileIndex = 0;
   for (const execution of executions) {
     fileIndex += 1;
-    externalizeImagesInExecution(execution, {
-      htmlPath,
-      screenshotsDir,
-      writtenFiles: writtenScreenshotFiles,
-    });
+    externalizeImagesInExecution(execution, images);
     const singleExecutionDump = new ReportActionDump({
       sdkVersion: baseDump.sdkVersion,
       groupName: baseDump.groupName,
@@ -1226,8 +1196,6 @@ export function splitReportHtmlByExecution(
 
   return {
     executionJsonFiles,
-    screenshotFiles: Array.from(writtenScreenshotFiles)
-      .sort()
-      .map((fileName) => path.join(screenshotsDir, fileName)),
+    screenshotFiles: images.files,
   };
 }
