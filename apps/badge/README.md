@@ -39,7 +39,7 @@ cached the badge keep the old one for up to 24h.
 pnpm --filter @midscene/badge dev        # wrangler dev on http://localhost:8787
 npx nx test @midscene/badge
 pnpm --filter @midscene/badge typecheck
-pnpm --filter @midscene/badge deploy     # requires `wrangler login`
+pnpm --filter @midscene/badge run deploy     # requires `wrangler login`
 ```
 
 The logo is embedded as a base64 PNG because GitHub camo blocks external
