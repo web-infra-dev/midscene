@@ -1,4 +1,4 @@
-import { renderHome } from './home';
+import { homeLanguage, renderHome } from './home';
 import {
   type BadgeOptions,
   type BadgeStyle,
@@ -91,11 +91,14 @@ export function handleRequest(request: Request): Response {
   const url = new URL(request.url);
   if (url.pathname === '/') {
     return new Response(
-      request.method === 'HEAD' ? null : renderHome(url.origin),
+      request.method === 'HEAD'
+        ? null
+        : renderHome(url.origin, homeLanguage(request)),
       {
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
           'Cache-Control': 'no-cache',
+          Vary: 'Accept-Language, User-Agent',
           'X-Content-Type-Options': 'nosniff',
         },
       },

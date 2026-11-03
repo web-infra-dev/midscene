@@ -135,7 +135,7 @@ describe('handleRequest', () => {
     const html = await response.text();
     expect(html).toContain(`${ORIGIN}/e2e?pass=42&amp;fail=3`);
     expect(html).toContain('![Midscene Test](');
-    const previews = [...html.matchAll(/<img src="([^"]+)"/g)];
+    const previews = [...html.matchAll(/<img src="(\/e2e\?[^"]+)"/g)];
     expect(previews).toHaveLength(6);
     for (const [, src] of previews) {
       const badge = handleRequest(get(src.replaceAll('&amp;', '&')));

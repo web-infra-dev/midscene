@@ -6,6 +6,7 @@ import {
   withConditional,
 } from '../src/badge';
 import { renderHome } from '../src/home';
+import { LOGO_96 } from '../src/logo';
 
 const ORIGIN = 'https://badge.example.com';
 const request = (query: string, init?: RequestInit) =>
@@ -227,7 +228,12 @@ describe('HTML and SVG output boundaries', () => {
       '&lt;/code&gt;&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;&amp;&#39;',
     );
     for (const [, url] of html.matchAll(/(?:src|href)="([^"]+)"/g)) {
-      expect(url.startsWith('/e2e?')).toBe(true);
+      expect(
+        url.startsWith('/e2e?') ||
+          /^\/\?lang=(zh|en)$/.test(url) ||
+          url === 'https://midscenejs.com' ||
+          url === LOGO_96,
+      ).toBe(true);
     }
   });
 
