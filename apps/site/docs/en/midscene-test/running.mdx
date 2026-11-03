@@ -98,6 +98,7 @@ If `MIDSCENE_RUN_DIR` and `output.runDir` are both set, they must resolve to the
 For CI and analysis tools:
 
 - Update `.midscene/test-results` globs to `midscene_run/test-results`, or collect the configured root. Keep using `Summary:` / `Report:` and the SDK's `summaryPath`, `markdownPath` and `reportPath` fields to locate the actual files.
+- With the [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action), set its `run-directory` input to match a configured `output.runDir`. An inherited `MIDSCENE_RUN_DIR` is picked up automatically. Execution, artifact upload, Summary and publication use the same resolved root.
 - Existing `--result-dir` and `output.reportDir` overrides keep their meanings. Each result directory still contains one `<runId>` subdirectory per run. Summary references remain relative to the summary file.
 - Tools using `loadTestProject()` receive explicit path overrides in `output`; use the `runTestProject()` result for final absolute paths instead of constructing paths from configuration defaults.
 - Previous outputs stay at their original paths and are ignored during Test file discovery. New runs use the unified root. Keep old artifact trees intact when archiving them; export a report with `exportReportArtifact()` when you need an independent delivery package.

@@ -1,9 +1,76 @@
+import { execFile } from 'node:child_process';
+import {
+  chmod,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 import { describe, expect, it, rs } from '@rstest/core';
 import { installAndroidSystemImage } from '../install-android-system-image.mjs';
 
 const image = 'system-images;android-35;google_apis;x86_64';
+const exec = promisify(execFile);
 
 describe('Android system image preparation', () => {
+  it
+    .skipIf(process.platform === 'win32')
+    .each(['ANDROID_HOME', 'ANDROID_SDK_ROOT'])(
+    'resolves sdkmanager from %s when command-line tools are absent from PATH',
+    async (variable) => {
+      const root = await mkdtemp(join(tmpdir(), 'android-sdk-resolution-'));
+      try {
+        const sdk = join(root, 'android sdk');
+        const executable = join(
+          sdk,
+          'cmdline-tools',
+          'latest',
+          'bin',
+          'sdkmanager',
+        );
+        const log = join(root, 'sdkmanager.log');
+        await mkdir(join(sdk, 'cmdline-tools', 'latest', 'bin'), {
+          recursive: true,
+        });
+        await writeFile(
+          executable,
+          '#!/bin/sh\nprintf "%s\\n" "$*" >> "$SDKMANAGER_TEST_LOG"\nif [ "$1" = "--licenses" ]; then read -r answer; [ "$answer" = y ]; fi\n',
+        );
+        await chmod(executable, 0o755);
+        await exec(
+          process.execPath,
+          [
+            fileURLToPath(
+              new URL('../install-android-system-image.mjs', import.meta.url),
+            ),
+            image,
+          ],
+          {
+            env: {
+              ...process.env,
+              PATH: '/usr/bin:/bin',
+              ANDROID_HOME: '',
+              ANDROID_SDK_ROOT: '',
+              [variable]: sdk,
+              SDKMANAGER_TEST_LOG: log,
+            },
+            timeout: 10_000,
+          },
+        );
+        expect((await readFile(log, 'utf8')).trim().split('\n')).toEqual([
+          '--licenses',
+          `--install ${image}`,
+        ]);
+      } finally {
+        await rm(root, { recursive: true, force: true });
+      }
+    },
+  );
   it('accepts licenses and installs the image once on success', async () => {
     const run = rs.fn().mockResolvedValue(undefined);
     const wait = rs.fn();

@@ -1,10 +1,22 @@
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { getExponentialRetryDelayMs, retry } from './retry.mjs';
 
 const runSdkManager = (args, input) =>
   new Promise((resolve, reject) => {
-    const child = spawn('sdkmanager', args, {
+    const executable =
+      process.platform === 'win32' ? 'sdkmanager.bat' : 'sdkmanager';
+    const candidates = [process.env.ANDROID_HOME, process.env.ANDROID_SDK_ROOT]
+      .filter(Boolean)
+      .flatMap((root) => [
+        join(root, 'cmdline-tools', 'latest', 'bin', executable),
+        join(root, 'tools', 'bin', executable),
+      ]);
+    const sdkManager =
+      candidates.find((candidate) => existsSync(candidate)) ?? executable;
+    const child = spawn(sdkManager, args, {
       stdio: [
         input ? 'pipe' : 'ignore',
         input ? 'ignore' : 'inherit',

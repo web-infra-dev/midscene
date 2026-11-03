@@ -98,6 +98,7 @@ output: {
 CI 和分析工具需要关注：
 
 - 将 `.midscene/test-results` 的收集规则改为 `midscene_run/test-results`，或收集配置后的根目录。建议通过终端的 `Summary:` / `Report:`，或 SDK 的 `summaryPath`、`markdownPath`、`reportPath` 获取实际路径。
+- 使用 [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action) 时，将其 `run-directory` 输入与项目的 `output.runDir` 对齐。已有 `MIDSCENE_RUN_DIR` 会自动生效；执行、Artifact 上传、Summary 和发布共用解析后的根目录。
 - 已有 `--result-dir` 和 `output.reportDir` 配置保持原有含义。结果目录仍按 `<runId>` 隔离，Summary 中的文件引用仍相对 Summary 解析。
 - 使用 `loadTestProject()` 的工具会在 `output` 中取得显式路径配置；最终绝对路径请读取 `runTestProject()` 的结果，避免根据配置默认值自行拼接。
 - 旧产物保留原路径，用例扫描会继续排除旧目录。新运行写入统一根；归档旧产物时保留完整相对层级，需要独立交付报告时使用 `exportReportArtifact()` 导出。
