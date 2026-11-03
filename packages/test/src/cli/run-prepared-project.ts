@@ -13,6 +13,7 @@ import type {
   WorkflowDocumentRunResult,
 } from '@midscene/core/internal/test-runner';
 import {
+  ReportSession,
   TestRunReportAssembler,
   calculateTestRunHealth,
 } from '@midscene/core/report';
@@ -120,6 +121,14 @@ const notRunSuite = (
 /** The executor sees prepared policies and bindings, never source-language rules. */
 export async function runPreparedTestProject(
   plan: PreparedTestRunPlan,
+): Promise<TestProjectRunResult> {
+  const reports = new ReportSession(join(plan.runDir, 'records'));
+  return reports.run(() => runWithReportSession(plan, reports));
+}
+
+async function runWithReportSession(
+  plan: PreparedTestRunPlan,
+  reports: ReportSession,
 ): Promise<TestProjectRunResult> {
   const {
     startedAt,
@@ -447,6 +456,10 @@ export async function runPreparedTestProject(
         result: completedResult,
       }),
     );
+  let extraSources: Awaited<ReturnType<ReportSession['finish']>> = [];
+  await publish('write-report', reports.directory, async () => {
+    extraSources = await reports.finish();
+  });
   const writeReport = () =>
     publish('write-report', reportDir, async () => {
       if (!plan.reportEnabled) return;
@@ -455,7 +468,10 @@ export async function runPreparedTestProject(
         outputFormat: plan.definition.output.reportFormat,
         reportFileName: `midscene-e2e-${runId}`,
         overwrite: false,
-        sources: collectTestRunReportSources(completedResult),
+        sources: [
+          ...collectTestRunReportSources(completedResult),
+          ...extraSources.map((source) => ({ ...source, scopeId: runId })),
+        ],
         buildRunnerDump: (index) => {
           reportIndex = index;
           const dump = buildTestRunReportDump(completedResult, index);
@@ -510,6 +526,8 @@ export async function runPreparedTestProject(
       completedResult = { ...completedResult, junitPath };
     },
   );
+  if (completedResult.reportPath && !hasInfrastructureError)
+    await publish('write-result', reports.directory, () => reports.prune());
   await writeSummary();
   if (hasInfrastructureError)
     throw new WorkflowExecutionFailure(completedResult, infrastructureErrors);

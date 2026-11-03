@@ -1,5 +1,6 @@
 import { appendFileSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
+import { renderTestBadge } from '../report/badge';
 import { formatDuration } from './terminal-reporter';
 import type { TestProjectRunResult } from './types';
 
@@ -43,6 +44,8 @@ export function writeGitHubSummary(result: TestProjectRunResult): void {
   ].filter((item) => item.status === 'failed');
   const summary = [
     '## Midscene Test',
+    '',
+    renderTestBadge(result.summary),
     '',
     '| Passed | Failed | Not run | Passed after retry | Duration |',
     '| ---: | ---: | ---: | ---: | ---: |',
