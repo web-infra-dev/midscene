@@ -1,0 +1,22 @@
+import { PackageManagerTabs } from '@theme';
+
+<PackageManagerTabs command="install @midscene/web dotenv --save-dev" />
+
+在 `playwright.config.ts` 中加入以下配置（如果项目中还没有该文件，请新建），并保留项目原有的其他配置和 reporter：
+
+```typescript title="playwright.config.ts"
+import 'dotenv/config';
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './e2e',
+  timeout: 90_000,
+  use: { browserName: 'chromium' },
+  reporter: [
+    ['list'],
+    ['@midscene/web/playwright-reporter'],
+  ],
+});
+```
+
+`dotenv/config` 用于从项目的 `.env` 文件加载模型配置（Chrome 插件 Playground 中的配置不会自动同步到测试进程）。由于模型调用耗时较长，建议适当调大 `timeout`，具体数值可根据实际用例调整。

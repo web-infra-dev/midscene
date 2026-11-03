@@ -130,27 +130,23 @@
   border: 0;
 }
 
-/* Each step is its own section, so its h2 matches the Rspress
-   `h2:first-of-type::before` divider rule. Draw the divider on the section
-   instead and hide that pseudo-element. */
-.get-started-step {
-  margin-top: 3rem;
+/* Steps have no wrapper, so only the first step heading would get the Rspress
+   `h2:first-of-type::before` divider. Draw the divider above each step label
+   and hide the heading's own divider. */
+.get-started-step-label {
+  margin: 3rem 0 4px;
   padding-top: 3rem;
   border-top: 1px solid var(--rp-c-divider-light);
-}
-
-.get-started-step-label {
-  margin: 0 0 4px;
   color: var(--rp-c-text-2);
   font-size: 14px;
   font-weight: 600;
 }
 
-.get-started-step > h2 {
+.rp-doc .get-started-step-label + h2 {
   margin-top: 0;
 }
 
-.get-started-step > h2::before {
+.rp-doc .get-started-step-label + h2::before {
   display: none;
 }
 

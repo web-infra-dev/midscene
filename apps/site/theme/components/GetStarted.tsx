@@ -6,6 +6,7 @@ import React, {
   useId,
   useState,
 } from 'react';
+import { SdkPlatformProvider } from './SdkPlatform';
 import {
   type CompleteSelection,
   type Lang,
@@ -317,67 +318,75 @@ export function GetStarted({
   const ssgMd = isSsgMd();
 
   return (
-    // Path pages open with their answers set, so only the entry page animates
-    // questions in as they are answered.
-    <div className={`get-started${path ? ' get-started-path' : ''}`}>
-      {ssgMd ? null : (
-        <>
-          <Question
-            legend={text.platform}
-            values={platforms}
-            options={text.platforms}
-            selected={selection.platform}
-            onSelect={(platform) => update({ ...selection, platform })}
-            choose={text.choose}
-          />
-          {selection.platform ? (
+    <>
+      {/* Path pages open with their answers set, so only the entry page
+          animates questions in as they are answered. */}
+      <div className={`get-started${path ? ' get-started-path' : ''}`}>
+        {ssgMd ? null : (
+          <>
             <Question
-              legend={text.scene}
-              values={scenes}
-              options={{
-                ...text.scenes,
-                // Name the runner that the chosen platform uses.
-                sdk: {
-                  ...text.scenes.sdk,
-                  description:
-                    selection.platform === 'web' ? text.sdkWeb : text.sdkDevice,
-                },
-              }}
-              selected={selection.scene}
-              onSelect={(scene) => update({ ...selection, scene })}
+              legend={text.platform}
+              values={platforms}
+              options={text.platforms}
+              selected={selection.platform}
+              onSelect={(platform) => update({ ...selection, platform })}
               choose={text.choose}
             />
-          ) : null}
-          {selection.scene && selection.platform ? (
-            <Question
-              legend={text.model}
-              values={models}
-              options={text.models}
-              selected={selection.model}
-              onSelect={(model) => update({ ...selection, model })}
-              choose={text.choose}
-            />
-          ) : null}
-          {active ? null : <p className="get-started-status">{text.pending}</p>}
-        </>
-      )}
+            {selection.platform ? (
+              <Question
+                legend={text.scene}
+                values={scenes}
+                options={{
+                  ...text.scenes,
+                  // Name the runner that the chosen platform uses.
+                  sdk: {
+                    ...text.scenes.sdk,
+                    description:
+                      selection.platform === 'web'
+                        ? text.sdkWeb
+                        : text.sdkDevice,
+                  },
+                }}
+                selected={selection.scene}
+                onSelect={(scene) => update({ ...selection, scene })}
+                choose={text.choose}
+              />
+            ) : null}
+            {selection.scene && selection.platform ? (
+              <Question
+                legend={text.model}
+                values={models}
+                options={text.models}
+                selected={selection.model}
+                onSelect={(model) => update({ ...selection, model })}
+                choose={text.choose}
+              />
+            ) : null}
+            {active ? null : (
+              <p className="get-started-status">{text.pending}</p>
+            )}
+          </>
+        )}
+      </div>
+      {/* Steps render without a wrapper element, so their headings are direct
+          children of the doc content like any other page. The Rspress outline
+          only rescans after client navigation when an inserted node is a
+          heading or contains one as a direct child. */}
       {active ? (
-        <div className="get-started-steps">
-          <GetStartedContext.Provider
-            value={{
-              lang,
-              selection: active,
-              steps,
-              selectLlm,
-              routeOf,
-              navigate,
-            }}
-          >
-            {children}
-          </GetStartedContext.Provider>
-        </div>
+        <GetStartedContext.Provider
+          value={{
+            lang,
+            selection: active,
+            steps,
+            selectLlm,
+            routeOf,
+            navigate,
+          }}
+        >
+          {children}
+        </GetStartedContext.Provider>
       ) : null}
-    </div>
+    </>
   );
 }
 
@@ -392,12 +401,14 @@ export function GetStartedStep({
   const index = steps.indexOf(id);
   if (index < 0) return null;
   // The step number sits above the heading so it does not read like the
-  // ordered lists inside the step.
+  // ordered lists inside the step. No wrapper element: see GetStarted.
   return (
-    <section className="get-started-step" data-step={id}>
-      <p className="get-started-step-label">{copy[lang].step(index + 1)}</p>
+    <>
+      <p className="get-started-step-label" data-step={id}>
+        {copy[lang].step(index + 1)}
+      </p>
       {children}
-    </section>
+    </>
   );
 }
 
@@ -518,5 +529,18 @@ export function GetStartedSwitch({
     >
       {children}
     </a>
+  );
+}
+
+// Shows the Vitest guide fragments for the platform of this path only.
+export function GetStartedSdkPlatform({ children }: { children?: ReactNode }) {
+  const { lang, selection } = useGetStarted();
+  if (selection.platform === 'web') {
+    throw new Error('GetStartedSdkPlatform is only for device platforms');
+  }
+  return (
+    <SdkPlatformProvider lang={lang} platform={selection.platform}>
+      {children}
+    </SdkPlatformProvider>
   );
 }

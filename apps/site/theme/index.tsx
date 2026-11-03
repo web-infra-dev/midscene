@@ -45,6 +45,7 @@ export { SdkPrerequisites } from './components/SdkPrerequisites';
 export {
   GetStartedLlmPicker,
   GetStartedPathIndex,
+  GetStartedSdkPlatform,
   GetStartedStep,
   GetStartedSwitch,
   GetStartedWhen,

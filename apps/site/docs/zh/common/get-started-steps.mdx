@@ -2,6 +2,7 @@ import {
   ChromeExtensionButton,
   GetStartedCreateCommand,
   GetStartedLlmPicker,
+  GetStartedSdkPlatform,
   GetStartedStep,
   GetStartedSwitch,
   GetStartedWhen,
@@ -27,6 +28,14 @@ import WebPlaygroundCheck from './web-playground-check.mdx';
 import SiwcExtension from './siwc-extension.mdx';
 import SiwcCliLogin from './siwc-cli-login.mdx';
 import SiwcEnv from './siwc-env.mdx';
+import SdkPlaywrightSetup from './sdk-playwright-setup.mdx';
+import SdkPlaywrightFixture from './sdk-playwright-fixture.mdx';
+import SdkPlaywrightWrite from './sdk-playwright-write.mdx';
+import SdkPlaywrightRun from './sdk-playwright-run.mdx';
+import SdkVitestInstall from './sdk-vitest-install.mdx';
+import SdkVitestConfig from './sdk-vitest-config.mdx';
+import SdkVitestWrite from './sdk-vitest-write.mdx';
+import SdkVitestRun from './sdk-vitest-run.mdx';
 
 <GetStartedStep id="install-extension">
 
@@ -212,7 +221,7 @@ cp .env.example .env
 
 <GetStartedWhen scene="sdk">
 
-在项目目录中，把这四项配置写入 `.env` 文件。如果还没有项目，请先创建一个空目录。
+在项目目录中，把这四项配置写入 `.env` 文件。如果还没有项目，请先新建一个目录并在其中运行 `pnpm init`。
 
 </GetStartedWhen>
 
@@ -260,7 +269,7 @@ cp .env.example .env
 
 <GetStartedWhen scene="sdk">
 
-然后在项目目录中，把以下配置写入 `.env` 文件。如果还没有项目，请先创建一个空目录。
+然后在项目目录中，把以下配置写入 `.env` 文件。如果还没有项目，请先新建一个目录并在其中运行 `pnpm init`。
 
 </GetStartedWhen>
 
@@ -382,47 +391,98 @@ pnpm test
 
 </GetStartedStep>
 
-<GetStartedStep id="sdk-integrate">
+<GetStartedStep id="sdk-setup">
 
-## 编写并运行第一个测试
+## 搭建项目
 
-在 `.env` 所在的目录中运行以下命令验证配置：
+在 `.env` 所在的项目目录中，验证模型配置：
 
 ```bash
 pnpm dlx @midscene/test@latest model verify
 ```
 
+如果验证失败，请参阅[验证模型连接](../model-config#verify-model-connectivity)。
+
 <GetStartedWhen platform="web">
 
-然后按照[接入 Playwright Test](../integrate-with-playwright)操作。
+### 安装依赖并配置 Playwright
+
+如果该目录中还没有 Playwright Test 项目，请先安装 Playwright Test 及其 Chromium 浏览器：
+
+```bash
+pnpm add -D @playwright/test
+pnpm exec playwright install chromium
+```
+
+<SdkPlaywrightSetup />
+
+### 创建 fixture
+
+<SdkPlaywrightFixture />
 
 </GetStartedWhen>
 
-<GetStartedWhen platform="android">
+<GetStartedWhen platform={['android', 'ios', 'harmonyos', 'desktop']}>
 
-然后按照[接入 Vitest](../sdk/vitest?platform=android)操作，页面已选中 Android。
+<GetStartedSdkPlatform>
 
-</GetStartedWhen>
+### 安装依赖
 
-<GetStartedWhen platform="ios">
+<SdkVitestInstall />
 
-然后按照[接入 Vitest](../sdk/vitest?platform=ios)操作，页面已选中 iOS。
+### 配置 Vitest
 
-</GetStartedWhen>
+<SdkVitestConfig />
 
-<GetStartedWhen platform="harmonyos">
-
-然后按照[接入 Vitest](../sdk/vitest?platform=harmonyos)操作，页面已选中 HarmonyOS。
+</GetStartedSdkPlatform>
 
 </GetStartedWhen>
 
-<GetStartedWhen platform="desktop">
+</GetStartedStep>
 
-然后按照[接入 Vitest](../sdk/vitest?platform=desktop)操作，页面已选中 桌面端。
+<GetStartedStep id="sdk-write">
+
+## 编写测试
+
+<GetStartedWhen platform="web">
+
+<SdkPlaywrightWrite />
 
 </GetStartedWhen>
 
-该指南包含四步：安装依赖、配置测试框架、编写调用 `aiAct` 和 `aiAssert` 的测试，最后运行测试并打开报告。测试通过且报告中能看到每一步的截图，即表示模型、运行环境和项目都已正常工作。
+<GetStartedWhen platform={['android', 'ios', 'harmonyos', 'desktop']}>
+
+<GetStartedSdkPlatform>
+
+<SdkVitestWrite />
+
+</GetStartedSdkPlatform>
+
+</GetStartedWhen>
+
+</GetStartedStep>
+
+<GetStartedStep id="sdk-run">
+
+## 运行测试并查看报告
+
+<GetStartedWhen platform="web">
+
+<SdkPlaywrightRun />
+
+</GetStartedWhen>
+
+<GetStartedWhen platform={['android', 'ios', 'harmonyos', 'desktop']}>
+
+<GetStartedSdkPlatform>
+
+<SdkVitestRun />
+
+</GetStartedSdkPlatform>
+
+</GetStartedWhen>
+
+测试通过且报告中能看到每一步的截图，即表示模型、运行环境和项目都已正常工作。
 
 </GetStartedStep>
 
@@ -496,6 +556,18 @@ pnpm dlx @midscene/test@latest model verify
 
 - **查阅 API**：[API reference](../reference/) 列出了全部 Agent 方法及其参数。
 - **将 AI 调用与代码结合**：[关键 API](../basics#javascript-orchestration) 说明了 `aiAct`、即时操作和洞察类 API 的适用场景。
+
+</GetStartedWhen>
+
+<GetStartedWhen scene="sdk" platform="web">
+
+- **配置 fixture 和 reporter**：[进一步配置](../integrate-with-playwright#进一步配置)介绍了 Agent 选项、指定页面操作和报告选项。
+
+</GetStartedWhen>
+
+<GetStartedWhen scene="sdk" platform={['android', 'ios', 'harmonyos', 'desktop']}>
+
+- **多个测试共用设备**：[生命周期与设备独占](../sdk/vitest#生命周期与设备独占)说明了多个测试共用一台设备时如何创建和销毁 Agent。
 
 </GetStartedWhen>
 

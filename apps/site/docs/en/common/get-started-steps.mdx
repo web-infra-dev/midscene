@@ -2,6 +2,7 @@ import {
   ChromeExtensionButton,
   GetStartedCreateCommand,
   GetStartedLlmPicker,
+  GetStartedSdkPlatform,
   GetStartedStep,
   GetStartedSwitch,
   GetStartedWhen,
@@ -27,6 +28,14 @@ import WebPlaygroundCheck from './web-playground-check.mdx';
 import SiwcExtension from './siwc-extension.mdx';
 import SiwcCliLogin from './siwc-cli-login.mdx';
 import SiwcEnv from './siwc-env.mdx';
+import SdkPlaywrightSetup from './sdk-playwright-setup.mdx';
+import SdkPlaywrightFixture from './sdk-playwright-fixture.mdx';
+import SdkPlaywrightWrite from './sdk-playwright-write.mdx';
+import SdkPlaywrightRun from './sdk-playwright-run.mdx';
+import SdkVitestInstall from './sdk-vitest-install.mdx';
+import SdkVitestConfig from './sdk-vitest-config.mdx';
+import SdkVitestWrite from './sdk-vitest-write.mdx';
+import SdkVitestRun from './sdk-vitest-run.mdx';
 
 <GetStartedStep id="install-extension">
 
@@ -212,7 +221,7 @@ Fill in the four `MIDSCENE_MODEL_*` values in `.env` with this configuration.
 
 <GetStartedWhen scene="sdk">
 
-Write the four values to a `.env` file in your project directory. If you are starting without a project, create an empty directory first.
+Write the four values to a `.env` file in your project directory. If you are starting without a project, create a directory and run `pnpm init` in it first.
 
 </GetStartedWhen>
 
@@ -260,7 +269,7 @@ Leave `MIDSCENE_MODEL_BASE_URL` and `MIDSCENE_MODEL_API_KEY` empty. Set `MIDSCEN
 
 <GetStartedWhen scene="sdk">
 
-Then write these lines to a `.env` file in your project directory. If you are starting without a project, create an empty directory first.
+Then write these lines to a `.env` file in your project directory. If you are starting without a project, create a directory and run `pnpm init` in it first.
 
 </GetStartedWhen>
 
@@ -382,47 +391,98 @@ When the case passes, your model, environment, and project are all working. For 
 
 </GetStartedStep>
 
-<GetStartedStep id="sdk-integrate">
+<GetStartedStep id="sdk-setup">
 
-## Write and run your first test
+## Set up the project
 
-In the directory that contains `.env`, verify the configuration:
+In the project directory that contains `.env`, verify the model configuration:
 
 ```bash
 pnpm dlx @midscene/test@latest model verify
 ```
 
+If the check fails, see [Verify model connectivity](../model-config#verify-model-connectivity).
+
 <GetStartedWhen platform="web">
 
-Then follow [Integrate with Playwright Test](../integrate-with-playwright).
+### Install dependencies and configure Playwright
+
+If the directory does not have a Playwright Test project yet, add Playwright Test and its Chromium browser first:
+
+```bash
+pnpm add -D @playwright/test
+pnpm exec playwright install chromium
+```
+
+<SdkPlaywrightSetup />
+
+### Create a fixture
+
+<SdkPlaywrightFixture />
 
 </GetStartedWhen>
 
-<GetStartedWhen platform="android">
+<GetStartedWhen platform={['android', 'ios', 'harmonyos', 'desktop']}>
 
-Then follow [Integrate with Vitest](../sdk/vitest?platform=android), where Android is already selected.
+<GetStartedSdkPlatform>
 
-</GetStartedWhen>
+### Install dependencies
 
-<GetStartedWhen platform="ios">
+<SdkVitestInstall />
 
-Then follow [Integrate with Vitest](../sdk/vitest?platform=ios), where iOS is already selected.
+### Configure Vitest
 
-</GetStartedWhen>
+<SdkVitestConfig />
 
-<GetStartedWhen platform="harmonyos">
-
-Then follow [Integrate with Vitest](../sdk/vitest?platform=harmonyos), where HarmonyOS is already selected.
+</GetStartedSdkPlatform>
 
 </GetStartedWhen>
 
-<GetStartedWhen platform="desktop">
+</GetStartedStep>
 
-Then follow [Integrate with Vitest](../sdk/vitest?platform=desktop), where Desktop is already selected.
+<GetStartedStep id="sdk-write">
+
+## Write a test
+
+<GetStartedWhen platform="web">
+
+<SdkPlaywrightWrite />
 
 </GetStartedWhen>
 
-The guide has four steps: install dependencies, configure the runner, write a test that calls `aiAct` and `aiAssert`, then run it and open the report. When the test passes and the report shows each step with screenshots, your model, environment, and project are all working.
+<GetStartedWhen platform={['android', 'ios', 'harmonyos', 'desktop']}>
+
+<GetStartedSdkPlatform>
+
+<SdkVitestWrite />
+
+</GetStartedSdkPlatform>
+
+</GetStartedWhen>
+
+</GetStartedStep>
+
+<GetStartedStep id="sdk-run">
+
+## Run the test and inspect the report
+
+<GetStartedWhen platform="web">
+
+<SdkPlaywrightRun />
+
+</GetStartedWhen>
+
+<GetStartedWhen platform={['android', 'ios', 'harmonyos', 'desktop']}>
+
+<GetStartedSdkPlatform>
+
+<SdkVitestRun />
+
+</GetStartedSdkPlatform>
+
+</GetStartedWhen>
+
+When the test passes and the report shows each step with screenshots, your model, environment, and project are all working.
 
 </GetStartedStep>
 
@@ -496,6 +556,18 @@ The guide has four steps: install dependencies, configure the runner, write a te
 
 - **Look up APIs**: [API reference](../reference/) lists every Agent method and its options.
 - **Combine AI calls with code**: [Key APIs](../basics#javascript-orchestration) explains when to use `aiAct`, instant actions, and insight APIs.
+
+</GetStartedWhen>
+
+<GetStartedWhen scene="sdk" platform="web">
+
+- **Configure the fixture and reporter**: [Further configuration](../integrate-with-playwright#further-configuration) covers Agent options, working with a specific page, and report options.
+
+</GetStartedWhen>
+
+<GetStartedWhen scene="sdk" platform={['android', 'ios', 'harmonyos', 'desktop']}>
+
+- **Share a device across tests**: [Lifecycle and exclusive device access](../sdk/vitest#lifecycle-and-exclusive-device-access) explains how to create and destroy Agents when tests share one device.
 
 </GetStartedWhen>
 

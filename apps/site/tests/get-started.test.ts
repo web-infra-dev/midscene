@@ -10,10 +10,12 @@ import {
   GetStarted,
   GetStartedLlmPicker,
   GetStartedPathIndex,
+  GetStartedSdkPlatform,
   GetStartedStep,
   GetStartedSwitch,
   GetStartedWhen,
 } from '../theme/components/GetStarted';
+import { SdkPlatformContent } from '../theme/components/SdkPlatform';
 import {
   type CompleteSelection,
   allPaths,
@@ -61,7 +63,7 @@ const deviceSteps = [
 const finalSteps = {
   playground: ['playground-web', 'playground-device'],
   test: ['test-run'],
-  sdk: ['sdk-integrate'],
+  sdk: ['sdk-run'],
 } as const;
 
 describe('get started plan', () => {
@@ -228,10 +230,18 @@ describe('get started pages', () => {
       );
       expect(apiKeyStep).toContain('<GetStartedLlmPicker />');
 
-      // The JavaScript path hands off to the Vitest guide with the platform
-      // preselected.
-      for (const platform of platforms.filter((value) => value !== 'web')) {
-        expect(page).toContain(`(../sdk/vitest?platform=${platform})`);
+      // The JavaScript path reuses the integration guides' sections.
+      for (const fragment of [
+        'sdk-playwright-setup',
+        'sdk-playwright-fixture',
+        'sdk-playwright-write',
+        'sdk-playwright-run',
+        'sdk-vitest-install',
+        'sdk-vitest-config',
+        'sdk-vitest-write',
+        'sdk-vitest-run',
+      ]) {
+        expect(page).toContain(`'./${fragment}.mdx'`);
       }
       // Playground readers can move on to the other usages.
       expect(page).toContain('<GetStartedSwitch scene="test">');
@@ -267,7 +277,7 @@ describe('get started pages', () => {
 
 describe('get started component', () => {
   const steps = stepIds.map((id) =>
-    createElement(GetStartedStep, { key: id, id }, `step:${id}`),
+    createElement(GetStartedStep, { key: id, id }, `step:${id};`),
   );
 
   it('asks one question at a time before showing steps', () => {
@@ -321,14 +331,18 @@ describe('get started component', () => {
     );
     const planned = planSteps(selection);
     for (const id of stepIds) {
-      expect(html.includes(`step:${id}<`)).toBe(planned.includes(id));
+      expect(html.includes(`step:${id};`)).toBe(planned.includes(id));
     }
+    // Steps have no wrapper element, so the Rspress outline sees their
+    // headings after client-side navigation.
+    expect(html).not.toContain('<section');
+    expect(html).not.toContain('get-started-steps');
     expect(html).toContain('when:android');
     expect(html).not.toContain('when:web');
     // A path page shows its steps, not the prompt to answer the questions.
     expect(html).not.toContain('get-started-status');
-    expect(html).toContain('第 1 步</p>step:install-node<');
-    expect(html).toContain(`第 ${planned.length} 步</p>step:next-steps<`);
+    expect(html).toContain('第 1 步</p>step:install-node;');
+    expect(html).toContain(`第 ${planned.length} 步</p>step:next-steps;`);
     expect(html).toContain('桌面端');
     expect(html.match(/checked=""/g)).toHaveLength(3);
   });
@@ -389,6 +403,36 @@ describe('get started component', () => {
       );
       expect(links).toHaveLength(allPaths.length);
     }
+  });
+
+  it('shows the Vitest sections for the platform of the path', () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        GetStarted,
+        {
+          lang: 'en',
+          path: { scene: 'sdk', platform: 'ios', model: 'chatgpt' },
+        },
+        createElement(
+          GetStartedStep,
+          { id: 'sdk-write' },
+          createElement(
+            GetStartedSdkPlatform,
+            null,
+            (['android', 'ios', 'harmonyos', 'desktop'] as const).map(
+              (platform) =>
+                createElement(
+                  SdkPlatformContent,
+                  { key: platform, platform },
+                  `vitest:${platform}`,
+                ),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(html).toContain('vitest:ios');
+    expect(html.match(/vitest:/g)).toHaveLength(1);
   });
 
   it('reports steps placed outside GetStarted', () => {

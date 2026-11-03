@@ -38,6 +38,23 @@ describe('SDK platform documentation', () => {
     expect(html.match(/checked=""/g)).toHaveLength(1);
   });
 
+  it('shows only a fixed platform', () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        SdkPlatformProvider,
+        { platform: 'harmonyos' },
+        (['android', 'ios', 'harmonyos', 'desktop'] as const).map((platform) =>
+          createElement(
+            SdkPlatformContent,
+            { key: platform, platform },
+            `content-${platform}`,
+          ),
+        ),
+      ),
+    );
+    expect(html).toBe('content-harmonyos');
+  });
+
   it('reads a preselected platform from the URL query', () => {
     expect(parsePlatform('?platform=ios')).toBe('ios');
     expect(parsePlatform('?platform=web')).toBeUndefined();

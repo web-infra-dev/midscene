@@ -75,7 +75,9 @@ export const stepIds = [
   'playground-device',
   'test-configure',
   'test-run',
-  'sdk-integrate',
+  'sdk-setup',
+  'sdk-write',
+  'sdk-run',
   'next-steps',
 ] as const;
 
@@ -153,7 +155,7 @@ export function planSteps(selection: CompleteSelection): StepId[] {
   } else if (scene === 'test') {
     steps.push('test-configure', 'test-run');
   } else {
-    steps.push('sdk-integrate');
+    steps.push('sdk-setup', 'sdk-write', 'sdk-run');
   }
 
   steps.push('next-steps');
