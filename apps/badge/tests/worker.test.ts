@@ -148,6 +148,37 @@ describe('handleRequest', () => {
     expect(handleRequest(get('/nope')).status).toBe(404);
   });
 
+  it('serves the static E2E by Midscene.js badge', async () => {
+    for (const [query, height] of [
+      ['', 20],
+      ['?style=flat', 20],
+      ['?style=large', 28],
+    ] as const) {
+      const res = handleRequest(get(`/by-midscene${query}`));
+      expect(res.status).toBe(200);
+      expect(res.headers.get('Content-Type')).toContain('image/svg+xml');
+      expect(res.headers.get('Cache-Control')).toBe(CACHE_CONTROL);
+      const svg = await res.text();
+      expect(svg).toContain(`height="${height}"`);
+      expect(svg).toContain('aria-label="E2E by Midscene.js"');
+      expect(svg).toContain('>by Midscene.js</text>');
+    }
+    expect(handleRequest(get('/by-midscene?style=card')).status).toBe(400);
+    const head = handleRequest(
+      new Request(`${ORIGIN}/by-midscene`, { method: 'HEAD' }),
+    );
+    expect(head.status).toBe(200);
+    expect(await head.text()).toBe('');
+  });
+
+  it('links by-midscene snippets to the Midscene.js site', async () => {
+    const html = await handleRequest(get('/?lang=en')).text();
+    expect(html).toContain(
+      `[![E2E by Midscene.js](${ORIGIN}/by-midscene?style=large)](https://midscenejs.com)`,
+    );
+    expect(html).toContain('<img src="/by-midscene"');
+  });
+
   it('rejects non-GET methods', () => {
     const res = handleRequest(
       new Request(`${ORIGIN}/e2e?pass=1&fail=0`, { method: 'POST' }),
@@ -203,6 +234,19 @@ describe('worker fetch with edge cache', () => {
     expect([...store.keys()]).toEqual([
       `${ORIGIN}/e2e?v=${BADGE_VERSION}&style=flat&theme=light&pass=42&fail=3`,
     ]);
+  });
+
+  it('caches the by-midscene badge per style', async () => {
+    await fetchBadge(get('/by-midscene'));
+    await fetchBadge(get('/by-midscene?style=flat'));
+    await fetchBadge(get('/by-midscene?style=large'));
+    expect([...store.keys()]).toEqual([
+      `${ORIGIN}/by-midscene?v=${BADGE_VERSION}&style=flat`,
+      `${ORIGIN}/by-midscene?v=${BADGE_VERSION}&style=large`,
+    ]);
+    const res = await fetchBadge(get('/by-midscene?style=nope'));
+    expect(res.status).toBe(400);
+    expect(store.size).toBe(2);
   });
 
   it('answers revalidation with 304', async () => {

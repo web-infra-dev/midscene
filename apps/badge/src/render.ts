@@ -34,6 +34,8 @@ const CHAR_WIDTHS: Record<string, number> = {
   p: 6.8,
   s: 5.7,
   t: 4.3,
+  y: 6.5,
+  j: 3.8,
   E: 6.8,
   M: 9.3,
   T: 6.8,
@@ -94,6 +96,7 @@ const LINE_COLORS = {
   pass: '#2DA44E',
   fail: '#CF222E',
   zero: '#8C959F',
+  by: '#6E56CF',
 };
 
 const LINE_SIZES = {
@@ -121,8 +124,23 @@ const LINE_SIZES = {
   },
 };
 
+export type LineVariant = 'flat' | 'large';
+
+/** Static attribution: [logo E2E | by Midscene.js]. */
+export function renderByMidscene(variant: LineVariant) {
+  const { h, size, logoW, pad, rx, baseline } = LINE_SIZES[variant];
+  const title = 'E2E';
+  const byText = 'by Midscene.js';
+  const segA = pad - 1 + logoW + 4 + textWidth(title, size, true) + pad;
+  const segB = pad + textWidth(byText, size, true) + pad;
+  const w = Math.ceil(segA + segB);
+  const logoH = logoW * LOGO_RATIO;
+  const body = `<clipPath id="r"><rect width="${w}" height="${h}" rx="${rx}"/></clipPath><g clip-path="url(#r)"><rect width="${segA}" height="${h}" fill="${LINE_COLORS.label}"/><rect x="${segA}" width="${w - segA}" height="${h}" fill="${LINE_COLORS.by}"/></g><image x="${pad - 2}" y="${((h - logoH) / 2).toFixed(2)}" width="${logoW}" height="${logoH.toFixed(2)}" href="${LOGO_96}"/><g font-family="${FONT}">${text(pad + logoW + 2, baseline, title, { size, bold: true, shadow: true })}${text(segA + pad, baseline, byText, { size, bold: true, shadow: true })}</g>`;
+  return svg(w, h, 'E2E by Midscene.js', body);
+}
+
 /** Single line: [logo E2E | ✓ N passed | ✕ N failed]. */
-function renderLine(pass: number, fail: number, variant: 'flat' | 'large') {
+function renderLine(pass: number, fail: number, variant: LineVariant) {
   const { h, size, bold, logoW, pad, rx, baseline, sw } = LINE_SIZES[variant];
   const title = 'E2E';
   const passText = `${pass} passed`;
