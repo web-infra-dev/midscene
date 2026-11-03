@@ -1,4 +1,5 @@
 import { LOGO_96 } from './logo';
+import { BADGE_ORIGIN } from './site';
 
 export type HomeLanguage = 'zh' | 'en';
 
@@ -48,7 +49,8 @@ const copy = {
     source:
       '数字由 URL 提供，不会自动读取 CI 或报告。卡片总数为 pass + fail，通过率为 pass / 总数；总数为 0 时显示 0%。失败数为 0 时，失败部分显示灰色。',
     cache: '无效参数返回 HTTP 400 和错误说明。SVG 缓存时间为 24 小时。',
-    footer: '所有预览均来自当前服务的 /e2e 接口。',
+    by: '静态的 E2E by Midscene.js 徽章，style 可选 flat（默认）或 large，Markdown 中链接到 Midscene.js 官网。',
+    footer: '所有预览均由当前服务实时生成。',
     poweredBy: '由 {link} 提供：基于视觉的 AI UI 自动化工具。',
     language: '选择语言',
     names: [
@@ -58,6 +60,8 @@ const copy = {
       '卡片 · 深色',
       '全部通过',
       '暂无测试',
+      'E2E by Midscene.js',
+      'E2E by Midscene.js · 大号',
     ],
     details: [
       '默认样式 · 20px',
@@ -66,6 +70,8 @@ const copy = {
       '深色卡片 · 60px',
       '没有失败用例',
       '通过率显示为 0%',
+      '静态徽章 · 20px，无需填写数字',
+      '静态徽章 · 28px，无需填写数字',
     ],
   },
   en: {
@@ -87,7 +93,8 @@ const copy = {
       'Counts come from the URL, not CI or reports. Cards show the total (pass + fail) and pass rate (pass / total, or 0% for an empty run). Zero failures appear grey.',
     cache:
       'Invalid parameters return HTTP 400 with an explanation. SVG responses are cached for 24 hours.',
-    footer: 'All previews use this service’s /e2e endpoint.',
+    by: 'A static E2E by Midscene.js badge. style is flat (default) or large; the Markdown links to the Midscene.js website.',
+    footer: 'All previews are rendered live by this service.',
     poweredBy: 'Powered by {link}, vision-driven UI automation with AI.',
     language: 'Choose language',
     names: [
@@ -97,6 +104,8 @@ const copy = {
       'Card · Dark',
       'All passed',
       'No tests',
+      'E2E by Midscene.js',
+      'E2E by Midscene.js · Large',
     ],
     details: [
       'Default style · 20px',
@@ -105,16 +114,21 @@ const copy = {
       'Dark card · 60px',
       'No failed tests',
       'Pass rate shown as 0%',
+      'Static badge · 20px, no counts',
+      'Static badge · 28px, no counts',
     ],
   },
 };
-const queries = [
-  'pass=42&fail=3',
-  'pass=42&fail=3&style=large',
-  'pass=42&fail=3&style=card&theme=light',
-  'pass=42&fail=3&style=card&theme=dark',
-  'pass=45&fail=0',
-  'pass=0&fail=0&style=card',
+const SITE = 'https://midscenejs.com';
+const examples = [
+  { path: '/e2e?pass=42&fail=3', alt: 'Midscene Test' },
+  { path: '/e2e?pass=42&fail=3&style=large', alt: 'Midscene Test' },
+  { path: '/e2e?pass=42&fail=3&style=card&theme=light', alt: 'Midscene Test' },
+  { path: '/e2e?pass=42&fail=3&style=card&theme=dark', alt: 'Midscene Test' },
+  { path: '/e2e?pass=45&fail=0', alt: 'Midscene Test' },
+  { path: '/e2e?pass=0&fail=0&style=card', alt: 'Midscene Test' },
+  { path: '/by-midscene', alt: 'E2E by Midscene.js', link: SITE },
+  { path: '/by-midscene?style=large', alt: 'E2E by Midscene.js', link: SITE },
 ];
 
 function escapeHtml(value: string) {
@@ -126,8 +140,6 @@ function escapeHtml(value: string) {
       ]!,
   );
 }
-
-const SITE = 'https://midscenejs.com';
 
 const STYLE = `
 :root{--fg:#0a0a0a;--fg-2:#404040;--muted:#737373;--line:#ebebeb;--line-2:#d4d4d4;--soft:#fafafa;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Inter","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;--mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace}
@@ -175,6 +187,7 @@ dd{margin:0}
 code{font-family:var(--mono);font-size:12.5px}
 .snippets code,.signature{display:block;overflow-wrap:anywhere;white-space:pre-wrap;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--soft);color:var(--fg-2);line-height:1.6}
 .signature{padding:10px 14px;font-size:13px;color:var(--fg)}
+.signature.by{margin-top:24px}
 .signature b{font-weight:600;margin-right:10px;color:var(--muted)}
 .note{margin:8px 0 16px;font-size:13px;color:var(--muted)}
 .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
@@ -195,16 +208,40 @@ export function renderHome(
   language: HomeLanguage = 'en',
 ): string {
   const t = copy[language];
-  const cards = queries
-    .map((query, index) => {
-      const path = escapeHtml(`/e2e?${query}`);
-      const url = escapeHtml(`${origin}/e2e?${query}`);
-      const dark = query.includes('theme=dark') ? ' dark' : '';
-      return `<article><div class="card-head"><div><h3>${t.names[index]}</h3><p>${t.details[index]}</p></div><a class="open" href="${path}">${t.open} ↗</a></div><div class="preview${dark}"><img src="${path}" alt="${t.names[index]} ${t.preview}"></div><dl class="snippets"><div><dt>URL</dt><dd><code>${url}</code></dd></div><div><dt>Markdown</dt><dd><code>![Midscene Test](${url})</code></dd></div></dl></article>`;
+  const title =
+    language === 'zh'
+      ? 'Midscene Test Badge — Markdown E2E 测试结果徽章'
+      : 'Midscene Test Badge — E2E test results for Markdown';
+  const canonical = `${BADGE_ORIGIN}/?lang=${language}`;
+  const cards = examples
+    .map(({ path: rawPath, alt, link }, index) => {
+      const path = escapeHtml(rawPath);
+      const url = escapeHtml(`${origin}${rawPath}`);
+      const dark = rawPath.includes('theme=dark') ? ' dark' : '';
+      const markdown = link
+        ? `[![${alt}](${url})](${link})`
+        : `![${alt}](${url})`;
+      return `<article><div class="card-head"><div><h3>${t.names[index]}</h3><p>${t.details[index]}</p></div><a class="open" href="${path}">${t.open} ↗</a></div><div class="preview${dark}"><img src="${path}" alt="${t.names[index]} ${t.preview}"></div><dl class="snippets"><div><dt>URL</dt><dd><code>${url}</code></dd></div><div><dt>Markdown</dt><dd><code>${markdown}</code></dd></div></dl></article>`;
     })
     .join('');
   return `<!doctype html>
-<html lang="${language === 'zh' ? 'zh-CN' : 'en'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#ffffff"><title>Midscene Test · ${t.previews}</title>
+<html lang="${language === 'zh' ? 'zh-CN' : 'en'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#ffffff"><title>${title}</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta name="description" content="${escapeHtml(t.intro)}">
+<link rel="canonical" href="${canonical}">
+<link rel="alternate" hreflang="en" href="${BADGE_ORIGIN}/?lang=en">
+<link rel="alternate" hreflang="zh" href="${BADGE_ORIGIN}/?lang=zh">
+<link rel="alternate" hreflang="x-default" href="${BADGE_ORIGIN}/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Midscene Test Badge">
+<meta property="og:title" content="${title}">
+<meta property="og:description" content="${escapeHtml(t.intro)}">
+<meta property="og:url" content="${canonical}">
+<meta property="og:locale" content="${language === 'zh' ? 'zh_CN' : 'en_US'}">
+<meta property="og:locale:alternate" content="${language === 'zh' ? 'en_US' : 'zh_CN'}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="${title}">
+<meta name="twitter:description" content="${escapeHtml(t.intro)}">
 <style>${STYLE}</style></head><body>
 <header class="nav"><div class="nav-inner"><a class="brand" href="${SITE}"><img class="logo" src="${LOGO_96}" alt="Midscene" width="23" height="22">Midscene Test<span>/ Badge</span></a><nav class="languages" aria-label="${t.language}"><a href="/?lang=zh" lang="zh-CN"${language === 'zh' ? ' aria-current="page"' : ''}>中文</a><a href="/?lang=en" lang="en"${language === 'en' ? ' aria-current="page"' : ''}>English</a></nav></div></header>
 <main>
@@ -215,7 +252,8 @@ export function renderHome(
 <tr><td>pass / fail</td><td>${t.counts}</td></tr>
 <tr><td>style</td><td>${t.styles}</td></tr>
 <tr><td>theme</td><td>${t.themes}</td></tr>
-</tbody></table></div><ul class="facts"><li>${t.source}</li><li>${t.cache}</li></ul></section>
+</tbody></table></div><ul class="facts"><li>${t.source}</li><li>${t.cache}</li></ul>
+<code class="signature by"><b>GET</b>${escapeHtml(origin)}/by-midscene[?style=flat|large]</code><p class="note">${t.by}</p></section>
 <footer>${t.footer}</footer>
 </main></body></html>`;
 }

@@ -18,6 +18,16 @@ Markdown.
 
 Invalid parameters return `400` with a plain-text reason.
 
+## E2E by Midscene.js
+
+A static attribution badge that needs no counts:
+
+```md
+[![E2E by Midscene.js](https://<your-domain>/by-midscene)](https://midscenejs.com)
+```
+
+`style` is optional: `flat` (default, 20px) or `large` (28px).
+
 ## Caching
 
 The design rarely changes, so responses are cached aggressively:

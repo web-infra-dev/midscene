@@ -230,8 +230,13 @@ describe('HTML and SVG output boundaries', () => {
     for (const [, url] of html.matchAll(/(?:src|href)="([^"]+)"/g)) {
       expect(
         url.startsWith('/e2e?') ||
+          /^\/by-midscene(?:\?style=large)?$/.test(url) ||
           /^\/\?lang=(zh|en)$/.test(url) ||
           url === 'https://midscenejs.com' ||
+          url === '/favicon.svg' ||
+          /^https:\/\/badge\.midscenejs\.com\/(?:\?lang=(?:en|zh))?$/.test(
+            url,
+          ) ||
           url === LOGO_96,
       ).toBe(true);
     }

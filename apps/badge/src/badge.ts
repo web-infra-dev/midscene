@@ -3,8 +3,11 @@ import {
   type BadgeOptions,
   type BadgeStyle,
   type BadgeTheme,
+  type LineVariant,
   renderBadge,
+  renderByMidscene,
 } from './render';
+import { siteResponse } from './site';
 
 // Bump when the rendered output changes so edge caches pick up the new design.
 export const BADGE_VERSION = '1';
@@ -16,6 +19,8 @@ export const CACHE_CONTROL = 'public, max-age=86400, s-maxage=86400';
 const MAX_COUNT = 9_999_999;
 const STYLES: BadgeStyle[] = ['flat', 'large', 'card'];
 const THEMES: BadgeTheme[] = ['light', 'dark'];
+const BY_STYLES: LineVariant[] = ['flat', 'large'];
+export const BY_PATH = '/by-midscene';
 
 const USAGE = `Midscene Test badge
 
@@ -26,6 +31,10 @@ GET /e2e?pass=<n>&fail=<n>[&style=flat|large|card][&theme=light|dark]
   theme       light (default) or dark, only used by style=card
 
 Example: /e2e?pass=42&fail=3&style=card
+
+GET /by-midscene[?style=flat|large]
+
+  Static "E2E by Midscene.js" badge, no counts needed.
 `;
 
 export class BadRequestError extends Error {}
@@ -88,6 +97,8 @@ export function handleRequest(request: Request): Response {
     });
   }
 
+  const discovery = siteResponse(request);
+  if (discovery) return discovery;
   const url = new URL(request.url);
   if (url.pathname === '/') {
     return new Response(
@@ -104,6 +115,22 @@ export function handleRequest(request: Request): Response {
       },
     );
   }
+  if (url.pathname === BY_PATH) {
+    let style: LineVariant;
+    try {
+      style = parseEnum(url.searchParams, 'style', BY_STYLES);
+    } catch (error) {
+      if (error instanceof BadRequestError) {
+        return textResponse(`${error.message}\n\n${USAGE}`, 400, 'no-store');
+      }
+      throw error;
+    }
+    return svgResponse(
+      request,
+      renderByMidscene(style),
+      `"v${BADGE_VERSION}-by-${style}"`,
+    );
+  }
   if (url.pathname !== '/e2e') {
     return textResponse(`Not Found\n\n${USAGE}`, 404, 'no-store');
   }
@@ -118,11 +145,15 @@ export function handleRequest(request: Request): Response {
     throw error;
   }
 
-  return new Response(request.method === 'HEAD' ? null : renderBadge(options), {
+  return svgResponse(request, renderBadge(options), badgeETag(options));
+}
+
+function svgResponse(request: Request, body: string, etag: string) {
+  return new Response(request.method === 'HEAD' ? null : body, {
     headers: {
       'Content-Type': 'image/svg+xml; charset=utf-8',
       'Cache-Control': CACHE_CONTROL,
-      ETag: badgeETag(options),
+      ETag: etag,
       'X-Content-Type-Options': 'nosniff',
       'Access-Control-Allow-Origin': '*',
     },
@@ -145,6 +176,14 @@ export function withConditional(
 // `?pass=42&fail=3&style=flat` share one edge cache entry.
 export function edgeCacheKey(request: Request): Request | null {
   const url = new URL(request.url);
+  if (url.pathname === BY_PATH) {
+    const style = url.searchParams.get('style') ?? 'flat';
+    if (!BY_STYLES.includes(style as LineVariant)) return null;
+    const key = new URL(BY_PATH, url.origin);
+    key.searchParams.set('v', BADGE_VERSION);
+    key.searchParams.set('style', style);
+    return new Request(key.toString());
+  }
   if (url.pathname !== '/e2e') return null;
   let options: BadgeOptions;
   try {
