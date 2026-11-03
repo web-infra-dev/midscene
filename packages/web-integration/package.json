@@ -30,16 +30,6 @@
       "require": "./dist/lib/bridge-mode/browser.js",
       "import": "./dist/es/bridge-mode/browser.mjs"
     },
-    "./utils": {
-      "types": "./dist/types/common/utils.d.ts",
-      "require": "./dist/lib/common/utils.js",
-      "import": "./dist/es/common/utils.mjs"
-    },
-    "./ui-utils": {
-      "types": "./dist/types/common/ui-utils.d.ts",
-      "require": "./dist/lib/common/ui-utils.js",
-      "import": "./dist/es/common/ui-utils.mjs"
-    },
     "./puppeteer": {
       "types": "./dist/types/puppeteer/index.d.ts",
       "require": "./dist/lib/puppeteer/index.js",
@@ -79,16 +69,6 @@
       "types": "./dist/types/chrome-extension/index.d.ts",
       "require": "./dist/lib/chrome-extension/index.js",
       "import": "./dist/es/chrome-extension/index.mjs"
-    },
-    "./yaml": {
-      "types": "./dist/types/yaml/index.d.ts",
-      "require": "./dist/lib/yaml/index.js",
-      "import": "./dist/es/yaml/index.mjs"
-    },
-    "./agent": {
-      "types": "./dist/types/common/agent.d.ts",
-      "require": "./dist/lib/common/agent.js",
-      "import": "./dist/es/common/agent.mjs"
     },
     "./static": {
       "types": "./dist/types/static/index.d.ts",

@@ -155,6 +155,11 @@ jobs:
     - name: Build project
       run: pnpm run build
 
+    - name: Check packaged Web entry points
+      run: |
+        pnpm --dir packages/web-integration pack --pack-destination "$RUNNER_TEMP/web-package"
+        node scripts/check-package-exports.mjs "$RUNNER_TEMP/web-package"
+
     - name: Check Report build feedback loop
       run: pnpm run check:report-build-feedback-loop
 
