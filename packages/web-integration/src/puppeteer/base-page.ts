@@ -1555,19 +1555,25 @@ export class Page<
         capturedError = error as Error;
       }
     };
-    session.on('Page.fileChooserOpened', this.puppeteerFileChooserHandler);
+    const listener = this.puppeteerFileChooserHandler;
+    session.on('Page.fileChooserOpened', listener);
+    let disposed = false;
     return {
       dispose: () => {
-        if (this.puppeteerFileChooserHandler) {
-          session.off(
-            'Page.fileChooserOpened',
-            this.puppeteerFileChooserHandler,
-          );
+        if (disposed) return;
+        disposed = true;
+        session.off('Page.fileChooserOpened', listener);
+        if (this.puppeteerFileChooserHandler === listener) {
+          this.puppeteerFileChooserHandler = undefined;
         }
-        void session.detach();
-        this.puppeteerFileChooserHandler = undefined;
-        if (this.puppeteerFileChooserSession === session) {
+        if (
+          this.puppeteerFileChooserSession === session &&
+          !this.puppeteerFileChooserHandler
+        ) {
           this.puppeteerFileChooserSession = undefined;
+          void session.detach().catch((error) => {
+            debugPage('failed to detach file chooser session: %s', error);
+          });
         }
       },
       getError: () => capturedError,
