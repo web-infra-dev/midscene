@@ -68,7 +68,10 @@ function buildExecution(id: string, tasks: TaskShape[]): ExecutionDump {
 }
 
 /** Extract `playwright_test_status` for every merged dump, in document order. */
-function mergedStatuses(html: string): string[] {
+function mergedStatuses(reportPath: string): string[] {
+  const html = readReportDumpScripts(reportPath)
+    .map((d) => d.openTag)
+    .join('\n');
   const statuses: string[] = [];
   const openPattern = '<script type="midscene_web_dump"';
   let pos = 0;
@@ -118,7 +121,9 @@ describe('mergeReportFiles status derivation', () => {
       executions: [execution],
     });
     const html = [
-      generateImageScriptTag(screenshot.id, screenshot.base64),
+      ...execution
+        .collectScreenshots()
+        .map((image) => generateImageScriptTag(image.id, image.base64)),
       generateDumpScriptTag(dump.serialize(), {
         'data-group-id': `group-${groupName}`,
         ...extraAttributes,
@@ -156,7 +161,7 @@ describe('mergeReportFiles status derivation', () => {
     });
 
     const html = readFileSync(mergedReportPath, 'utf-8');
-    expect(mergedStatuses(html)).toEqual(['passed', 'failed']);
+    expect(mergedStatuses(mergedReportPath)).toEqual(['passed', 'failed']);
   });
 
   it('preserves a precise status already recorded on the source report', () => {
@@ -176,7 +181,7 @@ describe('mergeReportFiles status derivation', () => {
     });
 
     const html = readFileSync(mergedReportPath, 'utf-8');
-    expect(mergedStatuses(html)).toEqual(['timedOut']);
+    expect(mergedStatuses(mergedReportPath)).toEqual(['timedOut']);
   });
 
   it.each(['passed', 'timedOut', 'failed', 'interrupted', 'skipped'] as const)(
@@ -199,9 +204,7 @@ describe('mergeReportFiles status derivation', () => {
         outputDir: join(tmpDir, `merged-${status}`),
         outputName: 'merged',
       });
-      expect(mergedStatuses(readFileSync(mergedReportPath, 'utf8'))).toEqual([
-        status,
-      ]);
+      expect(mergedStatuses(mergedReportPath)).toEqual([status]);
       expect(readReportDumpScripts(mergedReportPath)).toHaveLength(1);
     },
   );
@@ -242,9 +245,7 @@ describe('mergeReportFiles status derivation', () => {
       outputDir: join(tmpDir, 'merged-runner-only'),
       outputName: 'merged',
     });
-    expect(mergedStatuses(readFileSync(mergedReportPath, 'utf8'))).toEqual([
-      'failed',
-    ]);
+    expect(mergedStatuses(mergedReportPath)).toEqual(['failed']);
     expect(readReportRunnerDump(mergedReportPath)?.status).toBe('failed');
     expect(JSON.stringify(readReportRunnerDump(mergedReportPath))).toContain(
       'Setup failed before an Agent was created',
@@ -258,14 +259,21 @@ describe('mergeReportFiles status derivation', () => {
     const reportPath = join(tmpDir, 'bundled-report', 'index.html');
     mkdirSync(join(tmpDir, 'bundled-report'), { recursive: true });
     const screenshot = ScreenshotItem.create(fakeBase64(80), Date.now());
-    const buildDump = (groupName: string, exec: ExecutionDump) =>
-      new ReportActionDump({
+    const imageTags: string[] = [];
+    const buildDump = (groupName: string, exec: ExecutionDump) => {
+      imageTags.push(
+        ...exec
+          .collectScreenshots()
+          .map((image) => generateImageScriptTag(image.id, image.base64)),
+      );
+      return new ReportActionDump({
         groupName,
         groupDescription: `${groupName}-desc`,
         sdkVersion: '1.0.0-test',
         modelBriefs: [],
         executions: [exec],
       });
+    };
     const html = [
       generateImageScriptTag(screenshot.id, screenshot.base64),
       generateDumpScriptTag(
@@ -283,7 +291,7 @@ describe('mergeReportFiles status derivation', () => {
         { 'data-group-id': 'group-bundled', playwright_test_status: 'failed' },
       ),
     ].join('\n');
-    writeFileSync(reportPath, html, 'utf-8');
+    writeFileSync(reportPath, imageTags.join('\n') + html, 'utf-8');
 
     const { mergedReportPath } = mergeReportFiles({
       htmlPaths: [reportPath],
@@ -292,6 +300,6 @@ describe('mergeReportFiles status derivation', () => {
     });
 
     const merged = readFileSync(mergedReportPath, 'utf-8');
-    expect(mergedStatuses(merged)).toEqual(['failed']);
+    expect(mergedStatuses(mergedReportPath)).toEqual(['failed']);
   });
 });

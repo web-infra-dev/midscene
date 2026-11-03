@@ -367,9 +367,9 @@ export interface TestRunReportDump {
 export interface TestRunReportSource {
   /** Resource/report scope that owns this Midscene Agent source. */
   scopeId: string;
-  /** Absolute path identifying the Midscene Agent report. */
+  /** Absolute path identifying structured Agent records or an external Agent HTML report. */
   sourcePath: string;
-  /** Current Agent dump JSON; when present, HTML is not parsed for execution data. */
+  /** Immutable execution snapshot JSON; when present, execution data is read from it. */
   dumpPath?: string;
   collection?: TestRunReportSnapshotCollection;
 }
