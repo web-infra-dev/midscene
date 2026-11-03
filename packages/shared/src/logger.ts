@@ -115,15 +115,14 @@ function getLogDirectory(): string {
 }
 
 // Function to get or create a log stream
-function getLogStream(topic: string): fs.WriteStream | null {
-  const topicFileName = topic.replace(/:/g, '-');
-  if (unavailableLogStreams.has(topicFileName)) {
+function getLogStream(logFile: string): fs.WriteStream | null {
+  if (unavailableLogStreams.has(logFile)) {
     return null;
   }
-  const logFile = path.join(getLogDirectory(), `${topicFileName}.log`);
-  const existingStream = logStreams.get(topicFileName);
-  if (existingStream && logStreamPaths.get(topicFileName) !== logFile) {
-    existingStream.end();
+  const topicFileName = path.basename(logFile);
+  const existing = logStreams.get(topicFileName);
+  if (existing && logStreamPaths.get(topicFileName) !== logFile) {
+    existing.end();
     logStreams.delete(topicFileName);
     logStreamPaths.delete(topicFileName);
   }
@@ -133,8 +132,8 @@ function getLogStream(topic: string): fs.WriteStream | null {
     // Logging must remain best-effort, so disable this topic after a file error
     // rather than repeatedly queuing writes to a broken stream.
     stream.on('error', () => {
-      unavailableLogStreams.add(topicFileName);
-      backpressuredLogStreams.delete(topicFileName);
+      unavailableLogStreams.add(logFile);
+      backpressuredLogStreams.delete(logFile);
       if (logStreams.get(topicFileName) === stream) {
         logStreams.delete(topicFileName);
         logStreamPaths.delete(topicFileName);
@@ -151,11 +150,12 @@ function writeLogToFile(topic: string, message: string): void {
   if (!ifInNode) return;
 
   const topicFileName = topic.replace(/:/g, '-');
-  if (backpressuredLogStreams.has(topicFileName)) {
+  const logFile = path.join(getLogDirectory(), `${topicFileName}.log`);
+  if (backpressuredLogStreams.has(logFile)) {
     return;
   }
 
-  const stream = getLogStream(topic);
+  const stream = getLogStream(logFile);
   if (!stream) return;
   // Generate ISO format timestamp with local timezone
   const now = new Date();
@@ -176,14 +176,14 @@ function writeLogToFile(topic: string, message: string): void {
   const localISOTime = `${isoDate}T${isoTime}.${milliseconds}${timezoneString}`;
   try {
     if (!stream.write(`[${localISOTime}] ${message}\n`)) {
-      backpressuredLogStreams.add(topicFileName);
+      backpressuredLogStreams.add(logFile);
       stream.once('drain', () => {
-        backpressuredLogStreams.delete(topicFileName);
+        backpressuredLogStreams.delete(logFile);
       });
     }
   } catch {
-    unavailableLogStreams.add(topicFileName);
-    backpressuredLogStreams.delete(topicFileName);
+    unavailableLogStreams.add(logFile);
+    backpressuredLogStreams.delete(logFile);
   }
 }
 

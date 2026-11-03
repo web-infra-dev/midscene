@@ -61,13 +61,17 @@ export interface ResolvedTestOptions {
 }
 
 export interface TestOutputDefinition {
+  /** Unified artifact root, relative to the Test project. Defaults to MIDSCENE_RUN_DIR or midscene_run. */
+  runDir?: string;
+  /** Explicit report location, relative to the Test project. Defaults to <runDir>/report. */
   reportDir?: string;
   /** Defaults to a self-contained HTML; external assets require HTTP preview. */
   reportFormat?: 'single-html' | 'html-and-external-assets';
 }
 
 export interface ResolvedTestOutputDefinition {
-  reportDir: string;
+  runDir?: string;
+  reportDir?: string;
   reportFormat: 'single-html' | 'html-and-external-assets';
 }
 
@@ -586,12 +590,7 @@ const validateTestOptions = (
   });
 };
 
-const validateOutputPath = (
-  value: unknown,
-  fallback: string,
-  label: string,
-): string => {
-  if (value === undefined) return fallback;
+const validateOutputPath = (value: unknown, label: string): string => {
   if (typeof value !== 'string' || value.trim().length === 0) {
     throw new TypeError(`Midscene config ${label} must be non-empty.`);
   }
@@ -603,7 +602,11 @@ const validateOutput = (value: unknown): ResolvedTestOutputDefinition => {
     throw new TypeError('Midscene config output must be an object.');
   }
   const candidate = (value ?? {}) as Record<string, unknown>;
-  rejectUnknownKeys(candidate, ['reportDir', 'reportFormat'], 'output');
+  rejectUnknownKeys(
+    candidate,
+    ['runDir', 'reportDir', 'reportFormat'],
+    'output',
+  );
   if (
     candidate.reportFormat !== undefined &&
     candidate.reportFormat !== 'single-html' &&
@@ -615,11 +618,17 @@ const validateOutput = (value: unknown): ResolvedTestOutputDefinition => {
   }
   return Object.freeze({
     reportFormat: candidate.reportFormat ?? 'single-html',
-    reportDir: validateOutputPath(
-      candidate.reportDir,
-      './midscene_run/report',
-      'output.reportDir',
-    ),
+    ...(candidate.runDir === undefined
+      ? {}
+      : { runDir: validateOutputPath(candidate.runDir, 'output.runDir') }),
+    ...(candidate.reportDir === undefined
+      ? {}
+      : {
+          reportDir: validateOutputPath(
+            candidate.reportDir,
+            'output.reportDir',
+          ),
+        }),
   });
 };
 

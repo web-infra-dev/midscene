@@ -447,7 +447,8 @@ An execution project connects a runtime environment to its cases. Even a single 
 | `projects[].retry` | Number of retries for a failed case; defaults to `0`. |
 | `test.testTimeout` | Default timeout for each step in milliseconds; defaults to `120000`. A step's `$` timeout overrides it. |
 | `test.bail` | Stops scheduling new work when the failed-case threshold is reached; `0` disables the threshold. |
-| `output.reportDir` | Report output directory; defaults to `./midscene_run/report`. |
+| `output.runDir` | Unified artifact root, relative to the Test project. Defaults to `MIDSCENE_RUN_DIR` or `midscene_run`; if both settings are provided they must resolve to the same path. |
+| `output.reportDir` | Optional report directory override, relative to the Test project. Defaults to `<runDir>/report`. |
 | `output.reportFormat` | `'single-html'` (default) includes execution data and images in one HTML file for direct offline viewing. `'html-and-external-assets'` writes a directory report that requires HTTP preview. |
 
 See [Run tests](./running#run-tests) for CLI project selection and configuration file options, and [Configure timeouts and error handling](./writing#configure-timeouts-and-error-handling) for step overrides.
@@ -513,7 +514,7 @@ export default defineTestProject<ProjectContext>({
     testTimeout: 120_000,
   },
   output: {
-    reportDir: './midscene_run/report',
+    runDir: './midscene_run',
   },
 });
 ```

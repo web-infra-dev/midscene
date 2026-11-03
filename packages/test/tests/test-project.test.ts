@@ -601,6 +601,11 @@ describe('test project config', () => {
       "output: { reportFormat: 'png' }",
       'output.reportFormat must be',
     ],
+    [
+      'empty artifact root',
+      "output: { runDir: '  ' }",
+      'output.runDir must be non-empty',
+    ],
     ['empty projects', 'projects: []', 'projects must be a non-empty array'],
     [
       'duplicate project names',
