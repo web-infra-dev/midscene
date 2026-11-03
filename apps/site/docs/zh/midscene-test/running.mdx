@@ -72,21 +72,16 @@ pnpm exec midscene-test --help
 
 ### 产物目录 {#统一产物根与迁移}
 
-默认产物目录为测试项目下的 `midscene_run/`，其中 `report/` 保存报告，`test-results/` 保存结果与诊断记录。通过 `output.runDir` 或 `MIDSCENE_RUN_DIR` 可修改产物目录，相对路径以测试项目为基准：
+默认产物目录为测试项目下的 `midscene_run/`，其中 `report/` 保存报告，`test-results/` 保存结果与诊断记录。通过环境变量 `MIDSCENE_RUN_DIR` 可修改产物目录，相对路径以测试项目为基准：
 
-```ts
-// midscene.config.ts
-output: {
-  runDir: './artifacts',
-}
+```bash
+MIDSCENE_RUN_DIR="./artifacts" pnpm exec midscene-test
 ```
-
-同时设置 `MIDSCENE_RUN_DIR` 和 `output.runDir` 时，两者必须指向同一目录。
 
 在 CI 中使用时：
 
 - 将原先收集 `.midscene/test-results` 的规则更新为 `midscene_run/test-results`，或配置后的结果目录。
-- 使用 [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action) 时，将 `run-directory` 与 `output.runDir` 对齐；已有 `MIDSCENE_RUN_DIR` 会自动生效。
+- 使用 [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action) 时，通过 `run-directory` 或 `MIDSCENE_RUN_DIR` 指定目录，执行与产物收集共用该目录。
 - 按终端打印的 `Summary:` / `Report:`，或 SDK 返回的 `summaryPath`、`markdownPath`、`reportPath` 收集文件。分享报告的方式见下文。
 
 ### 退出码

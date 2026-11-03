@@ -72,21 +72,16 @@ Keep the complete results directory for troubleshooting or programmatic analysis
 
 ### Artifact directory {#unified-artifact-root-and-migration}
 
-The default artifact directory is `midscene_run/` in the Test project. Reports are in `report/`; results and diagnostic records are in `test-results/`. Set `output.runDir` or `MIDSCENE_RUN_DIR` to change the artifact directory. Relative paths use the Test project as their base:
+The default artifact directory is `midscene_run/` in the Test project. Reports are in `report/`; results and diagnostic records are in `test-results/`. Set the `MIDSCENE_RUN_DIR` environment variable to change the artifact directory. Relative paths use the Test project as their base:
 
-```ts
-// midscene.config.ts
-output: {
-  runDir: './artifacts',
-}
+```bash
+MIDSCENE_RUN_DIR="./artifacts" pnpm exec midscene-test
 ```
-
-If `MIDSCENE_RUN_DIR` and `output.runDir` are both set, they must resolve to the same directory.
 
 In CI:
 
 - Update collection rules from `.midscene/test-results` to `midscene_run/test-results`, or your configured results directory.
-- With the [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action), set `run-directory` to match `output.runDir`. An inherited `MIDSCENE_RUN_DIR` is picked up automatically.
+- With the [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action), set `run-directory` or `MIDSCENE_RUN_DIR`. Execution and artifact collection use the same directory.
 - Collect files using the printed `Summary:` / `Report:` paths or the SDK's `summaryPath`, `markdownPath`, and `reportPath`. See below for sharing reports.
 
 ### Exit codes

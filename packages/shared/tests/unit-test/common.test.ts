@@ -23,12 +23,6 @@ describe('getMidsceneRunDir', () => {
     expect(resolveMidsceneRunDir(project)).toBe(
       path.join(project, 'artifacts'),
     );
-    expect(resolveMidsceneRunDir(project, './artifacts')).toBe(
-      path.join(project, 'artifacts'),
-    );
-    expect(() => resolveMidsceneRunDir(project, 'another-root')).toThrow(
-      'Conflicting run directories',
-    );
   });
 
   it('isolates concurrent and nested roots and restores the application default after errors', async () => {

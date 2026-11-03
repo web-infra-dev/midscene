@@ -185,7 +185,7 @@ There are several ways to improve the running time:
 
 ## How do I configure the midscene_run directory?
 
-Midscene saves reports, logs, and caches in `midscene_run/` by default. Standalone scripts, legacy YAML, and Playwright use the working directory as their base. Midscene Test uses the Test project and also supports [`output.runDir`](./midscene-test/running#unified-artifact-root-and-migration).
+Midscene saves reports, logs, and caches in `midscene_run/` by default. Standalone scripts, legacy YAML, and Playwright use the working directory as their base. Midscene Test uses the Test project. See [artifact directories](./midscene-test/running#unified-artifact-root-and-migration).
 
 You can customize the directory location using the `MIDSCENE_RUN_DIR` environment variable, which accepts both relative and absolute paths:
 

@@ -46,22 +46,8 @@ export const getMidsceneRunDir = () => {
 };
 
 /** Resolve Test paths against its project; standalone callers use their cwd. */
-export const resolveMidsceneRunDir = (
-  baseDir: string,
-  runDir?: string,
-): string => {
-  const environment = getBasicEnvValue(MIDSCENE_RUN_DIR);
-  if (
-    runDir !== undefined &&
-    environment !== undefined &&
-    path.resolve(baseDir, validateRunDir(runDir)) !==
-      path.resolve(baseDir, validateRunDir(environment))
-  )
-    throw new Error(
-      'Conflicting run directories: output.runDir and MIDSCENE_RUN_DIR must resolve to the same path. Configure one root or use matching paths.',
-    );
-  return path.resolve(baseDir, validateRunDir(runDir ?? getMidsceneRunDir()));
-};
+export const resolveMidsceneRunDir = (baseDir: string): string =>
+  path.resolve(baseDir, validateRunDir(getMidsceneRunDir()));
 
 /** Isolate concurrent Test runs without changing process.env or the app root. */
 export const runWithMidsceneRunDir = <T>(runDir: string, run: () => T): T =>

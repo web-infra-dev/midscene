@@ -85,10 +85,7 @@ export async function prepareTestRun(
   if (options.configPath && !existsSync(configPath!))
     throw new Error(`Midscene config does not exist: ${configPath}`);
   const definition = await loadTestProject<unknown>(configPath);
-  const artifactDir = resolveMidsceneRunDir(
-    input.projectRoot,
-    definition.output.runDir,
-  );
+  const artifactDir = resolveMidsceneRunDir(input.projectRoot);
   return runWithMidsceneRunDir(artifactDir, async () => {
     const resultDir = options.resultDir
       ? resolve(input.cwd, options.resultDir)

@@ -602,9 +602,9 @@ describe('test project config', () => {
       'output.reportFormat must be',
     ],
     [
-      'empty artifact root',
-      "output: { runDir: '  ' }",
-      'output.runDir must be non-empty',
+      'unsupported artifact root option',
+      "output: { runDir: 'artifacts' }",
+      'output.runDir is not supported',
     ],
     ['empty projects', 'projects: []', 'projects must be a non-empty array'],
     [

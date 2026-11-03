@@ -257,9 +257,10 @@ See the Report e2e guidelines in
 
 ### Artifact and logging conventions
 
-- Keep reports in `report/`, results and diagnostic records in `test-results/`,
-  and logs in `log/` under `midscene_run/`. Use `getMidsceneRunSubDir()` during
-  execution and respect the current run's root and explicit path overrides.
+- Use `MIDSCENE_RUN_DIR` to choose the artifact root (default `midscene_run/`).
+  Keep reports in `report/`, results and diagnostic records in `test-results/`,
+  and logs in `log/`. Use `getMidsceneRunSubDir()` during execution and respect
+  the current run's root and explicit path overrides.
 - Default to self-contained single HTML. Native Test owns one integrated report;
   its Agents contribute records. External reports must include their dependencies
   and remain readable after moving the directory.

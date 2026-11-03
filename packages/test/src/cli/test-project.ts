@@ -61,16 +61,13 @@ export interface ResolvedTestOptions {
 }
 
 export interface TestOutputDefinition {
-  /** Unified artifact root, relative to the Test project. Defaults to MIDSCENE_RUN_DIR or midscene_run. */
-  runDir?: string;
-  /** Explicit report location, relative to the Test project. Defaults to <runDir>/report. */
+  /** Explicit report location, relative to the Test project. Defaults to report/ under the artifact root. */
   reportDir?: string;
   /** Defaults to a self-contained HTML; external assets require HTTP preview. */
   reportFormat?: 'single-html' | 'html-and-external-assets';
 }
 
 export interface ResolvedTestOutputDefinition {
-  runDir?: string;
   reportDir?: string;
   reportFormat: 'single-html' | 'html-and-external-assets';
 }
@@ -602,11 +599,7 @@ const validateOutput = (value: unknown): ResolvedTestOutputDefinition => {
     throw new TypeError('Midscene config output must be an object.');
   }
   const candidate = (value ?? {}) as Record<string, unknown>;
-  rejectUnknownKeys(
-    candidate,
-    ['runDir', 'reportDir', 'reportFormat'],
-    'output',
-  );
+  rejectUnknownKeys(candidate, ['reportDir', 'reportFormat'], 'output');
   if (
     candidate.reportFormat !== undefined &&
     candidate.reportFormat !== 'single-html' &&
@@ -618,9 +611,6 @@ const validateOutput = (value: unknown): ResolvedTestOutputDefinition => {
   }
   return Object.freeze({
     reportFormat: candidate.reportFormat ?? 'single-html',
-    ...(candidate.runDir === undefined
-      ? {}
-      : { runDir: validateOutputPath(candidate.runDir, 'output.runDir') }),
     ...(candidate.reportDir === undefined
       ? {}
       : {

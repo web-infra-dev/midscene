@@ -177,7 +177,7 @@ MIDSCENE_MODEL_PROTOCOL="openai-responses"
 
 ## 如何配置 midscene_run 目录？
 
-Midscene 默认将报告、日志和缓存保存在 `midscene_run/`。独立脚本、旧 YAML 和 Playwright 以当前工作目录为基准；Midscene Test 以测试项目为基准，也支持 [`output.runDir`](./midscene-test/running#统一产物根与迁移)。
+Midscene 默认将报告、日志和缓存保存在 `midscene_run/`。独立脚本、旧 YAML 和 Playwright 以当前工作目录为基准，Midscene Test 以测试项目为基准。详见[产物目录](./midscene-test/running#统一产物根与迁移)。
 
 你可以通过环境变量 `MIDSCENE_RUN_DIR` 来自定义该目录的位置，支持相对路径或绝对路径：
 

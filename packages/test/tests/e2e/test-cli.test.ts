@@ -106,7 +106,7 @@ const runFailure = async (
 };
 
 describe('midscene-test CLI', () => {
-  it.each(['default', 'environment', 'config'] as const)(
+  it.each(['default', 'environment', 'absolute-environment'] as const)(
     'prints paths from the unified %s root when launched outside the project',
     async (source) => {
       const root = mkdtempSync(join(tmpdir(), 'cli-unified-root-'));
@@ -119,7 +119,6 @@ describe('midscene-test CLI', () => {
         `
         import { getMidsceneRunSubDir } from ${JSON.stringify(commonUrl)};
         export default {
-          output: ${source === 'config' ? "{runDir:'artifacts'}" : '{}'},
           nodes: [{name:'noop',execute(){ getMidsceneRunSubDir('output'); }}],
         };
       `,
@@ -131,6 +130,8 @@ describe('midscene-test CLI', () => {
       const env = { ...process.env };
       env.MIDSCENE_RUN_DIR = undefined;
       if (source === 'environment') env.MIDSCENE_RUN_DIR = 'artifacts';
+      if (source === 'absolute-environment')
+        env.MIDSCENE_RUN_DIR = join(root, 'artifacts');
       const execution = await execFileAsync(process.execPath, [cliPath, root], {
         cwd: packageRoot,
         env,
