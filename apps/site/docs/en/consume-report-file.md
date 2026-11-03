@@ -4,7 +4,7 @@ Midscene HTML report files capture the full execution history of a single Agent,
 
 Starting in v1.7.0, you can extract raw screenshots and JSON data from a report file, or convert the report into Markdown so other tools can consume it.
 
-Both `split` and `to-markdown` store images in `screenshots/` using content-based file names. Repeated images share one file, while each observation keeps its step association, timestamp and ID in JSON or Markdown. Read image paths from the exported content rather than deriving file names from screenshot IDs.
+Both `split` and `to-markdown` export images to `screenshots/` and reuse repeated images. Use the image paths provided in the exported content.
 
 ## Example
 
@@ -23,12 +23,12 @@ You can parse a report file into a Markdown file like this:
 - Cost(ms): 10451
 - Screen size: 2880 x 1536
 
-![task-1](./screenshots/<content-hash-1>.jpeg)
+![task-1](./screenshots/<image-1>.jpeg)
 
 ### Recorder
 - #1 type=screenshot, ts=2026-04-08T02:13:15.296Z, timing=after-calling
 
-![task-1](./screenshots/<content-hash-2>.jpeg)
+![task-1](./screenshots/<image-2>.jpeg)
 
 ## 2. Locate - The search input with the placeholder text "Li Weigang's Daily Life" at the top
 - Status: finished

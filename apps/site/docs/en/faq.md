@@ -185,7 +185,7 @@ There are several ways to improve the running time:
 
 ## How do I configure the midscene_run directory?
 
-Midscene saves runtime artifacts (reports, logs, cache, etc.) in the `midscene_run` directory. For standalone scripts, legacy YAML and Playwright, the default root is relative to the working directory. Midscene Test resolves it relative to the Test project and also supports `output.runDir`. See [Artifact roots and migration](./midscene-test/running#unified-artifact-root-and-migration).
+Midscene saves reports, logs, and caches in `midscene_run/` by default. Standalone scripts, legacy YAML, and Playwright use the working directory as their base. Midscene Test uses the Test project and also supports [`output.runDir`](./midscene-test/running#unified-artifact-root-and-migration).
 
 You can customize the directory location using the `MIDSCENE_RUN_DIR` environment variable, which accepts both relative and absolute paths:
 
@@ -197,16 +197,13 @@ export MIDSCENE_RUN_DIR="./my_custom_dir"
 export MIDSCENE_RUN_DIR="/tmp/midscene_output"
 ```
 
-The directory contains the following subdirectories:
+Common subdirectories:
 
 - `report/` - Agent and Midscene Test reports (self-contained HTML by default)
-- `test-results/<runId>/` - Midscene Test structured results and diagnostic records
+- `test-results/` - Execution results and diagnostic records
 - `log/` - Debug log files
 - `cache/` - Cache files (see [Caching](./caching))
-- `output/` - Business files produced during execution
-- `tmp/` - Temporary execution files
-
-Legacy YAML execution snapshots and their diagnostic images are stored together under `test-results/<recordingId>/records/`. Consecutive YAML calls on one Agent share a recording directory and keep separate snapshots. Final HTML reports remain under `report/`; external reports include their own images for delivery. Keep `records/` together when moving diagnostic snapshots so their relative image links continue to work.
+- `output/` - Files produced during execution
 
 For global runtime options, see [Runtime configuration](./reference/#runtime-configuration).
 

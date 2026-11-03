@@ -255,6 +255,12 @@ See the Report e2e guidelines in
 [English](./apps/report/e2e/README.md) or
 [中文](./apps/report/e2e/README.zh.md) for coverage and authoring guidance.
 
+### Artifact and logging conventions
+
+Before changing artifact paths, recording, report publication, exports, or logging,
+read the [artifact and logging conventions](./contributing/artifacts.md)
+([中文](./contributing/artifacts.zh.md)). The guide covers directory ownership,
+snapshot retention, publication safety, image reuse, logging, and regression scope.
 
 ### Add New Tests
 

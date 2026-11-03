@@ -62,47 +62,32 @@ pnpm exec midscene-test --help
 
 Each run generates two types of output artifacts. Their exact paths are printed at the end of the terminal output as `Summary:` and `Report:`:
 
-- **Structured result files**: By default written to `midscene_run/test-results/<runId>/` under the test root, containing machine-readable `summary.json` and human-readable `result.md`. You can customize the root results directory with `--result-dir` (each run will still create an isolated `<runId>` subdirectory underneath):
+- **Result files**: Saved in `midscene_run/test-results/<runId>/` by default, including the readable `result.md`, machine-readable `summary.json`, and diagnostic records. Set `--result-dir` to change the results root; relative paths use the command's working directory:
   ```bash
   pnpm exec midscene-test --result-dir ./test-results
   ```
-  Note: The schema of `summary.json` may evolve across versions; external tools consuming this file should align with the actual output of the installed version.
-- **HTML visual report**: The default single HTML can be opened directly in a browser after tests finish. It provides case outcomes, step screenshots, input/output arguments, error traces and Agent replay. The report directory defaults to `<runDir>/report`. An explicit `output.reportDir` remains relative to the Test project; an explicit `--result-dir` remains relative to the command working directory.
+- **HTML report**: Saved in `midscene_run/report/` by default. Open it directly in a browser to inspect case outcomes, screenshots, errors, and replay. Set `output.reportDir` to change the report directory; relative paths use the Test project as their base.
 
-Keep the complete results directory for programmatic analysis; the final report can be shared independently.
+Keep the complete results directory for troubleshooting or programmatic analysis. Use the `summary.json` fields produced by your installed version.
 
-### Unified artifact root and migration
+### Artifact directory {#unified-artifact-root-and-migration}
 
-Test keeps runtime artifacts under one root, `midscene_run` in the Test project. Set `MIDSCENE_RUN_DIR` or `output.runDir` to choose another root. Relative roots resolve from the Test project, including when the command starts elsewhere. Standalone Agent scripts, legacy YAML and Playwright use their working directory as the base; use an absolute `MIDSCENE_RUN_DIR` to share a root across commands with different working directories.
-
-```text
-midscene_run/
-  report/                 # Agent and Test reports
-  test-results/<runId>/    # summary.json, result.md, plan, operations and records
-  cache/                  # Reusable execution cache
-  log/                    # SDK diagnostics
-  output/                 # Files produced by actions
-  tmp/                    # Temporary work files
-```
+The default artifact directory is `midscene_run/` in the Test project. Reports are in `report/`; results and diagnostic records are in `test-results/`. Set `output.runDir` or `MIDSCENE_RUN_DIR` to change the artifact directory. Relative paths use the Test project as their base:
 
 ```ts
 // midscene.config.ts
 output: {
   runDir: './artifacts',
-  reportFormat: 'single-html',
 }
 ```
 
-If `MIDSCENE_RUN_DIR` and `output.runDir` are both set, they must resolve to the same directory. A conflict, empty root or unwritable output location is reported instead of redirecting files elsewhere. Concurrent Test runs keep their SDK output paths isolated.
+If `MIDSCENE_RUN_DIR` and `output.runDir` are both set, they must resolve to the same directory.
 
-For CI and analysis tools:
+In CI:
 
-- Update `.midscene/test-results` globs to `midscene_run/test-results`, or collect the configured root. Keep using `Summary:` / `Report:` and the SDK's `summaryPath`, `markdownPath` and `reportPath` fields to locate the actual files.
-- With the [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action), set its `run-directory` input to match a configured `output.runDir`. An inherited `MIDSCENE_RUN_DIR` is picked up automatically. Execution, artifact upload, Summary and publication use the same resolved root.
-- Existing `--result-dir` and `output.reportDir` overrides keep their meanings. Each result directory still contains one `<runId>` subdirectory per run. Summary references remain relative to the summary file.
-- Tools using `loadTestProject()` receive explicit path overrides in `output`; use the `runTestProject()` result for final absolute paths instead of constructing paths from configuration defaults.
-- Previous outputs stay at their original paths and are ignored during Test file discovery. New runs use the unified root. Keep old artifact trees intact when archiving them; export a report with `exportReportArtifact()` when you need an independent delivery package.
-- Preserve `records/` with the structured results for diagnosis. Share the HTML alone in default mode; upload the whole report directory in external mode. The root can include caches, logs and business outputs, so select the required subdirectories for public delivery.
+- Update collection rules from `.midscene/test-results` to `midscene_run/test-results`, or your configured results directory.
+- With the [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action), set `run-directory` to match `output.runDir`. An inherited `MIDSCENE_RUN_DIR` is picked up automatically.
+- Collect files using the printed `Summary:` / `Report:` paths or the SDK's `summaryPath`, `markdownPath`, and `reportPath`. See below for sharing reports.
 
 ### Exit codes
 

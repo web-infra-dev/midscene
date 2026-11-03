@@ -62,47 +62,32 @@ pnpm exec midscene-test --help
 
 每次运行都会生成两类产物，具体路径以终端末尾打印的 `Summary:` 和 `Report:` 为准：
 
-- **结构化结果文件**：默认写入测试根目录下的 `midscene_run/test-results/<runId>/`，包含供程序读取的 `summary.json` 和便于阅读的 `result.md`。你可以通过 `--result-dir` 修改结果根目录（每次运行仍会在其下创建独立的 `<runId>` 子目录）：
+- **结果文件**：默认位于 `midscene_run/test-results/<runId>/`，包含结果摘要 `result.md`、供程序读取的 `summary.json` 和诊断记录。通过 `--result-dir` 可修改结果根目录，相对路径以命令的工作目录为基准：
   ```bash
   pnpm exec midscene-test --result-dir ./test-results
   ```
-  注意：`summary.json` 的字段结构可能随版本演进，外部工具消费时请以当前版本的实际输出为准。
-- **HTML 可视化报告**：默认的单 HTML 可在测试结束后直接用浏览器打开，包含用例结果、步骤截图、输入输出参数、错误堆栈和 Agent 回放。报告目录默认为 `<runDir>/report`。显式设置的 `output.reportDir` 仍相对测试项目解析，`--result-dir` 仍相对命令的工作目录解析。
+- **HTML 报告**：默认位于 `midscene_run/report/`，可直接用浏览器打开，查看用例结果、步骤截图、错误和回放。通过 `output.reportDir` 可修改报告目录，相对路径以测试项目为基准。
 
-程序化分析时请保留完整结果目录；最终报告可以独立分享。
+排查问题或进行程序化分析时，请保留完整结果目录。`summary.json` 的字段以当前版本的实际输出为准。
 
-### 统一产物根与迁移
+### 产物目录 {#统一产物根与迁移}
 
-Test 将运行产物统一放在测试项目的 `midscene_run` 下。通过 `MIDSCENE_RUN_DIR` 或 `output.runDir` 可选择其他根目录。相对路径以测试项目为基准，即使从其他目录启动命令也保持一致。独立 Agent 脚本、旧 YAML 和 Playwright 以各自工作目录为基准；多个命令的工作目录不同时，可用绝对路径的 `MIDSCENE_RUN_DIR` 共享产物根。
-
-```text
-midscene_run/
-  report/                 # Agent 报告与 Test 整合报告
-  test-results/<runId>/    # summary.json、result.md、计划、操作日志和记录
-  cache/                  # 可复用的执行缓存
-  log/                    # SDK 诊断日志
-  output/                 # 操作产生的业务文件
-  tmp/                    # 临时工作文件
-```
+默认产物目录为测试项目下的 `midscene_run/`，其中 `report/` 保存报告，`test-results/` 保存结果与诊断记录。通过 `output.runDir` 或 `MIDSCENE_RUN_DIR` 可修改产物目录，相对路径以测试项目为基准：
 
 ```ts
 // midscene.config.ts
 output: {
   runDir: './artifacts',
-  reportFormat: 'single-html',
 }
 ```
 
-同时设置 `MIDSCENE_RUN_DIR` 和 `output.runDir` 时，两者必须指向同一目录。根目录冲突、为空或无法写入时会报错。并发 Test 运行会隔离各自的 SDK 产物路径。
+同时设置 `MIDSCENE_RUN_DIR` 和 `output.runDir` 时，两者必须指向同一目录。
 
-CI 和分析工具需要关注：
+在 CI 中使用时：
 
-- 将 `.midscene/test-results` 的收集规则改为 `midscene_run/test-results`，或收集配置后的根目录。建议通过终端的 `Summary:` / `Report:`，或 SDK 的 `summaryPath`、`markdownPath`、`reportPath` 获取实际路径。
-- 使用 [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action) 时，将其 `run-directory` 输入与项目的 `output.runDir` 对齐。已有 `MIDSCENE_RUN_DIR` 会自动生效；执行、Artifact 上传、Summary 和发布共用解析后的根目录。
-- 已有 `--result-dir` 和 `output.reportDir` 配置保持原有含义。结果目录仍按 `<runId>` 隔离，Summary 中的文件引用仍相对 Summary 解析。
-- 使用 `loadTestProject()` 的工具会在 `output` 中取得显式路径配置；最终绝对路径请读取 `runTestProject()` 的结果，避免根据配置默认值自行拼接。
-- 旧产物保留原路径，用例扫描会继续排除旧目录。新运行写入统一根；归档旧产物时保留完整相对层级，需要独立交付报告时使用 `exportReportArtifact()` 导出。
-- 诊断时保留结构化结果中的 `records/`。默认可单独分享 HTML；外置模式需上传整个报告目录。产物根还包含缓存、日志和业务文件，对外交付时按需选择子目录。
+- 将原先收集 `.midscene/test-results` 的规则更新为 `midscene_run/test-results`，或配置后的结果目录。
+- 使用 [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action) 时，将 `run-directory` 与 `output.runDir` 对齐；已有 `MIDSCENE_RUN_DIR` 会自动生效。
+- 按终端打印的 `Summary:` / `Report:`，或 SDK 返回的 `summaryPath`、`markdownPath`、`reportPath` 收集文件。分享报告的方式见下文。
 
 ### 退出码
 

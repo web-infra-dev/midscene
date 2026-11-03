@@ -177,7 +177,7 @@ MIDSCENE_MODEL_PROTOCOL="openai-responses"
 
 ## 如何配置 midscene_run 目录？
 
-Midscene 会将运行产物（报告、日志、缓存等）保存在 `midscene_run` 目录下。独立脚本、旧 YAML 和 Playwright 以当前工作目录为基准；Midscene Test 以测试项目为基准，也支持 `output.runDir`。参见[产物根与迁移](./midscene-test/running#统一产物根与迁移)。
+Midscene 默认将报告、日志和缓存保存在 `midscene_run/`。独立脚本、旧 YAML 和 Playwright 以当前工作目录为基准；Midscene Test 以测试项目为基准，也支持 [`output.runDir`](./midscene-test/running#统一产物根与迁移)。
 
 你可以通过环境变量 `MIDSCENE_RUN_DIR` 来自定义该目录的位置，支持相对路径或绝对路径：
 
@@ -189,16 +189,13 @@ export MIDSCENE_RUN_DIR="./my_custom_dir"
 export MIDSCENE_RUN_DIR="/tmp/midscene_output"
 ```
 
-该目录包含以下子目录：
+常用子目录：
 
 - `report/` - Agent 报告与 Midscene Test 整合报告，默认是自包含 HTML
-- `test-results/<runId>/` - Midscene Test 结构化结果与诊断记录
+- `test-results/` - 执行结果与诊断记录
 - `log/` - 调试日志文件
 - `cache/` - 缓存文件（详见 [缓存](./caching)）
-- `output/` - 执行操作产生的业务文件
-- `tmp/` - 执行过程中的临时文件
-
-旧 YAML 的执行快照及诊断图片统一保存在 `test-results/<recordingId>/records/`。同一个 Agent 连续运行 YAML 时共用记录目录，每次保留独立快照。最终 HTML 报告仍放在 `report/`，外置报告包含交付所需的图片。搬运诊断快照时，请完整保留 `records/`，以便其中的相对图片路径继续有效。
+- `output/` - 执行操作产生的文件
 
 更多全局运行参数请参考[运行时配置](./reference/#runtime-configuration)。
 
