@@ -1,3 +1,4 @@
+import { renderHome } from './home';
 import {
   type BadgeOptions,
   type BadgeStyle,
@@ -18,13 +19,13 @@ const THEMES: BadgeTheme[] = ['light', 'dark'];
 
 const USAGE = `Midscene Test badge
 
-GET /badge.svg?pass=<n>&fail=<n>[&style=flat|large|card][&theme=light|dark]
+GET /e2e?pass=<n>&fail=<n>[&style=flat|large|card][&theme=light|dark]
 
   pass, fail  required, non-negative integers
   style       flat (default, 20px), large (28px) or card (two lines)
   theme       light (default) or dark, only used by style=card
 
-Example: /badge.svg?pass=42&fail=3&style=card
+Example: /e2e?pass=42&fail=3&style=card
 `;
 
 export class BadRequestError extends Error {}
@@ -89,9 +90,18 @@ export function handleRequest(request: Request): Response {
 
   const url = new URL(request.url);
   if (url.pathname === '/') {
-    return textResponse(USAGE, 200, CACHE_CONTROL);
+    return new Response(
+      request.method === 'HEAD' ? null : renderHome(url.origin),
+      {
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-cache',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      },
+    );
   }
-  if (url.pathname !== '/badge.svg') {
+  if (url.pathname !== '/e2e') {
     return textResponse(`Not Found\n\n${USAGE}`, 404, 'no-store');
   }
 
@@ -132,14 +142,14 @@ export function withConditional(
 // `?pass=42&fail=3&style=flat` share one edge cache entry.
 export function edgeCacheKey(request: Request): Request | null {
   const url = new URL(request.url);
-  if (url.pathname !== '/badge.svg') return null;
+  if (url.pathname !== '/e2e') return null;
   let options: BadgeOptions;
   try {
     options = parseBadgeOptions(url.searchParams);
   } catch {
     return null;
   }
-  const key = new URL('/badge.svg', url.origin);
+  const key = new URL('/e2e', url.origin);
   key.searchParams.set('v', BADGE_VERSION);
   key.searchParams.set('style', options.style);
   key.searchParams.set('theme', options.theme);

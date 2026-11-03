@@ -4,7 +4,6 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_compat"],
-  "observability": { "enabled": true }
-  // Bind a custom domain when it is ready, e.g.
-  // "routes": [{ "pattern": "badge.midscenejs.com", "custom_domain": true }]
+  "observability": { "enabled": true },
+  "routes": [{ "pattern": "badge.midscenejs.com", "custom_domain": true }]
 }

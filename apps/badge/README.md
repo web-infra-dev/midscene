@@ -4,7 +4,7 @@ A Cloudflare Worker that renders Midscene Test results as an SVG badge for
 Markdown.
 
 ```md
-![Midscene Test](https://<your-domain>/badge.svg?pass=42&fail=3)
+![Midscene Test](https://<your-domain>/e2e?pass=42&fail=3)
 ```
 
 ## Query parameters

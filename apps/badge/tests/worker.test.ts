@@ -109,7 +109,7 @@ describe('renderBadge', () => {
 
 describe('handleRequest', () => {
   it('serves an svg with aggressive cache headers', async () => {
-    const res = handleRequest(get('/badge.svg?pass=42&fail=3&style=card'));
+    const res = handleRequest(get('/e2e?pass=42&fail=3&style=card'));
     expect(res.status).toBe(200);
     expect(res.headers.get('Content-Type')).toBe(
       'image/svg+xml; charset=utf-8',
@@ -121,27 +121,43 @@ describe('handleRequest', () => {
   });
 
   it('returns 400 with a reason and does not cache it', async () => {
-    const res = handleRequest(get('/badge.svg?pass=1'));
+    const res = handleRequest(get('/e2e?pass=1'));
     expect(res.status).toBe(400);
     expect(res.headers.get('Cache-Control')).toBe('no-store');
     expect(await res.text()).toContain('Missing required query parameter');
   });
 
-  it('serves usage on / and 404 elsewhere', async () => {
-    expect(await handleRequest(get('/')).text()).toContain('/badge.svg?pass=');
+  it('serves a homepage with working previews and origin-based snippets', async () => {
+    const response = handleRequest(get('/'));
+    expect(response.headers.get('Content-Type')).toBe(
+      'text/html; charset=utf-8',
+    );
+    const html = await response.text();
+    expect(html).toContain(`${ORIGIN}/e2e?pass=42&amp;fail=3`);
+    expect(html).toContain('![Midscene Test](');
+    const previews = [...html.matchAll(/<img src="([^"]+)"/g)];
+    expect(previews).toHaveLength(6);
+    for (const [, src] of previews) {
+      const badge = handleRequest(get(src.replaceAll('&amp;', '&')));
+      expect(badge.status).toBe(200);
+      expect(badge.headers.get('Content-Type')).toContain('image/svg+xml');
+    }
+    const head = handleRequest(new Request(`${ORIGIN}/`, { method: 'HEAD' }));
+    expect(head.headers.get('Content-Type')).toBe('text/html; charset=utf-8');
+    expect(await head.text()).toBe('');
     expect(handleRequest(get('/nope')).status).toBe(404);
   });
 
   it('rejects non-GET methods', () => {
     const res = handleRequest(
-      new Request(`${ORIGIN}/badge.svg?pass=1&fail=0`, { method: 'POST' }),
+      new Request(`${ORIGIN}/e2e?pass=1&fail=0`, { method: 'POST' }),
     );
     expect(res.status).toBe(405);
   });
 
   it('returns no body for HEAD', async () => {
     const res = handleRequest(
-      new Request(`${ORIGIN}/badge.svg?pass=1&fail=0`, { method: 'HEAD' }),
+      new Request(`${ORIGIN}/e2e?pass=1&fail=0`, { method: 'HEAD' }),
     );
     expect(res.status).toBe(200);
     expect(await res.text()).toBe('');
@@ -182,25 +198,25 @@ describe('worker fetch with edge cache', () => {
   });
 
   it('shares one cache entry regardless of param order or defaults', async () => {
-    await fetchBadge(get('/badge.svg?fail=3&pass=42'));
-    await fetchBadge(get('/badge.svg?pass=42&fail=3&style=flat&theme=light'));
+    await fetchBadge(get('/e2e?fail=3&pass=42'));
+    await fetchBadge(get('/e2e?pass=42&fail=3&style=flat&theme=light'));
     expect([...store.keys()]).toEqual([
-      `${ORIGIN}/badge.svg?v=${BADGE_VERSION}&style=flat&theme=light&pass=42&fail=3`,
+      `${ORIGIN}/e2e?v=${BADGE_VERSION}&style=flat&theme=light&pass=42&fail=3`,
     ]);
   });
 
   it('answers revalidation with 304', async () => {
-    const first = await fetchBadge(get('/badge.svg?pass=42&fail=3'));
+    const first = await fetchBadge(get('/e2e?pass=42&fail=3'));
     const etag = first.headers.get('ETag')!;
     const res = await fetchBadge(
-      get('/badge.svg?pass=42&fail=3', { 'If-None-Match': etag }),
+      get('/e2e?pass=42&fail=3', { 'If-None-Match': etag }),
     );
     expect(res.status).toBe(304);
     expect(res.headers.get('Cache-Control')).toBe(CACHE_CONTROL);
   });
 
   it('does not cache invalid requests', async () => {
-    const res = await fetchBadge(get('/badge.svg?pass=x&fail=0'));
+    const res = await fetchBadge(get('/e2e?pass=x&fail=0'));
     expect(res.status).toBe(400);
     expect(store.size).toBe(0);
   });
