@@ -1,0 +1,63 @@
+name: Badge service
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/badge/**'
+      - '.github/workflows/badge.yml'
+      - '.github/actions/setup-node-pnpm/**'
+      - '.github/actions/cache/**'
+      - 'scripts/rstest-coverage.ts'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+  pull_request:
+    paths:
+      - 'apps/badge/**'
+      - '.github/workflows/badge.yml'
+      - '.github/actions/setup-node-pnpm/**'
+      - '.github/actions/cache/**'
+      - 'scripts/rstest-coverage.ts'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: badge-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: ./.github/actions/setup-node-pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm exec nx test @midscene/badge
+      - run: pnpm --filter @midscene/badge typecheck
+      - run: pnpm --filter @midscene/badge exec wrangler deploy --dry-run
+
+  deploy:
+    needs: validate
+    if: github.repository == 'web-infra-dev/midscene' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: ./.github/actions/setup-node-pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Deploy badge Worker
+        run: pnpm --filter @midscene/badge run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Check public endpoints
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 --max-time 30 https://badge.midscenejs.com/ -o /dev/null
+          curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 --max-time 30 'https://badge.midscenejs.com/e2e?pass=42&fail=3' -o /dev/null

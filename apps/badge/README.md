@@ -39,10 +39,26 @@ cached the badge keep the old one for up to 24h.
 pnpm --filter @midscene/badge dev        # wrangler dev on http://localhost:8787
 npx nx test @midscene/badge
 pnpm --filter @midscene/badge typecheck
-pnpm --filter @midscene/badge run deploy     # requires `wrangler login`
 ```
 
 The logo is embedded as a base64 PNG because GitHub camo blocks external
 resources inside SVG images. `assets/logo-96.png` is a downscaled copy of
 `apps/site/docs/public/images/brand/midscene-icon.png`. After replacing it,
 run `pnpm --filter @midscene/badge generate-logo` to regenerate `src/logo.ts`.
+
+## Deployment
+
+Production is deployed by `.github/workflows/badge.yml`, not from a local
+checkout. Pull requests run tests, type checking, and a Worker bundle dry run.
+Relevant changes merged into `main` deploy automatically; the **Badge service**
+workflow also supports **Run workflow** on `main`. Other branches only validate.
+
+The workflow uses the existing repository secret `CLOUDFLARE_API_TOKEN` and
+variable `CLOUDFLARE_ACCOUNT_ID`, following the report publishing workflow.
+The token must allow Workers script deployment and custom-domain management
+for the Web Infra account and the `midscenejs.com` zone; a Pages-only token is
+not sufficient. Do not use a developer's Wrangler OAuth credentials in CI.
+
+Wrangler manages the `midscene-badge` Worker and its `badge.midscenejs.com`
+custom domain from `wrangler.jsonc`. The deployment checks both the homepage
+and `/e2e` endpoint after publishing.
