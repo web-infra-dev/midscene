@@ -4,8 +4,7 @@ import { defineConfig } from '@rspress/core';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import { pluginClientRedirects } from '@rspress/plugin-client-redirects';
-import { pluginLlms } from '@rspress/plugin-llms';
-import { pluginSitemap } from '@rspress/plugin-sitemap';
+import { pluginGetStartedPages } from './plugins/get-started-pages';
 import { getGitHubStars } from './scripts/github-stars';
 
 const SITE_URL = 'https://midscenejs.com';
@@ -51,6 +50,8 @@ export default defineConfig(async () => {
     root: path.join(__dirname, 'docs'),
     route: {
       cleanUrls: true,
+      // MDX fragments imported by pages. They are not pages themselves.
+      exclude: ['**/common/**'],
     },
     title: 'Midscene.js - AI UI Automation and E2E Testing',
     description:
@@ -105,7 +106,16 @@ export default defineConfig(async () => {
     markdown: {
       link: {
         checkDeadLinks: true,
+        // Rspress 2.1 checks anchors by default, but it does not see anchors
+        // from `<span id>`, imported MDX fragments, or headings inside JSX.
+        checkAnchors: false,
       },
+    },
+    // Render pages, including imported MDX fragments and components, to
+    // Markdown for llms.txt, llms-full.txt, and per-page .md files.
+    llms: true,
+    sitemap: {
+      siteUrl: SITE_URL,
     },
     mediumZoom: {
       selector: '.rspress-doc img:not(.no-zoom)',
@@ -715,29 +725,7 @@ export default defineConfig(async () => {
     },
     lang: 'en',
     plugins: [
-      pluginLlms([
-        {
-          llmsTxt: {
-            name: 'llms.txt',
-          },
-          llmsFullTxt: {
-            name: 'llms-full.txt',
-          },
-          include: ({ page }) => page.lang === 'en',
-        },
-        {
-          llmsTxt: {
-            name: 'zh/llms.txt',
-          },
-          llmsFullTxt: {
-            name: 'zh/llms-full.txt',
-          },
-          include: ({ page }) => page.lang === 'zh',
-        },
-      ]),
-      pluginSitemap({
-        siteUrl: 'https://midscenejs.com',
-      }),
+      pluginGetStartedPages(),
       pluginClientRedirects({
         redirects: [
           { from: '^/zh$', to: '/zh/' },

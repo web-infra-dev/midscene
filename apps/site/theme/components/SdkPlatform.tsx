@@ -2,6 +2,7 @@ import React, {
   type ReactNode,
   createContext,
   useContext,
+  useEffect,
   useId,
   useState,
 } from 'react';
@@ -25,8 +26,27 @@ function usePlatform() {
   return context;
 }
 
+export function parsePlatform(search: string): Platform | undefined {
+  const value = new URLSearchParams(search).get('platform');
+  return platforms.find((platform) => platform === value);
+}
+
+// `?platform=` preselects a platform, for example when Get started links here.
 export function SdkPlatformProvider({ children }: { children?: ReactNode }) {
-  const [platform, setPlatform] = useState<Platform>('android');
+  const [platform, setPlatformState] = useState<Platform>('android');
+
+  useEffect(() => {
+    const fromUrl = parsePlatform(window.location.search);
+    if (fromUrl) setPlatformState(fromUrl);
+  }, []);
+
+  const setPlatform = (next: Platform) => {
+    setPlatformState(next);
+    const url = new URL(window.location.href);
+    url.searchParams.set('platform', next);
+    window.history.replaceState(window.history.state, '', url);
+  };
+
   return (
     <PlatformContext.Provider value={{ platform, setPlatform }}>
       {children}

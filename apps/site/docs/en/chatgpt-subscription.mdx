@@ -1,6 +1,7 @@
 import { ModelConfigCard } from '@theme';
 import SiwcExtension from './common/siwc-extension.mdx';
 import SiwcCliLogin from './common/siwc-cli-login.mdx';
+import SiwcEnv from './common/siwc-env.mdx';
 
 # Use a ChatGPT subscription
 
@@ -24,11 +25,7 @@ Available models depend on your ChatGPT account. The examples below use `gpt-6-s
 
 Next, add the following configuration to your `.env` file. See the [model configuration guide](./model-api-setup) for how to load it into your runtime.
 
-```bash
-MIDSCENE_MODEL_AUTH_MODE="siwc"
-MIDSCENE_MODEL_NAME="gpt-6-sol"
-MIDSCENE_MODEL_FAMILY="gpt-6"
-```
+<SiwcEnv />
 
 Finally, run this command in the directory containing your `.env` file:
 

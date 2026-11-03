@@ -43,7 +43,11 @@ export {
 export { SdkPrerequisites } from './components/SdkPrerequisites';
 
 export {
-  GetStarted,
+  GetStartedLlmPicker,
+  GetStartedPathIndex,
   GetStartedStep,
+  GetStartedSwitch,
   GetStartedWhen,
 } from './components/GetStarted';
+export { GetStarted } from './components/GetStartedRoute';
+export { GetStartedCreateCommand } from './components/GetStartedCommand';

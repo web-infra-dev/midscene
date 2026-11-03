@@ -1,6 +1,7 @@
 import { ModelConfigCard } from '@theme';
 import SiwcExtension from './common/siwc-extension.mdx';
 import SiwcCliLogin from './common/siwc-cli-login.mdx';
+import SiwcEnv from './common/siwc-env.mdx';
 
 # 使用 ChatGPT 订阅
 
@@ -24,11 +25,7 @@ import SiwcCliLogin from './common/siwc-cli-login.mdx';
 
 接着，将以下配置添加到 `.env` 文件中。如何加载到运行环境，请参考[模型配置文档](./model-api-setup)。
 
-```bash
-MIDSCENE_MODEL_AUTH_MODE="siwc"
-MIDSCENE_MODEL_NAME="gpt-6-sol"
-MIDSCENE_MODEL_FAMILY="gpt-6"
-```
+<SiwcEnv />
 
 最后，在保存 `.env` 的目录中运行：
 

@@ -53,6 +53,10 @@
   }
 }
 
+.get-started-path .get-started-question {
+  animation: none;
+}
+
 .get-started-options {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -148,4 +152,17 @@
 
 .get-started-step > h2::before {
   display: none;
+}
+
+/* The model picker sits inside a step, not among the gating questions. */
+.get-started-llm-picker {
+  margin-top: 16px;
+}
+
+.get-started-path-index p {
+  margin-bottom: 4px;
+}
+
+.get-started-path-index ul {
+  margin-top: 0;
 }

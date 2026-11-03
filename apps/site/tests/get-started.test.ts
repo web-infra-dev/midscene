@@ -3,21 +3,38 @@ import { describe, expect, it } from '@rstest/core';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import {
+  getStartedPageContent,
+  getStartedPages,
+} from '../plugins/get-started-pages';
+import {
   GetStarted,
+  GetStartedLlmPicker,
+  GetStartedPathIndex,
   GetStartedStep,
+  GetStartedSwitch,
   GetStartedWhen,
 } from '../theme/components/GetStarted';
 import {
   type CompleteSelection,
+  allPaths,
+  defaultLlm,
+  getStartedRoute,
   isComplete,
+  llmLabels,
   llms,
   models,
+  parsePathSlug,
   parseSelection,
+  pathDescription,
+  pathSlug,
+  pathTitle,
   planSteps,
   platforms,
   scenes,
   serializeSelection,
   stepIds,
+  testCreateCommand,
+  zhJoin,
 } from '../theme/components/get-started-plan';
 
 const combinations: CompleteSelection[] = scenes.flatMap((scene) =>
@@ -64,17 +81,22 @@ describe('get started plan', () => {
       if (!devicePlayground) {
         expect(['install-extension', 'install-node']).toContain(steps[0]);
       }
-      const playground = selection.scene === 'playground';
-      expect(steps.includes('next-steps')).toBe(!playground);
+      expect(steps.at(-1)).toBe('next-steps');
       expect(
         steps.filter((id) => modelSteps.includes(id as never)),
       ).toHaveLength(1);
       expect(
         steps.filter((id) => deviceSteps.includes(id as never)),
       ).toHaveLength(selection.platform === 'web' ? 0 : 1);
-      expect(finalSteps[selection.scene]).toContain(
-        steps.at(playground ? -1 : -2),
-      );
+      expect(finalSteps[selection.scene]).toContain(steps.at(-2));
+      // A Test project exists before the model step, so the model values go
+      // straight into its .env file.
+      if (selection.scene === 'test') {
+        const modelIndex = steps.findIndex((id) =>
+          modelSteps.includes(id as never),
+        );
+        expect(steps.indexOf('test-create')).toBe(modelIndex - 1);
+      }
     });
   }
 
@@ -92,11 +114,70 @@ describe('get started plan', () => {
     }
   });
 
-  it('asks for a model only on the API Key path', () => {
+  it('does not wait for a model choice before planning steps', () => {
     const base = { scene: 'test', platform: 'android' } as const;
     expect(isComplete({ ...base, model: 'chatgpt' })).toBe(true);
-    expect(isComplete({ ...base, model: 'api-key' })).toBe(false);
-    expect(isComplete({ ...base, model: 'api-key', llm: 'gpt' })).toBe(true);
+    expect(isComplete({ ...base, model: 'api-key' })).toBe(true);
+    expect(isComplete({ scene: 'test', platform: 'android' })).toBe(false);
+  });
+
+  it('builds the create command for each platform', () => {
+    expect(testCreateCommand('harmonyos')).toContain('--platform harmony \\');
+    expect(testCreateCommand('desktop')).toContain('--platform computer \\');
+    for (const platform of platforms) {
+      expect(testCreateCommand(platform)).toMatch(
+        /^pnpm dlx @midscene\/test create my-tests \\\n.*\n {2}--package-manager pnpm\ncd my-tests$/,
+      );
+    }
+  });
+
+  it('gives every setup path its own route', () => {
+    expect(allPaths).toHaveLength(
+      platforms.length * scenes.length * models.length,
+    );
+    const slugs = allPaths.map(pathSlug);
+    expect(new Set(slugs).size).toBe(slugs.length);
+    for (const path of allPaths) {
+      expect(parsePathSlug(pathSlug(path))).toEqual(path);
+    }
+    expect(parsePathSlug('web-unknown-chatgpt')).toBeUndefined();
+    const path = {
+      platform: 'harmonyos',
+      scene: 'sdk',
+      model: 'api-key',
+    } as const;
+    expect(getStartedRoute('en', path)).toBe(
+      '/get-started/harmonyos-sdk-api-key',
+    );
+    expect(getStartedRoute('zh', path)).toBe(
+      '/zh/get-started/harmonyos-sdk-api-key',
+    );
+    expect(getStartedRoute('zh')).toBe('/zh/get-started');
+  });
+
+  it('titles each path with the runner it uses', () => {
+    expect(
+      pathTitle('en', { platform: 'web', scene: 'sdk', model: 'chatgpt' }),
+    ).toBe('Get started: Web · Playwright Test · ChatGPT subscription');
+    expect(
+      pathTitle('zh', { platform: 'desktop', scene: 'sdk', model: 'api-key' }),
+    ).toBe('开始使用：桌面端 · Vitest · 模型 API Key');
+    expect(
+      pathDescription('zh', {
+        platform: 'desktop',
+        scene: 'sdk',
+        model: 'api-key',
+      }),
+    ).toBe(
+      '在桌面端上通过 Vitest 和模型 API Key 配置 Midscene 的完整步骤，最后完成一次可查看结果的运行。',
+    );
+  });
+
+  it('spaces Chinese and Latin text but not Chinese punctuation', () => {
+    expect(zhJoin('在', 'Android', '上使用', '**Vitest**', '、通过')).toBe(
+      '在 Android 上使用 **Vitest**、通过',
+    );
+    expect(zhJoin('在', '**桌面端**', '上')).toBe('在**桌面端**上');
   });
 
   it('reads and writes the selection in the URL query', () => {
@@ -128,7 +209,10 @@ describe('get started pages', () => {
   for (const lang of ['en', 'zh'] as const) {
     it(`defines every planned step in the ${lang} page order`, () => {
       const page = readFileSync(
-        new URL(`../docs/${lang}/get-started.mdx`, import.meta.url),
+        new URL(
+          `../docs/${lang}/common/get-started-steps.mdx`,
+          import.meta.url,
+        ),
         'utf8',
       );
       const ids = Array.from(
@@ -136,6 +220,22 @@ describe('get started pages', () => {
         (match) => match[1],
       );
       expect(ids).toEqual([...stepIds]);
+
+      // The model picker lives in the API Key step.
+      const apiKeyStep = page.slice(
+        page.indexOf('<GetStartedStep id="model-api-key">'),
+        page.indexOf('<GetStartedStep id="model-chatgpt-extension">'),
+      );
+      expect(apiKeyStep).toContain('<GetStartedLlmPicker />');
+
+      // The JavaScript path hands off to the Vitest guide with the platform
+      // preselected.
+      for (const platform of platforms.filter((value) => value !== 'web')) {
+        expect(page).toContain(`(../sdk/vitest?platform=${platform})`);
+      }
+      // Playground readers can move on to the other usages.
+      expect(page).toContain('<GetStartedSwitch scene="test">');
+      expect(page).toContain('<GetStartedSwitch scene="sdk">');
 
       // Every model choice links to its section and reuses the shared card.
       const setup = readFileSync(
@@ -150,15 +250,17 @@ describe('get started pages', () => {
       for (const id of choices) {
         expect(setup).toContain(`{#${id}}`);
         expect(setup).toContain(`./common/model-cards/${id}.mdx`);
-        expect(page).toContain(`./common/model-cards/${id}.mdx`);
+        expect(page).toContain(`./model-cards/${id}.mdx`);
       }
-      for (const [, fragment] of page.matchAll(
-        /from '\.\/(common\/[^']+\.mdx)'/g,
-      )) {
+      for (const [, fragment] of page.matchAll(/from '\.\/([^']+\.mdx)'/g)) {
         expect(() =>
-          readFileSync(new URL(`../docs/${lang}/${fragment}`, import.meta.url)),
+          readFileSync(
+            new URL(`../docs/${lang}/common/${fragment}`, import.meta.url),
+          ),
         ).not.toThrow();
       }
+      // Links in the fragment are relative to common/.
+      expect(page).not.toMatch(/\]\(\.\/(?!#)/);
     });
   }
 });
@@ -203,7 +305,7 @@ describe('get started component', () => {
       model: 'chatgpt',
     };
     const html = renderToStaticMarkup(
-      createElement(GetStarted, { lang: 'zh', initialSelection: selection }, [
+      createElement(GetStarted, { lang: 'zh', path: selection }, [
         ...steps,
         createElement(
           GetStartedWhen,
@@ -223,12 +325,70 @@ describe('get started component', () => {
     }
     expect(html).toContain('when:android');
     expect(html).not.toContain('when:web');
-    expect(html).toContain('下方已列出你的配置步骤。');
-    expect(html).not.toContain(`${planned.length} 个步骤`);
+    // A path page shows its steps, not the prompt to answer the questions.
+    expect(html).not.toContain('get-started-status');
     expect(html).toContain('第 1 步</p>step:install-node<');
     expect(html).toContain(`第 ${planned.length} 步</p>step:next-steps<`);
     expect(html).toContain('桌面端');
     expect(html.match(/checked=""/g)).toHaveLength(3);
+  });
+
+  it('links to another usage with the same platform and model', () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        GetStarted,
+        {
+          lang: 'en',
+          path: { scene: 'playground', platform: 'ios', model: 'api-key' },
+        },
+        createElement(
+          GetStartedStep,
+          { id: 'next-steps' },
+          createElement(GetStartedSwitch, { scene: 'test' }, 'to-test'),
+        ),
+      ),
+    );
+    // The model shown on this page carries over to the next page.
+    expect(html).toContain(
+      `href="/get-started/ios-test-api-key?llm=${defaultLlm}">to-test</a>`,
+    );
+  });
+
+  it('shows no steps on the entry page', () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        GetStarted,
+        {
+          lang: 'en',
+          initialSelection: {
+            scene: 'test',
+            platform: 'web',
+            model: 'chatgpt',
+          },
+        },
+        steps,
+      ),
+    );
+    expect(html).not.toContain('step:');
+    expect(html).toContain('get-started-status');
+  });
+
+  it('links every setup path from the entry page index', () => {
+    for (const lang of ['en', 'zh'] as const) {
+      const html = renderToStaticMarkup(
+        createElement(GetStartedPathIndex, { lang }),
+      );
+      const links = Array.from(
+        html.matchAll(/href="([^"]+)"/g),
+        (match) => match[1],
+      );
+      expect(links).toEqual(
+        expect.arrayContaining(
+          allPaths.map((path) => getStartedRoute(lang, path)),
+        ),
+      );
+      expect(links).toHaveLength(allPaths.length);
+    }
   });
 
   it('reports steps placed outside GetStarted', () => {
@@ -247,20 +407,14 @@ describe('get started model question', () => {
         GetStarted,
         {
           lang: 'en',
-          initialSelection: {
-            scene: 'test',
-            platform: 'android',
-            model: 'api-key',
-            llm,
-          },
+          path: { scene: 'test', platform: 'android', model: 'api-key', llm },
         },
-        createElement(
-          GetStartedStep,
-          { id: 'model-api-key' },
-          llms.map((id) =>
+        createElement(GetStartedStep, { id: 'model-api-key' }, [
+          createElement(GetStartedLlmPicker, { key: 'picker' }),
+          ...llms.map((id) =>
             createElement(GetStartedWhen, { key: id, llm: id }, `card:${id}`),
           ),
-        ),
+        ]),
       ),
     );
 
@@ -287,12 +441,17 @@ describe('get started model question', () => {
     );
   });
 
-  it('adds a model question and waits for an answer', () => {
+  it('shows the steps with a default model and picks inside the model step', () => {
     const html = render();
+    // Three gating questions plus the picker inside the step.
     expect(html.match(/<fieldset/g)).toHaveLength(4);
-    expect(html).toContain('Which model do you want to use?');
-    expect(html).toContain('Qwen3.7 Plus');
-    expect(html).not.toContain('card:');
+    expect(html.match(/get-started-question-pending/g)).toBeNull();
+    expect(html.indexOf('Step 1')).toBeLessThan(
+      html.indexOf('Which model do you want to use?'),
+    );
+    expect(html).toContain(llmLabels.qwen);
+    expect(html).toContain(`card:${defaultLlm}`);
+    expect(html.match(/card:/g)).toHaveLength(1);
   });
 
   it('shows only the selected model card', () => {
@@ -301,7 +460,7 @@ describe('get started model question', () => {
     expect(html.match(/card:/g)).toHaveLength(1);
   });
 
-  it('skips the model question for a ChatGPT subscription', () => {
+  it('skips the model picker for a ChatGPT subscription', () => {
     const html = renderToStaticMarkup(
       createElement(GetStarted, {
         lang: 'en',
@@ -310,5 +469,26 @@ describe('get started model question', () => {
     );
     expect(html.match(/<fieldset/g)).toHaveLength(3);
     expect(html).not.toContain('Which model do you want to use?');
+  });
+});
+
+describe('get started path pages', () => {
+  it('generates one page per path and language', () => {
+    const pages = getStartedPages();
+    expect(pages).toHaveLength(allPaths.length * 2);
+    expect(new Set(pages.map((page) => page.routePath)).size).toBe(
+      pages.length,
+    );
+  });
+
+  it('renders the shared steps for a fixed path', () => {
+    const path = { platform: 'ios', scene: 'test', model: 'chatgpt' } as const;
+    const content = getStartedPageContent('zh', path);
+    expect(content).toContain(`title: "${pathTitle('zh', path)}"`);
+    expect(content).toContain(`# ${pathTitle('zh', path)} {#get-started}`);
+    expect(content).toContain(`path={${JSON.stringify(path)}}`);
+    const steps = content.match(/import Steps from "([^"]+)";/)?.[1];
+    expect(steps).toMatch(/docs\/zh\/common\/get-started-steps\.mdx$/);
+    expect(() => readFileSync(steps as string)).not.toThrow();
   });
 });

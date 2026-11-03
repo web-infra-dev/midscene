@@ -103,6 +103,9 @@ model list:
   your needs and budget" section).
 - The homepage model option card: `modelSupportedDesc` in
   `apps/site/theme/i18n/enUS.ts` and `apps/site/theme/i18n/zhCN.ts`.
+- The Get started model picker: `llms` and `llmLabels` in
+  `apps/site/theme/components/get-started-plan.ts`, plus the shared cards
+  under `apps/site/docs/{en,zh}/common/model-cards/`.
 
 Keep these spots in sync and consistent with the strategy/config docs.
 Leave historical references in `changelog.mdx` alone, and keep illustrative

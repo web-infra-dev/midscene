@@ -21,6 +21,23 @@ export const llms = [
   'ant-ling',
 ] as const;
 
+// Display names for the model picker. They are the same in every language.
+// Keep them in sync with the recommended models in model-api-setup.mdx.
+export const llmLabels: Record<(typeof llms)[number], string> = {
+  'doubao-seed-model': 'Doubao-Seed-2.1 Turbo',
+  qwen: 'Qwen3.7 Plus',
+  deepseek: 'DeepSeek V4.1 Flash',
+  gemini: 'Gemini 3.5 Flash',
+  gpt: 'GPT-6 Sol',
+  kimi: 'Kimi K3',
+  'xiaomi-mimo': 'MiMo V2.6 Pro',
+  'glm-v': 'GLM-5V-Turbo',
+  'ant-ling': 'Ling-3.0-flash-VL',
+};
+
+// Shown until the reader picks another model in the model step.
+export const defaultLlm = llms[0];
+
 export type Scene = (typeof scenes)[number];
 export type Platform = (typeof platforms)[number];
 export type ModelAccess = (typeof models)[number];
@@ -30,8 +47,8 @@ export interface Selection {
   scene?: Scene;
   platform?: Platform;
   model?: ModelAccess;
-  // Only asked for the API Key path. It refines the model step and does not
-  // affect which steps are planned.
+  // Picked inside the API Key model step. It only changes which model card is
+  // shown, so it is not one of the questions that gate the steps.
   llm?: Llm;
 }
 
@@ -48,12 +65,14 @@ export const stepIds = [
   'connect-ios',
   'connect-harmonyos',
   'prepare-desktop',
+  // Created before the model step so the model values go straight into the
+  // project's .env file.
+  'test-create',
   'model-api-key',
   'model-chatgpt-extension',
   'model-chatgpt-cli',
   'playground-web',
   'playground-device',
-  'test-create',
   'test-configure',
   'test-run',
   'sdk-integrate',
@@ -72,12 +91,34 @@ const deviceSteps: Record<Exclude<Platform, 'web'>, StepId> = {
 export function isComplete(
   selection: Selection,
 ): selection is CompleteSelection {
-  return Boolean(
-    selection.scene &&
-      selection.platform &&
-      selection.model &&
-      (selection.model !== 'api-key' || selection.llm),
-  );
+  return Boolean(selection.scene && selection.platform && selection.model);
+}
+
+// Fills in the model that the API Key step shows before the reader picks one.
+export function resolveSelection(
+  selection: CompleteSelection,
+): CompleteSelection {
+  return selection.model === 'api-key' && !selection.llm
+    ? { ...selection, llm: defaultLlm }
+    : selection;
+}
+
+// `@midscene/test create --platform` values.
+const testPlatforms: Record<Platform, string> = {
+  web: 'web',
+  android: 'android',
+  ios: 'ios',
+  harmonyos: 'harmony',
+  desktop: 'computer',
+};
+
+export function testCreateCommand(platform: Platform) {
+  return [
+    'pnpm dlx @midscene/test create my-tests \\',
+    `  --platform ${testPlatforms[platform]} \\`,
+    '  --package-manager pnpm',
+    'cd my-tests',
+  ].join('\n');
 }
 
 export function planSteps(selection: CompleteSelection): StepId[] {
@@ -96,6 +137,10 @@ export function planSteps(selection: CompleteSelection): StepId[] {
     steps.push(deviceSteps[platform]);
   }
 
+  if (scene === 'test') {
+    steps.push('test-create');
+  }
+
   if (model === 'api-key') {
     steps.push('model-api-key');
   } else {
@@ -106,14 +151,12 @@ export function planSteps(selection: CompleteSelection): StepId[] {
   if (scene === 'playground') {
     steps.push(inExtension ? 'playground-web' : 'playground-device');
   } else if (scene === 'test') {
-    steps.push('test-create', 'test-configure', 'test-run');
+    steps.push('test-configure', 'test-run');
   } else {
     steps.push('sdk-integrate');
   }
 
-  if (scene !== 'playground') {
-    steps.push('next-steps');
-  }
+  steps.push('next-steps');
   return steps;
 }
 
@@ -176,4 +219,125 @@ export function matchesSelection(
       (selection.llm !== undefined &&
         matchesValue(condition.llm, selection.llm)))
   );
+}
+
+export type Lang = 'en' | 'zh';
+
+// Every complete selection has its own page, so the static HTML and Markdown
+// of a page contain exactly one setup path.
+export const allPaths: CompleteSelection[] = platforms.flatMap((platform) =>
+  scenes.flatMap((scene) =>
+    models.map((model) => ({ platform, scene, model })),
+  ),
+);
+
+export function pathSlug({ platform, scene, model }: CompleteSelection) {
+  return `${platform}-${scene}-${model}`;
+}
+
+export function parsePathSlug(slug: string): CompleteSelection | undefined {
+  return allPaths.find((path) => pathSlug(path) === slug);
+}
+
+export function getStartedRoute(lang: Lang, path?: CompleteSelection) {
+  const base = `${lang === 'zh' ? '/zh' : ''}/get-started`;
+  return path ? `${base}/${pathSlug(path)}` : base;
+}
+
+// Labels for page titles, descriptions, and the path index. The questions use
+// longer option labels in GetStarted.tsx.
+export const pathLabels = {
+  en: {
+    platforms: {
+      web: 'Web',
+      android: 'Android',
+      ios: 'iOS',
+      harmonyos: 'HarmonyOS',
+      desktop: 'Desktop',
+    } satisfies Record<Platform, string>,
+    scenes: {
+      playground: 'Playground',
+      test: 'Midscene Test',
+      sdk: 'JavaScript SDK',
+    } satisfies Record<Scene, string>,
+    models: {
+      chatgpt: 'ChatGPT subscription',
+      'api-key': 'Model API Key',
+    } satisfies Record<ModelAccess, string>,
+  },
+  zh: {
+    platforms: {
+      web: 'Web',
+      android: 'Android',
+      ios: 'iOS',
+      harmonyos: 'HarmonyOS',
+      desktop: '桌面端',
+    } satisfies Record<Platform, string>,
+    scenes: {
+      playground: 'Playground',
+      test: 'Midscene Test',
+      sdk: 'JavaScript SDK',
+    } satisfies Record<Scene, string>,
+    models: {
+      chatgpt: 'ChatGPT 订阅',
+      'api-key': '模型 API Key',
+    } satisfies Record<ModelAccess, string>,
+  },
+};
+
+// The SDK path uses Playwright Test on Web and Vitest on devices.
+export function sceneLabel(
+  lang: Lang,
+  { platform, scene }: Pick<CompleteSelection, 'platform' | 'scene'>,
+) {
+  if (scene !== 'sdk') return pathLabels[lang].scenes[scene];
+  return platform === 'web' ? 'Playwright Test' : 'Vitest';
+}
+
+export function pathTitle(lang: Lang, path: CompleteSelection) {
+  const labels = pathLabels[lang];
+  const parts = [
+    labels.platforms[path.platform],
+    sceneLabel(lang, path),
+    labels.models[path.model],
+  ].join(' · ');
+  return lang === 'zh' ? `开始使用：${parts}` : `Get started: ${parts}`;
+}
+
+const han = /[\u4e00-\u9fff]/;
+const latin = /[A-Za-z0-9`]/;
+
+// Joins Chinese copy with a space only between Chinese characters and Latin
+// text, ignoring Markdown emphasis markers at the boundary.
+export function zhJoin(...parts: string[]) {
+  return parts.reduce((text, part) => {
+    const end = text.replace(/\*+$/, '').slice(-1);
+    const start = part.replace(/^\*+/, '').charAt(0);
+    const space =
+      (han.test(end) && latin.test(start)) ||
+      (latin.test(end) && han.test(start))
+        ? ' '
+        : '';
+    return `${text}${space}${part}`;
+  }, '');
+}
+
+export function pathDescription(lang: Lang, path: CompleteSelection) {
+  const labels = pathLabels[lang];
+  const platform = labels.platforms[path.platform];
+  const scene = sceneLabel(lang, path);
+  const model = labels.models[path.model];
+  return lang === 'zh'
+    ? zhJoin(
+        '在',
+        platform,
+        '上通过',
+        scene,
+        '和',
+        model,
+        '配置',
+        'Midscene',
+        '的完整步骤，最后完成一次可查看结果的运行。',
+      )
+    : `Step-by-step setup for Midscene on ${platform} with ${scene} and a ${model}, ending with a first run whose result you can inspect.`;
 }

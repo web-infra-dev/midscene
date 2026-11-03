@@ -8,6 +8,7 @@ import React, {
 } from 'react';
 import {
   type CompleteSelection,
+  type Lang,
   type Llm,
   type ModelAccess,
   type Platform,
@@ -15,19 +16,24 @@ import {
   type Selection,
   type SelectionCondition,
   type StepId,
+  defaultLlm,
+  getStartedRoute,
   isComplete,
+  llmLabels,
   llms,
   matchesSelection,
   models,
   parseSelection,
+  pathLabels,
+  pathSlug,
   planSteps,
   platforms,
+  resolveSelection,
+  sceneLabel,
   scenes,
   serializeSelection,
 } from './get-started-plan';
 import './GetStarted.css';
-
-type Lang = 'en' | 'zh';
 
 interface Option {
   label: string;
@@ -73,25 +79,23 @@ const copy = {
     sdkWeb: 'Add visual actions and assertions to Playwright Test.',
     sdkDevice: 'Add visual actions and assertions to Vitest.',
     choose: 'Choose one',
-    pending: 'Answer the questions above to see your setup steps.',
-    // Announced to screen readers only; the steps themselves are the visible answer.
-    ready: 'Your setup steps are shown below.',
+    pending:
+      'Answer the questions above to open your setup steps, or pick a path from the list below.',
     step: (index: number) => `Step ${index}`,
     llm: 'Which model do you want to use?',
-    llms: {
-      'doubao-seed-model': {
-        label: 'Doubao-Seed-2.1 Turbo',
-        description: 'ByteDance',
-      },
-      qwen: { label: 'Qwen3.7 Plus', description: 'Alibaba' },
-      deepseek: { label: 'DeepSeek V4.1 Flash', description: 'DeepSeek' },
-      gemini: { label: 'Gemini 3.5 Flash', description: 'Google' },
-      gpt: { label: 'GPT-6 Sol', description: 'OpenAI' },
-      kimi: { label: 'Kimi K3', description: 'Moonshot AI' },
-      'xiaomi-mimo': { label: 'MiMo V2.6 Pro', description: 'Xiaomi' },
-      'glm-v': { label: 'GLM-5V-Turbo', description: 'Zhipu AI' },
-      'ant-ling': { label: 'Ling-3.0-flash-VL', description: 'Ant Group' },
-    } satisfies Record<Llm, Option>,
+    otherModels: (current: string) =>
+      `The configuration below is for ${current}. Other recommended models:`,
+    vendors: {
+      'doubao-seed-model': 'ByteDance',
+      qwen: 'Alibaba',
+      deepseek: 'DeepSeek',
+      gemini: 'Google',
+      gpt: 'OpenAI',
+      kimi: 'Moonshot AI',
+      'xiaomi-mimo': 'Xiaomi',
+      'glm-v': 'Zhipu AI',
+      'ant-ling': 'Ant Group',
+    } satisfies Record<Llm, string>,
   },
   zh: {
     scene: '你想先做什么？',
@@ -130,24 +134,23 @@ const copy = {
     sdkWeb: '在 Playwright Test 中加入视觉操作与断言。',
     sdkDevice: '在 Vitest 中加入视觉操作与断言。',
     choose: '请选择',
-    pending: '回答上面的问题后，这里会列出你需要完成的步骤。',
-    ready: '下方已列出你的配置步骤。',
+    pending:
+      '回答上面的问题即可打开对应的配置步骤，也可以直接从下方列表中选择。',
     step: (index: number) => `第 ${index} 步`,
     llm: '使用哪个模型？',
-    llms: {
-      'doubao-seed-model': {
-        label: 'Doubao-Seed-2.1 Turbo',
-        description: '字节跳动',
-      },
-      qwen: { label: 'Qwen3.7 Plus', description: '阿里巴巴' },
-      deepseek: { label: 'DeepSeek V4.1 Flash', description: '深度求索' },
-      gemini: { label: 'Gemini 3.5 Flash', description: 'Google' },
-      gpt: { label: 'GPT-6 Sol', description: 'OpenAI' },
-      kimi: { label: 'Kimi K3', description: '月之暗面' },
-      'xiaomi-mimo': { label: 'MiMo V2.6 Pro', description: '小米' },
-      'glm-v': { label: 'GLM-5V-Turbo', description: '智谱' },
-      'ant-ling': { label: 'Ling-3.0-flash-VL', description: '蚂蚁集团' },
-    } satisfies Record<Llm, Option>,
+    otherModels: (current: string) =>
+      `下方是 ${current} 的配置。其他推荐模型：`,
+    vendors: {
+      'doubao-seed-model': '字节跳动',
+      qwen: '阿里巴巴',
+      deepseek: '深度求索',
+      gemini: 'Google',
+      gpt: 'OpenAI',
+      kimi: '月之暗面',
+      'xiaomi-mimo': '小米',
+      'glm-v': '智谱',
+      'ant-ling': '蚂蚁集团',
+    } satisfies Record<Llm, string>,
   },
 };
 
@@ -155,9 +158,12 @@ const GetStartedContext = createContext<{
   lang: Lang;
   selection: CompleteSelection;
   steps: StepId[];
+  selectLlm: (llm: Llm) => void;
+  routeOf: (selection: CompleteSelection) => string;
+  navigate: Navigate;
 } | null>(null);
 
-function useGetStarted() {
+export function useGetStarted() {
   const context = useContext(GetStartedContext);
   if (!context) {
     throw new Error('Get started steps must be inside GetStarted');
@@ -172,6 +178,7 @@ function Question<T extends string>({
   selected,
   onSelect,
   choose,
+  className,
 }: {
   legend: string;
   values: readonly T[];
@@ -179,13 +186,14 @@ function Question<T extends string>({
   selected?: T;
   onSelect: (value: T) => void;
   choose: string;
+  className?: string;
 }) {
   const name = useId();
   // Questions appear one at a time, so the unanswered one is the next to answer.
   const pending = selected === undefined;
   return (
     <fieldset
-      className={`get-started-question${pending ? ' get-started-question-pending' : ''}`}
+      className={`get-started-question${pending ? ' get-started-question-pending' : ''}${className ? ` ${className}` : ''}`}
     >
       <legend>
         {legend}
@@ -214,26 +222,76 @@ function Question<T extends string>({
   );
 }
 
+type Navigate = (to: string, options?: { replace?: boolean }) => void;
+
+const defaultNavigate: Navigate = (to, options) => {
+  if (options?.replace) window.location.replace(to);
+  else window.location.assign(to);
+};
+
+// SSG-MD renders pages to Markdown for llms.txt and the .md files. The
+// questions are interactive only, so they are left out of that output.
+function isSsgMd() {
+  return Boolean(import.meta.env.SSG_MD);
+}
+
+// In the Markdown output, link to the Markdown version of other pages, the
+// same way Rspress rewrites links written in MDX.
+function docHref(route: string, hash?: string) {
+  const target = isSsgMd() ? `${route}.md` : route;
+  return hash ? `${target}#${hash}` : target;
+}
+
 export function GetStarted({
   lang,
+  path,
   initialSelection,
+  navigate = defaultNavigate,
   children,
 }: {
   lang: Lang;
-  // Used by tests; in the browser the selection comes from the URL query.
+  // Set on a path page. Its steps are rendered into the static HTML.
+  path?: CompleteSelection;
+  // Used by tests of the entry page; in the browser it comes from the URL query.
   initialSelection?: Selection;
+  navigate?: Navigate;
   children?: ReactNode;
 }) {
   const text = copy[lang];
-  const [selection, setSelection] = useState<Selection>(initialSelection ?? {});
+  const [selection, setSelection] = useState<Selection>(
+    path ?? initialSelection ?? {},
+  );
+  const slug = path ? pathSlug(path) : undefined;
 
+  const routeOf = (next: CompleteSelection) => {
+    const route = getStartedRoute(lang, next);
+    return next.model === 'api-key' && next.llm
+      ? `${route}?llm=${next.llm}`
+      : route;
+  };
+
+  // Depend on the slug, not the `path` object, which MDX recreates on render.
   useEffect(() => {
-    if (!initialSelection) {
-      setSelection(parseSelection(window.location.search));
+    const fromUrl = parseSelection(window.location.search);
+    if (path) {
+      // A path page only keeps the model choice in its query.
+      if (fromUrl.llm) setSelection({ ...path, llm: fromUrl.llm });
+      return;
     }
-  }, [initialSelection]);
+    if (initialSelection) return;
+    // Older links put the whole selection in the query of the entry page.
+    if (isComplete(fromUrl)) {
+      navigate(routeOf(fromUrl), { replace: true });
+      return;
+    }
+    setSelection(fromUrl);
+  }, [slug]);
 
   const update = (next: Selection) => {
+    if (isComplete(next)) {
+      navigate(routeOf(next));
+      return;
+    }
     setSelection(next);
     const { pathname, search, hash } = window.location;
     window.history.replaceState(
@@ -243,77 +301,82 @@ export function GetStarted({
     );
   };
 
-  const complete = isComplete(selection);
-  const steps = complete ? planSteps(selection) : [];
+  const selectLlm = (llm: Llm) => {
+    setSelection({ ...selection, llm });
+    const { pathname, search, hash } = window.location;
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${pathname}${serializeSelection(search, { llm })}${hash}`,
+    );
+  };
+
+  const active =
+    path && isComplete(selection) ? resolveSelection(selection) : undefined;
+  const steps = active ? planSteps(active) : [];
+  const ssgMd = isSsgMd();
 
   return (
-    <div className="get-started">
-      <Question
-        legend={text.platform}
-        values={platforms}
-        options={text.platforms}
-        selected={selection.platform}
-        onSelect={(platform) => update({ ...selection, platform })}
-        choose={text.choose}
-      />
-      {selection.platform ? (
-        <Question
-          legend={text.scene}
-          values={scenes}
-          options={{
-            ...text.scenes,
-            // Name the runner that the chosen platform uses.
-            sdk: {
-              ...text.scenes.sdk,
-              description:
-                selection.platform === 'web' ? text.sdkWeb : text.sdkDevice,
-            },
-          }}
-          selected={selection.scene}
-          onSelect={(scene) => update({ ...selection, scene })}
-          choose={text.choose}
-        />
-      ) : null}
-      {selection.scene && selection.platform ? (
-        <Question
-          legend={text.model}
-          values={models}
-          options={text.models}
-          selected={selection.model}
-          onSelect={(model) => update({ ...selection, model })}
-          choose={text.choose}
-        />
-      ) : null}
-      {selection.scene &&
-      selection.platform &&
-      selection.model === 'api-key' ? (
-        <Question
-          legend={text.llm}
-          values={llms}
-          options={text.llms}
-          selected={selection.llm}
-          onSelect={(llm) => update({ ...selection, llm })}
-          choose={text.choose}
-        />
-      ) : null}
-      <p
-        className={
-          complete ? 'get-started-visually-hidden' : 'get-started-status'
-        }
-        aria-live="polite"
-      >
-        {complete ? text.ready : text.pending}
-      </p>
-      {/* Keep this container mounted: the Rspress outline only rescans when an
-          inserted node is a heading or its direct parent, so each step section
-          must be inserted on its own. */}
-      <div className="get-started-steps">
-        {complete ? (
-          <GetStartedContext.Provider value={{ lang, selection, steps }}>
+    // Path pages open with their answers set, so only the entry page animates
+    // questions in as they are answered.
+    <div className={`get-started${path ? ' get-started-path' : ''}`}>
+      {ssgMd ? null : (
+        <>
+          <Question
+            legend={text.platform}
+            values={platforms}
+            options={text.platforms}
+            selected={selection.platform}
+            onSelect={(platform) => update({ ...selection, platform })}
+            choose={text.choose}
+          />
+          {selection.platform ? (
+            <Question
+              legend={text.scene}
+              values={scenes}
+              options={{
+                ...text.scenes,
+                // Name the runner that the chosen platform uses.
+                sdk: {
+                  ...text.scenes.sdk,
+                  description:
+                    selection.platform === 'web' ? text.sdkWeb : text.sdkDevice,
+                },
+              }}
+              selected={selection.scene}
+              onSelect={(scene) => update({ ...selection, scene })}
+              choose={text.choose}
+            />
+          ) : null}
+          {selection.scene && selection.platform ? (
+            <Question
+              legend={text.model}
+              values={models}
+              options={text.models}
+              selected={selection.model}
+              onSelect={(model) => update({ ...selection, model })}
+              choose={text.choose}
+            />
+          ) : null}
+          {active ? null : <p className="get-started-status">{text.pending}</p>}
+        </>
+      )}
+      {active ? (
+        <div className="get-started-steps">
+          <GetStartedContext.Provider
+            value={{
+              lang,
+              selection: active,
+              steps,
+              selectLlm,
+              routeOf,
+              navigate,
+            }}
+          >
             {children}
           </GetStartedContext.Provider>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -343,5 +406,117 @@ export function GetStartedWhen({
   ...condition
 }: SelectionCondition & { children?: ReactNode }) {
   const { selection } = useGetStarted();
-  return matchesSelection(condition, selection) ? <>{children}</> : null;
+  if (!matchesSelection(condition, selection)) return null;
+  // A block keeps the Markdown output from joining paragraphs of adjacent
+  // variations.
+  return isSsgMd() ? <div>{children}</div> : <>{children}</>;
+}
+
+// The model picker inside the API Key step. Changing it only swaps the model
+// card below, so the step list stays where it is.
+export function GetStartedLlmPicker() {
+  const { lang, selection, selectLlm } = useGetStarted();
+  const text = copy[lang];
+  const current = selection.llm ?? defaultLlm;
+  if (isSsgMd()) {
+    // Markdown readers cannot switch the card, so link to the other models.
+    const prefix = lang === 'zh' ? '/zh' : '';
+    return (
+      <>
+        <p>{text.otherModels(llmLabels[current])}</p>
+        <ul>
+          {llms
+            .filter((llm) => llm !== current)
+            .map((llm) => (
+              <li key={llm}>
+                <a href={docHref(`${prefix}/model-api-setup`, llm)}>
+                  {llmLabels[llm]}
+                </a>
+                {` (${text.vendors[llm]})`}
+              </li>
+            ))}
+        </ul>
+      </>
+    );
+  }
+  const options = Object.fromEntries(
+    llms.map((llm) => [
+      llm,
+      { label: llmLabels[llm], description: text.vendors[llm] },
+    ]),
+  ) as Record<Llm, Option>;
+  return (
+    <Question
+      legend={text.llm}
+      values={llms}
+      options={options}
+      selected={current}
+      onSelect={selectLlm}
+      choose={text.choose}
+      className="get-started-llm-picker"
+    />
+  );
+}
+
+// Links to every setup path, grouped by platform. It is the static index of the
+// entry page for search engines and LLMs.
+export function GetStartedPathIndex({ lang }: { lang: Lang }) {
+  const labels = pathLabels[lang];
+  // One list per platform: nested lists do not survive the Markdown output.
+  return (
+    <div className="get-started-path-index">
+      {platforms.map((platform) => (
+        <React.Fragment key={platform}>
+          <p>
+            <strong>{labels.platforms[platform]}</strong>
+          </p>
+          <ul>
+            {scenes.map((scene) => (
+              <li key={scene}>
+                {`${sceneLabel(lang, { platform, scene })}: `}
+                {models.map((model, index) => (
+                  <React.Fragment key={model}>
+                    {index > 0 ? ' · ' : null}
+                    <a
+                      className="rp-link"
+                      href={docHref(
+                        getStartedRoute(lang, { platform, scene, model }),
+                      )}
+                    >
+                      {labels.models[model]}
+                    </a>
+                  </React.Fragment>
+                ))}
+              </li>
+            ))}
+          </ul>
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+// A link to the page with the same platform and model and another usage.
+export function GetStartedSwitch({
+  scene,
+  children,
+}: {
+  scene: Scene;
+  children?: ReactNode;
+}) {
+  const { selection, routeOf, navigate } = useGetStarted();
+  const href = routeOf({ ...selection, scene });
+  return (
+    <a
+      className="rp-link"
+      href={href}
+      onClick={(event) => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey) return;
+        event.preventDefault();
+        navigate(href);
+      }}
+    >
+      {children}
+    </a>
+  );
 }
