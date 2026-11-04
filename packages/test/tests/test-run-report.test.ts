@@ -247,6 +247,9 @@ describe('result.md', () => {
       reportHref: '../../../report/index.html',
     });
     expect(markdown).toContain('❌ **1 failed** · 0 passed · 0 not run');
+    expect(markdown).toContain(
+      '![Midscene Test: 0 passed, 1 failed](https://badge.midscenejs.com/e2e?pass=0&fail=1&style=large)',
+    );
     expect(markdown).toMatch(/^ {2}- ❌ submit$/m);
     expect(markdown).not.toContain('runner-step=');
     expect(markdown.match(/\]\(</g)).toHaveLength(1);
@@ -292,6 +295,9 @@ describe('result.md', () => {
       buildTestRunReportDump(result([step()]), index),
     );
     expect(markdown).toContain('✅ **1/1 passed**');
+    expect(markdown).toContain(
+      'https://badge.midscenejs.com/e2e?pass=1&fail=0&style=large',
+    );
     expect(markdown).not.toMatch(/Infrastructure|Filtered|### Cases|<details>/);
   });
 
@@ -321,6 +327,9 @@ describe('result.md', () => {
       const markdown = await readFile(output, 'utf8');
       expect(markdown).toContain('Invalid document');
       expect(markdown).toContain('No cases were reported.');
+      expect(markdown).toContain(
+        'https://badge.midscenejs.com/e2e?pass=0&fail=0&style=large',
+      );
       expect(markdown).not.toContain('Open the Midscene');
     } finally {
       await rm(root, { recursive: true, force: true });

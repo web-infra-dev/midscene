@@ -43,10 +43,10 @@ describe('GitHub reporter', () => {
         resultDir: '/repo',
         reportDir: '/repo/report',
         summary: {
-          total: 2,
+          total: 4,
           passed: 1,
           failed: 1,
-          notRun: 0,
+          notRun: 2,
           passedAfterRetry: 1,
           finalPassRate: 0.5,
           firstPassRate: 0,
@@ -94,9 +94,14 @@ describe('GitHub reporter', () => {
       writeGitHubSummary(result);
       const output = readFileSync(join(dir, 'summary.md'), 'utf8');
       expect(output.match(/## Midscene Test/g)).toHaveLength(2);
-      expect(output).toContain('| 1 | 1 | 0 | 1 | 1.3s |');
+      expect(output).toContain('| 1 | 1 | 2 | 1 | 1.3s |');
       expect(output).toContain('Failed: **checkout**');
       expect(output).not.toContain('old attempt');
+      expect(
+        output.match(
+          /!\[Midscene Test: 1 passed, 1 failed\]\(https:\/\/badge\.midscenejs\.com\/e2e\?pass=1&fail=1&style=large\)/g,
+        ),
+      ).toHaveLength(2);
       expect(output).toContain('/repo/report/index.html');
     } finally {
       rmSync(dir, { recursive: true, force: true });
