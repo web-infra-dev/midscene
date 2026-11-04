@@ -212,6 +212,12 @@ export abstract class AbstractInterface {
 
   abstract screenshotBase64(): Promise<string>;
   abstract size(): Promise<Size>;
+
+  /** Capture an image and its logical size together when separate reads can drift. */
+  screenshotWithSize?(): Promise<{
+    screenshotBase64: string;
+    size: Size;
+  }>;
   abstract actionSpace(): DeviceAction[];
 
   abstract cacheFeatureForPoint?(

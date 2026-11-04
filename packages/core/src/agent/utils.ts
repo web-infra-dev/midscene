@@ -100,7 +100,8 @@ export async function commonContextParser(
   debug('UploadTestInfoToServer end');
 
   debug('will get size');
-  const interfaceSize = await interfaceInstance.size();
+  const observation = await interfaceInstance.screenshotWithSize?.();
+  const interfaceSize = observation?.size ?? (await interfaceInstance.size());
   const { width: logicalWidth, height: logicalHeight } = interfaceSize;
 
   if ((interfaceSize as unknown as { dpr: number }).dpr) {
@@ -123,7 +124,9 @@ export async function commonContextParser(
 
   debug(`size: ${logicalWidth}x${logicalHeight}`);
 
-  const screenshotBase64 = await interfaceInstance.screenshotBase64();
+  const screenshotBase64 =
+    observation?.screenshotBase64 ??
+    (await interfaceInstance.screenshotBase64());
   const screenshotCapturedAt = Date.now();
   assert(screenshotBase64!, 'screenshotBase64 is required');
   const userShrinkFactor = _opt.screenshotShrinkFactor ?? 1;

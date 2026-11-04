@@ -6,15 +6,19 @@ export async function capturePuppeteerScreenshot(
   page: Page,
   options: ScreenshotOptions & { encoding: 'base64' },
 ): Promise<string> {
-  const browser = page.browser();
-  const previous = pendingScreenshots.get(browser) ?? Promise.resolve();
-  const capture = previous.then(async () => {
-    // Background tabs can stop producing frames in headless Chrome. Keep
-    // activation and capture together so another Midscene screenshot cannot
-    // activate its tab before this capture finishes.
+  return withPuppeteerScreenshotLock(page.browser(), async () => {
     await page.bringToFront();
     return page.screenshot(options);
   });
+}
+
+// Keep activation, viewport calibration and capture in the same browser queue.
+export async function withPuppeteerScreenshotLock<T>(
+  browser: Browser,
+  run: () => Promise<T>,
+): Promise<T> {
+  const previous = pendingScreenshots.get(browser) ?? Promise.resolve();
+  const capture = previous.then(run);
   const settled = capture.then(
     () => {},
     () => {},
