@@ -34,6 +34,14 @@ npx --yes @midscene/android-playground
 
 3. 确认断言执行通过，并在结果面板中查看各步骤的截图与执行过程。至此，设备连接、屏幕截图、触控输入和模型调用均已验证完毕。
 
+4. （可选）切换到 `aiQuery`，输入以下查询并运行：
+
+```text
+列表中可见的待办事项，返回 {name: string, completed: boolean}[]。
+```
+
+结果会包含待办事项名称及其完成状态。`aiQuery` 用于从当前界面提取数据，不会修改页面。
+
 如果执行失败，请结合报错信息排查：若无画面或无法操控设备，请查看[常见问题](../platforms/android#常见问题)；若模型请求报错，请参考[模型连接检查](../model-config#verify-model-connectivity)。
 
 ### 清理体验数据

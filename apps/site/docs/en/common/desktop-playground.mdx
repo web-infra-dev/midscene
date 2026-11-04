@@ -37,6 +37,14 @@ The list contains a todo named "Try Midscene", and it is marked as completed.
 
 3. Confirm that the assertion passes and inspect the step-by-step screenshots in the results panel. At this point, desktop screen capture, mouse/keyboard input, and model calls have all been verified together.
 
+4. (Optional) Switch to `aiQuery`, enter the following query, and run it:
+
+```text
+Return the visible todo items as {name: string, completed: boolean}[].
+```
+
+The result contains each todo item's name and completion status. `aiQuery` extracts data from the current UI without changing the page.
+
 If execution fails, check the failed step and error message: for missing screenshots or unresponsive mouse/keyboard input, see the [FAQ](../platforms/desktop#faq); for model request errors, see [Verify model connectivity](../model-config#verify-model-connectivity).
 
 ### Clean up the example data

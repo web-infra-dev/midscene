@@ -11,3 +11,13 @@
 ```
 
 3. 确认断言执行通过，并在结果面板中查看各步骤的截图与执行过程。
+
+4. （可选）切换到 `aiQuery`，输入以下查询并运行：
+
+```text
+列表中可见的待办事项，返回 {name: string, completed: boolean}[]。
+```
+
+结果会包含待办事项名称及其完成状态。`aiQuery` 用于从当前界面提取数据，不会修改页面。
+
+如果执行失败，请先查看失败步骤和错误信息。模型请求报错请参考[验证模型连接](../model-config#verify-model-connectivity)和[常见配置错误](../model-config#common-configuration-errors)；插件访问页面或 Ollama 时出错，请查看 [Web 常见问题](../platforms/web#chrome-extension-faq)。
