@@ -40,39 +40,52 @@ describe('grounding locate not-found parsing', () => {
   });
 
   it.each([
-    '{}',
-    '{"error":"target element is not found"}',
-    '```json\n[{"bbox_1":920,"ymin":73,"xmax":964,"ymax":98}]\n```',
-  ])('retries a response missing the coordinate field: %s', async (content) => {
-    rs.mocked(callGenerativeAI)
-      .mockResolvedValueOnce({ content, isStreamed: false })
-      .mockResolvedValueOnce({
-        content: '{"bbox":[100,200,300,400]}',
-        isStreamed: false,
+    {
+      content: '{}',
+      expectedFeedback: 'Missing required coordinate field "bbox_2d"',
+    },
+    {
+      content: '{"error":"target element is not found"}',
+      expectedFeedback: 'Missing required coordinate field "bbox_2d"',
+    },
+    {
+      content: '```json\n[{"bbox_1":920,"ymin":73,"xmax":964,"ymax":98}]\n```',
+      expectedFeedback: 'Expected to be a JSON object, got array',
+    },
+    {
+      content: '[{"bbox_2d":[100,200,300,400]}]',
+      expectedFeedback: 'Expected to be a JSON object, got array',
+    },
+  ])(
+    'retries an invalid locate response: $content',
+    async ({ content, expectedFeedback }) => {
+      rs.mocked(callGenerativeAI)
+        .mockResolvedValueOnce({ content, isStreamed: false })
+        .mockResolvedValueOnce({
+          content: '{"bbox":[100,200,300,400]}',
+          isStreamed: false,
+        });
+
+      const result = await AiLocateElement({
+        context: createFakeContext(),
+        targetElementDescription: 'top-right menu button',
+        modelRuntime: getModelRuntime({ ...modelConfig, modelFamily: 'qwen3' }),
       });
 
-    const result = await AiLocateElement({
-      context: createFakeContext(),
-      targetElementDescription: 'top-right menu button',
-      modelRuntime: getModelRuntime({ ...modelConfig, modelFamily: 'qwen3' }),
-    });
-
-    expect(callGenerativeAI).toHaveBeenCalledTimes(2);
-    expect(
-      rs.mocked(callGenerativeAI).mock.calls.map((call) => call[2]),
-    ).toEqual([
-      expect.objectContaining({ semanticRetryAttempt: 0 }),
-      expect.objectContaining({ semanticRetryAttempt: 1 }),
-    ]);
-    const retryFeedback = rs.mocked(callGenerativeAI).mock.calls[1][0].at(-1);
-    assert(retryFeedback && 'role' in retryFeedback);
-    expect(retryFeedback?.content).toContain(
-      'Missing required coordinate field "bbox_2d"',
-    );
-    expect(retryFeedback?.content).toContain('Expected "bbox_2d":');
-    expect(result.parseResult.element?.center).toBeDefined();
-    expect(result.parseResult.errors).toEqual([]);
-  });
+      expect(callGenerativeAI).toHaveBeenCalledTimes(2);
+      expect(
+        rs.mocked(callGenerativeAI).mock.calls.map((call) => call[2]),
+      ).toEqual([
+        expect.objectContaining({ semanticRetryAttempt: 0 }),
+        expect.objectContaining({ semanticRetryAttempt: 1 }),
+      ]);
+      const retryFeedback = rs.mocked(callGenerativeAI).mock.calls[1][0].at(-1);
+      assert(retryFeedback && 'role' in retryFeedback);
+      expect(retryFeedback?.content).toContain(expectedFeedback);
+      expect(result.parseResult.element?.center).toBeDefined();
+      expect(result.parseResult.errors).toEqual([]);
+    },
+  );
 
   it('preserves the missing-field error and response after retries are exhausted', async () => {
     const content = '{"error":"target element is not found"}';
