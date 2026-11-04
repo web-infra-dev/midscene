@@ -24,6 +24,7 @@ import type { PlanFn } from '../workflows/planning/types';
 import type { CustomPlanningDefinition } from './custom-planning-types';
 import type { ImagePreprocessPolicy } from './image-preprocess';
 import type { InsightAdapter, InsightDefinition } from './insight-protocol';
+import type { LocatePromptOrder } from './locate-prompt-order';
 import type {
   StandardLocateProtocol,
   StandardLocateProtocolDefinition,
@@ -252,11 +253,9 @@ export type PlanningDefinition =
           }
       ));
 
-export type LocateUserMessageContentOrder = 'image-first' | 'prompt-first';
-
 type StandardLocateAdapter = {
   kind: 'standard';
-  userMessageContentOrder: LocateUserMessageContentOrder;
+  promptOrder: LocatePromptOrder;
   element: LocateOperation;
   searchArea?: LocateOperation;
 };
@@ -275,7 +274,8 @@ export type LocateAdapter = StandardLocateAdapter | CustomLocateAdapter;
 
 type StandardLocateDefinition = {
   kind?: 'standard';
-  userMessageContentOrder?: LocateUserMessageContentOrder;
+  /** Shared layout for element and search-area requests. */
+  promptOrder?: string;
   element?: LocateOperationDefinition;
   searchArea?: LocateOperationDefinition | false;
 };
