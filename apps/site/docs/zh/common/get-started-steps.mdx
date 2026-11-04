@@ -20,10 +20,14 @@ import AndroidConnect from './android-connect.mdx';
 import IosConnect from './ios-connect.mdx';
 import HarmonyosConnect from './harmonyos-connect.mdx';
 import DesktopPrepare from './desktop-prepare.mdx';
-import AndroidPlayground from './android-playground.mdx';
-import IosPlayground from './ios-playground.mdx';
-import HarmonyosPlayground from './harmonyos-playground.mdx';
-import DesktopPlayground from './desktop-playground.mdx';
+import AndroidPlaygroundLaunch from './android-playground-launch.mdx';
+import AndroidPlaygroundRun from './android-playground-run.mdx';
+import IosPlaygroundLaunch from './ios-playground-launch.mdx';
+import IosPlaygroundRun from './ios-playground-run.mdx';
+import HarmonyosPlaygroundLaunch from './harmonyos-playground-launch.mdx';
+import HarmonyosPlaygroundRun from './harmonyos-playground-run.mdx';
+import DesktopPlaygroundLaunch from './desktop-playground-launch.mdx';
+import DesktopPlaygroundRun from './desktop-playground-run.mdx';
 import WebPlaygroundCheck from './web-playground-check.mdx';
 import SiwcExtension from './siwc-extension.mdx';
 import SiwcCliLogin from './siwc-cli-login.mdx';
@@ -55,13 +59,9 @@ import SdkVitestRun from './sdk-vitest-run.mdx';
 
 ## 安装 Node.js
 
-安装 Node.js `^20.19.0 || ^22.12.0 || >=24.0.0`，并确认终端中可以执行 `node -v` 和 `npx --version`。
-
-<GetStartedWhen scene={['test', 'sdk']}>
+安装 Node.js `^20.19.0 || ^22.12.0 || >=24.0.0`，并确认终端中可以执行 `node -v`。
 
 下文命令使用 pnpm。如果尚未安装，请运行 `npm install -g pnpm`。
-
-</GetStartedWhen>
 
 </GetStartedStep>
 
@@ -289,24 +289,46 @@ cp .env.example .env
 
 </GetStartedStep>
 
-<GetStartedStep id="playground-device">
+<GetStartedStep id="playground-device-launch">
 
-## 在 Playground 中验证
+## 启动 Playground
 
 <GetStartedWhen platform="android">
-  <AndroidPlayground />
+  <AndroidPlaygroundLaunch />
 </GetStartedWhen>
 
 <GetStartedWhen platform="ios">
-  <IosPlayground />
+  <IosPlaygroundLaunch />
 </GetStartedWhen>
 
 <GetStartedWhen platform="harmonyos">
-  <HarmonyosPlayground />
+  <HarmonyosPlaygroundLaunch />
 </GetStartedWhen>
 
 <GetStartedWhen platform="desktop">
-  <DesktopPlayground />
+  <DesktopPlaygroundLaunch />
+</GetStartedWhen>
+
+</GetStartedStep>
+
+<GetStartedStep id="playground-device-run">
+
+## 执行操作并验证结果
+
+<GetStartedWhen platform="android">
+  <AndroidPlaygroundRun />
+</GetStartedWhen>
+
+<GetStartedWhen platform="ios">
+  <IosPlaygroundRun />
+</GetStartedWhen>
+
+<GetStartedWhen platform="harmonyos">
+  <HarmonyosPlaygroundRun />
+</GetStartedWhen>
+
+<GetStartedWhen platform="desktop">
+  <DesktopPlaygroundRun />
 </GetStartedWhen>
 
 </GetStartedStep>

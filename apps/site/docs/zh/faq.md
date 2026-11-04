@@ -4,7 +4,7 @@
 
 以下平台的常见问题已整合到各自的文档中：
 
-- [Web 浏览器 - Playwright](./integrate-with-playwright#faq)
+- [Web 浏览器 - Playwright](./sdk/playwright#faq)
 - [Web 浏览器 - Puppeteer](./integrate-with-puppeteer#faq)
 - [Web 浏览器 - Chrome 插件](./platforms/web#chrome-extension-faq)
 - [Web 浏览器 - 桥接模式](./bridge-mode#faq)

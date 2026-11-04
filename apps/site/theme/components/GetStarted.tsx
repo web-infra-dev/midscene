@@ -397,9 +397,13 @@ export function GetStartedStep({
   id: StepId;
   children?: ReactNode;
 }) {
-  const { lang, steps } = useGetStarted();
+  const context = useGetStarted();
+  const { lang, steps } = context;
   const index = steps.indexOf(id);
   if (index < 0) return null;
+  // In Markdown the step headings already give the order, and a bare
+  // "Step 1" line would sit apart from its heading.
+  if (isSsgMd()) return <>{markdownSwitchLinks(children, context)}</>;
   // The step number sits above the heading so it does not read like the
   // ordered lists inside the step. No wrapper element: see GetStarted.
   return (
@@ -416,11 +420,55 @@ export function GetStartedWhen({
   children,
   ...condition
 }: SelectionCondition & { children?: ReactNode }) {
-  const { selection } = useGetStarted();
-  if (!matchesSelection(condition, selection)) return null;
+  const context = useGetStarted();
+  if (!matchesSelection(condition, context.selection)) return null;
   // A block keeps the Markdown output from joining paragraphs of adjacent
   // variations.
-  return isSsgMd() ? <div>{children}</div> : <>{children}</>;
+  return isSsgMd() ? (
+    <div>{markdownSwitchLinks(children, context)}</div>
+  ) : (
+    <>{children}</>
+  );
+}
+
+// Content for the interactive page only, such as text that points to the
+// questions. The Markdown output has no questions.
+export function GetStartedHtmlOnly({ children }: { children?: ReactNode }) {
+  return isSsgMd() ? null : <>{children}</>;
+}
+
+// The Markdown counterpart of GetStartedHtmlOnly. Put whole blocks in both:
+// SSG-MD splits a paragraph that contains JSX into separate lines.
+export function GetStartedMarkdownOnly({
+  children,
+}: {
+  children?: ReactNode;
+}) {
+  return isSsgMd() ? <>{children}</> : null;
+}
+
+const switchTag =
+  /<GetStartedSwitch scene="([^"]*)">([\s\S]*?)<\/GetStartedSwitch>/g;
+
+// SSG-MD writes a Markdown block that contains JSX (such as a list item with
+// a GetStartedSwitch) as source text, so the steps receive the tag as a
+// string. Turn it into a link to the Markdown page of the other usage.
+function markdownSwitchLinks(
+  children: ReactNode,
+  { lang, selection }: { lang: Lang; selection: CompleteSelection },
+) {
+  return React.Children.map(children, (child) => {
+    if (typeof child !== 'string') return child;
+    return child.replace(switchTag, (_, scene: string, label: string) => {
+      if (!(scenes as readonly string[]).includes(scene)) {
+        throw new Error(`Unknown GetStartedSwitch scene: ${scene}`);
+      }
+      const href = docHref(
+        getStartedRoute(lang, { ...selection, scene: scene as Scene }),
+      );
+      return `[${label}](${href})`;
+    });
+  });
 }
 
 // The model picker inside the API Key step. Changing it only swaps the model

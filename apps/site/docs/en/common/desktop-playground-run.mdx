@@ -1,27 +1,10 @@
-### Launch Playground
+Open a browser window on the target display and enter the following TodoMVC URL in the address bar:
 
-Make sure Node.js (`^20.19.0 || ^22.12.0 || >=24.0.0`) is installed and both `node -v` and `npx --version` work in your terminal.
-
-1. Start the Desktop Playground CLI:
-
-```bash
-npx --yes @midscene/computer-playground
+```text
+https://todomvc.com/examples/react/dist/#/
 ```
 
-On headless Linux, enable a virtual display with the following command and run the target application in that same display:
-
-```bash
-MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx --yes @midscene/computer-playground
-```
-
-2. In the Playground window that opens, click the gear icon in the top-right corner, paste your model configuration, and save.
-3. If your browser does not open automatically, visit the local Playground URL printed in the terminal, and keep the terminal process running.
-4. In the connection panel on the left, select the target **Display** to control, create the Agent, and place the target application window on that display.
-5. Confirm that the preview area shows the live screen of the selected display. If the preview is blank or fails to load, check the Screen Recording permission or Linux dependencies above.
-
-### Run an action and verify the result
-
-Open a browser window on the target display, navigate to [TodoMVC](https://todomvc.com/examples/react/dist/#/), and position the windows so that the Playground tab does not cover the TodoMVC page.
+Position the windows so that the Playground tab does not cover the TodoMVC page.
 
 1. In Playground, select `aiAct`, enter the following instruction, and run it (avoid moving the mouse or typing while the action is running):
 
@@ -46,7 +29,5 @@ Return the visible todo items as {name: string, completed: boolean}[].
 The result contains each todo item's name and completion status. `aiQuery` extracts data from the current UI without changing the page.
 
 If execution fails, check the failed step and error message: for missing screenshots or unresponsive mouse/keyboard input, see the [FAQ](../platforms/desktop#faq); for model request errors, see [Verify model connectivity](../model-config#verify-model-connectivity).
-
-### Clean up the example data
 
 After verification, delete the "Try Midscene" item in TodoMVC. If you plan to run the Midscene Test Desktop example next, switch to the **All** filter and make sure the list is completely empty (including completed items), as the example template checks for an empty list before running and does not overwrite existing items.

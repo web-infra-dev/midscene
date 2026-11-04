@@ -20,10 +20,14 @@ import AndroidConnect from './android-connect.mdx';
 import IosConnect from './ios-connect.mdx';
 import HarmonyosConnect from './harmonyos-connect.mdx';
 import DesktopPrepare from './desktop-prepare.mdx';
-import AndroidPlayground from './android-playground.mdx';
-import IosPlayground from './ios-playground.mdx';
-import HarmonyosPlayground from './harmonyos-playground.mdx';
-import DesktopPlayground from './desktop-playground.mdx';
+import AndroidPlaygroundLaunch from './android-playground-launch.mdx';
+import AndroidPlaygroundRun from './android-playground-run.mdx';
+import IosPlaygroundLaunch from './ios-playground-launch.mdx';
+import IosPlaygroundRun from './ios-playground-run.mdx';
+import HarmonyosPlaygroundLaunch from './harmonyos-playground-launch.mdx';
+import HarmonyosPlaygroundRun from './harmonyos-playground-run.mdx';
+import DesktopPlaygroundLaunch from './desktop-playground-launch.mdx';
+import DesktopPlaygroundRun from './desktop-playground-run.mdx';
 import WebPlaygroundCheck from './web-playground-check.mdx';
 import SiwcExtension from './siwc-extension.mdx';
 import SiwcCliLogin from './siwc-cli-login.mdx';
@@ -55,13 +59,9 @@ If you cannot access the Chrome Web Store, see [Can I install the Chrome extensi
 
 ## Install Node.js
 
-Install Node.js `^20.19.0 || ^22.12.0 || >=24.0.0`, then check that `node -v` and `npx --version` work in your terminal.
-
-<GetStartedWhen scene={['test', 'sdk']}>
+Install Node.js `^20.19.0 || ^22.12.0 || >=24.0.0`, then check that `node -v` works in your terminal.
 
 The commands below use pnpm. If it is not installed yet, run `npm install -g pnpm`.
-
-</GetStartedWhen>
 
 </GetStartedStep>
 
@@ -289,24 +289,46 @@ Open [TodoMVC](https://todomvc.com/examples/react/dist/#/) in the current tab an
 
 </GetStartedStep>
 
-<GetStartedStep id="playground-device">
+<GetStartedStep id="playground-device-launch">
 
-## Verify in Playground
+## Launch Playground
 
 <GetStartedWhen platform="android">
-  <AndroidPlayground />
+  <AndroidPlaygroundLaunch />
 </GetStartedWhen>
 
 <GetStartedWhen platform="ios">
-  <IosPlayground />
+  <IosPlaygroundLaunch />
 </GetStartedWhen>
 
 <GetStartedWhen platform="harmonyos">
-  <HarmonyosPlayground />
+  <HarmonyosPlaygroundLaunch />
 </GetStartedWhen>
 
 <GetStartedWhen platform="desktop">
-  <DesktopPlayground />
+  <DesktopPlaygroundLaunch />
+</GetStartedWhen>
+
+</GetStartedStep>
+
+<GetStartedStep id="playground-device-run">
+
+## Run an action and verify the result
+
+<GetStartedWhen platform="android">
+  <AndroidPlaygroundRun />
+</GetStartedWhen>
+
+<GetStartedWhen platform="ios">
+  <IosPlaygroundRun />
+</GetStartedWhen>
+
+<GetStartedWhen platform="harmonyos">
+  <HarmonyosPlaygroundRun />
+</GetStartedWhen>
+
+<GetStartedWhen platform="desktop">
+  <DesktopPlaygroundRun />
 </GetStartedWhen>
 
 </GetStartedStep>

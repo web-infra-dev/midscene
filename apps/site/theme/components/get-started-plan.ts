@@ -72,7 +72,8 @@ export const stepIds = [
   'model-chatgpt-extension',
   'model-chatgpt-cli',
   'playground-web',
-  'playground-device',
+  'playground-device-launch',
+  'playground-device-run',
   'test-configure',
   'test-run',
   'sdk-setup',
@@ -151,7 +152,9 @@ export function planSteps(selection: CompleteSelection): StepId[] {
   }
 
   if (scene === 'playground') {
-    steps.push(inExtension ? 'playground-web' : 'playground-device');
+    // The extension is already open; a device Playground is launched first.
+    if (inExtension) steps.push('playground-web');
+    else steps.push('playground-device-launch', 'playground-device-run');
   } else if (scene === 'test') {
     steps.push('test-configure', 'test-run');
   } else {
@@ -244,6 +247,15 @@ export function parsePathSlug(slug: string): CompleteSelection | undefined {
 export function getStartedRoute(lang: Lang, path?: CompleteSelection) {
   const base = `${lang === 'zh' ? '/zh' : ''}/get-started`;
   return path ? `${base}/${pathSlug(path)}` : base;
+}
+
+// Whether a pathname is one of the generated path pages, such as
+// `/get-started/web-playground-api-key` or its `/zh` and `.html` forms.
+export function isGetStartedPathPage(pathname: string) {
+  const match = pathname.match(
+    /^(?:\/zh)?\/get-started\/([^/]+?)(?:\.html)?\/?$/,
+  );
+  return Boolean(match && parsePathSlug(match[1]));
 }
 
 // Labels for page titles, descriptions, and the path index. The questions use

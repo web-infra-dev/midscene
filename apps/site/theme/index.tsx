@@ -43,7 +43,9 @@ export {
 export { SdkPrerequisites } from './components/SdkPrerequisites';
 
 export {
+  GetStartedHtmlOnly,
   GetStartedLlmPicker,
+  GetStartedMarkdownOnly,
   GetStartedPathIndex,
   GetStartedSdkPlatform,
   GetStartedStep,
@@ -51,4 +53,6 @@ export {
   GetStartedWhen,
 } from './components/GetStarted';
 export { GetStarted } from './components/GetStartedRoute';
+// Overrides the Rspress Sidebar from the export * above.
+export { Sidebar } from './components/Sidebar';
 export { GetStartedCreateCommand } from './components/GetStartedCommand';

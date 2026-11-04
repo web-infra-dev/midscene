@@ -1,21 +1,10 @@
-### Launch Playground
+On your iOS device or simulator, open Safari and complete any first-run prompts. Enter the following TodoMVC URL in the address bar:
 
-Make sure Node.js (`^20.19.0 || ^22.12.0 || >=24.0.0`) is installed and both `node -v` and `npx --version` work in your terminal.
-
-1. Start the iOS Playground CLI:
-
-```bash
-npx --yes @midscene/ios-playground
+```text
+https://todomvc.com/examples/react/dist/#/
 ```
 
-2. In the Playground window that opens, click the gear icon in the top-right corner, paste your model configuration, and save.
-3. If your browser does not open automatically, visit the local Playground URL printed in the terminal, and keep the terminal process running.
-4. If the connection panel appears, enter your WDA host and port (`localhost` and `8100` by default) and create the Agent (if WDA is already running on the default local port, Playground may connect automatically; when connecting through a gateway, enter the full **WebDriverAgent base URL** instead of host / port).
-5. Confirm that the preview area displays your device or simulator screen. If no screen appears, check your WDA service and port forwarding first.
-
-### Run an action and verify the result
-
-On your iOS device or simulator, open Safari, complete any first-run prompts, and navigate to [TodoMVC](https://todomvc.com/examples/react/dist/#/). Keep the device unlocked with Safari in the foreground.
+Keep the device unlocked with Safari in the foreground.
 
 1. In Playground, select `aiAct`, enter the following instruction, and run it:
 
@@ -40,7 +29,5 @@ Return the visible todo items as {name: string, completed: boolean}[].
 The result contains each todo item's name and completion status. `aiQuery` extracts data from the current UI without changing the page.
 
 If execution fails, check the failed step and error message: for missing screenshots or unresponsive touch input, see the [FAQ](../platforms/ios#faq); for model request errors, see [Verify model connectivity](../model-config#verify-model-connectivity).
-
-### Clean up the example data
 
 After verification, delete the "Try Midscene" item in TodoMVC. If you plan to run the Midscene Test iOS example next, switch to the **All** filter and make sure the list is completely empty (including completed items), as the example template checks for an empty list before running and does not overwrite existing items.

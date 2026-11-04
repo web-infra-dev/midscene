@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from '@rstest/core';
+import { afterEach, describe, expect, it, rstest } from '@rstest/core';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import {
@@ -8,7 +8,9 @@ import {
 } from '../plugins/get-started-pages';
 import {
   GetStarted,
+  GetStartedHtmlOnly,
   GetStartedLlmPicker,
+  GetStartedMarkdownOnly,
   GetStartedPathIndex,
   GetStartedSdkPlatform,
   GetStartedStep,
@@ -22,6 +24,7 @@ import {
   defaultLlm,
   getStartedRoute,
   isComplete,
+  isGetStartedPathPage,
   llmLabels,
   llms,
   models,
@@ -61,7 +64,7 @@ const deviceSteps = [
   'prepare-desktop',
 ] as const;
 const finalSteps = {
-  playground: ['playground-web', 'playground-device'],
+  playground: ['playground-web', 'playground-device-run'],
   test: ['test-run'],
   sdk: ['sdk-run'],
 } as const;
@@ -91,6 +94,16 @@ describe('get started plan', () => {
         steps.filter((id) => deviceSteps.includes(id as never)),
       ).toHaveLength(selection.platform === 'web' ? 0 : 1);
       expect(finalSteps[selection.scene]).toContain(steps.at(-2));
+      // Device Playgrounds launch in their own step, like the Web path runs
+      // in its own step.
+      if (devicePlayground) {
+        expect(steps.slice(-3, -1)).toEqual([
+          'playground-device-launch',
+          'playground-device-run',
+        ]);
+      } else {
+        expect(steps).not.toContain('playground-device-launch');
+      }
       // A Test project exists before the model step, so the model values go
       // straight into its .env file.
       if (selection.scene === 'test') {
@@ -204,6 +217,25 @@ describe('get started plan', () => {
     expect(serializeSelection('?llm=gpt', { scene: 'test', llm: 'qwen' })).toBe(
       '?llm=qwen&scene=test',
     );
+  });
+
+  it('recognizes path page routes', () => {
+    for (const pathname of [
+      '/get-started/web-playground-api-key',
+      '/zh/get-started/ios-sdk-chatgpt',
+      '/get-started/android-test-api-key.html',
+      '/get-started/desktop-playground-chatgpt/',
+    ]) {
+      expect(isGetStartedPathPage(pathname)).toBe(true);
+    }
+    for (const pathname of [
+      '/get-started',
+      '/zh/get-started/',
+      '/get-started/unknown-path',
+      '/platforms/web',
+    ]) {
+      expect(isGetStartedPathPage(pathname)).toBe(false);
+    }
   });
 });
 
@@ -534,5 +566,105 @@ describe('get started path pages', () => {
     const steps = content.match(/import Steps from "([^"]+)";/)?.[1];
     expect(steps).toMatch(/docs\/zh\/common\/get-started-steps\.mdx$/);
     expect(() => readFileSync(steps as string)).not.toThrow();
+  });
+});
+
+describe('get started Markdown output', () => {
+  afterEach(() => {
+    rstest.unstubAllEnvs();
+  });
+
+  const path = {
+    platform: 'android',
+    scene: 'playground',
+    model: 'api-key',
+  } as const;
+
+  // SSG-MD passes Markdown blocks that contain JSX to the steps as text.
+  const nextSteps = createElement(
+    GetStartedStep,
+    { id: 'next-steps' },
+    createElement(
+      GetStartedWhen,
+      { scene: 'playground' },
+      '- **Write repeatable cases**: <GetStartedSwitch scene="test">Create a project</GetStartedSwitch>.',
+    ),
+  );
+
+  it('links to other usages and leaves out step labels', () => {
+    rstest.stubEnv('SSG_MD', 'true');
+    for (const lang of ['en', 'zh'] as const) {
+      const html = renderToStaticMarkup(
+        createElement(GetStarted, { lang, path }, nextSteps),
+      );
+      const route = getStartedRoute(lang, { ...path, scene: 'test' });
+      expect(html).toContain(`[Create a project](${route}.md)`);
+      expect(html).not.toContain('GetStartedSwitch');
+      expect(html).not.toContain('get-started-step-label');
+      expect(html).not.toContain('<fieldset');
+    }
+  });
+
+  it('rejects an unknown usage in a switch', () => {
+    rstest.stubEnv('SSG_MD', 'true');
+    expect(() =>
+      renderToStaticMarkup(
+        createElement(
+          GetStarted,
+          { lang: 'en', path },
+          createElement(
+            GetStartedWhen,
+            { scene: 'playground' },
+            '<GetStartedSwitch scene="unknown">x</GetStartedSwitch>',
+          ),
+        ),
+      ),
+    ).toThrow('Unknown GetStartedSwitch scene: unknown');
+  });
+
+  it('keeps the switch tag as a component on the HTML page', () => {
+    const html = renderToStaticMarkup(
+      createElement(GetStarted, { lang: 'en', path }, nextSteps),
+    );
+    expect(html).toContain('get-started-step-label');
+  });
+
+  it('shows interactive-only and Markdown-only content in its own output', () => {
+    const blocks = [
+      createElement(GetStartedHtmlOnly, { key: 'html' }, 'html-only'),
+      createElement(GetStartedMarkdownOnly, { key: 'md' }, 'markdown-only'),
+    ];
+    const html = renderToStaticMarkup(createElement('div', null, blocks));
+    expect(html).toContain('html-only');
+    expect(html).not.toContain('markdown-only');
+
+    rstest.stubEnv('SSG_MD', 'true');
+    const markdown = renderToStaticMarkup(createElement('div', null, blocks));
+    expect(markdown).not.toContain('html-only');
+    expect(markdown).toContain('markdown-only');
+  });
+
+  it('points path pages to the questions only on the HTML page', () => {
+    const en = getStartedPageContent('en', path);
+    const html = en.slice(
+      en.indexOf('<GetStartedHtmlOnly>'),
+      en.indexOf('</GetStartedHtmlOnly>'),
+    );
+    const markdown = en.slice(
+      en.indexOf('<GetStartedMarkdownOnly>'),
+      en.indexOf('</GetStartedMarkdownOnly>'),
+    );
+    expect(html).toContain('change the answers below or see [all setup paths]');
+    expect(markdown).toContain(
+      'To choose another combination, see [all setup paths]',
+    );
+    expect(markdown).not.toContain('answers below');
+    // The back-to-top link points to the questions too.
+    const backToTop = en.slice(en.lastIndexOf('<GetStartedHtmlOnly>'));
+    expect(backToTop).toContain('[Back to top](#get-started)');
+
+    const zh = getStartedPageContent('zh', path);
+    expect(zh).toContain('请修改下方的选择，或查看[全部配置路径]');
+    expect(zh).toContain('请查看[全部配置路径]');
   });
 });
