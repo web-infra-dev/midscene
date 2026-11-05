@@ -102,16 +102,16 @@ If Chrome is installed in a non-standard location, set `MIDSCENE_CHROME_PATH` to
 
 ## Switch browser tabs
 
-Use `tabs` to list open tabs and `switch-tab --id <id>` to select one. Save the parent tab ID before clicking a link that opens a new tab, then list tabs again to find the child:
+Use `tabs` to list open tabs and `switch-tab --id <id>` to select one. Save the original tab ID before clicking a link that opens a new tab, then list tabs again to find the new tab:
 
 ```bash
 npx @midscene/web tabs
-# After opening the child tab:
+# After opening the new tab:
 npx @midscene/web tabs
-npx @midscene/web switch-tab --id <child-tab-id>
+npx @midscene/web switch-tab --id <new-tab-id>
 npx @midscene/web take_screenshot
-# Return to the parent after working in the child:
-npx @midscene/web switch-tab --id <parent-tab-id>
+# Return to the original tab after working in the new tab:
+npx @midscene/web switch-tab --id <original-tab-id>
 ```
 
 `tabs` returns a JSON array with `id`, `title`, `url`, and `active`. `active` identifies the page controlled by Midscene. Switching selects an existing tab without navigating or reloading it, preserving page state. Missing or closed IDs produce an error. If a site opens a tab asynchronously, run `tabs` again after it appears.
