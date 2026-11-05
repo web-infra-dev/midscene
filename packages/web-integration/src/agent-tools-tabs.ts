@@ -9,9 +9,15 @@ export interface BrowserTabSummary {
   active: boolean;
 }
 
-// Keep Puppeteer's private target ID access in one place.
+// Puppeteer has no synchronous public target-ID accessor. Keep this
+// version-sensitive boundary shared by CDP and Puppeteer, and reject invalid IDs.
 export function getTargetId(page: { target(): unknown }): string | undefined {
-  return (page.target() as unknown as { _targetId?: string })._targetId;
+  const target = page.target();
+  if (!target || typeof target !== 'object' || !('_targetId' in target)) {
+    return undefined;
+  }
+  const id = target._targetId;
+  return typeof id === 'string' && id.length > 0 ? id : undefined;
 }
 
 export function requireTargetId(page: { target(): unknown }): string {
@@ -77,6 +83,8 @@ export function createPuppeteerTabTools(
       const previousPage = agent.activePage;
       await agent.setActivePage(page);
       try {
+        // Commit explicit switches immediately; teardown also saves the final
+        // page selected by BrowserAgent actions during an act command.
         await saveTarget(id);
       } catch (error) {
         try {

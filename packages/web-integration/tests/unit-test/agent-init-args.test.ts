@@ -194,6 +194,49 @@ describe('web agent tool init args', () => {
     },
   );
 
+  it('reuses the selected Bridge agent with unchanged behavior options', async () => {
+    const tools = new WebMidsceneTools();
+    await tools.initTools();
+    const definitions = tools.getToolDefinitions();
+    const screenshot = definitions.find(
+      (tool) => tool.name === 'take_screenshot',
+    )!;
+    const select = definitions.find((tool) => tool.name === 'web_switch-tab')!;
+    const args = { web: { waitAfterAction: 650 } };
+    try {
+      await screenshot.handler(args);
+      await select.handler({ id: '42' });
+      await screenshot.handler(args);
+      expect(AgentOverChromeBridge).toHaveBeenCalledTimes(2);
+      expect(AgentOverChromeBridge).toHaveBeenLastCalledWith(
+        expect.objectContaining({ waitAfterAction: 650 }),
+      );
+    } finally {
+      await tools.destroy();
+    }
+  });
+
+  it('reports Bridge cleanup failure and does not reuse the disposed agent', async () => {
+    const tools = new WebMidsceneTools();
+    await tools.initTools();
+    const definitions = tools.getToolDefinitions();
+    const tabs = definitions.find((tool) => tool.name === 'web_tabs')!;
+    const disconnect = definitions.find(
+      (tool) => tool.name === 'web_disconnect',
+    )!;
+    await tabs.handler({});
+    const first = rs.mocked(AgentOverChromeBridge).mock.results[0].value;
+    first.destroy.mockRejectedValueOnce(new Error('cleanup failed'));
+    await expect(disconnect.handler({})).rejects.toThrow('cleanup failed');
+    await tabs.handler({});
+    expect(AgentOverChromeBridge).toHaveBeenCalledTimes(2);
+    expect(first.destroy).toHaveBeenCalledTimes(1);
+    await tools.destroy();
+    await tools.destroy();
+    const second = rs.mocked(AgentOverChromeBridge).mock.results[1].value;
+    expect(second.destroy).toHaveBeenCalledTimes(1);
+  });
+
   it('switches Bridge tabs by reconnecting to an existing ID without navigating', async () => {
     const tools = new WebMidsceneTools();
     await tools.initTools();

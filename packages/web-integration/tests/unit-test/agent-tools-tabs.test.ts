@@ -1,4 +1,8 @@
-import { createPuppeteerTabTools } from '@/agent-tools-tabs';
+import {
+  createPuppeteerTabTools,
+  getTargetId,
+  requireTargetId,
+} from '@/agent-tools-tabs';
 import type { PuppeteerBrowserAgent } from '@/puppeteer';
 import { expect, it, rs } from '@rstest/core';
 
@@ -33,3 +37,12 @@ it('restores the previous live page when persisting a switch fails', async () =>
     parent,
   ]);
 });
+
+it.each([undefined, null, {}, { _targetId: 42 }, { _targetId: '' }])(
+  'rejects an unavailable or malformed Puppeteer target ID: %j',
+  (target) => {
+    const page = { target: () => target };
+    expect(getTargetId(page)).toBeUndefined();
+    expect(() => requireTargetId(page)).toThrow('target ID');
+  },
+);
