@@ -120,16 +120,7 @@
   "bin": {
     "midscene-web": "./bin/midscene-web"
   },
-  "files": [
-    "static",
-    "dist",
-    "iife-script",
-    "README.md",
-    "README.zh.md",
-    "CLI.md",
-    "CLI.zh.md",
-    "bin"
-  ],
+  "files": ["static", "dist", "iife-script", "README.md", "bin"],
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/playground": "workspace:*",
