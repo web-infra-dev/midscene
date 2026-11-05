@@ -212,6 +212,10 @@ export abstract class AbstractInterface {
 
   abstract screenshotBase64(): Promise<string>;
   abstract size(): Promise<Size>;
+
+  /** Optional, best-effort handler for platform-reported size changes. */
+  onSizeChange?(size: Size): Promise<void>;
+
   abstract actionSpace(): DeviceAction[];
 
   abstract cacheFeatureForPoint?(
