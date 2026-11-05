@@ -79,6 +79,21 @@ describe('default insight response parser', () => {
     });
   });
 
+  it('should preserve a single extracted object in an array', () => {
+    const result = parseDefaultInsightResponse<
+      { index: number; name: string }[]
+    >(`
+Based on the screenshot, only the first card is fully visible.
+<observation>Only one complete card is returned.</observation>
+<data-json>
+[{"index": 1, "name": "Example"}]
+</data-json>
+<errors>[]</errors>
+`);
+
+    expect(result.data).toEqual([{ index: 1, name: 'Example' }]);
+  });
+
   it('should parse XML response with string data', () => {
     const xml = `
 <observation>The page title is "todo list"</observation>

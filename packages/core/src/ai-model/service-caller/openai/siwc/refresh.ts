@@ -1,5 +1,6 @@
-import { type JWTVerifyGetKey, createRemoteJWKSet, jwtVerify } from 'jose';
+import { type JWTVerifyGetKey, jwtVerify } from 'jose';
 import { tokenResponseError, withSiwcStage } from './errors';
+import { createSiwcJWKSet, fetchSiwc } from './network';
 interface RefreshableCredentials {
   client_id?: string;
   refresh_token?: string;
@@ -10,30 +11,28 @@ interface RefreshableCredentials {
 export async function refreshSiwcCredentials<T extends RefreshableCredentials>(
   saved: T,
   signal: AbortSignal,
-  dependencies?: { fetch: typeof fetch; keys: JWTVerifyGetKey },
+  dependencies?: { fetch: typeof fetch; keys?: JWTVerifyGetKey },
 ) {
   const { client_id: clientId, refresh_token: refreshToken } = saved;
   if (!clientId || !refreshToken) {
     throw new Error('Missing client ID or refresh token.');
   }
+  const request = dependencies?.fetch ?? fetchSiwc;
   const issuer = 'https://auth.openai.com';
   signal.throwIfAborted();
   const response = await withSiwcStage('Token refresh', async () => {
-    const response = await (dependencies?.fetch ?? fetch)(
-      `${issuer}/api/accounts/oauth/token`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          grant_type: 'refresh_token',
-          client_id: clientId,
-          refresh_token: refreshToken,
-          resource: 'https://api.openai.com/v1',
-        }),
-        signal,
-        redirect: 'error',
-      },
-    );
+    const response = await request(`${issuer}/api/accounts/oauth/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        client_id: clientId,
+        refresh_token: refreshToken,
+        resource: 'https://api.openai.com/v1',
+      }),
+      signal,
+      redirect: 'error',
+    });
     if (!response.ok) {
       throw await tokenResponseError(response);
     }
@@ -66,8 +65,7 @@ export async function refreshSiwcCredentials<T extends RefreshableCredentials>(
       throw new Error('Invalid refreshed ID token.');
     }
     const keys =
-      dependencies?.keys ??
-      createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`));
+      dependencies?.keys ?? createSiwcJWKSet(issuer, signal, request);
     const { payload } = await withSiwcStage('ID token verification', () =>
       jwtVerify(tokens.id_token, keys, {
         issuer,

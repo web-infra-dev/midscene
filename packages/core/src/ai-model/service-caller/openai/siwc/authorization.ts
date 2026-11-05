@@ -1,5 +1,6 @@
-import { type JWTVerifyGetKey, createRemoteJWKSet, jwtVerify } from 'jose';
+import { type JWTVerifyGetKey, jwtVerify } from 'jose';
 import { tokenResponseError, withSiwcStage } from './errors';
+import { createSiwcJWKSet, fetchSiwc } from './network';
 
 const ISSUER = 'https://auth.openai.com';
 const RESOURCE = 'https://api.openai.com/v1';
@@ -106,7 +107,7 @@ export async function exchangeSiwcCode(
 ) {
   signal.throwIfAborted();
   const response = await withSiwcStage('Token exchange', async () => {
-    const response = await (dependencies?.fetch ?? fetch)(
+    const response = await (dependencies?.fetch ?? fetchSiwc)(
       `${ISSUER}/api/accounts/oauth/token`,
       {
         method: 'POST',
@@ -154,8 +155,7 @@ export async function exchangeSiwcCode(
   const { payload } = await withSiwcStage('ID token verification', () =>
     jwtVerify(
       tokens.id_token,
-      dependencies?.keys ??
-        createRemoteJWKSet(new URL(`${ISSUER}/.well-known/jwks.json`)),
+      dependencies?.keys ?? createSiwcJWKSet(ISSUER, signal),
       {
         issuer: ISSUER,
         audience: callback.clientId,

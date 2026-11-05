@@ -37,7 +37,7 @@ Generated fixtures belong in ignored `dist/`. Keep the static pages unchanged du
 
 ### Concurrent CI execution
 
-CI runs the complete YAML suite on one machine, with at most four files active.
+CI runs the complete YAML suite on one machine, with at most three files active.
 Each file has its own context, Page and Agent; only the browser and static server
 are shared. Steps inside a file remain sequential. New YAML files are discovered
 automatically, and all results appear in one native report. AI assertions and

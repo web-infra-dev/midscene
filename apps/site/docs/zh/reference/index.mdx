@@ -1898,6 +1898,7 @@ function mergeReports(
     rmOriginalReports?: boolean;
     overwrite?: boolean;
     outputDir?: string;
+    outputFormat?: 'single-html' | 'html-and-external-assets';
   },
 ): string | null;
 ```
@@ -1909,12 +1910,13 @@ function mergeReports(
     - `rmOriginalReports?: boolean` —— 合并完成后是否删除各源报告文件。默认值：`false`。
     - `overwrite?: boolean` —— 当目标输出路径已存在同名文件时是否覆盖。默认值：`false`。
     - `outputDir?: string` —— 合并报告的输出目录（相对路径基于当前工作目录解析）。默认值：`midscene_run/report/`。
+    - `outputFormat` —— `'single-html'`（默认）或 `'html-and-external-assets'`，独立于源报告格式。
 
 - 返回值：
 
   - 返回合并后报告的入口 HTML 路径；若待合并列表为空，则返回 `null`。
-  - 当所有源报告均为 `'single-html'` 格式时，输出路径为 `<outputDir>/<reportFileName>.html`。
-  - 当任意源报告使用了 `'html-and-external-assets'` 格式时，输出路径为 `<outputDir>/<reportFileName>/index.html` 及同级截图资源目录。
+  - 使用 `'single-html'`（默认）时，输出路径为 `<outputDir>/<reportFileName>.html`。
+  - 使用 `'html-and-external-assets'` 时，输出路径为 `<outputDir>/<reportFileName>/index.html`，同级包含 `report.json`、`data/` 和 `screenshots/`。
 
 - 示例：
 
@@ -1970,6 +1972,28 @@ function clear(): void;
 ```typescript
 reportMergingTool.mergeReports('first-batch');
 reportMergingTool.clear(); // 清空列表，准备下一批合并
+```
+
+## `exportReportArtifact()`
+
+将一份 Agent 或 Test 报告导出为指定格式，源报告保持不变。
+
+```ts
+import { exportReportArtifact } from '@midscene/core/report';
+
+const reportPath = await exportReportArtifact({
+  reportPath: './reports/run/index.html',
+  outputDir: './delivery',
+  reportFileName: 'run', // 无需 .html 后缀
+  outputFormat: 'single-html', // 默认；也可选 'html-and-external-assets'
+  overwrite: false, // 默认
+});
+```
+
+也可以通过 CLI 完成同样的操作：
+
+```bash
+pnpm exec midscene report-tool --action export --htmlPath ./reports/run/index.html --outputDir ./delivery --outputName run --outputFormat single-html
 ```
 
 ## 运行时配置 {#runtime-configuration}

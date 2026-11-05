@@ -293,7 +293,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       agent = newAgent;
       session = enterYamlExecution(agent);
       freeFn = [...(newFreeFn || [])];
-      agent._prepareForTestRunner?.();
+      await agent._prepareForTestRunner?.();
       signal = this.abortSignal ?? currentYamlSignal(agent);
       signal?.throwIfAborted();
       this.actionSpace = await agent.getActionSpace();

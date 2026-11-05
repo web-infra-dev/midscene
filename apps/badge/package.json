@@ -1,0 +1,19 @@
+{
+  "name": "@midscene/badge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "generate-logo": "node scripts/generate-logo.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "rstest"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251101.0",
+    "@rstest/core": "0.12.0",
+    "typescript": "^5.8.3",
+    "wrangler": "^4.45.0"
+  }
+}
