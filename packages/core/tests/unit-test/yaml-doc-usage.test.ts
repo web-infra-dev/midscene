@@ -929,3 +929,91 @@ tasks:
     }
   });
 });
+
+describe('parseYamlScript android deviceId preprocessing', () => {
+  const buildAndroidYaml = (deviceIdLine: string) => `
+android:
+  ${deviceIdLine}
+tasks:
+  - name: Open settings
+    flow:
+      - aiAct: Open settings
+`;
+
+  afterEach(() => {
+    rs.restoreAllMocks();
+  });
+
+  it('quotes a purely numeric deviceId and warns about it', () => {
+    const warn = rs.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const script = parseYamlScript(buildAndroidYaml('deviceId: 12345678'));
+
+    expect(script.android?.deviceId).toBe('12345678');
+    expect(warn).toHaveBeenCalledWith(
+      'please use string-style deviceId in yaml script, for example: deviceId: "12345678"',
+    );
+  });
+
+  it('keeps an unquoted deviceId that starts with digits but contains letters', () => {
+    const warn = rs.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const script = parseYamlScript(buildAndroidYaml('deviceId: 8209406e'));
+
+    expect(script.android?.deviceId).toBe('8209406e');
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('keeps other non-numeric deviceId formats untouched', () => {
+    const warn = rs.spyOn(console, 'warn').mockImplementation(() => {});
+
+    expect(
+      parseYamlScript(buildAndroidYaml('deviceId: emulator-5554')).android
+        ?.deviceId,
+    ).toBe('emulator-5554');
+    expect(
+      parseYamlScript(buildAndroidYaml('deviceId: 192.168.1.2:5555')).android
+        ?.deviceId,
+    ).toBe('192.168.1.2:5555');
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('quotes a numeric deviceId followed by a trailing comment', () => {
+    const warn = rs.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const script = parseYamlScript(
+      buildAndroidYaml('deviceId: 12345678 # my phone'),
+    );
+
+    expect(script.android?.deviceId).toBe('12345678');
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('quotes a numeric deviceId inside a flow mapping', () => {
+    rs.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const script = parseYamlScript(`
+android: { deviceId: 12345678 }
+tasks:
+  - name: Open settings
+    flow:
+      - aiAct: Open settings
+`);
+
+    expect(script.android?.deviceId).toBe('12345678');
+  });
+
+  it('leaves an already quoted deviceId as is without warning', () => {
+    const warn = rs.spyOn(console, 'warn').mockImplementation(() => {});
+
+    expect(
+      parseYamlScript(buildAndroidYaml("deviceId: '8209406e'")).android
+        ?.deviceId,
+    ).toBe('8209406e');
+    expect(
+      parseYamlScript(buildAndroidYaml('deviceId: "12345678"')).android
+        ?.deviceId,
+    ).toBe('12345678');
+    expect(warn).not.toHaveBeenCalled();
+  });
+});

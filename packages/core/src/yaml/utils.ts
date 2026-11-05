@@ -261,6 +261,11 @@ export function parseYamlScript(
   return parseLegacyYamlScript(content, filePath);
 }
 
+// 只匹配整个值都是纯数字的 deviceId（后面只能跟行尾、注释或 flow 映射的 `,` / `}`），
+// 避免把 `8209406e`、`192.168.1.2:5555` 这类以数字开头的序列号截断成 `'8209406'e`。
+const numericDeviceIdPattern =
+  /(deviceId:[ \t]*)(\d+)(?=[ \t]*[,}]|[ \t]+#|[ \t]*$)/gm;
+
 /** Internal collection observer; the public parser keeps its original signature. */
 export function parseLegacyYamlScript(
   content: string,
@@ -268,18 +273,20 @@ export function parseLegacyYamlScript(
   onConfig?: (config: Omit<MidsceneYamlScript, 'tasks'>) => void,
 ): MidsceneYamlScript {
   let processedContent = content;
-  if (content.indexOf('android') !== -1 && content.match(/deviceId:\s*(\d+)/)) {
-    let matchedDeviceId;
+  if (content.indexOf('android') !== -1) {
+    let matchedDeviceId: string | undefined;
     processedContent = content.replace(
-      /deviceId:\s*(\d+)/g,
-      (match, deviceId) => {
+      numericDeviceIdPattern,
+      (_match, prefix: string, deviceId: string) => {
         matchedDeviceId = deviceId;
-        return `deviceId: '${deviceId}'`;
+        return `${prefix}'${deviceId}'`;
       },
     );
-    console.warn(
-      `please use string-style deviceId in yaml script, for example: deviceId: "${matchedDeviceId}"`,
-    );
+    if (matchedDeviceId !== undefined) {
+      console.warn(
+        `please use string-style deviceId in yaml script, for example: deviceId: "${matchedDeviceId}"`,
+      );
+    }
   }
   const interpolatedContent = interpolateYamlScriptEnvVars(processedContent);
   const obj = yaml.load(interpolatedContent, {
