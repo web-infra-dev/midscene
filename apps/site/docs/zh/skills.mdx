@@ -105,28 +105,24 @@ header 会在 `connect --url` 导航前生效，因此初始文档请求也会�
 使用 `tabs` 列出标签，用 `switch-tab --id <id>` 切换到指定标签。点击会打开新标签的链接前，先保存父页 ID；打开后再次列出标签，找到子页 ID：
 
 ```bash
-pnpm dlx @midscene/web tabs
+npx @midscene/web tabs
 # 打开子页后：
-pnpm dlx @midscene/web tabs
-pnpm dlx @midscene/web switch-tab --id <child-tab-id>
-pnpm dlx @midscene/web take_screenshot
+npx @midscene/web tabs
+npx @midscene/web switch-tab --id <child-tab-id>
+npx @midscene/web take_screenshot
 # 子页操作完成后返回父页：
-pnpm dlx @midscene/web switch-tab --id <parent-tab-id>
+npx @midscene/web switch-tab --id <parent-tab-id>
 ```
 
 `tabs` 返回包含 `id`、`title`、`url` 和 `active` 的 JSON 数组。`active` 表示 Midscene 当前控制的页面。切换会选中已有标签，不会重新导航或刷新页面，因此能保留页面状态。ID 不存在或标签已关闭时会报错。如果网站异步打开标签，等标签出现后再次运行 `tabs`。
 
-每条命令要保持相同的连接模式：
+每条命令要保持相同的连接模式。在默认 Puppeteer 和 CDP 模式下，后续命令会继续使用选中的标签。这两种模式会保留新打开的标签，但不会自动切换过去。
 
-| 模式 | 后续命令如何恢复选中页面 | 参数 |
-| --- | --- | --- |
-| 默认 Puppeteer | 保存选中的 target，供后续 CLI 调用恢复。 | 无需连接参数。 |
-| CDP | 保存选中的 target，供后续 CLI 调用恢复。 | 每条命令传 `--cdp <endpoint>`，或设置 `MIDSCENE_CDP_ENDPOINT` 后传 `--cdp`。 |
-| Bridge | 激活当前 Chrome 窗口中的指定标签；后续命令连接前台标签。 | 每条命令传 `--bridge`，并使用更新后的 Midscene 扩展。手动切换前台标签会影响后续命令。 |
+在 CDP 模式下，每条命令都需要传入 `--cdp <endpoint>`，或设置 `MIDSCENE_CDP_ENDPOINT` 后传入 `--cdp`。
 
-CLI 会保留弹出的新页，不再将父页导航到弹窗 URL。Puppeteer 和 CDP 不会自动跟随新标签。自然语言 `act` 也可以通过 BrowserAgent 的页面动作选中标签，命令退出时保存最终选中的页面。SDK PageAgent 的默认行为不变。
+在 Bridge 模式下，每条命令都需要传入 `--bridge`，并使用更新后的 Midscene Chrome 扩展。切换会激活当前 Chrome 窗口中的指定标签。后续命令连接前台标签，因此手动切换标签也会改变下一条命令控制的页面。
 
-`disconnect` 释放连接。默认 Puppeteer 模式下的 `close` 会关闭整个浏览器，包括所有标签。从源码测试 Bridge 时，需要重新构建并加载扩展，才能按标签 ID 切换。
+`disconnect` 释放连接。默认 Puppeteer 模式下的 `close` 会关闭整个浏览器，包括所有标签。
 
 ## 更多
 

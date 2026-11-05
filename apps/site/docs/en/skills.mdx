@@ -105,28 +105,24 @@ If Chrome is installed in a non-standard location, set `MIDSCENE_CHROME_PATH` to
 Use `tabs` to list open tabs and `switch-tab --id <id>` to select one. Save the parent tab ID before clicking a link that opens a new tab, then list tabs again to find the child:
 
 ```bash
-pnpm dlx @midscene/web tabs
+npx @midscene/web tabs
 # After opening the child tab:
-pnpm dlx @midscene/web tabs
-pnpm dlx @midscene/web switch-tab --id <child-tab-id>
-pnpm dlx @midscene/web take_screenshot
+npx @midscene/web tabs
+npx @midscene/web switch-tab --id <child-tab-id>
+npx @midscene/web take_screenshot
 # Return to the parent after working in the child:
-pnpm dlx @midscene/web switch-tab --id <parent-tab-id>
+npx @midscene/web switch-tab --id <parent-tab-id>
 ```
 
 `tabs` returns a JSON array with `id`, `title`, `url`, and `active`. `active` identifies the page controlled by Midscene. Switching selects an existing tab without navigating or reloading it, preserving page state. Missing or closed IDs produce an error. If a site opens a tab asynchronously, run `tabs` again after it appears.
 
-Keep the connection mode consistent across commands:
+Keep the connection mode consistent across commands. In default Puppeteer and CDP modes, subsequent commands use the selected tab. These modes preserve newly opened tabs without switching to them automatically.
 
-| Mode | Selection across commands | Options |
-| --- | --- | --- |
-| Default Puppeteer | Saves the selected target for subsequent CLI calls. | No connection flag required. |
-| CDP | Saves the selected target for subsequent CLI calls. | Pass `--cdp <endpoint>` on each command, or set `MIDSCENE_CDP_ENDPOINT` and pass `--cdp`. |
-| Bridge | Activates the selected tab in the current Chrome window; subsequent commands connect to the foreground tab. | Pass `--bridge` on each command and use an updated Midscene extension. Manually changing the foreground tab affects subsequent commands. |
+In CDP mode, pass `--cdp <endpoint>` on each command, or set `MIDSCENE_CDP_ENDPOINT` and pass `--cdp`.
 
-The CLI preserves popups rather than redirecting the parent to the popup URL. Puppeteer and CDP do not automatically follow new tabs. Natural-language `act` can also select pages through BrowserAgent actions; the final selected page is saved when the command exits. SDK PageAgent defaults are unchanged.
+In Bridge mode, pass `--bridge` on each command and use an updated Midscene Chrome extension. Switching activates the selected tab in the current Chrome window. Subsequent commands connect to the foreground tab, so manually switching tabs also changes which page the next command controls.
 
-`disconnect` releases the connection. In default Puppeteer mode, `close` closes the entire browser, including all tabs. When testing Bridge from source, rebuild and reload the extension to enable selection by tab ID.
+`disconnect` releases the connection. In default Puppeteer mode, `close` closes the entire browser, including all tabs.
 
 ## More
 
