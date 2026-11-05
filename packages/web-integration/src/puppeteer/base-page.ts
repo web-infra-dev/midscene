@@ -216,7 +216,6 @@ export class Page<
   underlyingPage: InterfaceType;
   protected waitForNavigationTimeout: number;
   protected waitForNetworkIdleTimeout: number;
-  private viewportSize?: Size;
   private onBeforeInvokeAction?: AbstractInterface['beforeInvokeAction'];
   private onAfterInvokeAction?: AbstractInterface['afterInvokeAction'];
   private customActions?: DeviceAction<any>[];
@@ -462,16 +461,14 @@ export class Page<
   }
 
   async size(): Promise<Size> {
-    if (this.viewportSize) return this.viewportSize;
+    // Tabs and window sizes can change while this wrapper stays alive.
     /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
-    const sizeInfo: Size = await this.evaluate(() => {
+    return this.evaluate(() => {
       return {
         width: window.innerWidth,
         height: window.innerHeight,
       };
     });
-    this.viewportSize = sizeInfo;
-    return sizeInfo;
   }
 
   async screenshotBase64(): Promise<string> {
