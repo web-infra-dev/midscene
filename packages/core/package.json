@@ -41,6 +41,11 @@
       "import": "./dist/es/utils.mjs",
       "require": "./dist/lib/utils.js"
     },
+    "./siwc": {
+      "types": "./dist/types/siwc.d.ts",
+      "import": "./dist/es/siwc.mjs",
+      "require": "./dist/lib/siwc.js"
+    },
     "./ai-model": {
       "types": "./dist/types/ai-model/index.d.ts",
       "import": "./dist/es/ai-model/index.mjs",
@@ -111,6 +116,7 @@
     "*": {
       ".": ["./dist/types/index.d.ts"],
       "utils": ["./dist/types/utils.d.ts"],
+      "siwc": ["./dist/types/siwc.d.ts"],
       "ai-model": ["./dist/types/ai-model.d.ts"],
       "tree": ["./dist/types/tree.d.ts"],
       "device": ["./dist/types/device.d.ts"],
