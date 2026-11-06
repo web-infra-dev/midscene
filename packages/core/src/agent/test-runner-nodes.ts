@@ -282,7 +282,11 @@ export const aiKeyboardPressInputSchema = z.strictObject({
 });
 
 export const aiScrollInputSchema = z.strictObject({
-  prompt: userPromptInputSchema.optional(),
+  prompt: userPromptInputSchema
+    .optional()
+    .describe(
+      'Optional locator for a currently visible scrollable container, such as "the product list". Omit for page scrolling. Describe the container, not a scrolling instruction or an off-screen target to find. Set direction, distance, and scrollType in options.',
+    ),
   options: locateOptionsInputSchema
     .extend({
       direction: z.enum(['down', 'up', 'right', 'left']).optional(),
