@@ -46,7 +46,7 @@ function resolveImagePreprocess(
 
 export class ResolvedModelAdapter implements ModelAdapter {
   readonly modelType: ModelAdapter['modelType'];
-  readonly supportedTaskTypes: ModelAdapter['supportedTaskTypes'];
+  readonly allowedTaskTypes: ModelAdapter['allowedTaskTypes'];
   readonly supportedProtocols: ModelAdapter['supportedProtocols'];
   readonly jsonParser: JsonParser;
   readonly chatCompletion: ChatCompletionAdapter;
@@ -60,7 +60,7 @@ export class ResolvedModelAdapter implements ModelAdapter {
 
   constructor(config: ModelAdapterDefinition, modelFamily: string) {
     this.modelType = config.modelType ?? 'generative';
-    this.supportedTaskTypes = config.supportedTaskTypes;
+    this.allowedTaskTypes = config.allowedTaskTypes;
     this.supportedProtocols = config.supportedProtocols ?? ['openai-chat'];
     this.jsonParser = resolveJsonParser(config.jsonParser);
     this.chatCompletion = resolveChatCompletion(config.chatCompletion);

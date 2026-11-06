@@ -1,8 +1,6 @@
 import { TestProject } from '@theme';
 
-随着业务发展，测试工程可以持续积累可复用的业务操作，让用例保持对测试意图的清晰表达。人和 AI 可以基于同一份能力说明理解、编写和修改用例，业务操作的实现则可以独立维护。
-
-Midscene Test 通过自定义 Node 承载这些业务能力，并根据项目已注册的操作生成 Markdown 格式的 Node Spec，为人和 AI 提供一致的用例编写依据。[了解扩展机制](/zh/midscene-test/extend)
+把可复用的业务逻辑封装成自定义 Node。Midscene Test 会生成 Markdown 格式的 Node 说明书（Node Spec），列出每个 Node 及其参数，测试工程师和 AI Agent 无需阅读 TypeScript 就能编写用例。[了解如何开发自定义 Node](/zh/midscene-test/extend)
 
 <div className="rp-not-doc introduction-block">
   <TestProject hideHeading />

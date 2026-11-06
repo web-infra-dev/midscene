@@ -5,16 +5,18 @@ import {
   rmSync,
   statSync,
 } from 'node:fs';
-import { basename, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import {
   parseDumpScript,
   parseImageScripts,
   unescapeContent,
 } from '@/dump/html-utils';
+import { readReportDumpScripts } from '@/dump/report-artifact-reader';
 import * as reportDumpCompactor from '@/dump/report-dump-compactor';
 import { ReportGenerator } from '@/report-generator';
 import { ScreenshotItem } from '@/screenshot-item';
 import { ExecutionDump, ReportActionDump, type UIContext } from '@/types';
+import { setMidsceneRunDir } from '@midscene/shared/common';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import {
   buildIncrementalExecution,
@@ -25,6 +27,7 @@ import {
   fakeBase64,
   getReportGeneratorTmpDir,
   parseScriptAttributes,
+  screenshotFilePath,
 } from './test-helpers/report-generator';
 import {
   countGroupedDumpScripts,
@@ -36,13 +39,30 @@ describe('ReportGenerator — append-only model', () => {
 
   beforeEach(() => {
     tmpDir = getReportGeneratorTmpDir('report-gen');
+    setMidsceneRunDir(tmpDir);
   });
 
   afterEach(() => {
+    setMidsceneRunDir(undefined);
     if (existsSync(tmpDir)) {
       rmSync(tmpDir, { recursive: true, force: true });
     }
   });
+
+  it.each(['.', '..', '../outside', 'outside\\records'])(
+    'rejects unsafe diagnostic directory scopes: %s',
+    (scope) => {
+      const generator = new ReportGenerator({
+        reportPath: join(tmpDir, 'scoped.html'),
+        screenshotMode: 'inline',
+        autoPrint: false,
+      });
+      expect(() => generator.enableSourceSnapshots(scope)).toThrow(
+        'Invalid report scope ID',
+      );
+      expect(existsSync(join(tmpDir, 'test-results'))).toBe(false);
+    },
+  );
 
   it('freezes repeated snapshots before I/O without waiting for the HTML queue', async () => {
     const generator = new ReportGenerator({
@@ -69,7 +89,7 @@ describe('ReportGenerator — append-only model', () => {
     ).toBe('before cutoff');
     expect(first.collection?.capturedAt).toBeDefined();
     expect(
-      existsSync(join(tmpDir, 'screenshots', `${screenshot.id}.png`)),
+      existsSync(screenshotFilePath(dirname(first.dumpPath), screenshot)),
     ).toBe(true);
     const second = await generator.createSourceSnapshot('scope');
     expect(second.dumpPath).not.toBe(first.dumpPath);
@@ -101,18 +121,21 @@ describe('ReportGenerator — append-only model', () => {
     const execution = createExecution([screenshot]);
     generator.onExecutionUpdate(execution, defaultReportMeta);
     await generator.flush();
+    generator.enableSourceSnapshots();
     const state = generator as unknown as {
-      executionsByKey: Map<string, ExecutionDump>;
+      recorder: { executions: ExecutionDump[] };
       lastExecution?: ExecutionDump;
-      screenshotStore: { persist: (...args: unknown[]) => Promise<unknown> };
+      sourceStore: {
+        persistFileCopy: (...args: unknown[]) => Promise<unknown>;
+      };
     };
-    const persist = state.screenshotStore.persist.bind(state.screenshotStore);
+    const persist = state.sourceStore.persistFileCopy.bind(state.sourceStore);
     let release!: () => void;
     const gate = new Promise<void>((resolve) => {
       release = resolve;
     });
     const pendingWrite = rs
-      .spyOn(state.screenshotStore, 'persist')
+      .spyOn(state.sourceStore, 'persistFileCopy')
       .mockImplementationOnce(async (...args) => {
         await gate;
         return persist(...args);
@@ -127,7 +150,7 @@ describe('ReportGenerator — append-only model', () => {
       // The HTML queue can finish independently of the blocked snapshot write.
       await generator.flush();
       expect(finalized).toBe(false);
-      expect(state.executionsByKey.size).toBe(1);
+      expect(state.recorder.executions.length).toBe(1);
       expect(state.lastExecution).toBe(execution);
       await expect(generator.createSourceSnapshot('too-late')).rejects.toThrow(
         'finalized',
@@ -143,9 +166,9 @@ describe('ReportGenerator — append-only model', () => {
     );
     expect(dump.executions.map((item) => item.id)).toEqual([execution.id]);
     expect(
-      existsSync(join(tmpDir, 'screenshots', `${screenshot.id}.png`)),
+      existsSync(screenshotFilePath(dirname(source.dumpPath), screenshot)),
     ).toBe(true);
-    expect(state.executionsByKey.size).toBe(0);
+    expect(state.recorder.executions.length).toBe(0);
     expect(state.lastExecution).toBeUndefined();
     const html = readFileSync(path!, 'utf8');
     expect(await generator.finalize()).toBe(path);
@@ -177,8 +200,9 @@ describe('ReportGenerator — append-only model', () => {
         );
         await generator.finalize();
 
-        const html = readFileSync(reportPath, 'utf-8');
-        expect(html).toContain(`data-screenshot-mode="${mode}"`);
+        expect(readReportDumpScripts(reportPath)[0].openTag).toContain(
+          `data-screenshot-mode="${mode}"`,
+        );
       },
     );
   });
@@ -507,9 +531,7 @@ describe('ReportGenerator — append-only model', () => {
         .filter((name) => /^\d+\.execution\.json$/.test(name))
         .sort();
       expect(jsonFiles).toEqual(['1.execution.json']);
-      expect(
-        existsSync(join(tmpDir, 'screenshots', `${screenshot.id}.png`)),
-      ).toBe(true);
+      expect(existsSync(screenshotFilePath(tmpDir, screenshot))).toBe(true);
 
       const firstDump = JSON.parse(
         readFileSync(join(dumpDir, '1.execution.json'), 'utf-8'),
@@ -640,11 +662,7 @@ describe('ReportGenerator — append-only model', () => {
       generator.onExecutionUpdate(firstExecution, defaultReportMeta);
       await generator.flush();
 
-      const screenshotPath1 = join(
-        tmpDir,
-        'screenshots',
-        `${screenshot1.id}.png`,
-      );
+      const screenshotPath1 = screenshotFilePath(tmpDir, screenshot1);
       const mtimeFirst = statSync(screenshotPath1).mtimeMs;
 
       const startTime = Date.now();
@@ -662,9 +680,7 @@ describe('ReportGenerator — append-only model', () => {
 
       const mtimeSecond = statSync(screenshotPath1).mtimeMs;
       expect(mtimeSecond).toBe(mtimeFirst);
-      expect(
-        existsSync(join(tmpDir, 'screenshots', `${screenshot2.id}.png`)),
-      ).toBe(true);
+      expect(existsSync(screenshotFilePath(tmpDir, screenshot2))).toBe(true);
     });
 
     it('should produce valid HTML with parseable image map and dump JSON', async () => {
@@ -1067,7 +1083,7 @@ describe('ReportGenerator — append-only model', () => {
       const writtenFileScreenshots = (generator as any).screenshotStore
         .writtenFileIds as Set<string>;
       expect(writtenFileScreenshots.size).toBe(1);
-      expect([...writtenFileScreenshots][0]).toBe(largeScreenshot.id);
+      expect([...writtenFileScreenshots][0]).toMatch(/^[a-f0-9]{64}\.png$/);
     });
   });
 });

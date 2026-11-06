@@ -13,7 +13,7 @@ const commands = {
 
 function probe(command, args) {
   try {
-    const output = execFileSync(command, args, {
+    execFileSync(command, args, {
       timeout: 3000,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
@@ -21,18 +21,26 @@ function probe(command, args) {
     });
     return { available: true, signal: 'command succeeded' };
   } catch (error) {
-    return { available: false, signal: error.code === 'ENOENT' ? 'command not installed' : 'not available or command failed' };
+    return {
+      available: false,
+      signal:
+        error.code === 'ENOENT'
+          ? 'command not installed'
+          : 'not available or command failed',
+    };
   }
 }
 
 export function inspectWayland(env = process.env, run = probe) {
-  const session = env.XDG_SESSION_TYPE === 'wayland' || Boolean(env.WAYLAND_DISPLAY);
+  const session =
+    env.XDG_SESSION_TYPE === 'wayland' || Boolean(env.WAYLAND_DISPLAY);
   const result = {
     schemaVersion: 1,
     session: session ? 'wayland' : 'not-wayland',
     compositor: env.XDG_CURRENT_DESKTOP || 'unknown',
     checks: {},
-    privacy: 'No key injection, clipboard reads, screenshots, or text content captured',
+    privacy:
+      'No key injection, clipboard reads, screenshots, or text content captured',
   };
   if (!session) return result;
   for (const [name, [command, args]] of Object.entries(commands)) {
@@ -41,6 +49,9 @@ export function inspectWayland(env = process.env, run = probe) {
   return result;
 }
 
-if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+if (
+  process.argv[1] &&
+  import.meta.url === new URL(`file://${process.argv[1]}`).href
+) {
   console.log(JSON.stringify(inspectWayland(), null, 2));
 }

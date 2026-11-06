@@ -9,7 +9,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, join, relative, resolve, sep } from 'node:path';
+import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { afterAll, describe, expect, it } from 'vitest';
@@ -106,6 +106,51 @@ const runFailure = async (
 };
 
 describe('midscene-test CLI', () => {
+  it.each(['default', 'environment', 'absolute-environment'] as const)(
+    'prints paths from the unified %s root when launched outside the project',
+    async (source) => {
+      const root = mkdtempSync(join(tmpdir(), 'cli-unified-root-'));
+      temporaryDirectories.push(root);
+      const commonUrl = pathToFileURL(
+        resolve(packageRoot, '../shared/dist/es/common.mjs'),
+      ).href;
+      writeFileSync(
+        join(root, 'midscene.config.mjs'),
+        `
+        import { getMidsceneRunSubDir } from ${JSON.stringify(commonUrl)};
+        export default {
+          nodes: [{name:'noop',execute(){ getMidsceneRunSubDir('output'); }}],
+        };
+      `,
+      );
+      writeFileSync(
+        join(root, 'case.yaml'),
+        'cases:\n  - name: scope\n    steps:\n      - noop: {}\n',
+      );
+      const env = { ...process.env };
+      env.MIDSCENE_RUN_DIR = undefined;
+      if (source === 'environment') env.MIDSCENE_RUN_DIR = 'artifacts';
+      if (source === 'absolute-environment')
+        env.MIDSCENE_RUN_DIR = join(root, 'artifacts');
+      const execution = await execFileAsync(process.execPath, [cliPath, root], {
+        cwd: packageRoot,
+        env,
+      });
+      const artifactRoot = join(
+        root,
+        source === 'default' ? 'midscene_run' : 'artifacts',
+      );
+      const resultDir = join(artifactRoot, 'test-results');
+      const summaryPath = summaryPathFor(resultDir);
+      const summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
+      const reportPath = resolve(dirname(summaryPath), summary.report);
+      expect(summary.status).toBe('success');
+      expect(execution.stdout).toContain(`Summary: ${summaryPath}`);
+      expect(execution.stdout).toContain(`Report: ${reportPath}`);
+      expect(existsSync(join(artifactRoot, 'output'))).toBe(true);
+      expect(existsSync(join(root, '.midscene'))).toBe(false);
+    },
+  );
   it.each(['default', 'verbose'])(
     'reports concurrent files, scoped warnings and per-model usage through the %s CLI',
     async (reporter) => {

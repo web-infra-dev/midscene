@@ -369,7 +369,9 @@ describe('test project main-process runner', () => {
 
     const result = await runTestProject({ projectRoot: root });
 
-    expect(result.resultDir).toContain(join(root, '.midscene', 'test-results'));
+    expect(result.resultDir).toBe(join(root, 'midscene_run', 'test-results'));
+    expect(result.reportDir).toBe(join(root, 'midscene_run', 'report'));
+    expect(existsSync(join(root, '.midscene'))).toBe(false);
   });
 
   it('writes each run into an isolated JSON result tree', async () => {
@@ -445,6 +447,40 @@ describe('test project main-process runner', () => {
       first.runId,
     );
   });
+
+  it.each([undefined, 'html-and-external-assets'] as const)(
+    'uses the selected Test report delivery format: %s',
+    async (reportFormat) => {
+      const root = createProject();
+      writeFileSync(
+        join(root, 'midscene.config.ts'),
+        `export default {
+      output: { reportFormat: ${JSON.stringify(reportFormat)} },
+      nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
+    };`,
+      );
+      writeWorkflow(
+        root,
+        'example.yaml',
+        'cases: [{ name: example, steps: [{ noop: run }] }]',
+      );
+      const result = await runTestProject({
+        projectRoot: root,
+        resultDir: join(root, 'results'),
+      });
+      expect(result.status).toBe('success');
+      const name = `midscene-e2e-${result.runId}`;
+      expect(result.reportPath).toBe(
+        join(
+          root,
+          'midscene_run',
+          'report',
+          reportFormat ? join(name, 'index.html') : `${name}.html`,
+        ),
+      );
+      expect(existsSync(result.reportPath!)).toBe(true);
+    },
+  );
 
   it('rejects native report controls instead of silently disabling the report', async () => {
     const root = createProject();

@@ -475,6 +475,10 @@ export function createWebInputPrimitives(
         await page.mouse.click(x, y, { button: 'left' });
         scheduleVisualUpdate();
       },
+      middleClick: async ({ x, y }) => {
+        await page.mouse.click(x, y, { button: 'middle' });
+        scheduleVisualUpdate();
+      },
       rightClick: async ({ x, y }) => {
         await page.mouse.click(x, y, { button: 'right' });
         scheduleVisualUpdate();
@@ -523,6 +527,10 @@ export function createWebInputPrimitives(
             button: 'left',
           });
           await page.keyboard.press([{ key: 'End' }]);
+        } else if (!element && opts?.replace !== false && !opts?.focusOnly) {
+          // Replace within the current focus without a preliminary click or
+          // a separate empty input event that could trigger an autosave.
+          await page.selectAllInput();
         }
 
         if (opts?.focusOnly) {

@@ -814,6 +814,13 @@ export class ComputerDevice implements AbstractInterface {
         );
         this.inputDriver.mouseClick('right');
       },
+      middleClick: async ({ x, y }) => {
+        await this.moveDisplayPointer(
+          { x, y },
+          'Mouse did not reach the middle-click target',
+        );
+        this.inputDriver.mouseClick('middle');
+      },
       hover: async ({ x, y }) => {
         await this.moveDisplayPointer(
           { x, y },

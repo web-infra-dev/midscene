@@ -7,6 +7,7 @@ runs:
   steps:
     - name: Resolve pnpm store
       id: pnpm-store
+      if: ${{ runner.environment == 'self-hosted' }}
       shell: bash
       run: |
         echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
@@ -14,6 +15,7 @@ runs:
         echo "node_version=$(node --version)" >> "$GITHUB_OUTPUT"
 
     - name: Save pnpm store
+      if: ${{ runner.environment == 'self-hosted' }}
       uses: ./.github/actions/cache/save
       with:
         path: ${{ steps.pnpm-store.outputs.path }}

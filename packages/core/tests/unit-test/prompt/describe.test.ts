@@ -31,7 +31,7 @@ describe('elementDescriberInstruction', () => {
       'use primitive "option" for selectable list options',
     );
     expect(instruction).toContain(
-      'Only use primitive "icon" or "arrow" when the endpoint/center directly overlaps the real glyph strokes',
+      'Only use primitive "icon" or "arrow" when the marker center directly overlaps the real glyph strokes',
     );
   });
 });

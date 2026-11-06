@@ -23,6 +23,8 @@ should point here instead of duplicating rules.
 - Read `CONTRIBUTING.md` before local development. Dev/build workflows,
   app-local dev servers, and report rebuild troubleshooting are maintained
   there to avoid duplication.
+- When changing artifact paths, recording, publication, exports, or logging, read
+  [the artifact and logging conventions](./CONTRIBUTING.md#artifact-and-logging-conventions).
 - Before creating a commit or updating a PR, run `pnpm run lint` from the
   repository root.
 - For code changes, run the smallest relevant Nx target for each touched
@@ -99,12 +101,12 @@ recommended models or their versions change (e.g. `qwen3-vl` → `qwen3.x`,
 then propagate the new model names to every place that markets the supported
 model list:
 
-- `README.md` and `README.zh.md` (the "Driven by Visual Language Model"
-  section).
-- `apps/site/docs/en/index.mdx` and
-  `apps/site/docs/zh/index.mdx` (same section).
+- `README.md` and `README.zh.md` (the model list in the "Choose models for
+  your needs and budget" section).
+- The homepage model option card: `modelSupportedDesc` in
+  `apps/site/theme/i18n/enUS.ts` and `apps/site/theme/i18n/zhCN.ts`.
 
-Keep all four spots in sync and consistent with the strategy/config docs.
+Keep these spots in sync and consistent with the strategy/config docs.
 Leave historical references in `changelog.mdx` alone, and keep illustrative
 "newer beats older" comparisons in `faq.md` intact. Remember README and
 homepage are bilingual: update the en/zh counterparts in the same change.

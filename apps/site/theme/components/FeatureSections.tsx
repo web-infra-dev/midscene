@@ -2,10 +2,11 @@ import { Link } from '@rspress/core/theme-original';
 import { ArrowRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useI18n, useI18nUrl } from '../i18n';
-import { FeatureCard } from './FeatureCard';
+import { FeatureCard, FeatureCardGrid, FeatureCardImage } from './FeatureCard';
 import { HomeChapter } from './HomeChapter';
-import { PlatformTable } from './PlatformTable';
+import { PlatformHub } from './PlatformHub';
 import { SectionDivider } from './SectionDivider';
+import { TestExecution } from './TestExecution';
 import { TestFramework } from './TestFramework';
 import { TestProject } from './TestProject';
 import { TestingToolkit } from './TestingToolkit';
@@ -165,37 +166,36 @@ export function AgentModels({
       variant="models"
       hideHeading={hideHeading}
     >
-      <div className="home-feature-grid">
+      <FeatureCardGrid>
         <FeatureCard
           href={tUrl('/model-selection')}
           title={t('modelSupportedName')}
           description={t('modelSupportedDesc')}
           actionLabel={t('modelSupportedLink')}
-          lightBackground="/images/models/supported-models-light.svg"
-          darkBackground="/images/models/supported-models-dark.svg"
-        />
+        >
+          <FeatureCardImage
+            light="/images/models/supported-models-light.svg"
+            dark="/images/models/supported-models-dark.svg"
+          />
+        </FeatureCard>
         <FeatureCard
           href={tUrl('/app-control-bench-report')}
           title={t('modelCostName')}
           description={t('modelCostDesc')}
           actionLabel={t('modelCostReport')}
-          lightBackground="/images/backgrounds/gradient-light.svg"
-          darkBackground="/images/backgrounds/gradient-dark.svg"
-          visualClassName="home-feature-card__visual--cost"
-          lightContent={
-            <div className="home-model-cost">
-              <span className="home-model-cost__eyebrow">
-                {t('modelCostExample')}
-              </span>
-              <div className="home-model-cost__amount">
-                <strong>$0.59</strong>
-                <span>{t('modelCostTasks')}</span>
-              </div>
-              <span>{t('modelCostMetric')}</span>
+        >
+          <div className="home-model-cost">
+            <span className="home-model-cost__eyebrow">
+              {t('modelCostExample')}
+            </span>
+            <div className="home-model-cost__amount">
+              <strong>$0.59</strong>
+              <span>{t('modelCostTasks')}</span>
             </div>
-          }
-        />
-      </div>
+            <span>{t('modelCostMetric')}</span>
+          </div>
+        </FeatureCard>
+      </FeatureCardGrid>
     </FeatureSection>
   );
 }
@@ -247,7 +247,7 @@ export function AgentPlatforms({
       variant="platforms"
       hideHeading={hideHeading}
     >
-      <PlatformTable />
+      <PlatformHub />
     </FeatureSection>
   );
 }
@@ -266,48 +266,5 @@ export function AgentToolkit({
     >
       <TestingToolkit />
     </FeatureSection>
-  );
-}
-
-export function TestExecution({
-  hideHeading = false,
-}: { hideHeading?: boolean }) {
-  const t = useI18n();
-  const tUrl = useI18nUrl();
-  return (
-    <section className="home-feature">
-      <div className="home-feature__inner">
-        {!hideHeading && (
-          <header className="home-feature__heading-block">
-            <span className="home-feature__eyebrow">
-              {t('executionEyebrow')}
-            </span>
-            <h2>{t('executionHeading')}</h2>
-          </header>
-        )}
-        <div className="home-execution-grid">
-          {(
-            [
-              ['executionLifecycleTitle', 'executionLifecycleDesc'],
-              ['executionRetryTitle', 'executionRetryDesc'],
-              ['executionConcurrencyTitle', 'executionConcurrencyDesc'],
-              ['executionReportTitle', 'executionReportDesc'],
-            ] as const
-          ).map(([title, description]) => (
-            <article key={title}>
-              <h3>{t(title)}</h3>
-              <p>{t(description)}</p>
-            </article>
-          ))}
-        </div>
-        <Link
-          className="home-feature__action"
-          href={tUrl('/midscene-test/use')}
-        >
-          {t('frameworkStartLink')}
-          <ArrowRight size={16} aria-hidden="true" />
-        </Link>
-      </div>
-    </section>
   );
 }
