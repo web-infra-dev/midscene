@@ -25,6 +25,7 @@ import {
   prepareSystemOne,
   callSystemOne as sendSystemOneRequest,
 } from './system-one';
+import { getSystemOneLabel } from './system-one/dialect';
 import type { SystemOneRequest } from './system-one/schema';
 import type { ModelCallMessages } from './types';
 import type {
@@ -97,10 +98,13 @@ export async function callSystemOneAI(
   options?: CallAIOptions,
 ): Promise<AICallResult> {
   options?.abortSignal?.throwIfAborted();
-  assert(!options?.stream, 'Jev does not support streaming output');
   assert(
-    modelRuntime.config.modelFamily === 'jev',
-    'System One currently only supports the Jev model family in Midscene',
+    !options?.stream,
+    `${getSystemOneLabel(modelRuntime.config)} does not support streaming output`,
+  );
+  assert(
+    modelRuntime.adapter.modelType === 'system-one',
+    'System One requires a System One model family (jev or drex) in Midscene',
   );
   return executeModelCall(modelRuntime, options, async () => ({
     kind: 'system-one',

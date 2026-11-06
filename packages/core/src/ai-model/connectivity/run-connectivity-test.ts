@@ -123,8 +123,8 @@ async function runTextConnectivityCheck(
 ): Promise<ConnectivityCheckResultItem> {
   const startTime = Date.now();
   try {
-    const isJev = modelRuntime.config.modelFamily === 'jev';
-    const result = await (isJev
+    const isSystemOne = modelRuntime.adapter.modelType === 'system-one';
+    const result = await (isSystemOne
       ? callSystemOneAI(
           {
             state: { token: TEXT_EXPECTED_TOKEN },
@@ -151,10 +151,10 @@ async function runTextConnectivityCheck(
           modelRuntime,
         ));
     const content = result.content.trim();
-    const answer = isJev
+    const answer = isSystemOne
       ? systemOneResponseSchema.parse(JSON.parse(content)).answers.result
       : undefined;
-    const passed = isJev
+    const passed = isSystemOne
       ? answer?.type === 'noul' && answer.noul >= 0.5
       : content.includes(TEXT_EXPECTED_TOKEN);
     return buildCheckResult('text', modelRuntime, {
@@ -176,7 +176,7 @@ async function runVisionConnectivityCheck(
 ): Promise<ConnectivityCheckResultItem> {
   const startTime = Date.now();
   try {
-    if (modelRuntime.config.modelFamily === 'jev') {
+    if (modelRuntime.adapter.modelType === 'system-one') {
       await callSystemOneAI(
         {
           state: {},
@@ -256,6 +256,21 @@ async function runAiLocateConnectivityCheck(
   }
 }
 
+/**
+ * Mirrors the Agent's task-type fallback: when the Locate model cannot
+ * perform Locate (for example Drex), the check runs on the default model.
+ */
+function resolveLocateConnectivityConfig(
+  config: ConnectivityTestConfig,
+): IModelConfig {
+  const locateConfig = config.locateModelConfig;
+  if (!locateConfig) return config.defaultModelConfig;
+  const allowed = getModelRuntime(locateConfig).adapter.allowedTaskTypes;
+  return !allowed || allowed.includes('locate')
+    ? locateConfig
+    : config.defaultModelConfig;
+}
+
 export async function runConnectivityTest(
   config: ConnectivityTestConfig,
 ): Promise<ConnectivityTestResult> {
@@ -277,7 +292,7 @@ export async function runConnectivityTest(
     runCheck(config.planningModelConfig, runTextConnectivityCheck),
     runCheck(config.insightModelConfig, runVisionConnectivityCheck),
     runCheck(
-      config.locateModelConfig ?? config.defaultModelConfig,
+      resolveLocateConnectivityConfig(config),
       runAiLocateConnectivityCheck,
     ),
     runCheck(config.defaultModelConfig, runTextConnectivityCheck),

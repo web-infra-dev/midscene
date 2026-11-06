@@ -380,6 +380,58 @@ Jev 使用 TypeSafe 的 System One 协议，不使用 OpenAI 协议。OpenAI 的
 
 </ModelConfigSection>
 
+<ModelConfigSection description="Drex Max">
+
+### Drex Max（实验性） {#drex-max}
+
+
+Drex Max 是 nace.ai 的决策模型，针对文本和截图回答固定形式的问题：某个陈述成立的概率，或者在给定选项中做选择。在 Midscene 中，它复用 Jev 的 System One 流程来执行任务规划和布尔判断。它不返回元素坐标框，因此不能执行定位。
+
+Midscene 对 Drex Max 的支持是实验性的。
+
+- 模型供应商：[nace.ai](https://console.nace.ai/)
+- 模型文档：[Drex Max 指南](https://console.nace.ai/docs/drex/guides/drex-max)
+
+**先配置并保留一个通用模型的默认配置（`MIDSCENE_MODEL_*`），再追加下面的 Drex 配置。** Drex 用于 Planning 和布尔类 Insight，定位以及 Drex 无法处理的任务仍由通用默认模型完成。默认模型的配置方式参见[多模型组合](./model-config#multi-model-combination-example)。
+
+复制以下配置，将 Planning 和 Insight 配置为 Drex Max：
+
+<ModelConfigCard
+  providers={[
+    {
+      name: "nace.ai",
+      href: "https://console.nace.ai/",
+      baseUrl: {
+        value: "https://console.nace.ai/v1",
+        comment: "nace.ai API 地址",
+      },
+      modelName: "drex-max",
+    },
+  ]}
+  modelFamily="drex"
+  layout="combined"
+  purposes={['planning', 'insight']}
+/>
+
+将相应模型职责配置为 Drex 后，各类任务的处理方式如下：
+
+- **任务规划**：`aiAct` 中，单击、双击、返回等简单动作由 Drex 规划；输入、滚动等复杂动作由默认模型规划。
+- **定位**：不支持。Locate 职责保留给默认模型。如果将 `MIDSCENE_LOCATE_MODEL_FAMILY` 设为 `drex`，Agent 会将定位交给默认模型处理并记录原因。
+- **Insight**：`aiBoolean`、`aiAssert` 和 `aiWaitFor` 由 Drex 执行判断；`aiQuery`、`aiString`、`aiNumber` 和 `aiAsk` 由通用默认模型处理。
+
+上述模型选择依据任务所需的能力。Drex 请求失败时，不会自动切换至默认模型。
+
+Drex 使用 System One 协议，不使用 OpenAI 协议。截图和参考图片以顶层 `images` 数组发送，并在请求中以 `Image 1`、`Image 2` 等方式引用。OpenAI 的部分模型配置不适用于 Drex，包括温度、原生思考、响应格式和流式输出等。
+
+:::info 注意事项
+
+- **请求 URL**：Base URL 需要包含 `/v1`，例如 `https://console.nace.ai/v1`，Midscene 会追加 `/systemone`。如果使用其他路径，可通过 `MIDSCENE_PLANNING_MODEL_ENDPOINT` 或 `MIDSCENE_INSIGHT_MODEL_ENDPOINT` 设置完整请求 URL。Endpoint 的优先级高于 Base URL。请保留 Base URL 配置，Endpoint 必须与它同源。
+- **图像输入限制**：`drex-max` 和 `drex-max-v1.1` 能读取图片；`drex-v2.0` 和 `drex-latest` 仅支持文本，会拒绝包含图片的请求。每次请求最多 8 张图片、512 个问题，请求体上限 4,194,304 字节（4 MiB），截图较大时请使用 Agent 的 `screenshotShrinkFactor` 参数。
+
+:::
+
+</ModelConfigSection>
+
 ## 设置环境变量
 
 Midscene 从环境变量读取模型配置。请选择与你的使用方式对应的方法，也可以沿用项目已有的环境变量管理方式。

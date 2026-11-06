@@ -144,7 +144,7 @@ To configure a separate model for Planning, Locate, or Insight, use the correspo
 
 | Name | Description |
 |------|-------------|
-| `MIDSCENE_MODEL_ENDPOINT` | Full request URL for the System One API. Supported only by System One models (currently Jev). Takes precedence over the model's `BASE_URL` and is used as-is, without appending a path; `BASE_URL` is optional when this is set. For example, `https://api.typesafe.ai/v1/systemone`. When unset, Midscene continues to append `/systemone` to the Base URL. |
+| `MIDSCENE_MODEL_ENDPOINT` | Full request URL for the System One API. Supported only by System One models (Jev and Drex). Takes precedence over the model's `BASE_URL` and is used as-is, without appending a path. For Jev, `BASE_URL` is optional when this is set. For Drex, `BASE_URL` is required and the endpoint must be on its origin, because the API key is only sent to that origin. For example, `https://api.typesafe.ai/v1/systemone`. When unset, Midscene continues to append `/systemone` to the Base URL. |
 | `MIDSCENE_MODEL_TIMEOUT` | Timeout per model request in milliseconds, including reading the response body. Defaults to `180000` (180 seconds). Set to `0` to disable this timeout. |
 | `MIDSCENE_MODEL_TEMPERATURE` | Sampling temperature for model responses |
 | `MIDSCENE_MODEL_RETRY_COUNT` | Number of retries when AI call fails, default 1 (i.e., retry once after failure). Retries occur when the model request encounters an HTTP error or when the model response cannot be structurally parsed |
@@ -295,7 +295,7 @@ Calls outside a report execution, such as connectivity checks, use a generated e
 
 ## Observability platforms
 
-The automatic integrations below wrap the OpenAI SDK client used for OpenAI-compatible HTTP requests. They do not apply to Codex App Server or Jev's System One protocol.
+The automatic integrations below wrap the OpenAI SDK client used for OpenAI-compatible HTTP requests. They do not apply to Codex App Server or the System One protocol (Jev, Drex).
 
 Notes:
 

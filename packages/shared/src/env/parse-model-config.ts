@@ -240,8 +240,8 @@ export const parseOpenaiSdkConfig = ({
   const modelFamily = modelFamilyRaw as unknown as TModelFamily;
   validateModelFamily(modelFamily);
   assert(
-    !endpoint || modelFamily === 'jev',
-    `${keys.endpoint} is only supported for System One models (currently Jev)`,
+    !endpoint || modelFamily === 'jev' || modelFamily === 'drex',
+    `${keys.endpoint} is only supported for System One models (currently Jev and Drex)`,
   );
   const uiTarsModelVersion = getUITarsModelVersion(modelFamily);
 

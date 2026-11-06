@@ -114,7 +114,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   modelSupportedLink: '查看模型配置',
   modelSupportedName: '支持多种模型',
   modelSupportedDesc:
-    '支持豆包、DeepSeek、Qwen、GPT、Gemini、Kimi 等模型，按效果与预算选择。',
+    '支持豆包、DeepSeek、Qwen、GPT、Gemini、Kimi、Drex 等模型，按效果与预算选择。',
   modelCostName: '低模型调用成本',
   modelCostDesc:
     '以豆包 Seed 2.1 Turbo 为例：该次 AppControlBench 评测中，60 项任务通过 58 项，模型调用总费用为 $0.59。',
