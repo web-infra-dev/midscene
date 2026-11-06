@@ -107,4 +107,64 @@ describe('GitHub reporter', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it('shows paths with markdown-sensitive characters literally in code spans', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'midscene-github-summary-'));
+    try {
+      vi.stubEnv('GITHUB_ACTIONS', 'true');
+      vi.stubEnv('GITHUB_STEP_SUMMARY', join(dir, 'summary.md'));
+      writeGitHubSummary({
+        schemaVersion: 3,
+        runId: 'github-summary-paths',
+        startedAt: '2026-10-20T00:00:00.000Z',
+        endedAt: '2026-10-20T00:00:01.000Z',
+        durationMs: 1000,
+        status: 'failed',
+        exitCode: 1,
+        resultDir: '/work/R&D',
+        reportDir: '/work/R&D/report',
+        summary: {
+          total: 1,
+          passed: 0,
+          failed: 1,
+          notRun: 0,
+          passedAfterRetry: 0,
+          finalPassRate: 0,
+          firstPassRate: 0,
+          filtered: 0,
+          collectionErrors: 0,
+          documentFailures: 0,
+          projectFailures: 0,
+        },
+        projects: [],
+        documents: [],
+        collectionErrors: [],
+        cases: [
+          {
+            caseId: 'failed',
+            caseIndex: 0,
+            documentId: 'cases/<draft>/user`s login.yaml',
+            status: 'failed',
+            name: 'login',
+            projectName: 'web',
+            sourcePath: 'cases/<draft>/user`s login.yaml',
+          },
+        ],
+        summaryPath: '/work/R&D/summary.json',
+        reportPath: '/work/R&D/report/index.html',
+      });
+      const output = readFileSync(join(dir, 'summary.md'), 'utf8');
+      // Entity references are not decoded inside code spans, so the path
+      // text must appear as is, with a fence longer than its backticks.
+      expect(output).toContain(
+        'Failed: **login** — web/``cases/<draft>/user`s login.yaml``',
+      );
+      expect(output).toContain(
+        'Report artifact entry: `/work/R&D/report/index.html`',
+      );
+      expect(output).toContain('Structured results: `/work/R&D/summary.json`');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
