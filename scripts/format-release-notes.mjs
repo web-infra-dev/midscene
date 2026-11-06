@@ -13,6 +13,20 @@ const categories = [
   { key: 'maintenance', title: 'CI & Chore ⚙️' },
   { key: 'other', title: 'Other Changes' },
 ];
+const chineseTitles = {
+  'Breaking Changes 🍭': '不兼容变更 🍭',
+  'Features 🎉': '新特性 🎉',
+  'Fixes 🐞': '问题修复 🐞',
+  'Performance 🚀': '性能优化 🚀',
+  'Refactors ♻️': '重构 ♻️',
+  'Documentation 📖': '文档 📖',
+  'Testing 🧪': '测试 🧪',
+  'Build 📦': '构建 📦',
+  'CI & Chore ⚙️': 'CI 与维护 ⚙️',
+  'Other Changes': '其他变更',
+  'New Contributors': '新贡献者',
+  "What's Changed": '更新内容',
+};
 const notificationCategoryKeys = new Set(['breaking', 'feat', 'fix']);
 const markdownSpecialCharacters = new Set([
   '\\',
@@ -93,7 +107,10 @@ const parseChangeLine = (line) => {
 };
 
 const parseReleaseNotes = (markdown) => {
-  const normalizedMarkdown = markdown.replaceAll('\r', '').trim();
+  const normalizedMarkdown = markdown
+    .replaceAll('\r', '')
+    .replace(/^<!-- Release notes generated[^\n]*-->\n?/gm, '')
+    .trim();
   const preamble = [];
   const sections = [];
   const fullChangelog = [];
@@ -188,7 +205,9 @@ export const buildReleaseNotification = (markdown) => {
   };
 };
 
-export const formatReleaseNotes = (markdown) => {
+export const formatReleaseNotes = (markdown, language = 'en') => {
+  const title = (value) =>
+    language === 'zh' ? (chineseTitles[value] ?? value) : value;
   const parsedNotes = parseReleaseNotes(markdown);
   if (parsedNotes.changes.length === 0) {
     return parsedNotes.normalizedMarkdown;
@@ -213,11 +232,11 @@ export const formatReleaseNotes = (markdown) => {
   return [
     parsedNotes.preamble.join('\n'),
     ...orderedSections.map(
-      (section) => `## ${section.title}\n${section.lines.join('\n')}`,
+      (section) => `## ${title(section.title)}\n${section.lines.join('\n')}`,
     ),
     ...remainingSections.map(
       (section) =>
-        `${section.marker} ${section.title}\n${section.lines.join('\n')}`,
+        `${section.marker} ${title(section.title)}\n${section.lines.join('\n')}`,
     ),
     parsedNotes.fullChangelog.join('\n'),
   ]

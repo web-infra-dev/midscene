@@ -49,7 +49,7 @@ export class ModelConfigManager {
     );
     if (!defaultConfig) {
       throw new Error(
-        'Model configuration is incomplete: model name (MIDSCENE_MODEL_NAME) is required. See https://midscenejs.com/model-strategy.html',
+        'Model configuration is incomplete: model name (MIDSCENE_MODEL_NAME) is required. See https://midscenejs.com/model-api-setup',
       );
     }
 
@@ -63,13 +63,21 @@ export class ModelConfigManager {
       configMap,
     );
 
+    const locateConfig = decideModelConfigFromIntentConfig('locate', configMap);
+
     // Each intent uses its own timeout from parsed config (MIDSCENE_MODEL_TIMEOUT,
-    // MIDSCENE_INSIGHT_MODEL_TIMEOUT, MIDSCENE_PLANNING_MODEL_TIMEOUT).
+    // MIDSCENE_INSIGHT_MODEL_TIMEOUT, MIDSCENE_PLANNING_MODEL_TIMEOUT, MIDSCENE_LOCATE_MODEL_TIMEOUT).
     this.modelConfigMap = {
       default: {
         ...defaultConfig,
         intent: 'default',
         slot: 'default',
+        createOpenAIClient: this.createOpenAIClientFn,
+      },
+      locate: {
+        ...(locateConfig || defaultConfig),
+        intent: 'locate',
+        slot: locateConfig ? 'locate' : 'default',
         createOpenAIClient: this.createOpenAIClientFn,
       },
       insight: {
@@ -144,11 +152,11 @@ export class ModelConfigManager {
   }
 
   throwErrorIfNonVLModel() {
-    const modelConfig = this.getModelConfig('default');
+    const modelConfig = this.getModelConfig('locate');
 
     if (!modelConfig.modelFamily) {
       throw new Error(
-        'MIDSCENE_MODEL_FAMILY is not set to a multimodal model with UI localization, so element localization cannot be achieved. Check your model configuration. See https://midscenejs.com/model-strategy.html',
+        `${modelConfig.slot === 'locate' ? 'MIDSCENE_LOCATE_MODEL_FAMILY' : 'MIDSCENE_MODEL_FAMILY'} is not set to a multimodal model with UI localization, so element localization cannot be achieved. Check your model configuration. See https://midscenejs.com/model-api-setup`,
       );
     }
   }

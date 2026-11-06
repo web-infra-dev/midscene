@@ -8,10 +8,6 @@
     box-shadow: none;
   }
 
-  .runner-detail-case-header::after {
-    display: none;
-  }
-
   .runner-back-button,
   .runner-detail-case-header .runner-back-button {
     min-height: 24px;
@@ -37,15 +33,52 @@
 
   .runner-case-run-bar {
     display: flex;
+    width: 100%;
+    min-width: 0;
     min-height: 46px;
-    margin-top: 40px;
+    margin: 0;
     align-items: center;
     justify-content: space-between;
-    gap: 20px;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    padding-block: 6px;
   }
 
-  .runner-attempt-select-shell,
-  .runner-single-attempt-label {
+  .runner-execution-controls {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .runner-detail-panel-heading .ant-segmented {
+    padding: 2px;
+    border: 1px solid var(--runner-border);
+    border-radius: 12px;
+    background: var(--runner-control-bg);
+    color: var(--runner-muted);
+    font-size: 14px;
+  }
+
+  .runner-detail-panel-heading .ant-segmented-item {
+    min-width: 70px;
+    border-radius: 10px;
+  }
+
+  .runner-detail-panel-heading .ant-segmented-group {
+    gap: 4px;
+  }
+
+  .runner-detail-panel-heading .ant-segmented-item-selected,
+  .runner-detail-panel-heading .ant-segmented-thumb {
+    border-radius: 10px;
+    color: var(--runner-text);
+    background: var(--runner-surface);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  }
+
+  .runner-attempt-select-shell {
     display: inline-flex;
     min-height: 34px;
     align-items: center;
@@ -54,15 +87,7 @@
     border-radius: 12px;
     background: var(--runner-surface);
     font-size: 14px;
-  }
-
-  .runner-attempt-select-shell {
     padding: 0;
-  }
-
-  .runner-single-attempt-label {
-    padding: 4px 12px 4px 4px;
-    gap: 8px;
   }
 
   .runner-attempt-select-shell > .ant-select {
@@ -115,26 +140,6 @@
     box-shadow: none;
   }
 
-  .runner-detail-log-view {
-    border-color: var(--runner-border);
-    background: var(--runner-surface);
-  }
-
-  .runner-detail-log-view p {
-    color: var(--runner-text);
-    border-color: var(--runner-border);
-    background: color-mix(
-      in srgb,
-      var(--runner-surface-muted) 38%,
-      var(--runner-surface)
-    );
-  }
-
-  .runner-detail-log-view time,
-  .runner-detail-log-view b {
-    color: var(--runner-muted);
-  }
-
   .runner-case-step-summary {
     display: flex;
     margin: 0 0 0 auto;
@@ -146,7 +151,7 @@
     display: flex;
     position: relative;
     min-width: 0;
-    padding: 8px 20px;
+    padding: 0 12px;
     align-items: baseline;
     justify-content: center;
     gap: 8px;
@@ -154,7 +159,7 @@
 
   .runner-case-step-summary > div + div::before {
     position: absolute;
-    top: 15px;
+    top: 2px;
     left: 0;
     height: 16px;
     border-left: 1px solid var(--runner-border);
@@ -166,15 +171,16 @@
     color: var(--runner-muted);
     font-size: 12px;
     line-height: 20px;
+    white-space: nowrap;
   }
 
   .runner-case-step-summary dd {
     margin: 0;
     color: var(--runner-muted);
     font-family: 'DIN Alternate', 'Report Inter', sans-serif;
-    font-size: 22px;
+    font-size: 14px;
     font-weight: 600;
-    line-height: 30px;
+    line-height: 20px;
   }
 
   .runner-case-step-summary .is-passed dd {
@@ -195,7 +201,6 @@
     margin-top: 24px;
     overflow: visible;
     flex-direction: column;
-    gap: 40px;
     border: 0;
     border-radius: 0;
     background: transparent;
@@ -204,9 +209,10 @@
 
   .runner-detail-step-panel {
     width: 100%;
-    height: 548px;
+    height: auto;
     min-height: 0;
-    overflow: hidden;
+    max-height: none;
+    overflow: visible;
     border: 1px solid var(--runner-border);
     border-radius: 16px;
     background: var(--runner-surface);
@@ -214,58 +220,227 @@
   }
 
   .runner-detail-panel-heading {
-    height: 48px;
+    height: auto;
     min-height: 48px;
-    padding: 0 20px;
+    padding: 0 8px;
     border-bottom: 1px solid var(--runner-border);
   }
 
-  .runner-detail-timeline-control.is-compact {
-    display: inline-flex;
-    width: 20px;
-    height: 20px;
-    padding: 0;
+  .runner-execution-content {
+    position: relative;
+    min-width: 0;
+  }
+
+  .runner-execution-visual {
+    display: flow-root;
+  }
+
+  // The Visual layout defines the shared height without measuring either view.
+  // Keep its layout while hiding it from sight, focus, and pointer interaction.
+  .runner-execution-visual[hidden] {
+    display: flow-root;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .runner-detail-execution-body {
+    display: grid;
+    grid-template-columns: var(--runner-step-sidebar-width, 320px) 8px minmax(
+        0,
+        1fr
+      );
+    min-height: 440px;
+    padding: 8px;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .runner-execution-resize-handle {
+    position: relative;
+    cursor: col-resize;
+    touch-action: none;
+    user-select: none;
+  }
+
+  .runner-execution-resize-handle::before {
+    position: absolute;
+    inset: 8px 3px;
+    border-radius: 2px;
+    background: transparent;
+    transition: background-color 120ms ease;
+    content: '';
+  }
+
+  .runner-execution-resize-handle:hover::before,
+  .runner-execution-resize-handle:focus-visible::before,
+  .runner-execution-resize-handle:active::before {
+    background: var(--runner-primary);
+  }
+
+  .runner-execution-yaml {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    padding: 8px;
+    flex-direction: column;
+
+    > strong,
+    > p {
+      margin-inline: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    > strong {
+      margin-top: 12px;
+    }
+
+    p {
+      color: var(--runner-muted);
+      font-size: 12px;
+    }
+
+    pre {
+      flex: 1;
+      min-height: 0;
+      margin: 12px 0 0;
+      overflow: auto;
+      font-size: 13px;
+      line-height: 1.6;
+      tab-size: 2;
+    }
+  }
+
+  .runner-yaml-code {
+    padding-block: 8px;
+    border-radius: 8px;
+    color: var(--runner-code-text);
+    background: var(--runner-code-bg);
+    white-space: normal;
+
+    code {
+      font: inherit;
+    }
+  }
+
+  .runner-yaml-line {
+    display: flex;
+    width: max-content;
+    min-width: 100%;
+    min-height: 24px;
+    align-items: center;
+  }
+
+  .runner-yaml-number {
+    position: sticky;
+    left: 0;
+    flex: 0 0 40px;
+    padding-right: 8px;
+    color: var(--runner-muted);
+    background: var(--runner-code-bg);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    user-select: none;
+  }
+
+  .runner-yaml-markers {
+    position: sticky;
+    left: 40px;
+    display: flex;
+    flex: 0 0 40px;
+    flex-wrap: wrap;
+    align-self: stretch;
     align-items: center;
     justify-content: center;
+    background: var(--runner-code-bg);
+  }
+
+  .runner-yaml-source {
+    flex: 1;
+    padding-right: 16px;
+    white-space: pre;
+  }
+
+  .runner-yaml-key,
+  .runner-yaml-step-key {
+    color: var(--runner-code-accent);
+  }
+
+  .runner-yaml-string {
+    color: var(--runner-data);
+  }
+
+  .runner-yaml-literal {
+    color: var(--runner-agent);
+  }
+
+  .runner-yaml-comment {
     color: var(--runner-muted);
+  }
+
+  .runner-yaml-marker,
+  .runner-yaml-step-key {
+    padding: 0;
     border: 0;
-    border-radius: 8px;
+    border-radius: 3px;
     background: transparent;
-    box-shadow: none;
-    font-size: 16px;
+    font: inherit;
     cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background: var(--runner-primary-soft);
+    }
   }
 
-  .runner-detail-timeline-control.is-compact:hover,
-  .runner-detail-timeline-control.is-compact:focus-visible {
-    color: var(--runner-text);
-    outline: none;
-    background: color-mix(
-      in srgb,
-      var(--runner-control-bg) 72%,
-      var(--runner-surface)
-    );
+  .runner-yaml-step-key:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 
-  .runner-detail-timeline-control.is-compact:disabled {
-    opacity: 0.35;
-    cursor: default;
+  .runner-yaml-marker {
+    display: inline-flex;
+    min-width: 24px;
+    min-height: 24px;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+
+    &.is-success {
+      color: var(--runner-success);
+    }
+    &.is-failed {
+      color: var(--runner-danger);
+    }
+    &.is-timeout {
+      color: var(--runner-warning);
+    }
+    &.is-not-run {
+      color: var(--runner-muted);
+    }
+
+    .runner-step-warning {
+      margin: 0;
+      color: var(--runner-warning);
+      font-size: 12px;
+    }
   }
 
-  .runner-detail-step-panel > .runner-detail-timeline-card.is-detail {
+  .runner-execution-visual > .runner-detail-timeline-card.is-detail {
     --runner-timeline-frame-half-width: 63px;
-
     height: 120px;
     min-height: 120px;
     margin: 8px 8px 0;
     overflow: visible;
     border: 0;
     border-radius: 16px;
-    background: var(--runner-surface-muted);
+    background: var(--runner-code-bg);
     box-shadow: none;
   }
 
   .runner-detail-timeline-card.is-detail .runner-detail-timeline-track {
+    min-width: 0;
     height: 120px;
     min-height: 120px;
     padding: 0;
@@ -276,7 +451,7 @@
   .runner-detail-timeline-card.is-detail .runner-detail-timeline-axis {
     height: 28px;
     border-radius: 16px 16px 0 0;
-    background: var(--runner-surface-muted);
+    background: var(--runner-code-bg);
   }
 
   .runner-detail-timeline-card.is-detail .runner-detail-timeline-axis span {
@@ -328,27 +503,39 @@
   }
 
   .runner-detail-step-scroll {
+    position: sticky;
+    top: 16px;
     display: flex;
-    height: 372px;
+    height: auto;
     min-height: 0;
+    max-height: calc(100vh - 96px);
     padding: 8px;
-    overflow: auto hidden;
-    gap: 8px;
-    overscroll-behavior-x: contain;
+    overflow: hidden auto;
+    flex-direction: column;
+    gap: 0;
+    border-radius: 16px;
+    background: var(--runner-code-bg);
+    overscroll-behavior-y: contain;
   }
 
   .runner-detail-step-group {
     display: flex;
-    width: 307px;
-    min-width: 307px;
-    height: 100%;
+    width: 100%;
+    min-width: 0;
+    height: auto;
     min-height: 0;
-    flex: 1 0 307px;
+    flex: none;
     flex-direction: column;
-    padding: 8px;
+    padding: 0;
     overflow: hidden;
-    border-radius: 16px;
-    background: var(--runner-surface-muted);
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .runner-detail-step-group + .runner-detail-step-group {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--runner-border);
   }
 
   .runner-detail-step-scroll,
@@ -387,7 +574,7 @@
     z-index: 2;
     display: flex;
     flex: none;
-    margin: 0 0 8px;
+    margin: 0;
     padding: 5px 12px;
     align-items: center;
     justify-content: space-between;
@@ -402,69 +589,37 @@
 
   .runner-detail-step-list {
     min-height: 0;
-    overflow-y: auto;
-    scrollbar-gutter: stable;
-    overscroll-behavior-y: contain;
+    overflow: visible;
+    scrollbar-gutter: auto;
   }
 
   .runner-detail-step-list > button {
     position: relative;
-    grid-template-columns: 28px minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     width: 100%;
     min-height: 64px;
     margin: 0 0 8px;
-    padding: 7px 11px;
+    padding: 8px 12px;
     gap: 8px;
-    border: 1px solid var(--runner-border);
+    border: 0;
     border-radius: 12px;
-    background: var(--runner-surface);
-    isolation: isolate;
+    background: transparent;
     overflow: hidden;
   }
 
-  .runner-detail-step-list > button > * {
-    z-index: 1;
+  .runner-detail-step-list > button:last-child {
+    margin-bottom: 0;
   }
 
-  .runner-detail-step-list > button.is-selected {
-    border-color: #b5cbff;
-    background: var(--runner-primary-soft);
+  .runner-detail-step-list > button:focus-visible {
+    outline: 2px solid var(--runner-primary);
+    outline-offset: -2px;
+  }
+
+  .runner-detail-step-list > button.is-selected,
+  .runner-detail-step-list > button:hover {
+    background: var(--runner-list-active-bg);
     box-shadow: none;
-  }
-
-  .runner-detail-step-list > button.is-playing {
-    border-color: var(--runner-border);
-    background: var(--runner-playback-bg);
-  }
-
-  .runner-detail-step-list > button.is-playing::before {
-    position: absolute;
-    z-index: 0;
-    top: 0;
-    bottom: 0;
-    left: -85%;
-    width: 85%;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      var(--runner-playback-glow) 50%,
-      transparent 100%
-    );
-    animation: runner-step-playback-glow 1.6s ease-in-out infinite;
-    content: '';
-    pointer-events: none;
-  }
-
-  .runner-detail-step-type {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-  }
-
-  .runner-detail-step-type svg,
-  .runner-detail-step-type img {
-    width: 16px;
-    height: 16px;
   }
 
   .runner-detail-step-copy strong {
@@ -482,6 +637,17 @@
     flex: none;
     background: var(--runner-muted);
     mask: url('../../icons/record-videocamera.svg') no-repeat center / contain;
+  }
+
+  .runner-detail-step-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .runner-detail-step-copy .runner-step-warning {
+    flex: none;
   }
 
   .runner-detail-step-copy small {
@@ -506,23 +672,5 @@
   .runner-detail-step-copy small,
   .runner-detail-step-tail time {
     font-size: 14px;
-  }
-}
-
-@keyframes runner-step-playback-glow {
-  0% {
-    transform: translateX(0);
-  }
-
-  100% {
-    transform: translateX(220%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .test-runner-report .runner-detail-step-list > button.is-playing::before {
-    left: 8%;
-    width: 84%;
-    animation: none;
   }
 }

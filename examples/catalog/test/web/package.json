@@ -1,0 +1,21 @@
+{
+  "name": "{{PROJECT_NAME}}",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "midscene-test",
+    "nodes": "midscene-test nodes",
+    "postinstall": "midscene-test nodes"
+  },
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+  },
+  "devDependencies": {
+    "@midscene/test": "{{MIDSCENE_VERSION}}",
+    "@midscene/web": "{{MIDSCENE_VERSION}}",
+    "@types/node": "^20.0.0",
+    "dotenv": "^16.4.5",
+    "typescript": "^5.8.3",
+    "playwright": "^1.45.0"
+  }
+}

@@ -10,34 +10,23 @@
       padding: 28px 24px;
     }
 
-    .runner-overview-primary-metrics {
-      height: auto;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .runner-overview-primary-metrics
-      .runner-metric-card:nth-child(3n):not(:last-child) {
-      border-right: 0;
-    }
-
-    .runner-overview-primary-metrics .runner-metric-card:nth-child(-n + 3) {
-      border-bottom: 1px solid var(--runner-border);
-    }
-
-    .runner-breakdown-controls,
-    .runner-case-run-bar {
+    .runner-breakdown-controls {
       align-items: flex-start;
       flex-direction: column;
     }
 
-    .runner-breakdown-panel .runner-breakdown-toolbar {
-      grid-template-columns: minmax(150px, 184px) minmax(240px, 1fr) 32px;
-      width: 100%;
+    .runner-detail-execution-body {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 8px;
     }
 
-    .runner-project-tree-columns,
-    .runner-project-tree-stats {
-      gap: 0;
+    .runner-execution-resize-handle {
+      display: none;
+    }
+
+    .runner-detail-step-scroll {
+      position: static;
+      max-height: 320px;
     }
   }
 }
@@ -56,10 +45,6 @@
       display: none;
     }
 
-    .runner-header-title > div:not(.logo) {
-      display: flex;
-    }
-
     .runner-main {
       margin-inline: 4px;
     }
@@ -71,75 +56,22 @@
     }
 
     .runner-overview-summary {
-      grid-template-columns: minmax(0, 1fr) auto;
       gap: 20px;
     }
 
-    .runner-overview-passed {
-      align-self: start;
+    .runner-overview-title-row {
+      flex-wrap: wrap;
+      gap: 4px 8px;
     }
 
-    .runner-overview-title-row h1,
     .runner-detail-title-line h1 {
       font-size: 24px;
       line-height: 32px;
     }
 
-    .runner-overview-run-meta {
+    .runner-run-meta {
       padding-right: 0;
       gap: 4px 12px;
-    }
-
-    .runner-overview-primary-metrics {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .runner-overview-primary-metrics .runner-metric-card {
-      margin: 20px 0;
-    }
-
-    .runner-breakdown-panel .runner-breakdown-toolbar {
-      grid-template-columns: minmax(0, 1fr) 32px;
-    }
-
-    .runner-breakdown-toolbar > .runner-report-select {
-      grid-column: span 2;
-    }
-
-    .runner-project-tree-header {
-      display: none;
-    }
-
-    .runner-project-tree {
-      margin-top: 20px;
-      padding-inline: 12px;
-      border-radius: 16px;
-    }
-
-    .runner-project-tree-root {
-      display: flex;
-      padding: 0;
-      flex-wrap: wrap;
-    }
-
-    .runner-project-tree-node.is-expanded .runner-project-tree-root {
-      background: var(--runner-surface);
-    }
-
-    .runner-project-tree-toggle {
-      min-height: 48px;
-      flex: 1 0 100%;
-    }
-
-    .runner-project-tree-stats {
-      width: 100%;
-      min-height: 40px;
-      gap: 8px;
-    }
-
-    .runner-project-tree-case,
-    .runner-project-tree-case-item.is-detailed .runner-project-tree-case {
-      grid-template-columns: minmax(0, 1fr);
     }
 
     .runner-case-meta {
@@ -151,12 +83,13 @@
 
     .runner-case-step-summary {
       width: 100%;
+      margin-left: 0;
       overflow-x: auto;
     }
 
     .runner-case-step-summary > div {
       flex: 1;
-      min-width: 0;
+      min-width: max-content;
       padding: 0 10px;
     }
 
@@ -174,14 +107,14 @@
       gap: 8px;
     }
 
-    .runner-overview-run-meta > span + span,
+    .runner-run-meta > span + span,
     .runner-case-meta > span + span {
       margin-left: 0;
       padding-left: 0;
       border: 0;
     }
 
-    .runner-overview-run-meta > span + span::before,
+    .runner-run-meta > span + span::before,
     .runner-case-meta > span + span::before {
       display: none;
     }
@@ -195,16 +128,8 @@
       overflow-wrap: anywhere;
     }
 
-    .runner-overview-primary-metrics .runner-metric-card {
-      padding-inline: 16px;
-      border: 0;
-    }
-
-    .runner-overview-primary-metrics .runner-metric-card:nth-child(odd) {
-      border-right: 1px solid var(--runner-border);
-    }
-
     .runner-detail-inline-trace .runner-detail-trace-view {
+      min-height: 680px;
       height: 680px;
     }
 

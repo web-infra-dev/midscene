@@ -1,0 +1,79 @@
+import { ChromeExtensionButton } from '@theme';
+
+# Web 环境配置
+
+在 Web 场景中，你可以通过 Playwright 或 Puppeteer 启动受控浏览器，也可以通过 [Chrome Bridge](../bridge-mode) 连接桌面 Chrome 以复用已有的登录状态。建议先使用 Chrome 插件的 Playground 验证模型配置与页面交互，再准备工程接入所需的浏览器环境。
+
+## 前置准备
+
+- 已安装桌面版 Chrome 浏览器（用于运行插件 Playground）。
+- 已准备好[模型配置](../model-api-setup)，或按[使用 ChatGPT 订阅](../chatgpt-subscription)获取模型配置。
+- 已安装 Node.js（版本要求 `^20.19.0 || ^22.12.0 || >=24.0.0`，供后续运行测试或脚本使用），并确认终端中可执行 `node -v` 和 `npx --version`。
+
+## 启动 Playground
+
+1. 安装 Midscene Chrome 插件：
+
+   <ChromeExtensionButton linkLabel="从 Chrome Web Store 安装 Midscene Chrome Extension" />
+
+2. 在 Chrome 工具栏的扩展程序列表中打开 Midscene 侧边栏，点击齿轮图标进入设置，粘贴完整的模型配置并保存。
+3. 在当前标签页中打开 [TodoMVC](https://todomvc.com/examples/react/dist/#/)，并保持页面可见。
+
+## 执行操作并验证结果
+
+1. 在插件侧边栏中选择 `aiAct`，输入以下指令并运行：
+
+```text
+添加一个名为“体验 Midscene”的待办事项，然后将它标记为已完成。
+```
+
+2. 待页面中出现已勾选完成的待办事项后，切换到 `aiAssert`，输入以下断言并运行：
+
+```text
+列表中存在名为“体验 Midscene”的待办事项，且它已被标记为完成。
+```
+
+3. 确认断言执行通过，并在结果面板中查看各步骤的截图与执行过程。
+
+这一步用于验证插件内的模型调用与页面交互是否正常。注意：Chrome 插件不会自动安装 Playwright 或 Puppeteer 所需的浏览器内核，其中的模型配置和浏览器登录状态也不会自动同步给外部测试进程。
+
+## 准备工程接入所需的浏览器
+
+### Playwright
+
+安装 pnpm 并在项目目录下执行 `pnpm init`（已有 `package.json` 可跳过），然后安装依赖及 Chromium 浏览器：
+
+```bash
+pnpm add -D @midscene/web playwright
+pnpm exec playwright install chromium
+```
+
+如果使用 Midscene Test 初始化了 Web 测试项目，按生成项目中的 `README` 安装浏览器即可。随后可通过 [Midscene Test](../midscene-test/use) 或[接入 Playwright Test](../integrate-with-playwright) 中的首个示例验证实际运行环境。
+
+### Puppeteer
+
+```bash
+pnpm add -D @midscene/web puppeteer
+```
+
+安装过程中需允许 Puppeteer 下载自带的浏览器（若使用本地已安装的浏览器或连接远程浏览器，请确保可执行文件路径或 CDP 调试地址可正常访问）。随后可运行[独立自动化脚本](../sdk/standalone)中的 Web / Puppeteer 示例进行验证；更多连接配置请参阅 [Puppeteer 接入指南](../integrate-with-puppeteer)。
+
+### 复用已有 Chrome（Chrome Bridge）
+
+如果希望在脚本中直接复用桌面 Chrome 已有的标签页、登录状态或扩展程序，请继续完成 [Chrome Bridge 连接验证](../bridge-mode#verify-connection)（插件 Playground 运行成功不代表 Bridge 通信链路已就绪）。
+
+## 下一步
+
+完成环境与 Playground 验证后，可根据使用场景选择接入方式：
+
+- **编写 YAML 测试**：通过 [Midscene Test](../midscene-test/use) 初始化项目、运行测试用例并查看报告。
+- **接入现有 JavaScript 测试**：[接入 Playwright Test](../integrate-with-playwright)。
+- **编写独立自动化脚本**：阅读[编写独立自动化脚本](../sdk/standalone)，参考对应平台的完整代码示例。
+
+注意：在 Playground 界面中填写的模型配置仅保存在本地浏览器中，不会自动同步到测试或脚本进程。接入工程时，请将验证通过的模型配置写入项目的 `.env` 文件并按文档说明加载。
+
+## 常见问题
+
+- **插件安装、页面受限或本地模型跨域（CORS）问题**：请参阅[快速体验常见问题](../quick-start#chrome-extension-faq)。
+- **模型请求报错**：请先核对配置项是否完整，再参考[模型连接检查](../model-config#verify-model-connectivity)排查网络与密钥。
+- **Playground 运行正常，但测试或脚本执行失败**：请确认 Node.js 进程已正确加载 `.env` 文件、Playwright / Puppeteer 浏览器已安装，且目标页面可正常访问（注意插件所在浏览器的登录态不会自动同步到新启动的浏览器实例中）。

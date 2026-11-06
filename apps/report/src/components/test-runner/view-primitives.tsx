@@ -2,7 +2,6 @@ import {
   CheckCircleFilled,
   ClockCircleOutlined,
   CloseCircleFilled,
-  ReloadOutlined,
 } from '@ant-design/icons';
 import type { TestRunReportStep, TestRunReportValue } from '@midscene/core';
 import type { ReactNode } from 'react';
@@ -19,9 +18,6 @@ export const formatDuration = (durationMs: number | undefined): string => {
     (durationMs % 60_000) / 1_000,
   )}s`;
 };
-
-export const formatPercent = (value: number): string =>
-  `${Math.round(value * 1000) / 10}%`;
 
 export const formatTimestamp = (value: string): string => {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -54,11 +50,6 @@ const statusMeta: Record<
     tone: 'success',
     icon: <CheckCircleFilled />,
   },
-  'retry-passed': {
-    label: 'passed after retry',
-    tone: 'warning',
-    icon: <ReloadOutlined />,
-  },
   failed: {
     label: 'failed',
     tone: 'failed',
@@ -71,8 +62,11 @@ const statusMeta: Record<
   },
 };
 
-export function caseStatusLabel(status: RunnerCaseStatus): string {
-  return statusMeta[status].label;
+export function caseStatusLabel(
+  status: RunnerCaseStatus,
+  recovered = false,
+): string {
+  return `${statusMeta[status].label}${status === 'passed' && recovered ? ' (earlier attempt failed)' : ''}`;
 }
 
 export function CaseStatus({
@@ -98,6 +92,13 @@ export function StepStatus({
 }: {
   status: TestRunReportStep['status'];
 }): JSX.Element {
+  if (status === 'not-run')
+    return (
+      <ClockCircleOutlined
+        className="runner-step-status"
+        aria-label="Not run"
+      />
+    );
   return status === 'success' ? (
     <CheckCircleFilled className="runner-step-status is-success" />
   ) : (

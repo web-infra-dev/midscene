@@ -143,6 +143,7 @@ describe('bbox locate cache fix', () => {
 
     // Create task builder
     taskBuilder = new TaskBuilder({
+      getDefaultModelRuntime: () => mockModelRuntime,
       interfaceInstance: mockInterface,
       service: mockService,
       taskCache,
@@ -163,6 +164,43 @@ describe('bbox locate cache fix', () => {
       (c) => c.type === 'locate' && c.prompt === prompt,
     );
   };
+
+  it('uses Default for cache judgments while locating with a dedicated model', async () => {
+    const locateModel = getModelRuntime({
+      ...mockModelConfig,
+      modelName: 'dedicated-locator',
+      intent: 'locate',
+      slot: 'locate',
+    });
+    locateModel.executionId = 'locate-execution';
+    const { tasks } = await taskBuilder.build(
+      [{ type: 'Locate', param: { prompt: 'the first input' } }],
+      mockModelRuntime,
+      locateModel,
+      { cacheable: true },
+    );
+    const task = tasks.find((task) => task.subType === 'Locate')!;
+    await task.executor({
+      task: createRuntimeTask(task),
+      uiContext: await createMockUIContext(validBase64Image),
+    });
+    expect(mockService.locate).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      locateModel,
+      undefined,
+    );
+    expect(mockInterface.cacheFeatureForPoint).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        targetDescription: 'the first input',
+        modelRuntime: expect.objectContaining({
+          config: mockModelRuntime.config,
+          executionId: 'locate-execution',
+        }),
+      }),
+    );
+  });
 
   describe('when planning returns actions with bbox', () => {
     it('should write locate cache even when bbox is used for positioning', async () => {
@@ -317,6 +355,7 @@ describe('bbox locate cache fix', () => {
 
       // Create new task builder with pre-populated cache
       const taskBuilderWithCache = new TaskBuilder({
+        getDefaultModelRuntime: () => mockModelRuntime,
         interfaceInstance: mockInterface,
         service: mockService,
         taskCache: prePopulatedTaskCache,
@@ -357,7 +396,7 @@ describe('bbox locate cache fix', () => {
     });
   });
 
-  it('should annotate AI locate usage with default intent while preserving raw slot', async () => {
+  it('should annotate AI locate usage with locate intent while preserving raw slot', async () => {
     rs.mocked(mockService.locate).mockResolvedValueOnce({
       element: {
         id: 'element-id',
@@ -408,7 +447,7 @@ describe('bbox locate cache fix', () => {
     });
 
     expect(runtimeTask.usage).toMatchObject({
-      intent: 'default',
+      intent: 'locate',
       slot: 'default',
     });
     expect(runtimeTask.log?.dump?.taskInfo?.usage).toMatchObject({
@@ -492,6 +531,7 @@ describe('bbox locate cache fix', () => {
 
       // Create task builder with this cache
       const taskBuilderWithCache = new TaskBuilder({
+        getDefaultModelRuntime: () => mockModelRuntime,
         interfaceInstance: mockInterface,
         service: mockService,
         taskCache: testCache,
@@ -698,6 +738,7 @@ describe('bbox locate cache fix', () => {
 
       // 5. Create taskBuilder with pre-populated cache
       const taskBuilderWithCache = new TaskBuilder({
+        getDefaultModelRuntime: () => mockModelRuntime,
         interfaceInstance: mockInterface,
         service: mockService,
         taskCache: testCache,
@@ -791,6 +832,7 @@ describe('bbox locate cache fix', () => {
       });
 
       const taskBuilderWithCache = new TaskBuilder({
+        getDefaultModelRuntime: () => mockModelRuntime,
         interfaceInstance: mockInterface,
         service: mockService,
         taskCache: testCache,

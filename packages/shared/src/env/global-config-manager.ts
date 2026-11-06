@@ -10,7 +10,6 @@ import {
 import {
   ALL_ENV_KEYS,
   MATCH_BY_POSITION,
-  MIDSCENE_MODEL_STREAM_MODE,
   MODEL_ENV_KEYS,
   type TGlobalConfig,
 } from './types';
@@ -74,15 +73,6 @@ export class GlobalConfigManager {
 
     const value = allConfig[key];
     this.keysHaveBeenRead[key] = true;
-    if (key === MIDSCENE_MODEL_STREAM_MODE) {
-      const mode = value?.trim() ?? 'non-stream';
-      if (mode !== 'stream' && mode !== 'non-stream') {
-        throw new Error(
-          `Invalid MIDSCENE_MODEL_STREAM_MODE: "${mode}". Expected "stream" or "non-stream".`,
-        );
-      }
-      return mode;
-    }
     if (typeof value === 'string') {
       return value.trim();
     }

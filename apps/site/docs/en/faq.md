@@ -119,14 +119,14 @@ JSON.stringify({ defaultHeaders: { foo: 'bar' } })
 
 ## How do I use Azure OpenAI Service?
 
-When using Azure OpenAI Service, first choose the model and fill in the regular configuration from [Supported models and setup](./model-common-config). Azure only requires changing the model service URL and API Key to the Azure form:
+When using Azure OpenAI Service, first choose the model and fill in the regular configuration from [Use a model API key](./model-api-setup). Azure only requires changing the model service URL and API Key to the Azure form:
 
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1" # Or https://<your-resource>.openai.azure.com/openai/v1
 MIDSCENE_MODEL_API_KEY="<your-azure-api-key>"
 ```
 
-In other words, other settings such as `MIDSCENE_MODEL_NAME` and `MIDSCENE_MODEL_FAMILY` should still follow the corresponding model section in [Supported models and setup](./model-common-config). Azure is only a model provider with different authentication, not a special model.
+In other words, other settings such as `MIDSCENE_MODEL_NAME` and `MIDSCENE_MODEL_FAMILY` should still follow the corresponding model section in [Use a model API key](./model-api-setup). Azure is only a model provider with different authentication, not a special model.
 
 This uses the normal OpenAI-compatible path with `Authorization: Bearer ...`. Depending on `MIDSCENE_MODEL_PROTOCOL`, requests go to `/openai/v1/chat/completions` (the default) or `/openai/v1/responses`. Confirm that your Azure model and endpoint support the selected protocol. Do not append `/chat/completions` or `/responses` to `MIDSCENE_MODEL_BASE_URL`. For most `/openai/v1` endpoints you do not need `api-version`.
 
@@ -160,7 +160,7 @@ Azure AD / keyless auth (`DefaultAzureCredential`) is not supported. Use an API 
 
 With a GPT-5 family model, you may find that the same script clicks the correct spot on the official OpenAI API but a consistently offset spot on Azure OpenAI's Chat Completions API. The offset scales with resolution: it appears at large screenshots (e.g. `1920x1080`) and disappears at small ones (e.g. `1280x600`).
 
-We observed that this issue is related to image handling in Azure's Chat Completions API. GPT-5 returns absolute coordinates based on the screenshot it actually sees, and Midscene sends the screenshot with `"detail": "original"` so the model sees the full-resolution image (see the [GPT-5 notes](./model-common-config#gpt)). In affected Chat Completions requests, Azure does not honor `"detail": "original"`, so it downscales large images server-side (the short side is capped at 768). The model then answers in the downscaled coordinate space while Midscene maps coordinates against the original resolution, producing a proportional offset. You can confirm `original` is not taking effect by checking token usage: when `original` works, image token consumption is noticeably higher.
+We observed that this issue is related to image handling in Azure's Chat Completions API. GPT-5 returns absolute coordinates based on the screenshot it actually sees, and Midscene sends the screenshot with `"detail": "original"` so the model sees the full-resolution image (see the [GPT-5 notes](./model-api-setup#gpt)). In affected Chat Completions requests, Azure does not honor `"detail": "original"`, so it downscales large images server-side (the short side is capped at 768). The model then answers in the downscaled coordinate space while Midscene maps coordinates against the original resolution, producing a proportional offset. You can confirm `original` is not taking effect by checking token usage: when `original` works, image token consumption is noticeably higher.
 
 We have verified that `"detail": "original"` works correctly with Azure's Responses API, so we recommend switching to the Responses protocol first:
 
@@ -185,7 +185,7 @@ There are several ways to improve the running time:
 
 ## How do I configure the midscene_run directory?
 
-Midscene saves runtime artifacts (reports, logs, cache, etc.) in the `midscene_run` directory. By default, this directory is created in the current working directory.
+Midscene saves reports, logs, and caches in `midscene_run/` by default. Standalone scripts, legacy YAML, and Playwright use the working directory as their base. Midscene Test uses the Test project. See [artifact directories](./midscene-test/running#unified-artifact-root-and-migration).
 
 You can customize the directory location using the `MIDSCENE_RUN_DIR` environment variable, which accepts both relative and absolute paths:
 
@@ -197,11 +197,13 @@ export MIDSCENE_RUN_DIR="./my_custom_dir"
 export MIDSCENE_RUN_DIR="/tmp/midscene_output"
 ```
 
-The directory contains the following subdirectories:
+Common subdirectories:
 
-- `report/` - Test report files (HTML format)
+- `report/` - Agent and Midscene Test reports (self-contained HTML by default)
+- `test-results/` - Execution results and diagnostic records
 - `log/` - Debug log files
 - `cache/` - Cache files (see [Caching](./caching))
+- `output/` - Files produced during execution
 
 For global runtime options, see [Runtime configuration](./reference/#runtime-configuration).
 
@@ -242,11 +244,11 @@ Midscene's element positioning capability relies on the AI model's visual unders
 
 Generally, newer versions and models with larger parameters perform better than older versions and smaller models. For example, Qwen3-VL performs better than Qwen2.5-VL, and its plus version performs better than the flash version.
 
-For current model recommendations, see [Supported models and setup](./model-common-config).
+For current model recommendations, see [Model Selection Guide](./model-selection).
 
 ### 3. Check Model Family Configuration
 
-Verify that the `MIDSCENE_MODEL_FAMILY` parameter is set correctly in your model configuration. Incorrect `MIDSCENE_MODEL_FAMILY` configuration will affect Midscene's adaptation logic for the model. See [Model Configuration](./model-config) for details.
+Verify that the `MIDSCENE_MODEL_FAMILY` parameter is set correctly in your model configuration. Incorrect `MIDSCENE_MODEL_FAMILY` configuration will affect Midscene's adaptation logic for the model. See [Use a model API key](./model-api-setup) for details.
 
 ### 4. Optimize prompts with visual features and position information
 
@@ -315,3 +317,9 @@ Midscene instructs the model to prioritize the goal of the scroll or swipe when 
 ## Does the Doubao phone use Midscene under the hood?
 
 No.
+
+## Which Web package entry points should I import?
+
+Use `@midscene/web/playwright`, `@midscene/web/playwright/agent`, `@midscene/web/puppeteer` or the package root for Web integration. Generic Agent and YAML APIs are available from `@midscene/core/agent` and `@midscene/core/yaml`.
+
+The stale `@midscene/web/utils`, `@midscene/web/ui-utils`, `@midscene/web/yaml` and `@midscene/web/agent` declarations have been removed: they referenced files absent from published packages. Check the package's supported exports when updating custom integrations.

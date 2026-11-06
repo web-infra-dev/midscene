@@ -107,7 +107,7 @@ describe('validateModelFamily', () => {
       MODEL_FAMILY_VALUES.join(', '),
     );
     expect(() => validateModelFamily('invalid' as any)).toThrow(
-      'https://midscenejs.com/model-common-config.html',
+      'https://midscenejs.com/model-api-setup.html',
     );
   });
 });

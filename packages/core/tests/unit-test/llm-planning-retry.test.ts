@@ -6,7 +6,7 @@ import type {
 } from '@/ai-model/model-adapter/planning-protocol';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
-import { callAI } from '@/ai-model/service-caller/index';
+import { callGenerativeAI } from '@/ai-model/service-caller/index';
 import { toChatMessages } from '@/ai-model/service-caller/openai/chat-completion/utils';
 import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
 import { standardPlan as runPreparedStandardPlan } from '@/ai-model/workflows/planning';
@@ -21,6 +21,7 @@ import { ActionSwipeParamSchema } from '@/device';
 import type { DeviceAction, UIContext } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
+import yaml from 'js-yaml';
 import { z } from 'zod';
 
 import * as serviceCallerActual from '@/ai-model/service-caller/index' with {
@@ -30,7 +31,7 @@ import * as commonActual from '@/common' with { rstest: 'importActual' };
 
 rs.mock('@/ai-model/service-caller/index', () => ({
   ...serviceCallerActual,
-  callAI: rs.fn(),
+  callGenerativeAI: rs.fn(),
 }));
 
 rs.mock('@/common', () => ({
@@ -80,7 +81,7 @@ const mockActionSpace = (): DeviceAction[] => [
 ];
 
 const latestImage = () => {
-  const entry = rs.mocked(callAI).mock.calls[0]?.[0]?.at(-1);
+  const entry = rs.mocked(callGenerativeAI).mock.calls[0]?.[0]?.at(-1);
   const message =
     entry &&
     ('role' in entry
@@ -94,15 +95,16 @@ const latestImage = () => {
 };
 
 const retryFeedbackContent = () => {
-  const message = rs.mocked(callAI).mock.calls[1]?.[0]?.at(-1);
+  const message = rs.mocked(callGenerativeAI).mock.calls[1]?.[0]?.at(-1);
   assert(message && 'role' in message);
   return message.content;
 };
 
-const latestCallAIOptions = () => rs.mocked(callAI).mock.calls[0]?.[2];
+const latestCallAIOptions = () =>
+  rs.mocked(callGenerativeAI).mock.calls[0]?.[2];
 
 const latestSystemPrompt = () => {
-  const message = rs.mocked(callAI).mock.calls[0]?.[0]?.[0];
+  const message = rs.mocked(callGenerativeAI).mock.calls[0]?.[0]?.[0];
   assert(message && 'role' in message);
   return message.role === 'system' ? message.content : undefined;
 };
@@ -112,8 +114,71 @@ const resolveImageDetail = new ResolvedModelAdapter({}, 'test')
 
 describe('plan XML parse retry', () => {
   beforeEach(() => {
-    rs.mocked(callAI).mockReset();
+    rs.mocked(callGenerativeAI).mockReset();
     rs.mocked(buildYamlFlowFromPlans).mockClear();
+  });
+
+  it('sends complete nested custom-action fields to the model before parsing its reply', async () => {
+    const parameters = {
+      target: { by: 'label', name: 'Access key' },
+      items: [{ name: 'example', enabled: true }],
+    };
+    rs.mocked(callGenerativeAI).mockResolvedValueOnce(
+      mockAIResponse(
+        `<action-type>FillBoundInput</action-type><action-param-json>${JSON.stringify(parameters)}</action-param-json>`,
+      ),
+    );
+    const result = await standardPlan('Fill the named input', {
+      context: mockContext(),
+      actionSpace: [
+        {
+          name: 'FillBoundInput',
+          paramSchema: z.object({
+            target: z.object({
+              by: z.enum(['label', 'placeholder']),
+              name: z.string(),
+            }),
+            items: z.array(
+              z.object({ name: z.string(), enabled: z.boolean() }),
+            ),
+          }),
+          call: rs.fn(),
+        },
+      ],
+      modelRuntime: getModelRuntime({ ...mockModelConfig(), retryCount: 0 }),
+      conversationHistory: new ConversationHistory(),
+      includeLocateInPlanning: false,
+      effort: 'balance',
+    });
+
+    const messages = rs.mocked(callGenerativeAI).mock.calls[0][0];
+    const system = toChatMessages(messages, resolveImageDetail)[0];
+    assert(typeof system.content === 'string');
+    const actionSpace = system.content
+      .split('### Supporting actions list\n\n')[1]
+      .split('\n\n### ')[0];
+    const [action] = yaml.load(actionSpace) as Array<{
+      param: Record<string, unknown>;
+    }>;
+    expect(action.param).toMatchObject({
+      target: {
+        properties: {
+          by: { type: "enum('label', 'placeholder')" },
+          name: { type: 'string' },
+        },
+      },
+      items: {
+        items: {
+          properties: {
+            name: { type: 'string' },
+            enabled: { type: 'boolean' },
+          },
+        },
+      },
+    });
+    expect(callGenerativeAI).toHaveBeenCalledTimes(1);
+    assert(result.actions);
+    expect(result.actions[0].param).toEqual(parameters);
   });
 
   it.each([
@@ -123,7 +188,7 @@ describe('plan XML parse retry', () => {
     '<error> </error>',
     '<complete>true</complete>',
   ])('retries incomplete planning responses: %s', async (content) => {
-    rs.mocked(callAI)
+    rs.mocked(callGenerativeAI)
       .mockResolvedValueOnce(mockAIResponse(content))
       .mockResolvedValueOnce(
         mockAIResponse('<complete success="true">Done</complete>'),
@@ -136,7 +201,7 @@ describe('plan XML parse retry', () => {
       includeLocateInPlanning: false,
       effort: 'balance',
     });
-    expect(callAI).toHaveBeenCalledTimes(2);
+    expect(callGenerativeAI).toHaveBeenCalledTimes(2);
     expect(retryFeedbackContent()).toEqual(
       expect.stringContaining('Incomplete planning response'),
     );
@@ -149,7 +214,7 @@ describe('plan XML parse retry', () => {
     '<complete success="false">Unable to finish</complete>',
     '<error>Cannot perform this action</error>',
   ])('accepts valid responses without actions: %s', async (content) => {
-    rs.mocked(callAI).mockResolvedValueOnce(mockAIResponse(content));
+    rs.mocked(callGenerativeAI).mockResolvedValueOnce(mockAIResponse(content));
     const result = await standardPlan('tap the menu', {
       context: mockContext(),
       actionSpace: mockActionSpace(),
@@ -158,7 +223,7 @@ describe('plan XML parse retry', () => {
       includeLocateInPlanning: false,
       effort: 'balance',
     });
-    expect(callAI).toHaveBeenCalledTimes(1);
+    expect(callGenerativeAI).toHaveBeenCalledTimes(1);
     expect(result.actions).toEqual([]);
     if (content.startsWith('<complete')) {
       expect(result.shouldContinuePlanning).toBe(false);
@@ -169,7 +234,7 @@ describe('plan XML parse retry', () => {
   });
 
   it('fails after exhausting retries for planning-only responses', async () => {
-    rs.mocked(callAI).mockResolvedValue(
+    rs.mocked(callGenerativeAI).mockResolvedValue(
       mockAIResponse('<planning>Tap the menu</planning>'),
     );
     await expect(
@@ -185,7 +250,7 @@ describe('plan XML parse retry', () => {
         effort: 'balance',
       }),
     ).rejects.toThrow('Incomplete planning response');
-    expect(callAI).toHaveBeenCalledTimes(2);
+    expect(callGenerativeAI).toHaveBeenCalledTimes(2);
     expect(buildYamlFlowFromPlans).not.toHaveBeenCalled();
   });
 
@@ -195,7 +260,7 @@ describe('plan XML parse retry', () => {
     '<action-param-json>{"locate":null}</action-param-json>',
     '<action-param-json>{"locate":"submit"}</action-param-json>',
   ])('retries invalid Tap parameters: %s', async (parameters) => {
-    rs.mocked(callAI)
+    rs.mocked(callGenerativeAI)
       .mockResolvedValueOnce(
         mockAIResponse(`<action-type>Tap</action-type>${parameters}`),
       )
@@ -220,7 +285,7 @@ describe('plan XML parse retry', () => {
       effort: 'balance',
     });
 
-    expect(callAI).toHaveBeenCalledTimes(2);
+    expect(callGenerativeAI).toHaveBeenCalledTimes(2);
     expect(retryFeedbackContent()).toEqual(
       expect.stringContaining('Invalid parameters for action Tap: locate'),
     );
@@ -248,7 +313,7 @@ describe('plan XML parse retry', () => {
         }
         return { prompt: 'submit', bbox: [100, 200, 300, 400] };
       });
-      rs.mocked(callAI).mockResolvedValueOnce(
+      rs.mocked(callGenerativeAI).mockResolvedValueOnce(
         mockAIResponse(`<action-type>Tap</action-type>
 <action-param-json>${JSON.stringify({ locate: encodedLocate })}</action-param-json>`),
       );
@@ -283,7 +348,7 @@ describe('plan XML parse retry', () => {
         includeLocateInPlanning,
         effort: 'balance',
       });
-      expect(callAI).toHaveBeenCalledTimes(1);
+      expect(callGenerativeAI).toHaveBeenCalledTimes(1);
       expect(parseRawLocateParameter).toHaveBeenCalledTimes(1);
       expect(parseRawLocateParameter).toHaveBeenCalledWith(encodedLocate);
       expect(result.actions?.[0]?.param.locate.prompt).toBe('submit');
@@ -298,7 +363,7 @@ describe('plan XML parse retry', () => {
   );
 
   it('retries missing locator prompts before normalizing coordinates', async () => {
-    rs.mocked(callAI)
+    rs.mocked(callGenerativeAI)
       .mockResolvedValueOnce(
         mockAIResponse(`<action-type>Tap</action-type>
 <action-param-json>{"locate":{"bbox":["invalid"]}}</action-param-json>`),
@@ -325,7 +390,7 @@ describe('plan XML parse retry', () => {
       includeLocateInPlanning: true,
       effort: 'balance',
     });
-    expect(callAI).toHaveBeenCalledTimes(2);
+    expect(callGenerativeAI).toHaveBeenCalledTimes(2);
     const feedback = retryFeedbackContent();
     expect(feedback).toEqual(
       expect.stringContaining('locate.prompt: Required'),
@@ -337,7 +402,7 @@ describe('plan XML parse retry', () => {
   });
 
   it('reports parameter validation errors after retries are exhausted', async () => {
-    rs.mocked(callAI).mockResolvedValue(
+    rs.mocked(callGenerativeAI).mockResolvedValue(
       mockAIResponse(`<action-type>Input</action-type>
 <action-param-json>{"value":123}</action-param-json>`),
     );
@@ -362,7 +427,7 @@ describe('plan XML parse retry', () => {
         effort: 'balance',
       }),
     ).rejects.toThrow('Invalid parameters for action Input: value');
-    expect(callAI).toHaveBeenCalledTimes(2);
+    expect(callGenerativeAI).toHaveBeenCalledTimes(2);
     expect(buildYamlFlowFromPlans).not.toHaveBeenCalled();
   });
 
@@ -371,7 +436,9 @@ describe('plan XML parse retry', () => {
     async (ratio) => {
       const rawResponse = `<action-type>Swipe</action-type>
 <action-param-json>{"direction":"up","distance":90,"duration":500}</action-param-json>`;
-      rs.mocked(callAI).mockResolvedValue(mockAIResponse(rawResponse));
+      rs.mocked(callGenerativeAI).mockResolvedValue(
+        mockAIResponse(rawResponse),
+      );
       const call = rs.fn();
       const action: DeviceAction = {
         name: 'Swipe',
@@ -434,7 +501,7 @@ describe('plan XML parse retry', () => {
 
   it('keeps model parameters unchanged in actions and YAML', async () => {
     const transform = rs.fn((value: string) => value.length);
-    rs.mocked(callAI).mockResolvedValue(
+    rs.mocked(callGenerativeAI).mockResolvedValue(
       mockAIResponse(`<action-type>Input</action-type>
 <action-param-json>{"value":"hello"}</action-param-json>`),
     );
@@ -465,7 +532,7 @@ describe('plan XML parse retry', () => {
 
   it('does not retry or wrap YAML generation errors', async () => {
     const error = new Error('YAML generation failed');
-    rs.mocked(callAI).mockResolvedValue(
+    rs.mocked(callGenerativeAI).mockResolvedValue(
       mockAIResponse(`<action-type>Tap</action-type>
 <action-param-json>{}</action-param-json>`),
     );
@@ -486,12 +553,12 @@ describe('plan XML parse retry', () => {
         effort: 'balance',
       }),
     ).rejects.toBe(error);
-    expect(callAI).toHaveBeenCalledTimes(1);
+    expect(callGenerativeAI).toHaveBeenCalledTimes(1);
     expect(buildYamlFlowFromPlans).toHaveBeenCalledTimes(1);
   });
 
   it('retries unknown actions before generating YAML', async () => {
-    rs.mocked(callAI)
+    rs.mocked(callGenerativeAI)
       .mockResolvedValueOnce(
         mockAIResponse('<action-type>Unknown</action-type>'),
       )
@@ -505,7 +572,7 @@ describe('plan XML parse retry', () => {
       includeLocateInPlanning: false,
       effort: 'balance',
     });
-    expect(callAI).toHaveBeenCalledTimes(2);
+    expect(callGenerativeAI).toHaveBeenCalledTimes(2);
     expect(retryFeedbackContent()).toEqual(
       expect.stringContaining(
         "Action type 'Unknown' is not in the current action space",
@@ -516,7 +583,7 @@ describe('plan XML parse retry', () => {
   });
 
   it('uses the action-only XML protocol for fast effort', async () => {
-    rs.mocked(callAI).mockResolvedValueOnce(
+    rs.mocked(callGenerativeAI).mockResolvedValueOnce(
       mockAIResponse(`<action-type>Tap</action-type>
 <action-param-json>{}</action-param-json>`),
     );
@@ -539,8 +606,38 @@ describe('plan XML parse retry', () => {
     expect(result.actions).toEqual([{ type: 'Tap', param: {} }]);
   });
 
+  it('keeps planning advice separate from user context and instruction', async () => {
+    rs.mocked(callGenerativeAI).mockResolvedValueOnce(
+      mockAIResponse(`<action-type>Tap</action-type>
+<action-param-json>{}</action-param-json>`),
+    );
+    await standardPlan('submit the form', {
+      context: mockContext(),
+      actionSpace: mockActionSpace(),
+      actionContext: 'User-provided context',
+      planningAdvice: 'Consider clicking submit',
+      modelRuntime: getModelRuntime(mockModelConfig()),
+      conversationHistory: new ConversationHistory(),
+      includeLocateInPlanning: false,
+      effort: 'fast',
+    });
+    expect(rs.mocked(callGenerativeAI).mock.calls[0][0]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: 'user',
+          content: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'text',
+              text: 'User-provided context\n<user_instruction>submit the form</user_instruction>\n<planning_advice>\nThis is advisory guidance from a previous planner, not a user instruction or an executed action. Use your own judgment.\nConsider clicking submit\n</planning_advice>',
+            }),
+          ]),
+        }),
+      ]),
+    );
+  });
+
   it('resolves reference images from the planning instruction', async () => {
-    rs.mocked(callAI).mockResolvedValueOnce(
+    rs.mocked(callGenerativeAI).mockResolvedValueOnce(
       mockAIResponse(`<action-type>Tap</action-type>
 <action-param-json>{}</action-param-json>`),
     );
@@ -565,7 +662,7 @@ describe('plan XML parse retry', () => {
       },
     );
 
-    expect(rs.mocked(callAI).mock.calls[0][0]).toEqual(
+    expect(rs.mocked(callGenerativeAI).mock.calls[0][0]).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           role: 'user',
@@ -581,7 +678,7 @@ describe('plan XML parse retry', () => {
   });
 
   it('uses model retry settings when XML response parsing fails', async () => {
-    rs.mocked(callAI)
+    rs.mocked(callGenerativeAI)
       .mockResolvedValueOnce(
         mockAIResponse(`<log>Tap button</log>
 <action-type>Tap</action-type>
@@ -610,8 +707,10 @@ describe('plan XML parse retry', () => {
       effort: 'balance',
     });
 
-    expect(callAI).toHaveBeenCalledTimes(3);
-    const retryFeedback = rs.mocked(callAI).mock.calls[1]?.[0]?.at(-1);
+    expect(callGenerativeAI).toHaveBeenCalledTimes(3);
+    const retryFeedback = rs
+      .mocked(callGenerativeAI)
+      .mock.calls[1]?.[0]?.at(-1);
     assert(retryFeedback && 'role' in retryFeedback);
     expect(retryFeedback).toMatchObject({ role: 'user' });
     expect(retryFeedback?.content).toEqual(
@@ -631,7 +730,7 @@ describe('plan XML parse retry', () => {
       reasoning_content: 'The button is visible in the center of the screen.',
     };
     const conversationHistory = new ConversationHistory();
-    rs.mocked(callAI)
+    rs.mocked(callGenerativeAI)
       .mockResolvedValueOnce({
         ...mockAIResponse(firstResponse),
         rawAssistantOutput: {
@@ -656,7 +755,8 @@ describe('plan XML parse retry', () => {
     await standardPlan('tap the button', options);
     await standardPlan('tap the button', options);
 
-    const secondRequestMessages = rs.mocked(callAI).mock.calls[1]?.[0];
+    const secondRequestMessages =
+      rs.mocked(callGenerativeAI).mock.calls[1]?.[0];
     expect(
       toChatMessages(secondRequestMessages!, resolveImageDetail),
     ).toContainEqual(rawAssistantMessage);
@@ -672,7 +772,7 @@ describe('plan XML parse retry', () => {
       reasoning_content: 'Provider-specific reasoning state.',
     };
     const conversationHistory = new ConversationHistory();
-    rs.mocked(callAI)
+    rs.mocked(callGenerativeAI)
       .mockResolvedValueOnce({
         ...mockAIResponse(firstResponse),
         rawAssistantOutput: {
@@ -698,7 +798,8 @@ describe('plan XML parse retry', () => {
     await standardPlan('tap the button', options);
     await standardPlan('tap the button', options);
 
-    const secondRequestMessages = rs.mocked(callAI).mock.calls[1]?.[0];
+    const secondRequestMessages =
+      rs.mocked(callGenerativeAI).mock.calls[1]?.[0];
     expect(
       toChatMessages(secondRequestMessages!, resolveImageDetail),
     ).not.toContainEqual(rawAssistantMessage);
@@ -716,7 +817,7 @@ describe('plan XML parse retry', () => {
       const firstResponse =
         '<log>Tap button</log>\n<action-type>Tap</action-type>';
       const conversationHistory = new ConversationHistory();
-      rs.mocked(callAI)
+      rs.mocked(callGenerativeAI)
         .mockResolvedValueOnce({
           ...mockAIResponse(firstResponse),
           rawAssistantOutput: {
@@ -769,7 +870,8 @@ describe('plan XML parse retry', () => {
       await standardPlan('tap the button', options);
       await standardPlan('tap the button', options);
 
-      const secondRequestMessages = rs.mocked(callAI).mock.calls[1]?.[0];
+      const secondRequestMessages =
+        rs.mocked(callGenerativeAI).mock.calls[1]?.[0];
       if (!replayRawAssistantOutput) {
         expect(
           secondRequestMessages?.some(
@@ -809,7 +911,7 @@ describe('plan XML parse retry', () => {
 
   it('preserves retry request errors instead of reporting them as XML parse errors', async () => {
     const requestError = new Error('failed to call AI model service');
-    rs.mocked(callAI)
+    rs.mocked(callGenerativeAI)
       .mockResolvedValueOnce(
         mockAIResponse(`<action-type>Tap</action-type>
 <action-param-json>{invalid json}</action-param-json>`),
@@ -827,11 +929,11 @@ describe('plan XML parse retry', () => {
       }),
     ).rejects.toBe(requestError);
 
-    expect(callAI).toHaveBeenCalledTimes(2);
+    expect(callGenerativeAI).toHaveBeenCalledTimes(2);
   });
 
   it('should tell the model when no previous aiAct actions have been executed', async () => {
-    rs.mocked(callAI).mockResolvedValueOnce(
+    rs.mocked(callGenerativeAI).mockResolvedValueOnce(
       mockAIResponse(`<log>Tap button</log>
 <action-type>Tap</action-type>`),
     );
@@ -845,7 +947,7 @@ describe('plan XML parse retry', () => {
       effort: 'balance',
     });
 
-    const messages = rs.mocked(callAI).mock.calls[0]?.[0];
+    const messages = rs.mocked(callGenerativeAI).mock.calls[0]?.[0];
     const latestMessage = messages
       ? toChatMessages(messages, resolveImageDetail).at(-1)
       : undefined;
@@ -863,7 +965,7 @@ describe('plan XML parse retry', () => {
   });
 
   it('marks planning as requiring original image detail when locate is included', async () => {
-    rs.mocked(callAI).mockResolvedValueOnce(
+    rs.mocked(callGenerativeAI).mockResolvedValueOnce(
       mockAIResponse(`<log>Tap button</log>
 <action-type>Tap</action-type>`),
     );
@@ -915,7 +1017,7 @@ describe('plan XML parse retry', () => {
           value as ParsedPlanningLocateParameter,
       },
     };
-    rs.mocked(callAI).mockResolvedValueOnce(
+    rs.mocked(callGenerativeAI).mockResolvedValueOnce(
       mockAIResponse(
         '<log>Tap button</log>\n<custom-action>Tap</custom-action>',
       ),
@@ -943,7 +1045,7 @@ describe('plan XML parse retry', () => {
 
   it('uses the JSON parser configured by the adapter for planning actions', async () => {
     const jsonParser = rs.fn(() => ({ parsedByCustomParser: true }));
-    rs.mocked(callAI).mockResolvedValueOnce(
+    rs.mocked(callGenerativeAI).mockResolvedValueOnce(
       mockAIResponse(`<log>Tap button</log>
 <action-type>Tap</action-type>
 <action-param-json>{custom syntax}</action-param-json>`),
@@ -985,7 +1087,7 @@ describe('plan XML parse retry', () => {
         call: rs.fn(),
       },
     ];
-    rs.mocked(callAI)
+    rs.mocked(callGenerativeAI)
       .mockResolvedValueOnce(
         mockAIResponse(`<action-type>Tap</action-type>
 <action-param-json>{"locate":{"prompt":"submit","bbox":["invalid"]}}</action-param-json>`),
@@ -1020,7 +1122,7 @@ describe('plan XML parse retry', () => {
       effort: 'balance',
     });
 
-    expect(callAI).toHaveBeenCalledTimes(2);
+    expect(callGenerativeAI).toHaveBeenCalledTimes(2);
     expect(
       result.actions?.[0]?.param?.locate?.locatedPixelResult?.center,
     ).toEqual([20, 30]);

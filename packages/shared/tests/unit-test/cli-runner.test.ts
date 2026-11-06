@@ -83,6 +83,32 @@ describe('parseCliArgs', () => {
     });
   });
 
+  it('preserves empty string values in both option formats', () => {
+    expect(parseCliArgs(['--content', ''])).toEqual({ content: '' });
+    expect(parseCliArgs(['--content='])).toEqual({ content: '' });
+  });
+
+  it('consumes empty string values before subsequent options', () => {
+    expect(parseCliArgs(['--content', '', '--verbose'])).toEqual({
+      content: '',
+      verbose: true,
+    });
+    expect(parseCliArgs(['--content', '', '--content', 'text'])).toEqual({
+      content: ['', 'text'],
+    });
+  });
+
+  it('preserves empty string values for string schema fields', () => {
+    const def = {
+      name: 'configure',
+      description: 'configure',
+      schema: { content: z.string() },
+      handler: rs.fn(),
+    };
+
+    expect(parseCliArgs(['--content', ''], def)).toEqual({ content: '' });
+  });
+
   it('parses boolean flags', () => {
     expect(parseCliArgs(['--verbose'])).toEqual({ verbose: true });
   });

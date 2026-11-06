@@ -1,10 +1,13 @@
 import { findAllMidsceneLocatorField, parseActionParam } from '@/ai-model';
 import type { ModelRuntime } from '@/ai-model/models';
 import {
+  type TMultimodalPrompt,
   findActionInActionSpaceOrThrow,
+  userPromptToMultimodalPrompt,
+  userPromptToString,
   validateRequiredLocateFields,
 } from '@/common';
-import type { AbstractInterface } from '@/device';
+import { type AbstractInterface, defineActionSleep } from '@/device';
 import type Service from '@/service';
 import { setTimingFieldOnce } from '@/task-timing';
 import type {
@@ -23,7 +26,6 @@ import type {
   ServiceDump,
 } from '@/types';
 import { ServiceError } from '@/types';
-import { sleep } from '@/utils';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { ActionReadiness } from './action-readiness';
@@ -91,16 +93,19 @@ export function locatePlanForLocate(param: string | DetailedLocateParam) {
 }
 
 interface TaskBuilderDeps {
+  getDefaultModelRuntime: () => ModelRuntime;
   interfaceInstance: AbstractInterface;
   service: Service;
   taskCache?: TaskCache;
   actionSpace: DeviceAction[];
   waitAfterAction?: number;
   actionReadiness?: ActionReadiness;
+  operationResource?: object;
 }
 
 interface BuildOptions {
   cacheable?: boolean;
+  multimodalPrompt?: TMultimodalPrompt;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
 }
@@ -108,8 +113,9 @@ interface BuildOptions {
 interface PlanBuildContext {
   tasks: ExecutionTaskApply[];
   planningModel: ModelRuntime;
-  defaultModel: ModelRuntime;
+  locateModel: ModelRuntime;
   cacheable?: boolean;
+  multimodalPrompt?: TMultimodalPrompt;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
 }
@@ -118,6 +124,7 @@ export class TaskBuilder {
   private readonly interface: AbstractInterface;
 
   private readonly service: Service;
+  private readonly getDefaultModelRuntime: () => ModelRuntime;
 
   private readonly taskCache?: TaskCache;
 
@@ -125,27 +132,32 @@ export class TaskBuilder {
 
   private readonly waitAfterAction?: number;
   private readonly actionReadiness?: ActionReadiness;
+  private readonly operationResource: object;
 
   constructor({
+    getDefaultModelRuntime,
     interfaceInstance,
     service,
     taskCache,
     actionSpace,
     waitAfterAction,
     actionReadiness,
+    operationResource,
   }: TaskBuilderDeps) {
+    this.getDefaultModelRuntime = getDefaultModelRuntime;
     this.interface = interfaceInstance;
     this.service = service;
     this.taskCache = taskCache;
     this.actionSpace = actionSpace;
     this.waitAfterAction = waitAfterAction;
     this.actionReadiness = actionReadiness;
+    this.operationResource = operationResource ?? interfaceInstance;
   }
 
   public async build(
     plans: PlanningAction[],
     planningModel: ModelRuntime,
-    defaultModel: ModelRuntime,
+    locateModel: ModelRuntime,
     options?: BuildOptions,
   ): Promise<{ tasks: ExecutionTaskApply[] }> {
     const tasks: ExecutionTaskApply[] = [];
@@ -154,8 +166,9 @@ export class TaskBuilder {
     const context: PlanBuildContext = {
       tasks,
       planningModel,
-      defaultModel,
+      locateModel,
       cacheable,
+      multimodalPrompt: options?.multimodalPrompt,
       deepLocate: options?.deepLocate,
       abortSignal: options?.abortSignal,
     };
@@ -178,6 +191,7 @@ export class TaskBuilder {
       this.handleActionPlan(plan, context);
 
     for (const plan of plans) {
+      context.abortSignal?.throwIfAborted();
       const handler = planHandlers.get(plan.type) ?? defaultHandler;
       await handler(plan);
     }
@@ -260,6 +274,7 @@ export class TaskBuilder {
       param: plan.param,
       planningFeedbackMaxLength: action.planningFeedbackMaxLength,
       executor: async (taskContext) => {
+        const abortSignal = context.abortSignal ?? taskContext.signal;
         const timing = taskContext.task.timing;
 
         debug(
@@ -298,19 +313,29 @@ export class TaskBuilder {
         taskContext.task.actionReadiness = useDefaultWait
           ? 'default'
           : 'custom';
-        context.abortSignal?.throwIfAborted();
+        abortSignal?.throwIfAborted();
 
         setTimingFieldOnce(timing, 'beforeInvokeActionHookStart');
         const delayBeforeRunner = useDefaultWait
           ? (action.delayBeforeRunner ?? 200)
           : 0;
         try {
-          await Promise.all([
-            this.interface.beforeInvokeAction?.(action.name, param),
+          const preparation = await Promise.allSettled([
+            this.interface.beforeInvokeAction?.(
+              action.name,
+              param,
+              abortSignal,
+            ),
             delayBeforeRunner > 0
-              ? sleep(delayBeforeRunner)
+              ? defineActionSleep(abortSignal).call({
+                  timeMs: delayBeforeRunner,
+                })
               : Promise.resolve(),
           ]);
+          const rejected = preparation.find(
+            (item) => item.status === 'rejected',
+          );
+          if (rejected?.status === 'rejected') throw rejected.reason;
         } catch (originalError: any) {
           throw new Error(
             `error in running beforeInvokeAction for ${action.name}: ${originalError?.message || String(originalError)}`,
@@ -320,19 +345,19 @@ export class TaskBuilder {
           setTimingFieldOnce(timing, 'beforeInvokeActionHookEnd');
         }
 
-        context.abortSignal?.throwIfAborted();
+        abortSignal?.throwIfAborted();
         setTimingFieldOnce(timing, 'callActionStart');
         debug('calling action', action.name);
         const actionResult = await action.call.call(
           this.interface,
           parsedParam,
           useDefaultWait
-            ? taskContext
-            : { ...taskContext, skipDefaultWait: true },
+            ? { ...taskContext, signal: abortSignal }
+            : { ...taskContext, signal: abortSignal, skipDefaultWait: true },
         );
         setTimingFieldOnce(timing, 'callActionEnd');
         debug('called action', action.name, 'result:', actionResult);
-        context.abortSignal?.throwIfAborted();
+        abortSignal?.throwIfAborted();
 
         setTimingFieldOnce(timing, 'afterInvokeActionHookStart');
         setTimingFieldOnce(timing, 'waitForActionReadyStart');
@@ -340,8 +365,15 @@ export class TaskBuilder {
           if (useDefaultWait) {
             const delayAfterRunner =
               action.delayAfterRunner ?? this.waitAfterAction ?? 300;
-            if (delayAfterRunner > 0) await sleep(delayAfterRunner);
-            await this.interface.defaultActionWait?.(action.name, parsedParam);
+            if (delayAfterRunner > 0)
+              await defineActionSleep(abortSignal).call({
+                timeMs: delayAfterRunner,
+              });
+            await this.interface.defaultActionWait?.(
+              action.name,
+              parsedParam,
+              abortSignal,
+            );
           } else {
             await this.actionReadiness!.wait(
               {
@@ -349,15 +381,20 @@ export class TaskBuilder {
                 name: action.name,
                 param: parsedParam,
               },
-              context.abortSignal,
+              abortSignal,
+              this.operationResource,
             );
           }
         } finally {
           setTimingFieldOnce(timing, 'waitForActionReadyEnd');
         }
-        context.abortSignal?.throwIfAborted();
+        abortSignal?.throwIfAborted();
         try {
-          await this.interface.afterInvokeAction?.(action.name, parsedParam);
+          await this.interface.afterInvokeAction?.(
+            action.name,
+            parsedParam,
+            abortSignal,
+          );
         } catch (originalError: any) {
           throw new Error(
             `error in running afterInvokeAction for ${action.name}: ${originalError?.message || String(originalError)}`,
@@ -379,9 +416,25 @@ export class TaskBuilder {
     context: PlanBuildContext,
     onResult?: (result: LocateResultElement) => void,
   ): ExecutionTaskPlanningLocateApply {
-    const { cacheable, defaultModel, deepLocate, abortSignal } = context;
+    const { cacheable, locateModel, deepLocate } = context;
 
     let locateParam = normalizeLocateParam(detailedLocateParam);
+
+    // Planning produces text locators; carry the user's reference images into
+    // independent grounding calls while preserving explicit locator images.
+    if (
+      context.multimodalPrompt?.images?.length &&
+      locateParam.prompt &&
+      !userPromptToMultimodalPrompt(locateParam.prompt)?.images?.length
+    ) {
+      locateParam = {
+        ...locateParam,
+        prompt: {
+          ...context.multimodalPrompt,
+          prompt: userPromptToString(locateParam.prompt),
+        },
+      };
+    }
 
     if (cacheable !== undefined) {
       locateParam = {
@@ -403,6 +456,8 @@ export class TaskBuilder {
       param: locateParam,
       thought: plan.thought,
       executor: async (taskContext) => {
+        const abortSignal = context.abortSignal ?? taskContext.signal;
+        abortSignal?.throwIfAborted();
         const { task } = taskContext;
         let { uiContext } = taskContext;
         const paramWithLocatedPixelResult = ifLocateParamHasLocatedPixelResult(
@@ -419,7 +474,8 @@ export class TaskBuilder {
         );
 
         if (!uiContext) {
-          uiContext = await this.service.contextRetrieverFn();
+          uiContext = await this.service.contextRetrieverFn(abortSignal);
+          abortSignal?.throwIfAborted();
         }
 
         assert(uiContext, 'uiContext is required for Service task');
@@ -447,14 +503,14 @@ export class TaskBuilder {
             searchAreaRawChoiceMessage:
               dump.taskInfo?.searchAreaRawChoiceMessage,
           };
-          task.usage = withUsageIntent(dump.taskInfo?.usage, 'default');
+          task.usage = withUsageIntent(dump.taskInfo?.usage, 'locate');
           task.searchArea = dump.taskInfo?.searchArea;
           if (dump.taskInfo?.searchAreaUsage) {
             // The deepLocate search-area call belongs to the same locate task,
             // so it shares the companion usage intent.
             task.searchAreaUsage = withUsageIntent(
               dump.taskInfo.searchAreaUsage,
-              'default',
+              'locate',
             );
           }
           if (dump.taskInfo?.reasoning_content) {
@@ -466,7 +522,9 @@ export class TaskBuilder {
           ? matchElementFromPlan(paramWithLocatedPixelResult)
           : undefined;
 
-        // from locatedPixelResult (direct plan hit)
+        // Separate planning normally returns target descriptions, but may still
+        // return coordinates. Reuse them even with a dedicated Locate model,
+        // preserving the existing direct-plan-hit behavior.
         // when deepLocate is enabled, locatedPixelResult should be used as search
         // area hint, not as a final direct hit
         const elementFromPlan = locateParam.deepLocate
@@ -547,7 +605,7 @@ export class TaskBuilder {
                 context: uiContext,
                 planLocatedElement,
               },
-              defaultModel,
+              locateModel,
               abortSignal,
             );
             applyDump(locateResult.dump);
@@ -606,6 +664,7 @@ export class TaskBuilder {
                 Math.round(element.center[1] / shrunkShotToLogicalRatio),
               ];
 
+              const defaultModel = this.getDefaultModelRuntime();
               const feature = await this.interface.cacheFeatureForPoint(
                 pointForCache,
                 {
@@ -613,7 +672,10 @@ export class TaskBuilder {
                     typeof locateParam.prompt === 'string'
                       ? locateParam.prompt
                       : locateParam.prompt?.prompt,
-                  modelRuntime: defaultModel,
+                  modelRuntime: {
+                    ...defaultModel,
+                    executionId: locateModel.executionId,
+                  },
                 },
               );
               if (hasNonEmptyCache(feature)) {

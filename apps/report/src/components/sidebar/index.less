@@ -11,7 +11,7 @@
   overflow-y: hidden;
   box-sizing: border-box;
   border-radius: 16px;
-  background: #fff;
+  background: var(--report-surface);
 
   .page-nav {
     box-sizing: border-box;
@@ -23,7 +23,7 @@
     width: 100%;
     height: @report-pane-header-height;
     padding: 0 10px 0 8px;
-    background: #fff;
+    background: inherit;
     border-bottom: 1px solid #ededf0;
     border-radius: 16px 16px 0 0;
     flex-shrink: 0;
@@ -189,7 +189,7 @@
     overflow: auto;
     border: 0;
     border-radius: 0;
-    background: #fff;
+    background: transparent;
     color: #1f2937;
     font-family:
       'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono', monospace;
@@ -242,62 +242,9 @@
     }
   }
 
-  .top-controls {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    overflow: hidden;
-    min-height: 0;
-  }
-
   .report-overview {
     flex-shrink: 0;
     padding-top: 12px;
-  }
-
-  .task-token-section {
-    flex-shrink: 0;
-    height: 44px;
-    line-height: 44px;
-    padding: 0 8px !important;
-    font-size: 12px;
-  }
-
-  .task-meta {
-    color: @weak-text;
-    font-weight: normal;
-    padding-left: @side-horizontal-padding;
-  }
-
-  .task-meta-tokens {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    padding: 0 8px !important;
-
-    .token-total-label {
-      flex: 1;
-      font-weight: 500;
-      color: #808080;
-      text-align: left;
-      font-family:
-        'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono', monospace;
-      white-space: nowrap;
-    }
-
-    .token-value {
-      font-size: 14px;
-      color: #595959;
-      font-weight: normal;
-      line-height: 1.2;
-      min-width: 70px;
-      text-align: right;
-      font-family:
-        'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono', monospace;
-      white-space: nowrap;
-      display: inline-block;
-    }
   }
 
   .side-seperator {
@@ -309,10 +256,6 @@
 
     &.side-seperator-space-up {
       margin-top: @side-vertical-spacing;
-    }
-
-    &.side-seperator-space-down {
-      margin-bottom: @side-vertical-spacing;
     }
   }
 
@@ -344,7 +287,7 @@
       font-weight: 500;
       position: sticky;
       top: 0;
-      background: #fff;
+      background: var(--report-surface);
       z-index: 1;
 
       .header-cell {
@@ -749,10 +692,7 @@
 // Dark mode styles
 [data-theme='dark'] {
   .side-bar {
-    background: #1f1f1f;
-
     .page-nav {
-      background: #1f1f1f;
       border-bottom-color: rgba(255, 255, 255, 0.12);
 
       .page-nav-left {
@@ -779,10 +719,6 @@
 
         .page-nav-title {
           color: rgba(255, 255, 255, 0.65);
-
-          .page-nav-title-hint {
-            color: rgba(255, 255, 255, 0.45);
-          }
         }
 
         .report-view-mode-switch {
@@ -811,7 +747,6 @@
     }
 
     .agent-markdown-source {
-      background: transparent;
       color: #f8fafd;
 
       .line-heading {
@@ -840,7 +775,6 @@
 
     .tasks-table {
       .table-header {
-        background: #1f1f1f;
         color: rgba(255, 255, 255, 0.45);
       }
 
@@ -904,42 +838,6 @@
         .summary-time-value {
           color: #f8fafd;
         }
-      }
-    }
-
-    .side-item {
-      &:hover {
-        background: rgba(255, 255, 255, 0.08);
-      }
-
-      &.selected {
-        background: rgba(255, 255, 255, 0.16);
-      }
-    }
-
-    .side-item-name {
-      color: #f8fafd;
-
-      .status-icon {
-        color: rgba(255, 255, 255, 0.45);
-      }
-
-      .title {
-        color: #f8fafd;
-      }
-    }
-
-    .task-meta {
-      color: rgba(255, 255, 255, 0.45);
-    }
-
-    .task-meta-tokens {
-      .token-total-label {
-        color: rgba(255, 255, 255, 0.45);
-      }
-
-      .token-value {
-        color: #f8fafd;
       }
     }
 

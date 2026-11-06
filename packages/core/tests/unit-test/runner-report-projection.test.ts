@@ -1,9 +1,12 @@
 import type { TestRunReportSourceIndex } from '@/test-run-report';
 import { type RunReportInput, buildTestRunReportDump } from '@/test-runner';
 import { executionRecordsToReportInput } from '@/test-runner';
+import { runWorkflowDocument } from '@/test-runner';
+import { sumTestRunReportMetrics } from '@/test-runner/reporting/metrics';
 import { createLegacyYamlRuntime } from '@/yaml/legacy-yaml-runtime';
 import { ScriptPlayer } from '@/yaml/player';
 import { getLegacyYamlPlayerState } from '@/yaml/player-state';
+import { collectLegacyYamlDocument } from '@/yaml/test-runner-compat';
 import { describe, expect, test } from '@rstest/core';
 
 const index: TestRunReportSourceIndex = {
@@ -74,6 +77,212 @@ async function input() {
 }
 
 describe('entry-independent report projection', () => {
+  test('retains captured usage even when an external source lacks execution IDs', async () => {
+    const { report } = await input();
+    const usage = sumTestRunReportMetrics([
+      { ...index.metrics, modelCallCount: 1, totalTokens: 42 },
+    ]);
+    const dump = buildTestRunReportDump(report, {
+      ...index,
+      capturedMetrics: usage,
+      executionMetrics: {},
+      sources: [
+        {
+          reportId: 'external',
+          scopeId: 'external',
+          sourcePath: 'external.html',
+          executionIds: [],
+        },
+      ],
+    });
+    expect(dump.metrics).toMatchObject({
+      modelCallCount: 1,
+      totalTokens: 42,
+      collection: { status: 'complete' },
+    });
+  });
+
+  test('retains independently captured usage when Agent detail storage fails', async () => {
+    const { report } = await input();
+    const attempt = report.projects[0].cases[0].run!;
+    const usage = sumTestRunReportMetrics([
+      {
+        ...index.metrics,
+        modelCallCount: 1,
+        modelTimeMs: 125,
+        totalTokens: 42,
+      },
+    ]);
+    attempt.steps[0].node = 'aiAssert';
+    attempt.steps[0].report = {
+      traces: [
+        { type: 'midscene-execution', executionId: 'lost', metrics: usage },
+      ],
+    };
+    const dump = buildTestRunReportDump(report, {
+      ...index,
+      executionMetrics: {},
+    });
+    const step = dump.projects[0].documents[0].cases[0].attempts[0].steps[0];
+    expect(step.agentDetailDiagnostic).toContain('lost');
+    expect(step.evidenceCollection?.status).toBe('unknown');
+    expect(step.metrics).toMatchObject({
+      modelCallCount: 1,
+      totalTokens: 42,
+      collection: { status: 'complete' },
+    });
+    expect(dump.metrics).toMatchObject({
+      modelCallCount: 1,
+      totalTokens: 42,
+      collection: {
+        status: 'complete',
+        expectedExecutionCount: 1,
+        capturedExecutionCount: 0,
+      },
+    });
+    expect(dump.executionMetrics?.lost).toEqual(usage);
+  });
+
+  test('does not count usage twice or invalidate it when a device operation is unfinished', async () => {
+    const { report } = await input();
+    const attempt = report.projects[0].cases[0].run!;
+    const usage = sumTestRunReportMetrics([
+      { ...index.metrics, modelCallCount: 1, totalTokens: 42 },
+    ]);
+    const source = {
+      reportId: 'agent',
+      scopeId: attempt.reportScopeId ?? attempt.runId,
+      sourcePath: 'agent.html',
+      executionIds: ['saved'],
+      collection: {
+        status: 'partial' as const,
+        capturedAt: '2026-10-10T00:00:00Z',
+        reason: 'Device operation pending.',
+      },
+    };
+    attempt.steps[0].report = {
+      traces: [
+        { type: 'midscene-execution', executionId: 'saved', metrics: usage },
+      ],
+      sources: [source],
+    };
+    const dump = buildTestRunReportDump(report, {
+      ...index,
+      metrics: usage,
+      executionMetrics: { saved: usage },
+      sources: [source],
+    });
+    expect(dump.metrics).toMatchObject({
+      modelCallCount: 1,
+      totalTokens: 42,
+      collection: { status: 'complete' },
+    });
+    expect(
+      dump.projects[0].documents[0].cases[0].attempts[0].steps[0]
+        .evidenceCollection?.status,
+    ).toBe('partial');
+  });
+
+  test('projects cleanup failures once without dropping an independent error with the same message', async () => {
+    const failure = await runWorkflowDocument(
+      collectLegacyYamlDocument({ tasks: [] }),
+      {
+        resolveNode: () => {
+          throw new Error('No authored steps');
+        },
+        documentSetup: {
+          name: 'owner',
+          setup({ onTeardown }) {
+            onTeardown(() => {
+              throw new Error('close failed');
+            });
+            return undefined;
+          },
+        },
+        onDocumentResult() {
+          throw new Error('close failed');
+        },
+      },
+    ).catch((error) => error);
+    const { report } = await input();
+    report.projects[0].documents = [failure.result.document];
+    report.projects[0].cases = [];
+    expect(failure.result.document.executionErrors).toHaveLength(1);
+    // Replaying persisted results must not depend on shared Error object identity.
+    const document = buildTestRunReportDump(report, index).projects[0]
+      .documents[0];
+    expect(
+      buildTestRunReportDump(JSON.parse(JSON.stringify(report)), index)
+        .projects[0].documents[0].hostErrors,
+    ).toEqual(document.hostErrors);
+    expect(document.cleanup?.status).toBe('failed');
+    expect(document.hostErrors?.map(({ phase }) => phase)).toEqual([
+      'cleanup',
+      'execution',
+    ]);
+    expect(document.hostErrors?.map(({ error }) => error.message)).toEqual([
+      'close failed',
+      'close failed',
+    ]);
+    expect(document.cleanup?.error?.errors).toHaveLength(1);
+  });
+  test('distinguishes complete zero metrics, missing evidence and partial coverage', async () => {
+    const { report } = await input();
+    expect(
+      buildTestRunReportDump(report, index).metrics.collection?.status,
+    ).toBe('complete');
+    const attempt = report.projects[0].cases[0].run!;
+    attempt.steps[0].node = 'aiAct';
+    attempt.steps[0].report = {
+      traces: [
+        { type: 'midscene-execution', executionId: 'known' },
+        { type: 'midscene-execution', executionId: 'missing' },
+      ],
+    };
+    expect(
+      buildTestRunReportDump(report, index).metrics.collection,
+    ).toMatchObject({
+      status: 'unknown',
+      expectedExecutionCount: 2,
+      capturedExecutionCount: 0,
+    });
+    const partial = buildTestRunReportDump(report, {
+      ...index,
+      sources: [
+        {
+          reportId: 'agent',
+          scopeId: attempt.reportScopeId ?? attempt.runId,
+          sourcePath: 'agent.html',
+          executionIds: ['known'],
+        },
+      ],
+    });
+    expect(partial.metrics.collection).toMatchObject({
+      status: 'partial',
+      expectedExecutionCount: 2,
+      capturedExecutionCount: 1,
+    });
+    expect(
+      partial.projects[0].documents[0].cases[0].attempts[0].steps[0]
+        .evidenceCollection?.status,
+    ).toBe('partial');
+    const complete = buildTestRunReportDump(report, {
+      ...index,
+      sources: [
+        {
+          reportId: 'agent',
+          scopeId: attempt.reportScopeId ?? attempt.runId,
+          sourcePath: 'agent.html',
+          executionIds: ['known', 'missing'],
+        },
+      ],
+    });
+    expect(complete.metrics.collection).toMatchObject({
+      status: 'complete',
+      expectedExecutionCount: 2,
+      capturedExecutionCount: 2,
+    });
+  });
   test('preserves known platforms and omits unavailable platform metadata', async () => {
     const { report } = await input();
     expect(buildTestRunReportDump(report, index).projects[0].platform).toBe(
@@ -105,7 +314,15 @@ describe('entry-independent report projection', () => {
         code: 'run-infrastructure-error',
       }),
     );
-    expect(JSON.stringify(dump)).not.toContain('original-tail');
+    const diagnostic = dump.diagnostics!.find(
+      (item) => item.code === 'run-infrastructure-error',
+    )!;
+    expect(diagnostic.message).not.toContain('original-tail');
+    expect(diagnostic.error?.message).not.toContain('original-tail');
+    expect(diagnostic.error?.stack).toBe(error.stack);
+    expect(
+      new TextEncoder().encode(JSON.stringify(diagnostic.error)).byteLength,
+    ).toBeLessThanOrEqual(64 * 1024);
     expect(error.message).toContain('original-tail');
     expect(dump.summary).toEqual(report.summary);
   });

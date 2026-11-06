@@ -11,6 +11,7 @@ import type { UIContext } from '@/types';
 import { resolveObservationArtifactAdapter } from '@midscene/shared/agent-tools/observation-artifact';
 import type { UIObservationRecord } from '@midscene/shared/agent-tools/types';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
+import { installAgentReportManager } from './test-helpers/agent-report-manager';
 
 const defaultModel = { config: { slot: 'default' } };
 const tempDirectories: string[] = [];
@@ -33,6 +34,7 @@ const fakeContext = (tag: string): UIContext =>
 
 const createAgentStub = (opts: { openFrameSource?: () => any } = {}) => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
+  installAgentReportManager(agent);
   const createTypeQueryExecution = rs.fn(async () => ({
     output: true,
     thought: 'ok',
@@ -141,11 +143,10 @@ describe('Agent.startObserving', () => {
     const framePath = (observer as any).writer.resolveFramePath(
       bufferedFrame.persisted,
     );
-    (agent as any).reportGenerator = {
+    (agent as any).reportManager.reportState.generator = {
       flush: rs.fn().mockResolvedValue(undefined),
       finalize: rs.fn().mockResolvedValue(undefined),
     };
-    (agent as any).resetDump = rs.fn();
 
     expect(existsSync(framePath)).toBe(true);
     await agent.destroy();
