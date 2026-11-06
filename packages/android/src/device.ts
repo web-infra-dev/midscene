@@ -1295,6 +1295,24 @@ ${Object.keys(size)
     maxWidth: number,
     maxHeight: number,
   ): { x: number; y: number } {
+    if (
+      ![start.x, start.y, deltaX, deltaY, maxWidth, maxHeight].every(
+        Number.isFinite,
+      ) ||
+      start.x < 0 ||
+      start.x > maxWidth ||
+      start.y < 0 ||
+      start.y > maxHeight
+    ) {
+      throw new Error(
+        'Scroll origin and distance must be finite and inside the viewport',
+      );
+    }
+
+    if (deltaX === 0 && deltaY === 0) {
+      throw new Error('Scroll distance is too small to move after rounding');
+    }
+
     // Minimum scroll distance to ensure gesture is recognized by Android
     const minScrollDistance = 50;
 
@@ -1339,6 +1357,15 @@ ${Object.keys(size)
           ? Math.min(maxHeight, start.y + actualScrollDistanceY) // Scroll down, cap at maxHeight
           : Math.max(0, start.y - actualScrollDistanceY), // Scroll up, cap at 0
     );
+
+    if (
+      (deltaX !== 0 && (endX - start.x) * deltaX <= 0) ||
+      (deltaY !== 0 && (endY - start.y) * deltaY <= 0)
+    ) {
+      throw new Error(
+        'No space to scroll from the located point; choose a point farther from the screen edge',
+      );
+    }
 
     return { x: endX, y: endY };
   }
@@ -1813,7 +1840,7 @@ ${Object.keys(size)
     if (distance === undefined && !startPoint) {
       return this.scrollDefault('up');
     }
-    const { height } = await this.size();
+    const { width, height } = await this.size();
     const scrollDistance = Math.round(distance || height);
     const hasExplicitDistance = distance !== undefined;
 
@@ -1826,7 +1853,7 @@ ${Object.keys(size)
         start,
         0,
         scrollDistance,
-        0,
+        width,
         height,
       );
       if (hasExplicitDistance) {
@@ -1860,7 +1887,7 @@ ${Object.keys(size)
     if (distance === undefined && !startPoint) {
       return this.scrollDefault('down');
     }
-    const { height } = await this.size();
+    const { width, height } = await this.size();
     const scrollDistance = Math.round(distance || height);
     const hasExplicitDistance = distance !== undefined;
 
@@ -1873,7 +1900,7 @@ ${Object.keys(size)
         start,
         0,
         -scrollDistance,
-        0,
+        width,
         height,
       );
       if (hasExplicitDistance) {
@@ -1907,7 +1934,7 @@ ${Object.keys(size)
     if (distance === undefined && !startPoint) {
       return this.scrollDefault('left');
     }
-    const { width } = await this.size();
+    const { width, height } = await this.size();
     const scrollDistance = Math.round(distance || width);
     const hasExplicitDistance = distance !== undefined;
 
@@ -1921,7 +1948,7 @@ ${Object.keys(size)
         scrollDistance,
         0,
         width,
-        0,
+        height,
       );
       if (hasExplicitDistance) {
         this.warnScrollDistanceClamped(
@@ -1954,7 +1981,7 @@ ${Object.keys(size)
     if (distance === undefined && !startPoint) {
       return this.scrollDefault('right');
     }
-    const { width } = await this.size();
+    const { width, height } = await this.size();
     const scrollDistance = Math.round(distance || width);
     const hasExplicitDistance = distance !== undefined;
 
@@ -1968,7 +1995,7 @@ ${Object.keys(size)
         -scrollDistance,
         0,
         width,
-        0,
+        height,
       );
       if (hasExplicitDistance) {
         this.warnScrollDistanceClamped(
