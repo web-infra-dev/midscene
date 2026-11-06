@@ -62,8 +62,11 @@ export const focusedDateTimeInputScript = `(() => {
 export const fillDateTimeInputScript = (
   value: string,
   target?: [number, number],
-) => `(() => {
+) => `(expectedElement = null) => {
   const element = ${focusedDateTimeInputScript};
+  if (expectedElement && element !== expectedElement) {
+    return { handled: true, error: 'Native date/time input target did not retain focus' };
+  }
   if (!element) return { handled: false };
   const target = ${JSON.stringify(target ?? null)};
   const rect = element.getBoundingClientRect();
@@ -89,4 +92,4 @@ export const fillDateTimeInputScript = (
   element.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
   element.dispatchEvent(new Event('change', { bubbles: true }));
   return { handled: true };
-})()`;
+}`;

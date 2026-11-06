@@ -1,6 +1,6 @@
 import ChromeExtensionProxyPage from '@/chrome-extension/page';
 import { PlaywrightAgent } from '@/playwright/agent';
-import { PuppeteerAgent } from '@/puppeteer';
+import { PuppeteerAgent, PuppeteerWebPage } from '@/puppeteer';
 import type { WebPageAgentOpt } from '@/web-element';
 import { afterAll, beforeAll, describe, expect, rs, test } from '@rstest/core';
 import { type Browser as PlaywrightBrowser, chromium } from 'playwright';
@@ -380,6 +380,8 @@ for (const adapter of [
           field.min = '2026-08-01';
           field.max = '2026-12-31';
           field.step = '2';
+          // Chromium can reset focus while rebuilding native date segments.
+          field.focus();
         });
         await fixture.input({ value: '2026-07-22' });
         expect((await fixture.page.evaluate(readState)).value).toBe(
@@ -432,6 +434,55 @@ for (const adapter of [
           });
         } finally {
           await fixture.close();
+        }
+      });
+    }
+
+    if (adapter === 'Puppeteer') {
+      test('rejects focus changes after checking the located input', async () => {
+        const page = await (browser as PuppeteerBrowser).newPage();
+        try {
+          await page.setContent(fixtureHtml('date', '2026-07-21'));
+          await page.$eval('input#other', (input) => {
+            input.type = 'date';
+            input.value = '2026-08-10';
+          });
+          const location = await page.evaluate(targetLocation);
+          const frame = page.mainFrame();
+          const evaluateHandle = frame.evaluateHandle.bind(frame);
+          const spy = rs
+            .spyOn(frame, 'evaluateHandle')
+            .mockImplementation(async (...args) => {
+              const handle = await evaluateHandle(...args);
+              const input = handle.asElement();
+              if (input) {
+                const boundingBox = input.boundingBox.bind(input);
+                rs.spyOn(input, 'boundingBox').mockImplementation(async () => {
+                  const rect = await boundingBox();
+                  // Schedule an application focus change between the driver's
+                  // target check and its browser-side write.
+                  await page.$eval('input#other', (other) => other.focus());
+                  return rect;
+                });
+              }
+              return handle;
+            });
+          try {
+            const webPage = new PuppeteerWebPage(page);
+            await expect(
+              webPage.fillDateTimeInput('2026-09-01', {
+                center: location.locatedPixelResult.center,
+              } as Parameters<typeof webPage.fillDateTimeInput>[1]),
+            ).rejects.toThrow(/did not retain focus/);
+            const state = await page.evaluate(readState);
+            expect(state.value).toBe('2026-07-21');
+            expect(state.other).toBe('2026-08-10');
+            expect(state.changes).toEqual([]);
+          } finally {
+            spy.mockRestore();
+          }
+        } finally {
+          await page.close();
         }
       });
     }

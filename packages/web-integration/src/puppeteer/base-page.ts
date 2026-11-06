@@ -97,6 +97,9 @@ type FocusedInputFrame = {
   evaluateHandle(script: string): Promise<{
     asElement(): {
       contentFrame(): Promise<FocusedInputFrame | null>;
+      evaluate(
+        script: (element: Node) => DateTimeInputResult,
+      ): Promise<DateTimeInputResult>;
       boundingBox(): Promise<{
         x: number;
         y: number;
@@ -1187,12 +1190,21 @@ export class Page<
             'Native date/time input target did not receive focus',
           );
         }
+        // Compile the shared browser source without module bindings or coverage
+        // counters. Keep the checked handle alive through the atomic focus check
+        // and write; reading activeElement again must never select another field.
+        const fill = new Function(
+          `return (${fillDateTimeInputScript(value)})`,
+        )() as (element: Node) => DateTimeInputResult;
+        const result = await input.evaluate(fill);
+        if (result.error) throw new Error(result.error);
+        return result.handled;
       } finally {
         await handle.dispose();
       }
     }
     const result = (await frame.evaluate(
-      fillDateTimeInputScript(value),
+      `(${fillDateTimeInputScript(value)})()`,
     )) as DateTimeInputResult;
     if (result.error) throw new Error(result.error);
     return result.handled;

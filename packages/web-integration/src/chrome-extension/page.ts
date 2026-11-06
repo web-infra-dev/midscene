@@ -975,7 +975,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     element?: ElementInfo,
   ): Promise<boolean> {
     const response = await this.sendCommandToDebugger('Runtime.evaluate', {
-      expression: fillDateTimeInputScript(value, element?.center),
+      expression: `(${fillDateTimeInputScript(value, element?.center)})()`,
       returnByValue: true,
     });
     const result = response.result.value as DateTimeInputResult;
