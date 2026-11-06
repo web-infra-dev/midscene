@@ -1,6 +1,7 @@
 import { readdirSync } from 'node:fs';
-import { join, relative, resolve, sep } from 'node:path';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { CollectedWorkflowDocument } from '@midscene/core/internal/test-runner';
+import { buildTestRunReportPlan } from '@midscene/core/internal/test-runner';
 import { globSync } from 'tinyglobby';
 import { WorkflowError, WorkflowParseError } from '../errors';
 import { collectWorkflowDocument } from '../parser/collect';
@@ -39,8 +40,22 @@ const toPosix = (value: string): string => value.split(sep).join('/');
 const discoverResolvedTestFiles = (
   projectRoot: string,
   selection: TestFileSelection,
+  excludedDirectories: readonly string[] = [],
 ): string[] => {
   const root = resolve(projectRoot);
+  const outputPatterns = excludedDirectories.flatMap((directory) => {
+    const withinRoot = relative(root, directory);
+    if (
+      !withinRoot ||
+      isAbsolute(withinRoot) ||
+      withinRoot === '..' ||
+      withinRoot.startsWith(`..${sep}`)
+    )
+      return [];
+    // Escape glob metacharacters: output paths are literal directories.
+    const literal = toPosix(withinRoot).replace(/([*?{}[\]()!])/g, '\\$1');
+    return [`${literal}/**`];
+  });
   const match = (patterns: readonly string[]) =>
     globSync(patterns, {
       absolute: true,
@@ -49,7 +64,11 @@ const discoverResolvedTestFiles = (
       dot: true,
       expandDirectories: false,
       followSymbolicLinks: false,
-      ignore: [...ALWAYS_IGNORED_PATTERNS, ...(selection.exclude ?? [])],
+      ignore: [
+        ...ALWAYS_IGNORED_PATTERNS,
+        ...outputPatterns,
+        ...(selection.exclude ?? []),
+      ],
       onlyFiles: true,
     }).filter((file) => /\.ya?ml$/i.test(file));
   const files = match(selection.include);
@@ -176,7 +195,12 @@ export async function prepareProject(
     ? resolve(options.prerequisiteFile)
     : undefined;
   const mainFiles =
-    options.files ?? discoverResolvedTestFiles(projectRoot, fileSelection);
+    options.files ??
+    discoverResolvedTestFiles(
+      projectRoot,
+      fileSelection,
+      options.excludedDirectories,
+    );
   const files = [
     ...(prerequisiteFile ? [prerequisiteFile] : []),
     ...mainFiles.filter((file) => file !== prerequisiteFile),
@@ -195,6 +219,7 @@ export async function prepareProject(
   });
   const collectionErrors: TestProjectCollectionError[] = [];
   const invocations: PreparedDocumentInvocation[] = [];
+  const plans: import('@midscene/core').TestRunReportDocumentPlan[] = [];
   let filteredCaseCount = 0;
 
   if (sources.length === 0) {
@@ -216,7 +241,14 @@ export async function prepareProject(
       const collected = await options.collectDocument?.(source, project);
       if (collected) {
         filteredCaseCount += collected.filteredCaseCount;
-        if (collected.invocation) invocations.push(collected.invocation);
+        if (collected.invocation) {
+          const plan = buildTestRunReportPlan(collected.invocation.document, {
+            defaultTimeoutMs: collected.invocation.defaultTimeoutMs,
+            retry: collected.invocation.retry,
+          });
+          invocations.push({ ...collected.invocation, plan });
+          plans.push(plan);
+        }
         continue;
       }
       const document = collectWorkflowDocument(source, {
@@ -228,14 +260,41 @@ export async function prepareProject(
         source.absolutePath === prerequisiteFile
           ? { document, filtered: 0 }
           : filterDocumentCases(document, project);
+      const plan = buildTestRunReportPlan(document, {
+        selectedCaseIds:
+          filtered.document?.cases.map((item) => item.caseId) ?? [],
+        defaultTimeoutMs,
+        retry: { scope: 'case', count: project.retry },
+      });
+      plans.push(plan);
       filteredCaseCount += filtered.filtered;
       if (filtered.document)
         invocations.push({
+          plan,
           document: filtered.document,
           retry: { scope: 'case', count: project.retry },
           defaultTimeoutMs,
           reportEnabled: true,
-          bindings: { resolveNode: project.nodes.require.bind(project.nodes) },
+          bindings: {
+            resolveNode: project.nodes.require.bind(project.nodes),
+            ...(project.fileSetup
+              ? {
+                  documentSetup: {
+                    name: project.fileSetup.name,
+                    setup({ projectContext, document, signal, onTeardown }) {
+                      return project.fileSetup!.setup({
+                        project,
+                        projectContext,
+                        file: document,
+                        env: Object.freeze({ ...process.env }),
+                        signal,
+                        onTeardown,
+                      });
+                    },
+                  },
+                }
+              : {}),
+          },
         });
     } catch (error) {
       const collectionError = asCollectionError(
@@ -267,6 +326,7 @@ export async function prepareProject(
     sources,
     documents,
     invocations,
+    plans,
     collectionErrors,
     selectedCaseCount: documents.reduce(
       (total, document) => total + document.cases.length,

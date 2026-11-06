@@ -1,6 +1,6 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
-import { callAI } from '@/ai-model/service-caller';
+import { callGenerativeAI } from '@/ai-model/service-caller';
 import { toResponsesInput } from '@/ai-model/service-caller/openai/responses/utils';
 import type { ConversationMessage } from '@/ai-model/service-caller/types';
 import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
@@ -106,7 +106,7 @@ describe('Responses protocol', () => {
       retryCount: 2,
       createOpenAIClient: createClient,
     });
-    await expect(callAI(messages, runtime)).rejects.toThrow(
+    await expect(callGenerativeAI(messages, runtime)).rejects.toThrow(
       'Model adapter "default" does not support protocol "openai-responses"',
     );
     expect(createClient).not.toHaveBeenCalled();
@@ -126,7 +126,7 @@ describe('Responses protocol', () => {
           message,
         })),
       });
-      const first = await callAI(history.snapshot(), runtime, {
+      const first = await callGenerativeAI(history.snapshot(), runtime, {
         stream,
         onChunk: rs.fn(),
       });
@@ -136,7 +136,7 @@ describe('Responses protocol', () => {
         role: 'user',
         content: 'Continue with the next step.',
       });
-      await callAI(history.snapshot(), runtime);
+      await callGenerativeAI(history.snapshot(), runtime);
       expect(requestBody(1).store).toBe(false);
       expect(requestBody(1)).not.toHaveProperty('previous_response_id');
       expect(requestBody(1).include).toBeUndefined();
@@ -152,7 +152,7 @@ describe('Responses protocol', () => {
     ['message.input_image.image_url'],
     ['message.input_image.image_url', 'reasoning.encrypted_content'],
   ])('preserves user include fields %j', async (...include) => {
-    await callAI(
+    await callGenerativeAI(
       messages,
       getModelRuntime({ ...config, extraBody: { include } }),
     );
@@ -168,7 +168,7 @@ describe('Responses protocol', () => {
     });
     const onUsage = rs.fn();
     runtime.onUsage = onUsage;
-    const result = await callAI(messages, runtime, {
+    const result = await callGenerativeAI(messages, runtime, {
       requiresOriginalImageDetail: true,
       expectedJsonObjectResponse: true,
     });
@@ -220,7 +220,7 @@ describe('Responses protocol', () => {
         request_id: 'req-test',
         slot: 'default',
         retry_count: 0,
-        api_protocol: 'responses',
+        request_kind: 'responses',
       },
     });
     expect(onUsage).toHaveBeenCalledExactlyOnceWith(result.usage);
@@ -238,7 +238,10 @@ describe('Responses protocol', () => {
     const onChunk = rs.fn();
     const runtime = getModelRuntime(config);
     runtime.onUsage = rs.fn();
-    const result = await callAI(messages, runtime, { stream: true, onChunk });
+    const result = await callGenerativeAI(messages, runtime, {
+      stream: true,
+      onChunk,
+    });
     expect(requestBody().stream).toBe(true);
     expect(onChunk).toHaveBeenCalledTimes(3);
     expect(onChunk.mock.calls[0][0]).toMatchObject({
@@ -289,7 +292,7 @@ describe('Responses protocol', () => {
         ]),
       );
       const onChunk = rs.fn();
-      const result = await callAI(messages, getModelRuntime(config), {
+      const result = await callGenerativeAI(messages, getModelRuntime(config), {
         stream: true,
         onChunk,
       });
@@ -321,7 +324,7 @@ describe('Responses protocol', () => {
         completed,
       ]),
     );
-    const result = await callAI(messages, getModelRuntime(config), {
+    const result = await callGenerativeAI(messages, getModelRuntime(config), {
       stream: true,
       onChunk: rs.fn(),
     });
@@ -339,7 +342,7 @@ describe('Responses protocol', () => {
       ]),
     );
     await expect(
-      callAI(messages, getModelRuntime(config), {
+      callGenerativeAI(messages, getModelRuntime(config), {
         stream: true,
         onChunk: rs.fn(),
       }),
@@ -357,7 +360,7 @@ describe('Responses protocol', () => {
       );
       const runtime = getModelRuntime(config);
       runtime.onUsage = rs.fn();
-      const result = await callAI(messages, runtime, {
+      const result = await callGenerativeAI(messages, runtime, {
         stream,
         onChunk: rs.fn(),
       });
@@ -377,7 +380,10 @@ describe('Responses protocol', () => {
     const runtime = getModelRuntime({ ...config, retryCount: 1 });
     runtime.onUsage = rs.fn();
     await expect(
-      callAI(messages, runtime, { stream: true, onChunk }),
+      callGenerativeAI(messages, runtime, {
+        stream: true,
+        onChunk,
+      }),
     ).rejects.toThrow('empty content from AI model');
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(onChunk).toHaveBeenCalledTimes(1);
@@ -392,7 +398,7 @@ describe('Responses protocol', () => {
     const runtime = getModelRuntime({ ...config, retryCount: 1 });
     const prepare = rs.spyOn(runtime.adapter.responses, 'buildResponsesParams');
     runtime.onUsage = rs.fn();
-    const result = await callAI(messages, runtime);
+    const result = await callGenerativeAI(messages, runtime);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(prepare).toHaveBeenCalledTimes(1);
     expect(result.usage?.retry_count).toBe(1);
@@ -406,7 +412,7 @@ describe('Responses protocol', () => {
         sseResponse([{ type: 'error', message: 'temporary failure' }]),
       )
       .mockResolvedValueOnce(sseResponse([delta, completed]));
-    const result = await callAI(
+    const result = await callGenerativeAI(
       messages,
       getModelRuntime({ ...config, retryCount: 1 }),
       { stream: true, onChunk: rs.fn() },
@@ -456,7 +462,10 @@ describe('Responses protocol', () => {
       const runtime = getModelRuntime({ ...config, retryCount: 1 });
       runtime.onUsage = rs.fn();
       await expect(
-        callAI(messages, runtime, { stream: true, onChunk }),
+        callGenerativeAI(messages, runtime, {
+          stream: true,
+          onChunk,
+        }),
       ).rejects.toThrow();
       expect(fetchMock).toHaveBeenCalledTimes(1);
       expect(onChunk).toHaveBeenCalledTimes(1);
@@ -468,12 +477,16 @@ describe('Responses protocol', () => {
   it('does not retry a callback failure', async () => {
     fetchMock.mockResolvedValue(sseResponse([delta, completed]));
     await expect(
-      callAI(messages, getModelRuntime({ ...config, retryCount: 1 }), {
-        stream: true,
-        onChunk: () => {
-          throw new Error('callback failed');
+      callGenerativeAI(
+        messages,
+        getModelRuntime({ ...config, retryCount: 1 }),
+        {
+          stream: true,
+          onChunk: () => {
+            throw new Error('callback failed');
+          },
         },
-      }),
+      ),
     ).rejects.toThrow('callback failed');
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
@@ -482,9 +495,9 @@ describe('Responses protocol', () => {
     'rejects a %s response even if it contains text',
     async (status) => {
       fetchMock.mockResolvedValue(jsonResponse({ ...response(), status }));
-      await expect(callAI(messages, getModelRuntime(config))).rejects.toThrow(
-        `Responses request ${status}`,
-      );
+      await expect(
+        callGenerativeAI(messages, getModelRuntime(config)),
+      ).rejects.toThrow(`Responses request ${status}`);
     },
   );
 
@@ -500,7 +513,7 @@ describe('Responses protocol', () => {
     );
     try {
       await expect(
-        callAI(messages, getModelRuntime({ ...config, timeout: 20 })),
+        callGenerativeAI(messages, getModelRuntime({ ...config, timeout: 20 })),
       ).rejects.toThrow('hard timeout');
       expect(fetchMock.mock.calls[0][1]?.signal?.aborted).toBe(true);
     } finally {
@@ -516,15 +529,19 @@ describe('Responses protocol', () => {
       return jsonResponse(response());
     });
     await expect(
-      callAI(messages, getModelRuntime({ ...config, retryCount: 2 }), {
-        abortSignal: controller.signal,
-      }),
+      callGenerativeAI(
+        messages,
+        getModelRuntime({ ...config, retryCount: 2 }),
+        {
+          abortSignal: controller.signal,
+        },
+      ),
     ).rejects.toBe(reason);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('keeps GPT-6 native reasoning and extraBody overrides', async () => {
-    await callAI(
+    await callGenerativeAI(
       messages,
       getModelRuntime({
         ...config,
@@ -547,7 +564,7 @@ describe('Responses protocol', () => {
         choices: [{ message: { role: 'assistant', content: 'chat' } }],
       }),
     );
-    const result = await callAI(
+    const result = await callGenerativeAI(
       messages,
       getModelRuntime({ ...config, protocol: undefined }),
     );
@@ -559,7 +576,7 @@ describe('Responses protocol', () => {
 
   it('rejects background mode during preparation', async () => {
     await expect(
-      callAI(
+      callGenerativeAI(
         messages,
         getModelRuntime({
           ...config,

@@ -9,7 +9,13 @@ import {
 } from '@/dump/html-utils';
 import { ReportMergingTool } from '@/report';
 import { mergeReportFiles } from '@/report-cli';
-import type { TestRunReportDump, TestRunReportStep } from '@/test-run-report';
+import type {
+  TestRunReportDump,
+  TestRunReportError,
+  TestRunReportStep,
+} from '@/test-run-report';
+import { mergeTestRunReportDumps } from '@/test-runner/reporting/merge-report';
+import { sumTestRunReportMetrics } from '@/test-runner/reporting/metrics';
 import { type AIUsageInfo, ExecutionDump, ReportActionDump } from '@/types';
 import { getVersion } from '@/utils';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
@@ -130,6 +136,292 @@ function runnerDump(reportId: string): TestRunReportDump {
   };
 }
 
+test('namespaces framework error links across merged scopes without rewriting business data', () => {
+  const recovery: TestRunReportError = {
+    name: 'WorkflowError',
+    code: 'RESOURCE_RECOVERY_TIMEOUT',
+    message: 'Recovery timed out',
+    details: {
+      value: {
+        blockedByStepId: 'step-0',
+        blockingOperations: [
+          { operationId: 'operation', stepId: 'step-0', scopeId: 'attempt-0' },
+        ],
+        payload: { stepId: 'business-step' },
+      },
+      truncatedPaths: ['$.payload'],
+    },
+    cause: {
+      name: 'StepTimeoutError',
+      code: 'STEP_TIMEOUT',
+      message: 'Original timeout',
+    },
+  };
+  const aggregate: TestRunReportError = {
+    name: 'AggregateError',
+    message: 'Cleanup failed',
+    cause: recovery,
+    errors: [
+      {
+        name: 'NodeScopeTeardownError',
+        code: 'NODE_SCOPE_TEARDOWN_ERROR',
+        message: 'Node cleanup failed',
+        details: { value: { scopeId: 'attempt-0' } },
+      },
+    ],
+  };
+  const sources = ['alpha', 'beta'].map((reportId) => {
+    const dump = runnerDump(reportId);
+    const project = dump.projects[0];
+    const document = project.documents[0];
+    const attempt = document.cases[0].attempts[0];
+    attempt.hostErrors = [{ phase: 'execution', error: recovery }];
+    attempt.teardownErrors = [aggregate];
+    attempt.cleanup = { status: 'pending', capturedAt: time, error: aggregate };
+    attempt.steps[0].error = recovery;
+    attempt.steps[0].evidenceCollection = {
+      status: 'partial',
+      errors: [aggregate],
+    };
+    attempt.steps[0].operations = {
+      capturedAt: time,
+      events: [
+        {
+          operationId: 'operation',
+          operationKind: 'node',
+          kind: 'settled',
+          at: time,
+          error: recovery,
+        },
+      ],
+    };
+    document.hostErrors = [{ phase: 'execution', error: recovery }];
+    document.attempts![0].hostErrors = document.hostErrors;
+    project.lifecycle = {
+      status: 'failed',
+      startedAt: time,
+      endedAt: time,
+      durationMs: 0,
+      teardownErrors: [aggregate],
+      cleanup: attempt.cleanup,
+    };
+    project.collectionErrors = [{ sourcePath: 'case.yaml', error: recovery }];
+    dump.diagnostics = [
+      {
+        level: 'error',
+        code: 'run-infrastructure-error',
+        message: 'Recovery timed out',
+        error: recovery,
+      },
+    ];
+    return {
+      reportId,
+      sourcePath: `${reportId}.html`,
+      dump,
+      attributes: {
+        testId: reportId,
+        testTitle: reportId,
+        testDescription: '',
+        testStatus: 'passed' as const,
+        testDuration: 0,
+      },
+    };
+  });
+  const before = JSON.stringify(sources);
+  const merged = mergeTestRunReportDumps(
+    sources,
+    sources[0].dump.metrics,
+    'merged',
+  );
+  merged.projects.forEach((project, index) => {
+    const prefix = sources[index].reportId;
+    const document = project.documents[0];
+    const attempt = document.cases[0].attempts[0];
+    const errors = [
+      attempt.hostErrors![0].error,
+      attempt.steps[0].error!,
+      attempt.steps[0].operations!.events[0].error!,
+      document.hostErrors![0].error,
+      document.attempts![0].hostErrors![0].error,
+      project.collectionErrors[0].error,
+      merged.diagnostics![index].error!,
+      attempt.teardownErrors![0].cause!,
+      attempt.cleanup!.error!.cause!,
+      attempt.steps[0].evidenceCollection!.errors![0].cause!,
+      project.lifecycle!.teardownErrors![0].cause!,
+      project.lifecycle!.cleanup!.error!.cause!,
+    ];
+    for (const error of errors) {
+      expect(error.details).toEqual({
+        value: {
+          blockedByStepId: `${prefix}:step-0`,
+          blockingOperations: [
+            {
+              operationId: 'operation',
+              stepId: `${prefix}:step-0`,
+              scopeId: `${prefix}:attempt-0`,
+            },
+          ],
+          payload: { stepId: 'business-step' },
+        },
+        truncatedPaths: ['$.payload'],
+      });
+      expect(error.cause?.code).toBe('STEP_TIMEOUT');
+      expect(
+        attempt.steps.some(
+          (step) =>
+            step.id ===
+            (error.details!.value as { blockedByStepId: string })
+              .blockedByStepId,
+        ),
+      ).toBe(true);
+    }
+    expect(attempt.teardownErrors![0].errors![0].details?.value).toEqual({
+      scopeId: `${prefix}:attempt-0`,
+    });
+  });
+  expect(JSON.stringify(sources)).toBe(before);
+  const custom = runnerDump('custom');
+  custom.projects[0].documents[0].hostErrors = [
+    {
+      phase: 'execution',
+      error: {
+        name: 'CustomError',
+        code: 'BUSINESS_ERROR',
+        message: 'Custom payload',
+        details: {
+          value: {
+            blockedByStepId: 'business-step',
+            scopeId: 'business-scope',
+          },
+        },
+      },
+    },
+  ];
+  const customMerged = mergeTestRunReportDumps(
+    [{ ...sources[0], dump: custom }],
+    custom.metrics,
+    'custom-merge',
+  );
+  expect(customMerged.projects[0].documents[0].hostErrors).toEqual(
+    custom.projects[0].documents[0].hostErrors,
+  );
+});
+
+test('preserves journal references and remaps blocked-step and event links on merge', () => {
+  const dump = runnerDump('source');
+  dump.operationLogs = [{ path: '/tmp/operations.jsonl', snapshotAt: time }];
+  const attempt = dump.projects[0].documents[0].cases[0].attempts[0];
+  attempt.steps.push({
+    id: 'blocked',
+    phase: 'steps',
+    stepIndex: 1,
+    node: 'aiAct',
+    status: 'not-run',
+    notRunReason: 'Agent still running',
+    blockedBy: 'step-0',
+    continuedAfterError: false,
+    operations: {
+      capturedAt: time,
+      events: [
+        {
+          operationId: 'op',
+          operationKind: 'node',
+          kind: 'runner-returned',
+          at: time,
+          stepId: 'blocked',
+          scopeId: 'attempt-0',
+          status: 'not-run',
+          pending: false,
+        },
+      ],
+    },
+  });
+  const blocker = {
+    operationId: 'root-operation',
+    scopeId: 'attempt-0',
+    stepId: 'step-0',
+  };
+  attempt.cleanup = {
+    status: 'pending',
+    capturedAt: time,
+    operationId: 'cleanup-operation',
+    blockingOperations: [blocker],
+  };
+  attempt.pendingOperations = [blocker];
+  attempt.retryDecision = {
+    scope: 'case',
+    retryCount: 3,
+    attemptIndex: 0,
+    decision: 'stop',
+    reason: 'cleanup-pending',
+  };
+  dump.projects[0].documents[0].cleanup = attempt.cleanup;
+  dump.projects[0].lifecycle = {
+    status: 'failed',
+    startedAt: time,
+    endedAt: time,
+    durationMs: 0,
+    cleanup: attempt.cleanup,
+  };
+  dump.diagnostics = [
+    {
+      level: 'warning',
+      code: 'agent-detail-unresolved',
+      message: 'Missing detail',
+      scopeId: 'attempt-0',
+      stepId: 'step-0',
+    },
+  ];
+  attempt.steps[1].operations!.events[0].blockingOperations = [blocker];
+  const merged = mergeTestRunReportDumps(
+    [
+      {
+        reportId: 'merged-source',
+        sourcePath: 'source.html',
+        attributes: {
+          testId: 'test',
+          testTitle: 'test',
+          testDescription: '',
+          testStatus: 'passed',
+          testDuration: 0,
+        },
+        dump,
+      },
+    ],
+    dump.metrics,
+    'merged-run',
+  );
+  const blocked = merged.projects[0].documents[0].cases[0].attempts[0].steps[1];
+  expect(blocked).toMatchObject({
+    id: 'merged-source:blocked',
+    blockedBy: 'merged-source:step-0',
+  });
+  expect(blocked.operations?.events[0]).toMatchObject({
+    operationId: 'op',
+    stepId: 'merged-source:blocked',
+    scopeId: 'merged-source:attempt-0',
+  });
+  expect(merged.operationLogs).toEqual(dump.operationLogs);
+  const mergedAttempt = merged.projects[0].documents[0].cases[0].attempts[0];
+  const expected = {
+    operationId: 'root-operation',
+    scopeId: 'merged-source:attempt-0',
+    stepId: 'merged-source:step-0',
+  };
+  expect(mergedAttempt.cleanup?.blockingOperations).toEqual([expected]);
+  expect(mergedAttempt.pendingOperations).toEqual([expected]);
+  expect(mergedAttempt.retryDecision).toEqual(attempt.retryDecision);
+  expect(merged.projects[0].documents[0].cleanup?.blockingOperations).toEqual([
+    expected,
+  ]);
+  expect(merged.projects[0].lifecycle?.cleanup?.blockingOperations).toEqual([
+    expected,
+  ]);
+  expect(merged.diagnostics?.[0].stepId).toBe('merged-source:step-0');
+  expect(blocked.operations?.events[0].blockingOperations).toEqual([expected]);
+});
+
 function writeSource(
   name: string,
   dump?: TestRunReportDump,
@@ -189,6 +481,96 @@ function writeSource(
 }
 
 describe('merging Midscene Test reports', () => {
+  test('merges independent usage with raw Agent reports without losing or double-counting calls', () => {
+    const dump = runnerDump('source');
+    const saved = sumTestRunReportMetrics([
+      { ...dump.metrics, modelCallCount: 1, totalTokens: 12 },
+    ]);
+    const lost = sumTestRunReportMetrics([{ ...saved, totalTokens: 42 }]);
+    dump.metrics = sumTestRunReportMetrics([saved, lost]);
+    dump.executionMetrics = { saved, lost };
+    const attributes = {
+      testId: 'test',
+      testTitle: 'test',
+      testDescription: '',
+      testStatus: 'passed' as const,
+      testDuration: 0,
+    };
+    const merged = mergeTestRunReportDumps(
+      [
+        { reportId: 'runner', sourcePath: 'runner.html', attributes, dump },
+        {
+          reportId: 'raw',
+          sourcePath: 'agent.html',
+          attributes,
+          timing: { startedAt: time, endedAt: time, durationMs: 0 },
+        },
+      ],
+      sumTestRunReportMetrics([saved, { ...saved, totalTokens: 13 }]),
+      'merged',
+      { saved },
+    );
+    expect(merged.metrics).toMatchObject({
+      modelCallCount: 3,
+      totalTokens: 67,
+      collection: { status: 'complete' },
+    });
+    expect(Object.keys(merged.executionMetrics!)).toEqual(['saved', 'lost']);
+  });
+
+  test('preserves incomplete metric coverage when merging with a complete report', () => {
+    const complete = runnerDump('first');
+    complete.metrics.collection = {
+      status: 'complete',
+      expectedExecutionCount: 1,
+      capturedExecutionCount: 1,
+      reasons: [],
+      fields: {
+        modelCallCount: 'complete',
+        modelTimeMs: 'complete',
+        totalTokens: 'complete',
+      },
+    };
+    const unknown = runnerDump('second');
+    unknown.metrics.collection = {
+      status: 'unknown',
+      expectedExecutionCount: 2,
+      capturedExecutionCount: 0,
+      reasons: ['Missing Agent source.'],
+    };
+    const attributes = {
+      testId: 'test',
+      testTitle: 'test',
+      testDescription: '',
+      testStatus: 'passed' as const,
+      testDuration: 0,
+    };
+    const merged = mergeTestRunReportDumps(
+      [
+        {
+          reportId: 'first',
+          sourcePath: 'first.html',
+          attributes,
+          dump: complete,
+        },
+        {
+          reportId: 'second',
+          sourcePath: 'second.html',
+          attributes,
+          dump: unknown,
+        },
+      ],
+      complete.metrics,
+      'merged',
+    );
+    expect(merged.metrics.collection).toMatchObject({
+      status: 'partial',
+      expectedExecutionCount: 3,
+      capturedExecutionCount: 1,
+      reasons: ['Missing Agent source.'],
+      fields: { totalTokens: 'partial' },
+    });
+  });
   test('rejects an invalid source execution timestamp', () => {
     const dump = runnerDump('invalid-group');
     dump.startedAt = '';

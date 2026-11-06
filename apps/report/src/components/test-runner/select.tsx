@@ -14,11 +14,13 @@ export function Select<ValueType>({
   className,
   popupClassName,
   getPopupContainer,
+  suffixIcon = <span className="runner-select-chevron" aria-hidden="true" />,
   ...props
 }: SelectProps<ValueType>): JSX.Element {
   return (
     <AntdSelect<ValueType>
       {...props}
+      suffixIcon={suffixIcon}
       variant="borderless"
       getPopupContainer={
         getPopupContainer ??

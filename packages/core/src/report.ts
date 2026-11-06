@@ -1,6 +1,5 @@
 import {
   appendFileSync,
-  copyFileSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -18,23 +17,40 @@ import { antiEscapeScriptTag, logMsg, uuid } from '@midscene/shared/utils';
 import { getReportFileName } from './agent/report-file-name';
 import {
   DATA_SCREENSHOT_MODE_ATTR,
-  extractAllDumpScriptsSync,
   extractLastDumpScriptSync,
-  extractTestRunReportDumpSync,
   generateAgentReportComment,
   getBaseUrlFixScript,
   generateTestRunReportScriptTag as runnerDumpScript,
   streamDumpScriptsSync,
   streamImageScriptsToFile,
 } from './dump/html-utils';
+import { normalizeStoredImageRef } from './dump/image-reference';
 import {
-  imageRefFileExtension,
-  normalizeStoredImageRef,
-} from './dump/image-reference';
+  readReportArtifactManifest,
+  readReportDumpScripts,
+  readReportRunnerDump,
+  streamReportDumpScripts,
+} from './dump/report-artifact-reader';
+import { ReportImageExporter } from './dump/report-image-export';
+export {
+  readReportActionDump,
+  readReportArtifactManifestAsync,
+  readReportArtifactManifest,
+  readReportDumpScripts,
+  readReportRunnerDump,
+  streamReportDumpScripts,
+} from './dump/report-artifact-reader';
+export { ExecutionRecorder } from './dump/execution-recorder';
+export { ReportArtifactStore } from './dump/report-artifact-store';
+export { ReportSession } from './dump/report-session';
 import {
-  parseBase64ImageDataUrl,
-  resolveImageSource,
-} from './dump/screenshot-store';
+  publishReportArtifact,
+  publishReportArtifactSync,
+} from './dump/report-artifact-publication';
+import {
+  ReportArtifactWriter,
+  type ReportGroupAttributes,
+} from './dump/report-artifact-writer';
 import { collectReportSummary } from './report-stats';
 import type {
   AssembleTestRunReportOptions,
@@ -47,6 +63,7 @@ import {
   type MergeTestRunReportSource,
   mergeTestRunReportDumps,
 } from './test-runner/reporting/merge-report';
+import { collectTestRunReportMetrics } from './test-runner/reporting/metrics';
 import {
   type ExecutionDump,
   type IExecutionDump,
@@ -60,6 +77,97 @@ export {
   calculateTestRunHealth,
   classifyTestRunCase,
 } from './test-run-health';
+
+export interface ExportReportArtifactOptions {
+  reportPath: string;
+  outputDir: string;
+  reportFileName: string;
+  outputFormat?: 'single-html' | 'html-and-external-assets';
+  overwrite?: boolean;
+}
+
+/** Export only referenced facts and images, validating them before publishing. */
+export async function exportReportArtifact(
+  options: ExportReportArtifactOptions,
+): Promise<string> {
+  validateTestRunReportFileName(options.reportFileName);
+  const input = path.resolve(options.reportPath);
+  const output = path.resolve(options.outputDir);
+  const external = options.outputFormat === 'html-and-external-assets';
+  const artifact = path.join(output, options.reportFileName);
+  const destination = external
+    ? path.join(artifact, 'index.html')
+    : `${artifact}.html`;
+  if (
+    input === destination ||
+    (external && input.startsWith(`${artifact}${path.sep}`))
+  )
+    throw new Error('Export destination must differ from the input report.');
+  if (!options.overwrite && existsSync(external ? artifact : destination))
+    throw new Error(`Report artifact already exists: ${artifact}`);
+  const manifest = readReportArtifactManifest(input);
+  const runner = readReportRunnerDump(input);
+  const groups = new Map<
+    string,
+    { dump: ReportActionDump; attributes: ReportGroupAttributes }
+  >();
+  for (const source of readReportDumpScripts(input)) {
+    const attributes = Object.fromEntries(
+      [...source.openTag.matchAll(/([^\s=]+)="([^"]*)"/g)]
+        .filter(([, key]) => key !== 'type')
+        .map(([, key, value]) => [key, decodeURIComponent(value)]),
+    );
+    const id = attributes['data-group-id'];
+    if (!id) throw new Error('Report execution group is missing its ID.');
+    const dump = ReportActionDump.fromSerializedString(
+      manifest ? source.content : antiEscapeScriptTag(source.content),
+    );
+    const previous = groups.get(id);
+    dump.executions = dedupeExecutionsKeepLatest([
+      ...(previous?.dump.executions ?? []),
+      ...dump.executions,
+    ]);
+    groups.set(id, { dump, attributes });
+  }
+  if (!groups.size && !runner)
+    throw new Error('No report execution data was found in the input.');
+  const hint = [...groups.values()][0]?.attributes['data-report-kind'];
+  const kind =
+    manifest?.kind ??
+    (hint === 'agent' || hint === 'test' ? hint : runner ? 'test' : 'agent');
+  await fsAsync.mkdir(output, { recursive: true });
+  const temporary = await fsAsync.mkdtemp(path.join(output, '.report-export-'));
+  const entry = path.join(temporary, 'index.html');
+  try {
+    const writer = new ReportArtifactWriter(
+      entry,
+      external,
+      kind,
+      manifest?.reportId ?? runner?.runId,
+    );
+    await writer.initialize();
+    for (const [id, group] of groups)
+      await writer.addGroup(
+        id,
+        group.dump.serialize(),
+        input,
+        group.attributes,
+      );
+    await writer.finish(
+      runner,
+      mergedAgentReportComment([...groups.values()].map((group) => group.dump)),
+    );
+    await publishReportArtifact(
+      external ? temporary : entry,
+      external ? artifact : destination,
+      external,
+      options.overwrite,
+    );
+    return destination;
+  } finally {
+    await fsAsync.rm(temporary, { recursive: true, force: true });
+  }
+}
 
 /**
  * Read the screenshot storage mode a report declared at generation time.
@@ -104,9 +212,9 @@ function readDeclaredScreenshotMode(
  * filesystem heuristic (an `index.html` that has a sibling `screenshots/` dir).
  */
 export function isDirectoryModeReport(reportFilePath: string): boolean {
-  // Directory-mode reports are always written as `{name}/index.html`, so any
-  // other filename is inline. Short-circuit before touching the file so the
-  // common inline case (`{name}.html`) costs nothing.
+  if (readReportArtifactManifest(reportFilePath)) return true;
+  // Agent directory reports use index.html by default. Reports without the
+  // versioned manifest use the existing metadata and layout heuristic.
   if (path.basename(reportFilePath) !== 'index.html') return false;
 
   const declared = readDeclaredScreenshotMode(reportFilePath);
@@ -173,7 +281,12 @@ export function dedupeExecutionsKeepLatest<T extends Pick<ExecutionDump, 'id'>>(
  */
 function peekReportSdkVersion(reportFilePath: string): string | undefined {
   try {
-    const dump = extractLastDumpScriptSync(reportFilePath);
+    let dump: string | undefined;
+    streamReportDumpScripts(reportFilePath, ({ content }) => {
+      dump = content;
+      return true;
+    });
+    dump ??= extractLastDumpScriptSync(reportFilePath) ?? undefined;
     if (!dump) return undefined;
     const match = dump.match(/"sdkVersion"\s*:\s*"([^"]+)"/);
     return match?.[1];
@@ -271,9 +384,9 @@ export class ReportMergingTool {
    * If there's only one dump, return it as-is. If multiple, merge
    * all executions into the first dump's group structure.
    */
-  private mergeDumpScripts(contents: string[]): string {
+  private mergeDumpScripts(contents: string[], external: boolean): string {
     const unescaped = contents
-      .map((c) => antiEscapeScriptTag(c))
+      .map((c) => (external ? c : antiEscapeScriptTag(c)))
       .filter((c) => c.length > 0);
     if (unescaped.length === 0) return '';
     if (unescaped.length === 1) return unescaped[0];
@@ -293,257 +406,166 @@ export class ReportMergingTool {
 
   public mergeReports(
     reportFileName: 'AUTO' | string = 'AUTO',
-    opts?: {
+    opts: {
       rmOriginalReports?: boolean;
       overwrite?: boolean;
       outputDir?: string;
-    },
+      outputFormat?: 'single-html' | 'html-and-external-assets';
+    } = {},
   ): string | null {
     const {
       rmOriginalReports = false,
       overwrite = false,
       outputDir,
-    } = opts ?? {};
-
-    if (this.reportInfos.length === 0) {
+      outputFormat,
+    } = opts;
+    if (!this.reportInfos.length) {
       logMsg('No reports to merge');
       return null;
     }
-
     const runnerDumps = this.reportInfos.map((info) =>
       info.reportFilePath
-        ? extractTestRunReportDumpSync(info.reportFilePath)
+        ? readReportRunnerDump(info.reportFilePath)
         : undefined,
     );
     const hasRunnerDump = runnerDumps.some(Boolean);
-
-    const targetDir = outputDir
-      ? path.resolve(outputDir)
-      : getMidsceneRunSubDir('report');
-    if (outputDir) {
-      mkdirSync(targetDir, { recursive: true });
-    }
-
-    // Resolve each report's screenshot mode exactly once. isDirectoryModeReport
-    // reads the file to find the authoritative metadata, so recomputing it for
-    // both the output-path decision and the per-report merge loop would re-scan
-    // every report twice.
-    const isDirModeByIndex = this.reportInfos.map((info) =>
-      Boolean(
-        info.reportFilePath && isDirectoryModeReport(info.reportFilePath),
-      ),
-    );
-    const hasDirectoryModeReport = isDirModeByIndex.some(Boolean);
-
-    const resolvedName =
+    const external = outputFormat === 'html-and-external-assets';
+    const name =
       reportFileName === 'AUTO'
         ? getReportFileName('merged-report')
         : reportFileName;
-
-    // Directory mode: output as {name}/index.html to keep relative paths working
-    // Inline mode: output as {name}.html (single file)
-    const outputFilePath = hasDirectoryModeReport
-      ? path.resolve(targetDir, resolvedName, 'index.html')
-      : path.resolve(targetDir, `${resolvedName}.html`);
-
-    if (reportFileName !== 'AUTO' && existsSync(outputFilePath)) {
-      if (!overwrite) {
-        throw new Error(
-          `Report file already exists: ${outputFilePath}\nSet overwrite to true to overwrite this file.`,
-        );
-      }
-      if (hasDirectoryModeReport) {
-        rmSync(path.dirname(outputFilePath), { recursive: true, force: true });
-      } else {
-        unlinkSync(outputFilePath);
-      }
-    }
-
-    if (hasDirectoryModeReport) {
-      mkdirSync(path.dirname(outputFilePath), { recursive: true });
-    }
-
-    logMsg(
-      `Start merging ${this.reportInfos.length} reports...\nCreating template file...`,
-    );
-
+    validateTestRunReportFileName(name);
+    const targetDir = outputDir
+      ? path.resolve(outputDir)
+      : getMidsceneRunSubDir('report');
+    mkdirSync(targetDir, { recursive: true });
+    const artifact = path.join(targetDir, name);
+    const outputFilePath = external
+      ? path.join(artifact, 'index.html')
+      : `${artifact}.html`;
+    if (!overwrite && existsSync(external ? artifact : outputFilePath))
+      throw new Error(
+        `Report file already exists: ${outputFilePath}\nSet overwrite to true to overwrite this file.`,
+      );
+    if (
+      rmOriginalReports &&
+      this.reportInfos.some(
+        (info) =>
+          info.reportFilePath &&
+          isDirectoryBasedReport(info.reportFilePath) &&
+          outputFilePath.startsWith(
+            `${path.dirname(path.resolve(info.reportFilePath))}${path.sep}`,
+          ),
+      )
+    )
+      throw new Error(
+        'Merged output must be outside source report directories when removing originals.',
+      );
+    const temporary = mkdtempSync(path.join(targetDir, '.merged-report-'));
+    const entry = path.join(temporary, 'index.html');
     try {
-      // Write template without closing </html> tag so we can append
-      // dump scripts before it. The closing tag is added at the end.
-      const htmlEndTag = '</html>';
-      const tpl = getReportTpl();
-      const htmlEndIdx = tpl.lastIndexOf(htmlEndTag);
-      const tplWithoutClose =
-        htmlEndIdx !== -1 ? tpl.slice(0, htmlEndIdx) : tpl;
-      appendFileSync(outputFilePath, tplWithoutClose);
-
-      // For directory-mode output, inject base URL fix script
-      if (hasDirectoryModeReport) {
-        appendFileSync(outputFilePath, getBaseUrlFixScript());
-      }
-
+      const writer = new ReportArtifactWriter(
+        entry,
+        external,
+        hasRunnerDump ? 'test' : 'agent',
+      );
+      writer.initializeSync();
       const agentReports: ReportActionDump[] = [];
       const runnerSources: MergeTestRunReportSource[] = [];
-      const writtenInlineImageIds = new Set<string>();
-
-      // Process all reports one by one
-      for (let i = 0; i < this.reportInfos.length; i++) {
-        const reportInfo = this.reportInfos[i];
-        logMsg(`Processing report ${i + 1}/${this.reportInfos.length}`);
-
-        const { reportAttributes } = reportInfo;
-        let dumpString = this.createEmptyDumpString(
-          reportAttributes.testTitle,
-          reportAttributes.testDescription,
+      const groupIds = new Set<string>();
+      for (const [index, info] of this.reportInfos.entries()) {
+        const attributes = info.reportAttributes;
+        let serialized = this.createEmptyDumpString(
+          attributes.testTitle,
+          attributes.testDescription,
         );
-        let mergedGroupId = `merged-group-${i}`;
-
-        if (reportInfo.reportFilePath) {
-          if (isDirModeByIndex[i]) {
-            // Directory mode: copy external screenshot files. A directory-mode
-            // report can legitimately have no screenshots/ dir (a run that
-            // captured nothing), so only copy when the source dir exists.
-            const reportDir = path.dirname(reportInfo.reportFilePath);
-            const screenshotsDir = path.join(reportDir, 'screenshots');
-            if (existsSync(screenshotsDir)) {
-              const mergedScreenshotsDir = path.join(
-                path.dirname(outputFilePath),
-                'screenshots',
-              );
-              mkdirSync(mergedScreenshotsDir, { recursive: true });
-              for (const file of readdirSync(screenshotsDir)) {
-                const src = path.join(screenshotsDir, file);
-                const dest = path.join(mergedScreenshotsDir, file);
-                copyFileSync(src, dest);
-              }
-            }
-          } else {
-            // Inline mode: stream image scripts to output file
-            streamImageScriptsToFile(
-              reportInfo.reportFilePath,
-              outputFilePath,
-              writtenInlineImageIds,
-            );
-          }
-
-          // Extract all dump scripts from the source report.
-          // After the per-execution append refactor, a single source report
-          // may contain multiple <script type="midscene_web_dump"> tags
-          // (one per execution). We merge them into a single ReportActionDump.
-          // Filter by data-group-id to exclude false matches from the template's
-          // bundled JS code, which also references the midscene_web_dump type string.
-          const allDumps = extractAllDumpScriptsSync(
-            reportInfo.reportFilePath,
-          ).filter((d) => d.openTag.includes('data-group-id'));
-          const groupIdMatch = allDumps[0]?.openTag.match(
+        let groupId = `merged-group-${index}`;
+        if (info.reportFilePath) {
+          const dumps = readReportDumpScripts(info.reportFilePath);
+          const originalId = dumps[0]?.openTag.match(
             /data-group-id="([^"]+)"/,
-          );
-          if (groupIdMatch && !hasRunnerDump) {
-            mergedGroupId = decodeURIComponent(groupIdMatch[1]);
-          }
-          const extractedDumpString =
-            allDumps.length > 0
-              ? this.mergeDumpScripts(allDumps.map((d) => d.content))
-              : extractLastDumpScriptSync(reportInfo.reportFilePath);
-          if (extractedDumpString) {
-            dumpString = extractedDumpString;
-          }
+          )?.[1];
+          if (
+            originalId &&
+            !hasRunnerDump &&
+            !groupIds.has(decodeURIComponent(originalId))
+          )
+            groupId = decodeURIComponent(originalId);
+          serialized = dumps.length
+            ? this.mergeDumpScripts(
+                dumps.map((dump) => dump.content),
+                Boolean(readReportArtifactManifest(info.reportFilePath)),
+              )
+            : (extractLastDumpScriptSync(info.reportFilePath) ?? serialized);
         }
-
-        const agentReport = tryParseAgentReportDump(dumpString);
-        if (agentReport) {
-          agentReports.push(agentReport);
-        }
+        if (groupIds.has(groupId)) groupId = `merged-group-${uuid()}`;
+        groupIds.add(groupId);
+        const agentReport = tryParseAgentReportDump(serialized);
+        if (agentReport) agentReports.push(agentReport);
         if (hasRunnerDump)
           runnerSources.push({
-            reportId: mergedGroupId,
-            sourcePath: reportInfo.reportFilePath ?? '<skipped-agent-report>',
-            attributes: reportAttributes,
-            dump: runnerDumps[i],
+            reportId: groupId,
+            sourcePath: info.reportFilePath ?? '<skipped-agent-report>',
+            attributes,
+            dump: runnerDumps[index],
             timing: agentReport
-              ? agentReportTiming(agentReport, reportAttributes.testDuration)
+              ? agentReportTiming(agentReport, attributes.testDuration)
               : undefined,
           });
-
-        const reportHtmlStr = `${reportHTMLContent(
-          {
-            dumpString,
-            attributes: {
-              'data-group-id': mergedGroupId,
-              ...(hasRunnerDump ? { 'data-report-id': mergedGroupId } : {}),
-              [DATA_SCREENSHOT_MODE_ATTR]: hasDirectoryModeReport
-                ? 'directory'
-                : 'inline',
-              playwright_test_duration: reportAttributes.testDuration,
-              playwright_test_status: reportAttributes.testStatus,
-              playwright_test_title: reportAttributes.testTitle,
-              playwright_test_id: reportAttributes.testId,
-              playwright_test_description: reportAttributes.testDescription,
-              is_merged: true,
-            },
-          },
-          undefined,
-          undefined,
-          false,
-        )}\n`;
-
-        appendFileSync(outputFilePath, reportHtmlStr);
-      }
-
-      if (hasRunnerDump) {
-        const summary = collectReportSummary({
-          executions: dedupeExecutionsKeepLatest(
-            agentReports.flatMap((report) => report.executions),
-          ),
+        writer.addGroupSync(groupId, serialized, info.reportFilePath ?? entry, {
+          ...(hasRunnerDump ? { 'data-report-id': groupId } : {}),
+          playwright_test_duration: attributes.testDuration,
+          playwright_test_status: attributes.testStatus,
+          playwright_test_title: attributes.testTitle,
+          playwright_test_id: attributes.testId,
+          playwright_test_description: attributes.testDescription,
+          is_merged: true,
         });
-        appendFileSync(
-          outputFilePath,
-          runnerDumpScript(
-            mergeTestRunReportDumps(
-              runnerSources,
-              {
-                modelCallCount: summary.timing.modelCallCount,
-                modelTimeMs: summary.timing.modelCallTimeMs,
-                ...summary.tokens,
-              },
-              uuid(),
-            ),
+      }
+      let runner;
+      if (hasRunnerDump) {
+        const executions = dedupeExecutionsKeepLatest(
+          agentReports.flatMap((report) => report.executions),
+        );
+        const metrics = collectTestRunReportMetrics({ executions });
+        const executionMetrics = Object.fromEntries(
+          executions.flatMap((execution) =>
+            execution.id
+              ? [
+                  [
+                    execution.id,
+                    collectTestRunReportMetrics({ executions: [execution] }),
+                  ],
+                ]
+              : [],
           ),
         );
-      }
-
-      const agentComment = mergedAgentReportComment(agentReports);
-      if (agentComment) {
-        appendFileSync(outputFilePath, agentComment);
-      }
-
-      // Close the HTML document
-      appendFileSync(outputFilePath, `${htmlEndTag}\n`);
-
-      logMsg(`Successfully merged new report: ${outputFilePath}`);
-
-      // Remove original reports if needed
-      if (rmOriginalReports) {
-        let removedReportCount = 0;
-        let reportCountWithFilePath = 0;
-        for (const info of this.reportInfos) {
-          if (!info.reportFilePath) continue;
-          reportCountWithFilePath += 1;
-          try {
-            removeReportArtifact(info.reportFilePath);
-            removedReportCount += 1;
-          } catch (error) {
-            logMsg(`Error deleting report ${info.reportFilePath}: ${error}`);
-          }
-        }
-        logMsg(
-          `Removed ${removedReportCount}/${reportCountWithFilePath} original reports`,
+        runner = mergeTestRunReportDumps(
+          runnerSources,
+          metrics,
+          uuid(),
+          executionMetrics,
         );
       }
+      writer.finishSync(runner, mergedAgentReportComment(agentReports));
+      publishReportArtifactSync(
+        external ? temporary : entry,
+        external ? artifact : outputFilePath,
+        external,
+        overwrite,
+      );
+      if (rmOriginalReports)
+        for (const sourcePath of new Set(
+          this.reportInfos.flatMap((info) =>
+            info.reportFilePath ? [path.resolve(info.reportFilePath)] : [],
+          ),
+        )) {
+          if (sourcePath !== outputFilePath) removeReportArtifact(sourcePath);
+        }
+      logMsg(`Successfully merged new report: ${outputFilePath}`);
       return outputFilePath;
-    } catch (error) {
-      logMsg(`Error in mergeReports: ${error}`);
-      throw error;
+    } finally {
+      rmSync(temporary, { recursive: true, force: true });
     }
   }
 }
@@ -578,8 +600,8 @@ function agentReportTiming(
 
 interface PreparedTestRunReportSource extends IndexedTestRunReportSource {
   dump: ReportActionDump;
-  directoryMode: boolean;
   dumpPath?: string;
+  imageOrigins: Map<string, string>;
 }
 
 const validateTestRunReportFileName = (fileName: string): void => {
@@ -620,41 +642,100 @@ const uniqueTestRunReportSources = (
 
 const prepareTestRunReportSources = (
   sources: readonly TestRunReportSource[],
-  loadedDumps?: ReadonlyMap<string, string>,
+  loadedDumps?: ReadonlyMap<string, string | Error>,
 ): {
   sources: PreparedTestRunReportSource[];
   metrics: TestRunReportMetrics;
+  capturedMetrics: TestRunReportMetrics;
+  executionMetrics: Record<string, TestRunReportMetrics>;
+  diagnostics: import('./test-run-report').TestRunReportDiagnostic[];
 } => {
   const prepared: PreparedTestRunReportSource[] = [];
+  const diagnostics: import('./test-run-report').TestRunReportDiagnostic[] = [];
   const ownerByScopedExecution = new Map<string, string>();
   const preparedByPath = new Map<string, PreparedTestRunReportSource>();
 
   for (const [sourceIndex, source] of uniqueTestRunReportSources(
     sources,
   ).entries()) {
+    let baseDump: ReportActionDump;
+    let executions: IExecutionDump[];
+    try {
+      if (source.dumpPath) {
+        const contents =
+          loadedDumps?.get(source.dumpPath) ??
+          readFileSync(source.dumpPath, 'utf8');
+        if (contents instanceof Error) throw contents;
+        baseDump = ReportActionDump.fromSerializedString(contents);
+        executions = baseDump.executions;
+      } else {
+        if (!existsSync(source.sourcePath))
+          throw new Error(`Agent report does not exist: ${source.sourcePath}`);
+        const sourceVersion = peekReportSdkVersion(source.sourcePath);
+        const currentVersion = getVersion();
+        if (
+          sourceVersion &&
+          currentVersion &&
+          sourceVersion !== currentVersion &&
+          !warnedMismatchedVersions.has(sourceVersion)
+        ) {
+          warnedMismatchedVersions.add(sourceVersion);
+          logMsg(
+            `[@midscene/core] TestRunReportAssembler version mismatch: source report was written by @midscene/core@${sourceVersion} but the assembler is @midscene/core@${currentVersion}. Align the workspace package versions before generating the Midscene Test report.`,
+          );
+        }
+        ({ baseDump, executions } = collectDedupedExecutions(
+          source.sourcePath,
+        ));
+      }
+    } catch (error) {
+      diagnostics.push({
+        level: 'warning',
+        code: 'agent-source-unavailable',
+        scopeId: source.scopeId,
+        sourcePaths: [source.sourcePath],
+        message: `Agent source could not be collected: ${String(error)}`,
+      });
+      continue;
+    }
     // A borrowed Agent can serve several sequential test scopes. Reuse its
     // report group and metrics while indexing each scope's execution links.
     const sourceKey = source.sourcePath;
+    const imageOrigins = new Map<string, string>();
+    JSON.parse(baseDump.serialize(), (_key, value) => {
+      const ref = normalizeStoredImageRef(value);
+      if (ref)
+        imageOrigins.set(
+          ref.id,
+          ref.storage === 'file'
+            ? (source.dumpPath ?? source.sourcePath)
+            : source.sourcePath,
+        );
+      return value;
+    });
     const shared = preparedByPath.get(sourceKey);
     if (shared) {
+      for (const [id, origin] of imageOrigins)
+        shared.imageOrigins.set(id, origin);
       if (source.dumpPath) {
-        const snapshot = ReportActionDump.fromSerializedString(
-          loadedDumps?.get(source.dumpPath) ??
-            readFileSync(source.dumpPath, 'utf8'),
-        );
         shared.dump.executions = dedupeExecutionsKeepLatest([
           ...shared.dump.executions,
-          ...snapshot.executions,
+          ...baseDump.executions,
         ]);
-        shared.executionIds.splice(
-          0,
-          shared.executionIds.length,
-          ...shared.dump.executions.flatMap((execution) =>
+      }
+      const scoped = prepared.find(
+        (item) =>
+          item.reportId === shared.reportId && item.scopeId === source.scopeId,
+      );
+      const executionIds = [
+        ...new Set([
+          ...(scoped?.executionIds ?? []),
+          ...executions.flatMap((execution) =>
             execution.id ? [execution.id] : [],
           ),
-        );
-      }
-      for (const executionId of shared.executionIds) {
+        ]),
+      ];
+      for (const executionId of executionIds) {
         const key = `${source.scopeId}\u0000${executionId}`;
         const owner = ownerByScopedExecution.get(key);
         if (owner && owner !== shared.reportId)
@@ -663,39 +744,22 @@ const prepareTestRunReportSources = (
           );
         ownerByScopedExecution.set(key, shared.reportId);
       }
-      prepared.push({ ...shared, scopeId: source.scopeId });
+      if (scoped) {
+        scoped.executionIds = executionIds;
+        const partial = [scoped.collection, source.collection].find(
+          (collection) => collection?.status === 'partial',
+        );
+        scoped.collection = partial ?? source.collection ?? scoped.collection;
+      } else
+        prepared.push({
+          ...shared,
+          scopeId: source.scopeId,
+          executionIds,
+          collection: source.collection,
+        });
       continue;
     }
-    if (!source.dumpPath && !existsSync(source.sourcePath)) {
-      throw new Error(`Agent report does not exist: ${source.sourcePath}`);
-    }
-
-    const sourceVersion = source.dumpPath
-      ? undefined
-      : peekReportSdkVersion(source.sourcePath);
-    const currentVersion = getVersion();
-    if (
-      sourceVersion &&
-      currentVersion &&
-      sourceVersion !== currentVersion &&
-      !warnedMismatchedVersions.has(sourceVersion)
-    ) {
-      warnedMismatchedVersions.add(sourceVersion);
-      logMsg(
-        `[@midscene/core] TestRunReportAssembler version mismatch: source report was written by @midscene/core@${sourceVersion} but the assembler is @midscene/core@${currentVersion}. Align the workspace package versions before generating the Midscene Test report.`,
-      );
-    }
-
     const reportId = `runner-report-${sourceIndex + 1}`;
-    const snapshot = source.dumpPath
-      ? ReportActionDump.fromSerializedString(
-          loadedDumps?.get(source.dumpPath) ??
-            readFileSync(source.dumpPath, 'utf8'),
-        )
-      : undefined;
-    const { baseDump, executions } = snapshot
-      ? { baseDump: snapshot, executions: snapshot.executions }
-      : collectDedupedExecutions(source.sourcePath);
     const executionIds: string[] = [];
     for (const execution of executions) {
       if (!execution.id) continue;
@@ -723,9 +787,9 @@ const prepareTestRunReportSources = (
       scopeId: source.scopeId,
       sourcePath: source.sourcePath,
       executionIds,
+      collection: source.collection,
       dump,
-      directoryMode:
-        !!source.dumpPath || isDirectoryModeReport(source.sourcePath),
+      imageOrigins,
       ...(source.dumpPath ? { dumpPath: source.dumpPath } : {}),
     };
     prepared.push(preparedSource);
@@ -734,17 +798,57 @@ const prepareTestRunReportSources = (
 
   // A legacy invocation can preserve a snapshot of an Agent also used by
   // native scopes. Count stable executions once across both paths.
-  const summary = collectReportSummary({
-    executions: dedupeExecutionsKeepLatest(
-      [...preparedByPath.values()].flatMap((source) => source.dump.executions),
+  const executions = dedupeExecutionsKeepLatest(
+    [...preparedByPath.values()].flatMap((source) => source.dump.executions),
+  );
+  const metrics = collectTestRunReportMetrics({ executions });
+  const executionMetrics = Object.fromEntries(
+    executions.flatMap((execution) =>
+      execution.id
+        ? [
+            [
+              execution.id,
+              collectTestRunReportMetrics({ executions: [execution] }),
+            ],
+          ]
+        : [],
     ),
-  });
+  );
   return {
     sources: prepared,
+    diagnostics,
+    capturedMetrics: metrics,
+    executionMetrics,
     metrics: {
-      modelCallCount: summary.timing.modelCallCount,
-      modelTimeMs: summary.timing.modelCallTimeMs,
-      ...summary.tokens,
+      ...metrics,
+      collection: {
+        ...metrics.collection!,
+        fields: Object.fromEntries(
+          Object.entries(metrics.collection!.fields!).map(([field, status]) => [
+            field,
+            diagnostics.length
+              ? prepared.length === 0
+                ? 'unknown'
+                : status === 'complete'
+                  ? 'partial'
+                  : status
+              : status,
+          ]),
+        ) as NonNullable<
+          NonNullable<TestRunReportMetrics['collection']>['fields']
+        >,
+        status: diagnostics.length
+          ? prepared.length
+            ? 'partial'
+            : 'unknown'
+          : metrics.collection!.status,
+        expectedExecutionCount: 0,
+        capturedExecutionCount: 0,
+        reasons: [
+          ...metrics.collection!.reasons,
+          ...diagnostics.map((diagnostic) => diagnostic.message),
+        ],
+      },
     },
   };
 };
@@ -762,131 +866,77 @@ export class TestRunReportAssembler {
     options: AssembleTestRunReportOptions,
   ): Promise<string> {
     validateTestRunReportFileName(options.reportFileName);
-    const loaded = new Map<string, string>();
+    const loaded = new Map<string, string | Error>();
     await Promise.all(
       options.sources.map(async (source) => {
-        if (source.dumpPath)
-          loaded.set(
-            source.dumpPath,
-            await fsAsync.readFile(source.dumpPath, 'utf8'),
-          );
+        if (source.dumpPath) {
+          try {
+            loaded.set(
+              source.dumpPath,
+              await fsAsync.readFile(source.dumpPath, 'utf8'),
+            );
+          } catch (error) {
+            loaded.set(
+              source.dumpPath,
+              error instanceof Error ? error : new Error(String(error)),
+            );
+          }
+        }
       }),
     );
     const prepared = prepareTestRunReportSources(options.sources, loaded);
     const dump = options.buildRunnerDump({
       sources: prepared.sources,
       metrics: prepared.metrics,
+      capturedMetrics: prepared.capturedMetrics,
+      executionMetrics: prepared.executionMetrics,
+      diagnostics: prepared.diagnostics,
     });
     if (dump.kind !== 'test-runner' || dump.schemaVersion !== 1)
       throw new Error('Invalid Runner report dump');
-    const directoryMode = prepared.sources.some(
-      (source) => source.directoryMode,
-    );
+    const directoryMode = options.outputFormat === 'html-and-external-assets';
     const outputDir = path.resolve(options.outputDir);
     await fsAsync.mkdir(outputDir, { recursive: true });
     const artifact = path.join(outputDir, options.reportFileName);
     const finalPath = directoryMode
       ? path.join(artifact, 'index.html')
       : `${artifact}.html`;
-    if (
-      !options.overwrite &&
-      (existsSync(artifact) || existsSync(`${artifact}.html`))
-    )
+    if (!options.overwrite && existsSync(directoryMode ? artifact : finalPath))
       throw new Error(`Report artifact already exists: ${artifact}`);
     const temporary = await fsAsync.mkdtemp(
       path.join(outputDir, '.test-run-report-'),
     );
     const htmlPath = path.join(temporary, 'index.html');
     try {
-      const parts = [
-        getReportTpl(),
-        directoryMode ? getBaseUrlFixScript() : '',
-      ];
-      const imageIds = new Set<string>();
+      const writer = new ReportArtifactWriter(
+        htmlPath,
+        directoryMode,
+        'test',
+        dump.runId,
+      );
+      await writer.initialize();
       const reports: ReportActionDump[] = [];
       for (const source of new Map(
         prepared.sources.map((source) => [source.reportId, source]),
       ).values()) {
-        const serialized = source.dump.serialize();
-        if (source.dumpPath) {
-          const refs = new Map<
-            string,
-            ReturnType<typeof normalizeStoredImageRef> & {}
-          >();
-          JSON.parse(serialized, (_key, value) => {
-            const ref = normalizeStoredImageRef(value);
-            if (ref) refs.set(ref.id, ref);
-            return value;
-          });
-          if (refs.size)
-            await fsAsync.mkdir(path.join(temporary, 'screenshots'), {
-              recursive: true,
-            });
-          for (const ref of refs.values()) {
-            if (imageIds.has(ref.id)) continue;
-            if (ref.storage !== 'file' || !ref.path)
-              throw new Error(`Snapshot image ${ref.id} has no file source`);
-            await fsAsync.copyFile(
-              path.resolve(path.dirname(source.dumpPath), ref.path),
-              path.join(
-                temporary,
-                'screenshots',
-                `${ref.id}.${imageRefFileExtension(ref)}`,
-              ),
-            );
-            imageIds.add(ref.id);
-          }
-        } else {
-          // An explicit external provider may still return a finalized HTML artifact.
-          // This is a public provider contract, not a second execution/serialization schema.
-          if (source.directoryMode) {
-            const images = path.join(
-              path.dirname(source.sourcePath),
-              'screenshots',
-            );
-            if (existsSync(images))
-              await fsAsync.cp(images, path.join(temporary, 'screenshots'), {
-                recursive: true,
-              });
-          } else {
-            const html = await fsAsync.readFile(source.sourcePath, 'utf8');
-            for (const match of html.matchAll(
-              /<script\b([^>]*)>[\s\S]*?<\/script>/g,
-            )) {
-              if (/(?:^|\s)type=["']midscene-image["']/.test(match[1]))
-                parts.push(match[0]);
-            }
-          }
-        }
         reports.push(source.dump);
-        parts.push(
-          reportHTMLContent(
-            {
-              dumpString: serialized,
-              attributes: {
-                'data-group-id': source.reportId,
-                'data-report-id': source.reportId,
-                'data-runner-scope-id': source.scopeId,
-                [DATA_SCREENSHOT_MODE_ATTR]: directoryMode
-                  ? 'directory'
-                  : 'inline',
-              },
-            },
-            undefined,
-            undefined,
-            false,
-          ),
+        await writer.addGroup(
+          source.reportId,
+          source.dump.serialize(),
+          source.dumpPath ?? source.sourcePath,
+          {
+            'data-report-id': source.reportId,
+            'data-runner-scope-id': source.scopeId,
+          },
+          source.imageOrigins,
         );
       }
-      parts.push(runnerDumpScript(dump), mergedAgentReportComment(reports));
-      await fsAsync.writeFile(htmlPath, parts.join('\n'));
-      if (options.overwrite) {
-        await fsAsync.rm(artifact, { recursive: true, force: true });
-        await fsAsync.rm(`${artifact}.html`, { force: true });
-      }
-      await fsAsync.rename(
+      await writer.finish(dump, mergedAgentReportComment(reports));
+      await publishReportArtifact(
         directoryMode ? temporary : htmlPath,
         directoryMode ? artifact : finalPath,
+        directoryMode,
+        options.overwrite,
       );
       return finalPath;
     } finally {
@@ -902,14 +952,18 @@ export class TestRunReportAssembler {
     const prepared = prepareTestRunReportSources(options.sources);
     const index: TestRunReportSourceIndex = {
       sources: prepared.sources.map(
-        ({ reportId, scopeId, sourcePath, executionIds }) => ({
+        ({ reportId, scopeId, sourcePath, executionIds, collection }) => ({
           reportId,
           scopeId,
           sourcePath,
           executionIds,
+          collection,
         }),
       ),
       metrics: prepared.metrics,
+      capturedMetrics: prepared.capturedMetrics,
+      executionMetrics: prepared.executionMetrics,
+      diagnostics: prepared.diagnostics,
     };
     const runnerDump = options.buildRunnerDump(index);
     if (runnerDump.schemaVersion !== 1 || runnerDump.kind !== 'test-runner') {
@@ -920,18 +974,16 @@ export class TestRunReportAssembler {
     // Validate serializability before creating any output artifact.
     JSON.stringify(runnerDump);
 
-    const directoryMode = prepared.sources.some(
-      (source) => source.directoryMode,
-    );
+    const directoryMode = options.outputFormat === 'html-and-external-assets';
     const finalArtifactPath = path.join(outputDir, options.reportFileName);
     const directoryReportPath = path.join(finalArtifactPath, 'index.html');
     const standaloneReportPath = `${finalArtifactPath}.html`;
     const finalReportPath = directoryMode
       ? directoryReportPath
       : standaloneReportPath;
-    const existingArtifacts = [finalArtifactPath, standaloneReportPath].filter(
-      existsSync,
-    );
+    const existingArtifacts = [
+      directoryMode ? finalArtifactPath : standaloneReportPath,
+    ].filter(existsSync);
     if (existingArtifacts.length > 0 && !options.overwrite) {
       throw new Error(
         `Report artifact already exists: ${existingArtifacts[0]}\nSet overwrite to true to overwrite this report.`,
@@ -954,81 +1006,36 @@ export class TestRunReportAssembler {
         mkdirSync(temporaryArtifactPath, { recursive: true });
       }
 
-      const htmlEndTag = '</html>';
-      const template = getReportTpl();
-      const htmlEndIndex = template.lastIndexOf(htmlEndTag);
-      appendFileSync(
+      const writer = new ReportArtifactWriter(
         temporaryReportPath,
-        htmlEndIndex === -1 ? template : template.slice(0, htmlEndIndex),
+        directoryMode,
+        'test',
+        runnerDump.runId,
       );
-      if (directoryMode) {
-        appendFileSync(temporaryReportPath, getBaseUrlFixScript());
-      }
-
+      writer.initializeSync();
       const agentReports: ReportActionDump[] = [];
       for (const source of new Map(
         prepared.sources.map((source) => [source.reportId, source]),
       ).values()) {
-        if (source.directoryMode) {
-          const screenshotsDir = path.join(
-            path.dirname(source.sourcePath),
-            'screenshots',
-          );
-          if (existsSync(screenshotsDir)) {
-            const targetScreenshotsDir = path.join(
-              path.dirname(temporaryReportPath),
-              'screenshots',
-            );
-            mkdirSync(targetScreenshotsDir, { recursive: true });
-            for (const file of readdirSync(screenshotsDir)) {
-              copyFileSync(
-                path.join(screenshotsDir, file),
-                path.join(targetScreenshotsDir, file),
-              );
-            }
-          }
-        } else {
-          streamImageScriptsToFile(source.sourcePath, temporaryReportPath);
-        }
-
         agentReports.push(source.dump);
-        appendFileSync(
-          temporaryReportPath,
-          `${reportHTMLContent(
-            {
-              dumpString: source.dump.serialize(),
-              attributes: {
-                'data-group-id': source.reportId,
-                'data-report-id': source.reportId,
-                'data-runner-scope-id': source.scopeId,
-                [DATA_SCREENSHOT_MODE_ATTR]: directoryMode
-                  ? 'directory'
-                  : 'inline',
-              },
-            },
-            undefined,
-            undefined,
-            false,
-          )}\n`,
+        writer.addGroupSync(
+          source.reportId,
+          source.dump.serialize(),
+          source.dumpPath ?? source.sourcePath,
+          {
+            'data-report-id': source.reportId,
+            'data-runner-scope-id': source.scopeId,
+          },
+          source.imageOrigins,
         );
       }
+      writer.finishSync(runnerDump, mergedAgentReportComment(agentReports));
 
-      appendFileSync(temporaryReportPath, runnerDumpScript(runnerDump));
-      const agentComment = mergedAgentReportComment(agentReports);
-      if (agentComment) {
-        appendFileSync(temporaryReportPath, agentComment);
-      }
-      appendFileSync(temporaryReportPath, `${htmlEndTag}\n`);
-
-      if (existsSync(finalArtifactPath)) {
-        rmSync(finalArtifactPath, { recursive: true, force: true });
-      }
-      if (existsSync(standaloneReportPath)) {
-        unlinkSync(standaloneReportPath);
-      }
-      renameSync(
+      publishReportArtifactSync(
         directoryMode ? temporaryArtifactPath : temporaryReportPath,
         directoryMode ? finalArtifactPath : standaloneReportPath,
+        directoryMode,
+        options.overwrite,
       );
       rmSync(temporaryRoot, { recursive: true, force: true });
       return finalReportPath;
@@ -1066,7 +1073,7 @@ export function collectDedupedExecutions(
   let executionSerial = 0;
   const latestSerialByExecutionId = new Map<string, number>();
 
-  streamDumpScriptsSync(htmlPath, (dumpScript) => {
+  streamReportDumpScripts(htmlPath, (dumpScript) => {
     if (!dumpScript.openTag.includes('data-group-id')) {
       return false;
     }
@@ -1084,7 +1091,7 @@ export function collectDedupedExecutions(
 
   const executions: IExecutionDump[] = [];
   executionSerial = 0;
-  streamDumpScriptsSync(htmlPath, (dumpScript) => {
+  streamReportDumpScripts(htmlPath, (dumpScript) => {
     if (!dumpScript.openTag.includes('data-group-id')) {
       return false;
     }
@@ -1122,11 +1129,7 @@ export function collectDedupedExecutions(
 
 function externalizeImagesInExecution(
   execution: IExecutionDump,
-  opts: {
-    htmlPath: string;
-    screenshotsDir: string;
-    writtenFiles: Set<string>;
-  },
+  images: ReportImageExporter,
 ): void {
   const visit = (node: unknown): void => {
     if (Array.isArray(node)) {
@@ -1140,23 +1143,8 @@ function externalizeImagesInExecution(
 
     const ref = normalizeStoredImageRef(node);
     if (ref) {
-      const ext = imageRefFileExtension(ref);
-      const fileName = `${ref.id}.${ext}`;
+      const fileName = images.write(ref);
       const relativePath = `./screenshots/${fileName}`;
-      const absolutePath = path.join(opts.screenshotsDir, fileName);
-
-      if (!opts.writtenFiles.has(fileName)) {
-        const resolved = resolveImageSource(ref, {
-          reportPath: opts.htmlPath,
-        });
-        if (resolved.type === 'data-uri') {
-          const { rawBase64 } = parseBase64ImageDataUrl(resolved.dataUri);
-          writeFileSync(absolutePath, Buffer.from(rawBase64, 'base64'));
-        } else {
-          copyFileSync(resolved.filePath, absolutePath);
-        }
-        opts.writtenFiles.add(fileName);
-      }
 
       ref.storage = 'file';
       ref.path = relativePath;
@@ -1185,17 +1173,13 @@ export function splitReportHtmlByExecution(
   mkdirSync(screenshotsDir, { recursive: true });
 
   const executionJsonFiles: string[] = [];
-  const writtenScreenshotFiles = new Set<string>();
+  const images = new ReportImageExporter(htmlPath, screenshotsDir);
   const { baseDump, executions } = collectDedupedExecutions(htmlPath);
 
   let fileIndex = 0;
   for (const execution of executions) {
     fileIndex += 1;
-    externalizeImagesInExecution(execution, {
-      htmlPath,
-      screenshotsDir,
-      writtenFiles: writtenScreenshotFiles,
-    });
+    externalizeImagesInExecution(execution, images);
     const singleExecutionDump = new ReportActionDump({
       sdkVersion: baseDump.sdkVersion,
       groupName: baseDump.groupName,
@@ -1212,8 +1196,6 @@ export function splitReportHtmlByExecution(
 
   return {
     executionJsonFiles,
-    screenshotFiles: Array.from(writtenScreenshotFiles)
-      .sort()
-      .map((fileName) => path.join(screenshotsDir, fileName)),
+    screenshotFiles: images.files,
   };
 }

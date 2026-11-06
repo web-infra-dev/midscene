@@ -1,5 +1,5 @@
 import { getModelRuntime } from '@/ai-model/models';
-import { callAI } from '@/ai-model/service-caller';
+import { callGenerativeAI } from '@/ai-model/service-caller';
 import type { CodeGenerationChunk } from '@/types';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { localImg2Base64 } from '@midscene/shared/img';
@@ -30,7 +30,7 @@ describe(
       let chunkCount = 0;
       let totalContent = '';
 
-      const result = await callAI(
+      const result = await callGenerativeAI(
         [
           {
             role: 'system',
@@ -98,7 +98,7 @@ describe(
       const chunks: CodeGenerationChunk[] = [];
       const imagePath = getFixture('baidu.png');
 
-      const result = await callAI(
+      const result = await callGenerativeAI(
         [
           {
             role: 'user',
@@ -146,7 +146,7 @@ describe(
       const chunks: CodeGenerationChunk[] = [];
       let hasReasoningContent = false;
 
-      const result = await callAI(
+      const result = await callGenerativeAI(
         [
           {
             role: 'system',
@@ -182,7 +182,7 @@ describe(
     it('should accumulate content correctly across all chunks', async () => {
       const chunks: CodeGenerationChunk[] = [];
 
-      await callAI(
+      await callGenerativeAI(
         [
           {
             role: 'user',
@@ -218,7 +218,7 @@ describe(
     it('should handle empty chunks gracefully', async () => {
       const chunks: CodeGenerationChunk[] = [];
 
-      const result = await callAI(
+      const result = await callGenerativeAI(
         [
           {
             role: 'user',
@@ -252,7 +252,7 @@ describe(
       let firstChunkTime: number | undefined;
       let lastChunkTime: number | undefined;
 
-      const result = await callAI(
+      const result = await callGenerativeAI(
         [
           {
             role: 'user',

@@ -153,6 +153,39 @@ describe('common utilities', () => {
   });
 
   describe('executeAction', () => {
+    it.each([undefined, { value: 'button' }])(
+      'forwards cancellation independently of action parameters: %s',
+      async (params) => {
+        const controller = new AbortController();
+        const callActionInActionSpace = rs.fn(
+          async (_name: string, _params: unknown, _signal?: AbortSignal) =>
+            'done',
+        );
+        const agent = createMockPlaygroundAgent({ callActionInActionSpace });
+        const action = {
+          name: 'Tap',
+          description: 'Tap',
+          call: rs.fn(),
+          ...(params ? { paramSchema: { shape: { value: {} } } } : {}),
+        } as DeviceAction<unknown>;
+        await executeAction(
+          agent,
+          'Tap',
+          [action],
+          { type: 'Tap', prompt: 'button', params },
+          {
+            abortSignal: controller.signal,
+          },
+        );
+        expect(callActionInActionSpace.mock.calls[0][2]).toBe(
+          controller.signal,
+        );
+        expect(callActionInActionSpace.mock.calls[0][1]).not.toHaveProperty(
+          'abortSignal',
+        );
+      },
+    );
+
     it('should execute action through callActionInActionSpace when available', async () => {
       const mockCallAction = rs.fn().mockResolvedValue('action result');
       const activeAgent = createMockPlaygroundAgent({

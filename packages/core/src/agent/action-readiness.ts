@@ -1,6 +1,7 @@
 import type { ActionReadyContext, WaitForActionReady } from '@/types';
 import { getErrorMessage } from '@midscene/shared/agent-tools/error-formatter';
 import { getDebug } from '@midscene/shared/logger';
+import { trackResourceOperation } from '../test-runner/engine/resource-operations';
 
 const warn = getDebug('agent:action-readiness', { console: true });
 const errorCode = 'ACTION_READINESS_FAILED';
@@ -40,6 +41,7 @@ export class ActionReadiness {
   async wait(
     action: ActionReadyContext['action'],
     signal?: AbortSignal,
+    resource?: object,
   ): Promise<void> {
     signal?.throwIfAborted();
     let onAbort: (() => void) | undefined;
@@ -56,10 +58,12 @@ export class ActionReadiness {
           onAbort = () => reject(signal.reason);
           signal.addEventListener('abort', onAbort, { once: true });
         }
-        Promise.resolve(this.callback({ action, signal })).then(
-          resolve,
-          reject,
-        );
+        const callback = Promise.resolve(this.callback({ action, signal }));
+        const completion =
+          signal && resource
+            ? trackResourceOperation(resource, callback, signal, 'readiness')
+            : callback;
+        void completion.then(resolve, reject);
       });
       signal?.throwIfAborted();
     } catch (cause) {

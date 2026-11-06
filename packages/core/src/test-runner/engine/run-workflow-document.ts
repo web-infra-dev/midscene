@@ -1,9 +1,12 @@
+import { isResourceRecoveryError } from '../errors';
 import type { CollectedCase, CollectedWorkflowDocument } from '../parser/types';
+import { buildTestRunReportPlan } from '../reporting/test-plan';
 import { createDocumentRuntime } from './document-runtime';
 import {
   WorkflowExecutionFailure,
   asExecutionError,
 } from './execution-failure';
+import { decideRetry } from './result-metadata';
 import { runCollectedCase } from './run-collected-case';
 import type {
   CaseRunOutcome,
@@ -45,7 +48,15 @@ export async function runWorkflowDocument<TContext = undefined>(
     );
   }
   const runtime = createDocumentRuntime(document, {
+    plan:
+      options.plan ??
+      buildTestRunReportPlan(document, {
+        defaultTimeoutMs: options.defaultTimeoutMs,
+        retry: { scope: 'case', count: retry },
+      }),
     documentSetup: options.documentSetup,
+    setupTimeoutMs: options.setupTimeoutMs,
+    teardownTimeoutMs: options.teardownTimeoutMs,
     documentAttemptIndex: options.documentAttemptIndex,
     resolveNode: options.resolveNode,
     project: options.project,
@@ -67,7 +78,7 @@ export async function runWorkflowDocument<TContext = undefined>(
   let documentResult: WorkflowDocumentRunResult | undefined;
   const executionErrors: unknown[] = [];
   let fatalError = false;
-  let stoppedByCase = false;
+  let documentStopReason: CaseRunOutcome['notRunReason'];
 
   try {
     runtimeStarted = true;
@@ -85,7 +96,7 @@ export async function runWorkflowDocument<TContext = undefined>(
     } else {
       for (const collectedCase of document.cases) {
         if (
-          stoppedByCase ||
+          documentStopReason ||
           fatalError ||
           signal.aborted ||
           options.shouldStop?.()
@@ -97,9 +108,9 @@ export async function runWorkflowDocument<TContext = undefined>(
               ? (options.stopReason?.() ?? 'interrupted')
               : fatalError
                 ? 'fatal-error'
-                : stoppedByCase
-                  ? 'bail'
-                  : (options.stopReason?.() ?? 'interrupted'),
+                : (documentStopReason ??
+                  options.stopReason?.() ??
+                  'interrupted'),
           );
           cases.push(outcome);
           await options.onCaseOutcome?.(outcome);
@@ -109,6 +120,7 @@ export async function runWorkflowDocument<TContext = undefined>(
         await options.onCaseStart?.(collectedCase);
         const attempts = [];
         for (let attemptIndex = 0; attemptIndex <= retry; attemptIndex += 1) {
+          let attemptFatalError = false;
           let attemptFailure:
             | WorkflowExecutionFailure<CaseRunResult>
             | undefined;
@@ -121,9 +133,30 @@ export async function runWorkflowDocument<TContext = undefined>(
             attemptIndex,
             signal: runtime.signal,
             defaultTimeoutMs: options.defaultTimeoutMs,
+            teardownTimeoutMs: options.teardownTimeoutMs,
             onStepStart: options.onStepStart,
             onStepResult: options.onStepResult,
-            onResult: options.onCaseResult,
+            onResult: async (result) => {
+              attemptFatalError = options.isFatalError?.(result) ?? false;
+              result.retryDecision = decideRetry({
+                scope: 'case',
+                retryCount: retry,
+                attemptIndex,
+                status: result.status,
+                cleanupPending: result.cleanup?.status === 'pending',
+                operationPending: !!result.pendingOperations?.length,
+                cleanupFailed:
+                  result.cleanup?.status === 'failed' ||
+                  !!result.teardownErrors?.length,
+                infrastructureError: result.executionErrors?.some(
+                  (error) => !isResourceRecoveryError(error),
+                ),
+                fatalError: attemptFatalError,
+                interrupted: signal.aborted,
+                shouldStop: options.shouldStop?.(),
+              });
+              await options.onCaseResult?.(result);
+            },
             reportScopeId: options.resolveCaseReportScopeId?.(
               collectedCase,
               attemptIndex,
@@ -138,7 +171,17 @@ export async function runWorkflowDocument<TContext = undefined>(
             return attemptFailure.result;
           });
           attempts.push(run);
-          if (attemptFailure) {
+          if (
+            attemptFailure &&
+            !attemptFailure.errors.every(isResourceRecoveryError)
+          ) {
+            run.retryDecision = decideRetry({
+              scope: 'case',
+              retryCount: retry,
+              attemptIndex,
+              status: run.status,
+              infrastructureError: true,
+            });
             cases.push({
               caseId: collectedCase.caseId,
               projectName,
@@ -154,17 +197,25 @@ export async function runWorkflowDocument<TContext = undefined>(
             });
             throw attemptFailure;
           }
-          fatalError = options.isFatalError?.(run) ?? false;
-          if (
-            run.status === 'success' ||
-            // Retrying cannot repair cleanup/report publication and would
-            // replay actions that may already have completed successfully.
-            !!run.teardownErrors?.length ||
-            fatalError ||
-            signal.aborted ||
-            options.shouldStop?.()
-          )
-            break;
+          fatalError = attemptFatalError;
+          // Result callbacks can interrupt execution or trigger bail. Observe
+          // that boundary again before admitting another attempt.
+          run.retryDecision = decideRetry({
+            scope: 'case',
+            retryCount: retry,
+            attemptIndex,
+            status: run.status,
+            cleanupPending: run.cleanup?.status === 'pending',
+            cleanupFailed:
+              run.cleanup?.status === 'failed' || !!run.teardownErrors?.length,
+            operationPending: !!run.pendingOperations?.length,
+            fatalError:
+              fatalError ||
+              !!run.executionErrors?.some(isResourceRecoveryError),
+            interrupted: signal.aborted,
+            shouldStop: options.shouldStop?.(),
+          });
+          if (run.retryDecision?.decision !== 'retry') break;
         }
         const run = attempts.at(-1)!;
         const outcome: CaseRunOutcome = {
@@ -181,9 +232,17 @@ export async function runWorkflowDocument<TContext = undefined>(
           attempts,
         };
         cases.push(outcome);
-        stoppedByCase =
-          outcome.status === 'failed' &&
-          collectedCase.definition.onFailure === 'stop-document';
+        const retryStopReason = run.retryDecision?.reason;
+        documentStopReason =
+          retryStopReason === 'cleanup-pending' ||
+          retryStopReason === 'cleanup-failed' ||
+          retryStopReason === 'operation-pending' ||
+          retryStopReason === 'fatal-error'
+            ? retryStopReason
+            : outcome.status === 'failed' &&
+                collectedCase.definition.onFailure === 'stop-document'
+              ? 'bail'
+              : undefined;
         await options.onCaseOutcome?.(outcome);
       }
     }
@@ -221,10 +280,23 @@ export async function runWorkflowDocument<TContext = undefined>(
     cases.push(
       ...document.cases
         .filter((item) => !completed.has(item.caseId))
-        .map((item) => asNotRun(item, projectName, 'interrupted')),
+        .map((item) =>
+          asNotRun(
+            item,
+            projectName,
+            executionErrors.every(isResourceRecoveryError)
+              ? 'operation-pending'
+              : 'interrupted',
+          ),
+        ),
     );
     documentResult.status = 'failed';
-    documentResult.executionErrors = executionErrors.map(asExecutionError);
+    documentResult.executionErrors = executionErrors
+      .filter(
+        (error) =>
+          !documentResult.hostErrors?.some((host) => host.error === error),
+      )
+      .map(asExecutionError);
     throw new WorkflowExecutionFailure(
       { document: documentResult, cases },
       executionErrors,

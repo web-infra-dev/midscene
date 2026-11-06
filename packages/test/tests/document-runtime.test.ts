@@ -514,6 +514,8 @@ describe('document resource ownership', () => {
     expect(failure.result.cases[0].status).toBe('success');
     expect(failure.result.document).toMatchObject({
       status: 'failed',
+      executionStatus: 'success',
+      cleanup: { status: 'failed' },
       hostErrors: [{ phase: 'cleanup', error: { message: 'close failed' } }],
     });
   });

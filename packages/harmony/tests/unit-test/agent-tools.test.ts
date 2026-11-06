@@ -1,3 +1,7 @@
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { setMidsceneRunDir } from '@midscene/shared/common';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { agentFromHdcDevice } from '../../src/agent';
 import { HarmonyMidsceneTools } from '../../src/agent-tools';
@@ -209,5 +213,43 @@ describe('HarmonyMidsceneTools', () => {
     expect(agentFromHdcDevice).toHaveBeenLastCalledWith(undefined, {
       autoDismissKeyboard: false,
     });
+  });
+});
+
+// These adapters share the CLI writer tested with real subprocesses in Core.
+// Here we verify that each real platform adapter forwards the session identity.
+describe('HarmonyMidsceneTools report sessions', () => {
+  it('reuses the report across tool instances and rotates it on connect', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'harmony-report-session-'));
+    setMidsceneRunDir(root);
+    const factory = rs.mocked(agentFromHdcDevice);
+    factory.mockResolvedValue(createMockAgent() as any);
+    const call = async (command: string) => {
+      const tools = new HarmonyMidsceneTools();
+      await tools.initTools();
+      const tool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === command)!;
+      try {
+        await tool.handler({ prompt: 'continue recording' });
+      } finally {
+        await tools.destroy();
+      }
+      return factory.mock.calls.at(-1)![1]!;
+    };
+    try {
+      const first = await call('harmony_connect');
+      expect(first).toMatchObject({
+        reportFileName: expect.stringContaining('midscene-harmony'),
+        reportAttributes: { 'data-group-id': first.reportFileName },
+      });
+      expect(await call('act')).toEqual(first);
+      const next = await call('harmony_connect');
+      expect(next.reportFileName).not.toBe(first.reportFileName);
+      expect(await call('act')).toEqual(next);
+    } finally {
+      setMidsceneRunDir(undefined);
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

@@ -5,6 +5,8 @@
   },
   "files": {
     "ignore": [
+      ".agents/**",
+      ".pnpm-store/**",
       "static/**",
       "node_modules/**",
       "**/midscene_run",
@@ -33,6 +35,7 @@
       "**/dump-with-invisible.json",
       "**/dump-for-utils-test.json",
       "**/.rslib",
+      "**/.wrangler/**",
       "**/.native-build/**",
       "apps/chrome-extension/web-ext-profile/**"
     ]

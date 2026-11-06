@@ -1,6 +1,6 @@
-import { collectReportSummary } from '../../report-stats';
 import type { TestRunReportDump } from '../../test-run-report';
 import type { ReportActionDump } from '../../types';
+import { collectTestRunReportMetrics } from './metrics';
 import { buildTestRunReportDump } from './test-run-report';
 import type { RunReportInput } from './types';
 
@@ -9,7 +9,6 @@ export function buildAgentTestRunReportDump(
   agentDump: ReportActionDump,
   source: { scopeId: string; reportId: string; sourcePath: string },
 ): TestRunReportDump {
-  const summary = collectReportSummary(agentDump);
   return buildTestRunReportDump(input, {
     sources: agentDump.executions.length
       ? [
@@ -21,10 +20,6 @@ export function buildAgentTestRunReportDump(
           },
         ]
       : [],
-    metrics: {
-      modelCallCount: summary.timing.modelCallCount,
-      modelTimeMs: summary.timing.modelCallTimeMs,
-      ...summary.tokens,
-    },
+    metrics: collectTestRunReportMetrics(agentDump),
   });
 }

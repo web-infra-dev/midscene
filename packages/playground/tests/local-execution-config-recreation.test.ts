@@ -21,11 +21,13 @@ describe('LocalExecutionAdapter - Config Recreation', () => {
           actionSpace: () => [],
         } as any,
         getActionSpace: rs.fn(async () => []),
+        aiAct: rs.fn(async () => 'done'),
         destroy: rs.fn(async () => {}),
         dumpDataString: rs.fn(() => '{"executions":[]}'),
         reportHTMLString: rs.fn(() => '<html></html>'),
         writeOutActionDumps: rs.fn(),
-        resetDump: rs.fn(),
+        resetDump: rs.fn(async () => undefined),
+        finalizeReport: rs.fn(async () => undefined),
         addDumpUpdateListener: rs.fn(() => () => {}),
       }) as any;
 
@@ -70,6 +72,35 @@ describe('LocalExecutionAdapter - Config Recreation', () => {
     // Now agent should be destroyed and recreated
     expect(mockAgent.destroy).toHaveBeenCalledTimes(1);
     expect(agentFactoryCallCount).toBe(1);
+  });
+
+  it('reuses the provided Agent across reports when config is unchanged', async () => {
+    const adapter = new LocalExecutionAdapter(mockAgent, mockAgentFactory);
+    for (let run = 0; run < 2; run++) {
+      const result = (await adapter.executeAction(
+        'aiAct',
+        { type: 'aiAct', prompt: 'run' },
+        {},
+      )) as any;
+      expect(result.error).toBeNull();
+    }
+    expect(mockAgentFactory).not.toHaveBeenCalled();
+    expect(mockAgent.destroy).not.toHaveBeenCalled();
+    expect(mockAgent.resetDump).toHaveBeenCalledTimes(2);
+    expect(mockAgent.finalizeReport).toHaveBeenCalledTimes(2);
+  });
+
+  it('creates a factory Agent once and reuses it for later reports', async () => {
+    const adapter = new LocalExecutionAdapter(undefined, mockAgentFactory);
+    for (let run = 0; run < 2; run++) {
+      const result = (await adapter.executeAction(
+        'aiAct',
+        { type: 'aiAct', prompt: 'run' },
+        {},
+      )) as any;
+      expect(result.error).toBeNull();
+    }
+    expect(mockAgentFactory).toHaveBeenCalledOnce();
   });
 
   it('should work when agent is initially undefined', async () => {
