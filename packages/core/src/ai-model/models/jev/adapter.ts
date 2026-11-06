@@ -7,7 +7,7 @@ import { jevPlan } from './planning';
 export const jevAdapters = {
   jev: {
     modelType: 'system-one',
-    supportedTaskTypes: ['locate', 'boolean', 'planning'],
+    allowedTaskTypes: ['locate', 'boolean', 'planning'],
     supportedProtocols: [],
     locate: { kind: 'custom', locateFn: jevLocate },
     insight: { booleanFn: jevBoolean },

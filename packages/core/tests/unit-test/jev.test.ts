@@ -19,6 +19,7 @@ import {
 } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
+import { getVersion } from '@/utils';
 import { type IModelConfig, ModelConfigManager } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import sharp from 'sharp';
@@ -53,7 +54,6 @@ const defaultConfig: IModelConfig = {
 const goodResult = {
   model: 'jev-1.14.0',
   answers: {
-    present: { type: 'noul', noul: 0.95 },
     target: {
       type: 'box',
       box: { left: 0.1, top: 0.1, right: 0.3, bottom: 0.2 },
@@ -121,17 +121,50 @@ describe('Jev model fallback', () => {
       });
     },
   );
-  it('rejects Jev as the default model', () => {
-    const configs = new ModelConfigManager({
+  const createJevOnlyConfig = () =>
+    new ModelConfigManager({
       MIDSCENE_MODEL_NAME: 'jev',
       MIDSCENE_MODEL_FAMILY: 'jev',
-      MIDSCENE_MODEL_BASE_URL: 'https://api.typesafe.ai',
+      MIDSCENE_MODEL_BASE_URL: 'https://api.typesafe.ai/v1',
       MIDSCENE_MODEL_API_KEY: 'test-key',
     });
-    expect(() => configs.getModelConfig('default')).toThrow(
-      'Jev cannot be the default model',
-    );
-  });
+
+  it.each(['boolean', 'locate', 'planning'] as const)(
+    'allows default Jev for supported %s tasks',
+    (taskType) => {
+      const configs = createJevOnlyConfig();
+      const runtime = resolveModelForTaskType(
+        configs,
+        taskType === 'boolean' ? 'insight' : taskType,
+        taskType,
+      );
+      expect(runtime.config).toMatchObject({
+        modelFamily: 'jev',
+        slot: 'default',
+      });
+      expect(runtime.modelFallback).toBeUndefined();
+    },
+  );
+
+  it.each(['extract', 'general'] as const)(
+    'rejects default Jev only when an unsupported %s task is requested',
+    (taskType) => {
+      const configs = createJevOnlyConfig();
+      expect(configs.getModelConfig('default').modelFamily).toBe('jev');
+      expect(() =>
+        resolveModelForTaskType(
+          configs,
+          taskType === 'extract' ? 'insight' : 'default',
+          taskType,
+        ),
+      ).toThrow(
+        `The default model cannot perform ${taskType}. Configure a general-purpose default model.`,
+      );
+      expect(
+        resolveModelForTaskType(configs, 'locate', 'locate').config.modelFamily,
+      ).toBe('jev');
+    },
+  );
   it('passes explicit task types for insight APIs', async () => {
     const execute = rs.fn().mockResolvedValue({ output: true });
     const resolve = rs.fn((taskType) =>
@@ -165,6 +198,50 @@ describe('Jev model fallback', () => {
 });
 
 describe('Jev requests and coordinates', () => {
+  it.each([undefined, 'custom-version'])(
+    'sends the Midscene version regardless of a custom version header (%s)',
+    async (version) => {
+      const prepared = await prepareSystemOne(
+        {
+          ...jevConfig,
+          openaiExtraConfig: {
+            defaultHeaders: {
+              ...(version ? { 'x-midscene-version': version } : {}),
+              'x-custom-header': 'preserved',
+            },
+          },
+        },
+        {
+          state: {},
+          questions: { answer: { type: 'noul', instructions: 'True?' } },
+        },
+      );
+      expect(prepared.headers['x-midscene-version']).toBe(getVersion());
+      expect(new Headers(prepared.headers).get('x-custom-header')).toBe(
+        'preserved',
+      );
+    },
+  );
+  it.each([undefined, 'https://ignored.example/v1'])(
+    'uses the full endpoint without appending a path (base URL: %s)',
+    async (openaiBaseURL) => {
+      const prepared = await prepareSystemOne(
+        {
+          ...jevConfig,
+          openaiBaseURL,
+          endpoint: 'https://example.com/custom/decision?version=2',
+        },
+        {
+          state: {},
+          questions: { answer: { type: 'noul', instructions: 'True?' } },
+        },
+      );
+      expect(prepared.url).toBe(
+        'https://example.com/custom/decision?version=2',
+      );
+    },
+  );
+
   it.each([
     ['https://example.com/v2/', 'https://example.com/v2/systemone'],
     [
@@ -246,11 +323,14 @@ describe('Jev requests and coordinates', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('https://api.typesafe.ai/v1/systemone');
+    expect(new Headers(init?.headers).get('x-midscene-version')).toBe(
+      getVersion(),
+    );
     expect(new Headers(init?.headers).get('TypeSafe-Danger-Zone-Images')).toBe(
       'true',
     );
     const body = JSON.parse(init?.body as string);
-    expect(Object.keys(body.questions)).toEqual(['present', 'target']);
+    expect(Object.keys(body.questions)).toEqual(['target']);
     expect(body.assets[body.state.screenshot].format).toBe('png');
     expect(runtime.onUsage).toHaveBeenCalledTimes(1);
     expect(runtime.onRequest).toHaveBeenCalledTimes(1);
@@ -271,28 +351,36 @@ describe('Jev requests and coordinates', () => {
     });
     expect(JSON.stringify(recording.events)).not.toContain('test-key');
   });
-  it('preserves the OpenRouter System One image format', async () => {
-    const fetchMock = rs
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(response());
-    await AiLocateElement({
-      context: await context(500, 400),
-      targetElementDescription: 'button',
-      modelRuntime: getModelRuntime({
-        ...jevConfig,
-        openaiBaseURL: 'https://openrouter.ai/api/v1',
-      }),
-    });
-    expect(fetchMock.mock.calls[0][0]).toBe(
-      'https://openrouter.ai/api/v1/systemone',
-    );
-    const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
-    expect(body.assets).toBeUndefined();
-    expect(body.state.screenshot.type).toBe('image_url');
-    expect(body.state.screenshot.image_url.url).toMatch(
-      /^data:image\/png;base64,/,
-    );
-  });
+  it.each([false, true])(
+    'preserves the OpenRouter image format with endpoint=%s',
+    async (useEndpoint) => {
+      const fetchMock = rs
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(response());
+      await AiLocateElement({
+        context: await context(500, 400),
+        targetElementDescription: 'button',
+        modelRuntime: getModelRuntime({
+          ...jevConfig,
+          openaiBaseURL: useEndpoint
+            ? 'https://ignored.example/v1'
+            : 'https://openrouter.ai/api/v1',
+          endpoint: useEndpoint
+            ? 'https://openrouter.ai/api/v1/systemone'
+            : undefined,
+        }),
+      });
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        'https://openrouter.ai/api/v1/systemone',
+      );
+      const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+      expect(body.assets).toBeUndefined();
+      expect(body.state.screenshot.type).toBe('image_url');
+      expect(body.state.screenshot.image_url.url).toMatch(
+        /^data:image\/png;base64,/,
+      );
+    },
+  );
   it.each([
     [100, 50],
     [3000, 30],
@@ -337,24 +425,6 @@ describe('Jev requests and coordinates', () => {
       },
     });
     expect(result.parseResult.element?.center).toEqual([700, 375]);
-  });
-  it('reports an absent target without switching models', async () => {
-    const fetchMock = rs.spyOn(globalThis, 'fetch').mockResolvedValue(
-      response({
-        ...goodResult,
-        answers: {
-          ...goodResult.answers,
-          present: { type: 'noul', noul: 0.1 },
-        },
-      }),
-    );
-    const result = await AiLocateElement({
-      context: await context(),
-      targetElementDescription: 'missing',
-      modelRuntime: getModelRuntime(jevConfig),
-    });
-    expect(result.parseResult.element).toBeUndefined();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
   it('supports text-only boolean checks and preserves false', async () => {
     const fetchMock = rs.spyOn(globalThis, 'fetch').mockResolvedValue(

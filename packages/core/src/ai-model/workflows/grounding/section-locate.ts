@@ -71,7 +71,7 @@ export async function AiLocateSection(options: {
     },
     imagePreprocess: adapter.imagePreprocess,
     targetDescription: sectionDescription,
-    userMessageContentOrder: adapter.locate.userMessageContentOrder,
+    promptOrder: adapter.locate.promptOrder,
   });
 
   let parsedResult:

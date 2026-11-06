@@ -1,4 +1,5 @@
 import { getCredentialStorage } from './credential-storage';
+import { type SiwcProxyConfig, fetchSiwc } from './network';
 import { refreshSiwcCredentials } from './refresh';
 
 class SiwcTokenManager {
@@ -13,16 +14,23 @@ class SiwcTokenManager {
   }
 
   /** Only refresh operations are shared; ordinary reads remain independent. */
-  refreshAccessToken(previousAccessToken: string): Promise<string> {
-    this.pendingRefresh ??= this.refreshAndSave(previousAccessToken).finally(
-      () => {
-        this.pendingRefresh = undefined;
-      },
-    );
+  refreshAccessToken(
+    previousAccessToken: string,
+    proxy: SiwcProxyConfig = {},
+  ): Promise<string> {
+    this.pendingRefresh ??= this.refreshAndSave(
+      previousAccessToken,
+      proxy,
+    ).finally(() => {
+      this.pendingRefresh = undefined;
+    });
     return this.pendingRefresh;
   }
 
-  private async refreshAndSave(previousAccessToken: string): Promise<string> {
+  private async refreshAndSave(
+    previousAccessToken: string,
+    proxy: SiwcProxyConfig,
+  ): Promise<string> {
     // Re-read after acquiring the refresh slot: another caller may have saved
     // a new token since this request first read its credentials.
     const storage = await getCredentialStorage();
@@ -35,6 +43,7 @@ class SiwcTokenManager {
       const credentials = await refreshSiwcCredentials(
         saved,
         AbortSignal.timeout(30_000),
+        { fetch: (input, init) => fetchSiwc(input, init, proxy) },
       );
       await storage.save({
         ...record,

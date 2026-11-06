@@ -96,6 +96,13 @@ export class RDPDevice implements AbstractInterface {
         });
         await this.backend.mouseButton('right', 'click');
       },
+      middleClick: async ({ x, y }) => {
+        await this.movePointer(Math.round(x), Math.round(y), {
+          steps: SMOOTH_MOVE_STEPS_TAP,
+          stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
+        });
+        await this.backend.mouseButton('middle', 'click');
+      },
       hover: async ({ x, y }) => {
         await this.movePointer(Math.round(x), Math.round(y), {
           steps: SMOOTH_MOVE_STEPS_MOUSE_MOVE,

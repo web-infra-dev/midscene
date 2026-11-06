@@ -5,6 +5,35 @@ import { describe, expect, it, rs } from '@rstest/core';
 const mockExecutorContext = { task: {} } as ExecutorContext;
 
 describe('defineActionsFromInputPrimitives', () => {
+  it('executes middle click at the located point when supported', async () => {
+    const middleClick = rs.fn();
+
+    const actions = defineActionsFromInputPrimitives({
+      pointer: {
+        tap: rs.fn(),
+        middleClick,
+      },
+    });
+
+    const middleClickAction = actions.find(
+      (action) => action.name === 'MiddleClick',
+    );
+
+    expect(middleClickAction).toBeDefined();
+    expect(middleClickAction?.interfaceAlias).toBe('aiMiddleClick');
+    await middleClickAction!.call(
+      { locate: { center: [12, 34] } },
+      mockExecutorContext,
+    );
+    expect(middleClick).toHaveBeenCalledWith({ x: 12, y: 34 });
+  });
+
+  it('omits middle click on devices without the primitive', () => {
+    const actions = defineActionsFromInputPrimitives({
+      pointer: { tap: rs.fn() },
+    });
+    expect(actions.some((action) => action.name === 'MiddleClick')).toBe(false);
+  });
   it('uses desktop guidance for a pointer swipe', async () => {
     const pointerSwipe = rs.fn();
     const actions = defineActionsFromInputPrimitives(

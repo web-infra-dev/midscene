@@ -42,6 +42,7 @@ import type {
 import { ServiceError, aiActProgressScope } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import { resolveSystemOneEndpoint } from '../ai-model/service-caller/system-one';
 import {
   type ActionReadiness,
   isActionReadinessError,
@@ -563,7 +564,8 @@ export class TaskExecutor {
       planningModel.adapter.modelType === 'system-one' &&
       locateModel.adapter.modelType === 'system-one' &&
       planningConfig.modelName === locateConfig.modelName &&
-      planningConfig.openaiBaseURL === locateConfig.openaiBaseURL;
+      resolveSystemOneEndpoint(planningConfig) ===
+        resolveSystemOneEndpoint(locateConfig);
     const bothJev =
       planningConfig.modelFamily === 'jev' &&
       locateConfig.modelFamily === 'jev';

@@ -1,60 +1,28 @@
-# 创建和使用测试项目
+# 创建 Midscene Test E2E 项目
 
-本文从创建项目开始，介绍如何运行示例、了解可用的测试操作、编写 YAML 用例和查看运行结果。已有 Midscene Test 项目的读者可以直接从[了解可用的测试操作](#了解可用的测试操作)开始。
-
-整体设计见 [Midscene Test 概览](./overview)。业务操作的实现方式见[编写自定义 Node](./extend)，运行环境和执行参数见[配置测试项目](./configuration)。
+本指南将带你使用脚手架创建测试项目、运行内置的 TodoMVC 示例，并动手修改一条测试用例。下文以 Web 平台为例；如果你测试的是移动端或桌面端应用，只需在创建项目时选择对应的平台模板即可。
 
 ## 创建项目
 
 ### 1. 生成项目文件并安装依赖
 
-准备 Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` 和 pnpm。需要交互式引导时，运行：
-
-```bash
-pnpm dlx @midscene/test create
-```
-
-命令会依次提示选择项目目录、平台、包管理器，以及是否安装依赖。也可以直接传入参数，例如使用 pnpm 创建 Web 测试项目：
+请确保本地已安装 Node.js（`^20.19.0 || ^22.12.0 || >=24.0.0`）和 `pnpm`，然后在终端运行：
 
 ```bash
 pnpm dlx @midscene/test create my-tests --platform web --package-manager pnpm
 cd my-tests
 ```
 
-可用参数如下：
+执行过程中按终端提示安装依赖即可。如果你想通过交互式菜单选择平台，可以直接运行 `pnpm dlx @midscene/test create`，创建完成后再进入项目目录。完整的命令行参数请参阅文末的[创建命令参考](#创建命令参考)。
 
-| 参数 | 说明 |
-| --- | --- |
-| `[directory]` | 项目目录，可以是相对于当前目录的路径或绝对路径。使用 `.` 表示当前目录。省略时会提示输入，已有文件不会被覆盖。 |
-| `--platform <value>` | 平台：`web`（Playwright）、`android`、`ios`、`harmony`（HarmonyOS）或 `computer`（桌面端）。省略时会提示选择。 |
-| `--package-manager <value>` | 包管理器：`npm` 或 `pnpm`。省略时，交互式终端会提示选择；非交互式环境会检测调用命令的包管理器，无法识别时使用 `npm`。 |
-| `--yes`、`-y` | 跳过交互并安装依赖。必须同时提供目录和 `--platform`；与 `--skip-install` 同用时只生成文件。 |
-| `--skip-install` | 只生成文件，不安装依赖，也不生成 Node 说明书。之后执行安装命令即可生成说明书。 |
-| `--help`、`-h` | 查看命令帮助和示例。 |
-
-每个平台目前提供一个起步模板，通过 `--platform` 选择，均使用原生 `cases/steps` Test 文件。在 CI 等非交互式环境中，必须提供目录和 `--platform`；未设置 `--skip-install` 时会安装依赖。
-
-常用示例：
-
-```bash
-# 创建 iOS 项目并安装依赖，全程不询问
-pnpm dlx @midscene/test create my-ios-tests --platform ios --package-manager pnpm --yes
-
-# 只生成 Web 项目文件
-pnpm dlx @midscene/test create my-web-tests --platform web --package-manager pnpm --skip-install
-
-# 查看完整参数
-pnpm dlx @midscene/test create --help
-```
-
-按提示安装依赖。命令会生成平台配置和示例用例，安装依赖后还会生成 Node 说明书。Web 项目的主要文件如下：
+生成的项目结构如下：
 
 ```text
 my-tests/
 ├── cases/todo.yaml             # TodoMVC 用例
-├── nodes/todo.ts               # Web 自定义 Node：初始化、校验和状态记录
+├── nodes/todo.ts               # Web 自定义 Node：初始化、数据校验与状态采集
 ├── midscene.config.ts          # 平台配置与 Node 注册
-├── midscene-node-spec.web.md    # 安装后自动生成的 Node 说明书
+├── midscene-node-spec.web.md   # 安装依赖后自动生成的 Node 说明书
 ├── package.json
 ├── tsconfig.json
 ├── .env.example
@@ -62,521 +30,103 @@ my-tests/
 └── README.zh.md
 ```
 
-其他平台模板在 `midscene.config.ts` 中定义 `todo.setup`，不包含 `nodes/todo.ts`，说明书文件名使用对应平台名称，例如 `midscene-node-spec.ios.md`。创建项目和生成说明书不会运行测试，因此这一步不需要模型 API Key、浏览器或设备。生成项目中的 README 会说明平台准备和示例运行方式。
-
-:::info 安装恢复
-如果跳过安装或安装失败，可以进入项目目录执行 `pnpm install`。需要重新生成 Node 说明书时，执行 `pnpm run nodes`。
-:::
+本步骤仅生成项目文件与说明书，不会实际运行测试，因此无需配置模型 API Key、浏览器或测试设备。生成的项目根目录下也包含 `README.md`（及 `README.zh.md`），其中提供了关于特定平台环境配置的详细说明。
 
 ### 2. 配置模型与运行环境
 
-将 `.env.example` 复制为 `.env`，按照[模型配置](../model-api-setup)填写模型名称、服务地址和 API Key。
+将 `.env.example` 复制为 `.env`，按照[使用模型 API Key](../model-api-setup)填写模型名称、服务地址和 API Key。
 
-运行测试前，检查模型连接和 Midscene 兼容性：
+运行测试前，可以先验证模型连通性是否正常：
 
 ```bash
 pnpm exec midscene-test model verify
 pnpm exec midscene-test model verify --help
 ```
 
-命令会读取当前工作目录下的 `.env`，并覆盖已有的 Shell 环境变量，无需浏览器或设备。详见[模型高级配置与调试](../model-config#verify-model-connectivity)。
+该命令会自动读取当前工作目录下的 `.env` 文件（优先级高于当前终端中已有的同名环境变量），验证过程无需启动浏览器或连接设备。详见[高级配置与调试](../model-config#verify-model-connectivity)。
 
-Web 项目还需要安装 Chromium：
+Web 项目还需要安装 Chromium 浏览器：
 
 ```bash
 pnpm exec playwright install chromium
 ```
 
-其他平台在创建时修改 `--platform`，并完成对应准备：
+如果你在第一步创建的是非 Web 平台的项目，请在运行测试前完成相应的运行环境准备：
 
 | 平台 | 参数值 | 运行前准备 | 环境配置指南 |
 | --- | --- | --- | --- |
-| Android | `android` | 连接设备，可用 `ANDROID_DEVICE_ID` 选择设备。 | [配置指南](../platforms/android) |
-| iOS | `ios` | 启动 WebDriverAgent。直连时配置 `WDA_HOST` 和 `WDA_PORT`，通过网关时配置 `WDA_BASE_URL`；远程视频流使用 `WDA_MJPEG_URL`，直连则可使用 `WDA_MJPEG_PORT`。 | [配置指南](../platforms/ios) |
-| HarmonyOS | `harmony` | 用 `hdc list targets` 检查连接，可用 `HARMONY_DEVICE_ID` 选择设备；PATH 中没有 HDC 时设置 `HDC_HOME`。 | [配置指南](../platforms/harmonyos) |
-| 桌面端 | `computer` | 安装依赖并授予权限，可用 `COMPUTER_DISPLAY_ID` 选择显示器。无界面 Linux 还需安装 Xvfb 并启用 `MIDSCENE_COMPUTER_HEADLESS_LINUX`。 | [配置指南](../platforms/desktop) |
+| Android | `android` | 连接设备，可通过 `ANDROID_DEVICE_ID` 指定设备。 | [配置指南](../platforms/android) |
+| iOS | `ios` | 启动 WebDriverAgent。本地直连可配置 `WDA_HOST` 与 `WDA_PORT`，通过网关转发可配置 `WDA_BASE_URL`；视频流直连使用 `WDA_MJPEG_PORT`，远程视频流使用 `WDA_MJPEG_URL`。 | [配置指南](../platforms/ios) |
+| HarmonyOS | `harmony` | 运行 `hdc list targets` 检查设备连接，可通过 `HARMONY_DEVICE_ID` 指定设备；若 `PATH` 中未配置 HDC，需设置 `HDC_HOME`。 | [配置指南](../platforms/harmonyos) |
+| 桌面端 | `computer` | 安装系统依赖并授予相应权限，可通过 `COMPUTER_DISPLAY_ID` 指定显示器。无界面 Linux 环境还需安装 Xvfb 并开启 `MIDSCENE_COMPUTER_HEADLESS_LINUX`。 | [配置指南](../platforms/desktop) |
 
-### 3. 运行生成的示例
+### 3. 运行示例并查看结果
 
 ```bash
 pnpm test
 ```
 
-五个平台的模板都使用在线 React TodoMVC，演示添加、删除和完成任务。运行测试的浏览器或设备需要能访问该网站。
+示例用例会访问在线的 React TodoMVC 页面，请确保测试机或设备能够访问该网站。运行结束后，终端会输出测试结果以及 `Report:` 报告路径（默认保存在 `midscene_run/report/` 目录下）。在浏览器中打开该 HTML 报告，即可点击具体用例和步骤，查看界面截图、输入输出参数及错误信息。
 
-运行结束后，可以在 `midscene_run/report/` 查看报告，了解各用例及步骤的执行结果。随后修改 `cases/todo.yaml` 编写自己的用例，可用操作及其参数以生成的 Node 说明书为准。
+如遇报错：依赖缺失可重新执行 `pnpm install`；模型校验失败请先参考前文排查模型配置；设备连接异常请查阅上表中的平台配置指南。关于测试运行参数与报告分享，请参阅[运行测试](./running)。
 
-## 了解可用的测试操作
+## 修改一个用例
 
-### 官方操作与按需扩展
-
-Midscene Test 将每一种可在 YAML 中调用的能力称为 **Node（节点）**。
-
-Node 既可以在用例的 `steps` 中调用，也可以在 `beforeEach`、`afterEach` 等[生命周期钩子](#定义执行生命周期)中调用，写法相同。
-
-所有平台都提供以下常用能力：`aiAct` 根据自然语言操作界面，`aiAssert` 检查预期结果，`aiWaitFor` 等待可观察条件成立，`wait` 等待指定时长。
-
-在这些通用能力之外，Midscene 还为各个平台预置了专用操作。例如：
-
-- **Web**：`gotoUrl` 打开网页、`setCookies` 设置 Cookie、`setViewportSize` 调整浏览器视口大小。
-- **Android**：`launch` 启动应用、`back` 返回上一页、`home` 返回主屏幕、`runAdbShell` 执行 ADB 命令。
-
-创建项目时，脚手架会根据选择的平台显式注册相应的官方 Node。手写 `midscene.config.ts` 时不会隐式注册任何 Node，需要自行配置。开发者也可以按需扩展，例如通过业务接口准备测试订单，详见[注册自定义业务 Node](./extend#注册自定义业务-node)。
-
-### 生成当前项目的 Node 说明书
-
-不同平台、执行项目和项目版本实际注册的 Node 可能不同。不要根据其他项目的示例推测当前项目的可用能力；`midscene-test nodes` 根据最终生效的注册结果生成 Node 说明书，它是当前项目可用 Node 名称、输入字段和字符串简写方式的事实来源。人类和 AI Agent 都应根据这份 Node 说明书编写 YAML 用例。
-
-脚手架会在安装依赖后自动生成。修改 `agentClass`、顶层 `nodes`、`projects[].nodes`、Node schema，或者升级相关 Midscene 包后，应重新生成：
-
-```bash
-pnpm run nodes
-```
-
-也可以直接运行命令，并指定测试目录、配置文件或执行项目：
-
-```bash
-pnpm exec midscene-test nodes ./e2e --config ./config/midscene.config.ts
-pnpm exec midscene-test nodes --project android-smoke
-```
-
-配置了 `projects` 时，`midscene-test nodes` 默认按执行项目分别生成说明书，即使各项目的 Node 定义完全相同。文件名为 `midscene-node-spec.<project-name>.md`。使用 `--project <name>` 只生成指定项目的说明书，文件名保持一致。未显式配置 `projects` 时，文件名仍为 `midscene-node-spec.md`。文件写入指定目录；省略目录时写入当前目录。在 `package.json` 所在目录运行命令即可将说明书保存在该目录。Project name 重复，或转换后的文件名冲突（包括大小写差异），都会在写入任何文件之前抛错。
-
-生成命令只加载项目配置和 Node 定义，不执行 setup、用例或 `getAgent`，因此不需要启动浏览器、连接设备或调用模型。说明书是生成文件，不要手动编辑；配置变化后重新执行命令。
-
-说明书包含两个部分：Available Nodes 列出可用 Node，Node Details 展示每个 Node 的 description、字符串简写规则和输入结构。输入结构由 Zod `inputSchema` 转换为标准 JSON Schema。说明书和终端输出均优先列出 `aiAct`、`aiAssert`，其余 Node 按名称排序。
-
-说明书还会列出用例文件的匹配规则（`Case files`）和配置文件路径（`Config file`），方便用例编写者定位文件。`Case files` 对应各执行项目的 `files.include` 和 `files.exclude`。这两类路径均相对于说明书所在目录。
-
-## 编写 YAML 测试用例
-
-### 一个典型的 YAML 文件
-
-一个 YAML 文件可以包含多个测试用例，以及用例执行前后的准备和清理步骤。下面以商城搜索为例：每次运行用例前打开首页，再搜索商品并检查结果。请将网址和商品名称替换为你的业务内容。
-
-```yaml filename=cases/search.yaml
-beforeEach:
-  - gotoUrl: https://your-shop.example
-
-cases:
-  - name: 搜索商品
-    steps:
-      - aiAct: 在搜索框输入“马克杯”，点击搜索按钮
-      - aiAssert: 搜索结果中包含马克杯
-```
-
-文件中各部分的含义如下：
-
-- `beforeEach`：每个用例执行前运行的步骤。它是可选的，适合打开页面、重置状态等准备操作。其他钩子见[执行生命周期](#定义执行生命周期)。
-- `cases`：测试用例列表，至少包含一个用例。需要增加用例时，在列表中添加新的 `name` 和 `steps`。
-- `name`：用例名称，用于在运行结果中识别这个用例。
-- `steps`：按顺序执行的步骤，至少包含一个步骤。每个步骤只能调用一个 Node，冒号后填写调用参数。
-
-文档中把整个 YAML 文件称为 Workflow Document（工作流文档），把一个用例称为 Case，把一次 Node 调用称为 Step（步骤）。
-
-示例使用字符串简写：`gotoUrl` 后的文本作为 `url`，`aiAct` 和 `aiAssert` 后的文本作为 `prompt`。需要传入更多参数时，可以使用下文的对象写法。是否支持简写，以项目的 Node 说明书为准。
-
-### 关键 Node：操作与断言
-
-日常用例主要通过 `aiAct` 描述操作，通过 `aiAssert` 检查结果：
-
-| Node | 用途 | 编写方式 |
-| --- | --- | --- |
-| `aiAct` | 根据自然语言完成界面操作，可以包含多个动作。 | 描述要做什么，例如“搜索马克杯，将第一个商品加入购物车”。 |
-| `aiAssert` | 检查界面是否满足预期；不满足时，步骤失败。 | 描述可观察的结果，例如“购物车中有一件马克杯”。 |
-| `aiTap` | 点击一个指定目标。 | 描述要点击的元素，例如“页面右上角的购物车图标”。 |
-
-操作完成不代表测试通过，应使用 `aiAssert` 明确检查预期结果。需要自定义断言失败信息时，可以展开参数：
-
-```yaml
-steps:
-  - aiAct: 搜索马克杯，将第一个商品加入购物车
-  - aiTap: 页面右上角的购物车图标
-  - aiAssert:
-      prompt: 购物车中有一件马克杯
-      message: 加购后购物车内容不符合预期
-```
-
-`aiAct` 支持可选的 `options.effort`，用于选择规划投入程度：`fast`、`balance` 或 `deepThink`。省略时沿用 Agent 默认行为；同时提供 `deepThink` 时，`effort` 优先。例如：
-
-```yaml
-steps:
-  - aiAct:
-      prompt: 完成结算
-      options:
-        effort: deepThink
-```
-
-### 设置 AI 上下文
-
-推荐在 `beforeAll` 中调用 `setAIContext`，这样可以在当前文档的用例执行前统一配置上下文，让配置对后续使用同一个 Agent 的所有相关 AI 操作生效。也可以在 `beforeEach` 或用例的 `steps` 中调用，按需设置或清除上下文；修改从调用时开始生效。
-
-参数与 `agent.setAIContext(target, context)` 一致：`target` 可以是 `default` 或 `aiAct`、`aiTap`、`aiAssert` 等 AI API 名称。
-
-**设置 context**：传入 `context` 字符串，设置对应 API 的上下文；使用 `target: default` 可以设置各 AI API 共用的默认上下文。
-
-```yaml
-beforeAll:
-  - setAIContext:
-      target: aiAct
-      context: |
-        整个流程使用测试账号。
-        如出现优惠券弹窗，关闭后继续。
-```
-
-**清除 context**：省略 `context`，等同于传入 `undefined`，移除 `target` 对应的配置。
-
-```yaml
-beforeAll:
-  - setAIContext:
-      target: aiAct
-```
-
-清除某个 API 的上下文后，该 API 会回退到 `default`；清除 `default` 则移除共用的默认上下文。如果需要禁用某个 API 继承的上下文，可以将其 `context` 设为空字符串 `""`。
-
-单次调用的 `options.context` 优先于 Agent 级配置，各层上下文不会拼接。配置属于 Agent 实例：`beforeAll` 与用例需要使用同一个 Agent；修改会持续生效，直到被覆盖或清除。
-
-### 其他 Node 的调用模式
-
-平台操作和自定义业务 Node 使用相同的调用结构：**Node 名称下面填写参数**。下面展示多参数和无参数两种常见形式，这些片段可以放入用例的 `steps` 中：
-
-```yaml
-steps:
-  - setViewportSize:
-      width: 1440
-      height: 900
-  - clearCookies: {}
-```
-
-`setViewportSize` 接收一个参数对象；`clearCookies` 无需参数，使用 `{}`。这两个 Node 由 Web 项目提供。移动端、桌面端以及团队自定义 Node 的可用范围和参数，以当前项目的说明书为准。
-
-例如，如果团队注册了创建订单的 `order.create`，就可以这样调用。该 Node 是业务扩展示例，使用前需要在项目中实现和注册：
-
-```yaml
-steps:
-  - order.create:
-      sku: midscene-mug
-      quantity: 2
-```
-
-参数还可以包含嵌套对象或数组。比如给 `aiAct` 传入参考图时，文字和图片共同组成 `prompt`；`options` 则单独填写：
-
-```yaml
-steps:
-  - aiAct:
-      prompt:
-        prompt: 按照参考图完成设置
-        images:
-          - name: 目标状态
-            url: ./fixtures/target.png
-      options:
-        deepLocate: true
-```
-
-### 设置超时和错误处理
-
-`$` 用于设置由 Midscene Test 控制的 Step 参数。Midscene Test 不会将这些参数传入 Node 的 `input`。
-
-```yaml
-steps:
-  - order.create:
-      sku: midscene-mug
-      quantity: 1
-      $:
-        timeout: 30000
-        continue-on-error: true
-```
-
-支持以下两个字段：
-
-- `timeout`：Step 的超时时间，单位为毫秒。
-- `continue-on-error`：设为 `true` 后，Step 失败时允许继续执行当前阶段的后续 Step。默认值为 `false`。操作未退出或资源清理异常时，仍会停止执行。
-
-`continue-on-error` 只控制 Midscene Test 是否继续执行。只要有 Step 失败，Case 的最终状态就是 `failed`。
-
-超时不代表底层操作已经退出。继续同阶段的后续 Step 前，框架会等待已取消的操作结束，默认最多 30 秒；仍未结束就停止后续步骤。等待单独计时，不占下一步的超时预算。操作结束后可以继续使用 Agent，但页面和业务状态仍需由用例确认或重置，见[超时与取消机制](./configuration#超时与取消机制)。
-
-### 使用项目变量与环境变量
-
-Midscene Test 会在执行前递归解析 Node input：
-
-```yaml
-steps:
-  - launch:
-      uri: ${appUri}
-  - api.createOrder:
-      baseURL: ${{TEST_API_BASE_URL}}
-      payload:
-        count: ${orderCount}
-```
-
-- `${name}` 读取当前执行项目的 `variables`；独占整个标量时保留原始 JSON 类型。
-- `${{ENV_NAME}}` 读取环境变量，结果始终是字符串。
-- 对象或数组变量可以作为完整值使用，但不能嵌入更长的字符串。
-- 未定义变量会在收集阶段失败。变量只解析 Node input，不解析 `$`。
-
-Workflow YAML 不提供 `set`、`saveAs` 或 Step 输出表达式。每个 Step 独立运行，不会自动接收前序 Step 的结果。如需共享必要信息，请通过执行项目的 `context` 显式提供。
-
-### 使用 tags 筛选 Case
+打开 `cases/todo.yaml`。Web 模板的 `beforeEach` 钩子会重置页面并预先创建三条待办事项。请保留文件中的 `beforeEach` 和 `afterEach` 钩子，将 `cases` 部分替换为以下内容：
 
 ```yaml
 cases:
-  - name: Android 冒烟下单
-    tags: [smoke, android]
+  - name: Complete a todo
     steps:
-      - aiAct: 完成下单
+      - aiAct: Mark the Todo named "Learn JS today" as completed.
+      - aiAssert: The Todo named "Learn JS today" has a checked checkbox and strikethrough text.
 ```
 
-框架维护者在每个执行项目中配置 `tags.include` 与 `tags.exclude`。exclude 始终优先；include 非空时，Case 命中任意一个 include tag 即会被选中。
+再次运行 `pnpm test`，在报告中确认该用例执行通过。其中 `aiAct` 用于描述界面操作，`aiAssert` 用于验证预期结果。移动端和桌面端模板的数据准备方式与 Web 不同，修改用例时请先查看项目中的 `README.zh.md`，保留原有的初始化步骤。
 
-## 定义执行生命周期
+## 从示例到自己的测试
 
-`beforeAll` 在 `setup`、`fileSetup`（如配置）完成后执行，使用准备好的 `context`。三者区别见[项目生命周期](./configuration#setupfilesetup-与-beforeall)；本节介绍 YAML 钩子的用法。
+YAML 用例中的每一种操作都对应一个 Node。安装依赖时自动生成的 `midscene-node-spec.web.md`（其他平台为对应后缀的文件）列出了当前项目所有可调用的 Node 及其参数说明。后续如果新增了自定义 Node 或修改了项目配置，可以运行 `pnpm run nodes` 重新生成这份说明书。
 
-### 准备与清理步骤
+编写自己的业务用例时，你可以让 AI 编程助手先读取项目中的 Node 说明书和 `cases/todo.yaml`，再告诉它目标页面、操作流程和预期结果，让它基于已注册的 Node 编写 YAML 用例。如果现有 Node 无法满足业务需求，可以先用 TypeScript 实现并注册自定义 Node，重新生成说明书后再编写用例。
 
-生命周期钩子用于在用例执行前后准备环境、重置状态或清理数据。四个钩子都是可选的，与 `cases` 同级；其中的步骤和用例 `steps` 使用相同的 Node 调用写法。
+接下来可按需阅读：
 
-| 钩子 | 执行时机 | 常见用途 |
-| --- | --- | --- |
-| `beforeAll` | 当前 YAML 文件的所有用例开始前，执行一次 | 准备本文件共用的测试数据 |
-| `beforeEach` | 每个用例的每次执行开始前，包括重试 | 打开页面、重置用例状态 |
-| `afterEach` | 每个用例的每次执行结束后，包括失败和重试 | 清理本次用例创建的数据 |
-| `afterAll` | 当前 YAML 文件的所有用例结束后，执行一次 | 清理本文件共用的测试数据 |
+- [编写 YAML 用例](./writing)：了解调用参数、变量、标签、钩子与用例组织方式。
+- [配置测试工程](./configuration)：管理运行环境、Node 注册、用例匹配与执行项目。
+- [开发自定义 Node](./extend)：封装业务接口与测试数据操作。
+- [运行测试](./running)：指定运行目标、查看诊断输出与结果文件。
+- [在 GitHub Actions 中运行](./running#在-github-actions-中运行)：将测试项目接入 CI 流程。
 
-下面的 Web 示例在每个用例开始前打开商城首页，结束后清除 Cookie。`data.prepare` 和 `data.cleanup` 是需要由项目实现和注册的自定义 Node，分别准备和清理测试商品；`gotoUrl`、`clearCookies`、`aiAct` 和 `aiAssert` 是 Web 脚手架默认注册的官方 Node。请替换示例网址和商品名称。
+## 创建命令参考
 
-```yaml filename=cases/search.yaml
-beforeAll:
-  - data.prepare: 准备马克杯和水壶两种测试商品
+<details>
+<summary>展开创建参数与更多示例</summary>
 
-beforeEach:
-  - gotoUrl: https://your-shop.example
+可用参数如下：
 
-cases:
-  - name: 搜索马克杯
-    steps:
-      - aiAct: 搜索马克杯
-      - aiAssert: 搜索结果中包含马克杯
-
-  - name: 搜索水壶
-    steps:
-      - aiAct: 搜索水壶
-      - aiAssert: 搜索结果中包含水壶
-
-afterEach:
-  - clearCookies: {}
-
-afterAll:
-  - data.cleanup: 删除本文件准备的测试商品
-```
-
-### 执行顺序与重试
-
-没有失败或重试时，上面文件的执行顺序为：
-
-```text
-beforeAll
-  用例 1：beforeEach → steps → afterEach
-  用例 2：beforeEach → steps → afterEach
-afterAll
-```
-
-配置重试后，失败的用例会在本次清理完成、没有操作仍在运行时，在重试次数范围内重新执行 `beforeEach → steps → afterEach`，再继续后续用例。重试不会重新执行 `beforeAll`，`afterAll` 仍在文件结束时运行一次。重试次数是上限：操作未退出、清理等待或清理失败都会提前停止重试。
-
-### 失败时如何执行
-
-| 失败位置 | 后续处理 |
+| 参数 | 说明 |
 | --- | --- |
-| 项目 `setup` | 跳过该项目的文件，尝试已登记的项目清理 |
-| `fileSetup` | 跳过当前文件的钩子和用例，尝试已登记的文件清理 |
-| `beforeAll` | 当前文件的用例标记为 `not-run`，仍执行 `afterAll` |
-| `beforeEach` 或用例 `steps` | 跳过当前用例尚未执行的正文步骤，仍执行 `afterEach` |
-| `afterEach` 或 `afterAll` | 记录失败，不会因为是清理步骤而忽略错误 |
+| `[directory]` | 项目目录，支持相对路径或绝对路径（`.` 表示当前目录）。省略时会交互提示输入；已存在的文件不会被覆盖。 |
+| `--platform <value>` | 目标平台：可选 `web`（Playwright）、`android`、`ios`、`harmony`（HarmonyOS）或 `computer`（桌面端）。省略时会交互提示选择。 |
+| `--package-manager <value>` | 包管理器：可选 `npm` 或 `pnpm`。省略时，交互式终端会提示选择；非交互式环境会自动检测调用命令的包管理器，无法识别时默认使用 `npm`。 |
+| `--yes`、`-y` | 跳过交互提示并自动安装依赖。需同时指定项目目录和 `--platform`；若与 `--skip-install` 同时传入，则仅生成项目文件。 |
+| `--skip-install` | 仅生成项目文件，跳过依赖安装与 Node 说明书生成。后续手动安装依赖时会自动生成说明书。 |
+| `--help`、`-h` | 查看命令帮助与用法示例。 |
 
-一个阶段中的步骤失败后，默认跳过该阶段的剩余步骤。设置 [`continue-on-error`](#设置超时和错误处理) 可以继续，但结果仍为失败。清理 Node 应能处理准备只完成一部分的情况。
+每个平台目前提供一个起步模板，通过 `--platform` 选择，生成的用例均采用 `cases` / `steps` 结构的 Midscene Test YAML 格式。在 CI 等非交互式环境中，必须显式传入项目目录和 `--platform`；除非指定 `--skip-install`，否则会自动安装依赖。
 
-一个用例失败后，默认继续下一个用例。用 `test.bail` 设置失败用例数阈值后，达到阈值会跳过后续用例和重试；当前尝试完成后再清理。取消运行则会请求正在执行的操作退出。有依赖关系的业务步骤应放在同一个用例中。
-
-资源故障或已登记的清理函数失败、未完成时，停止当前文件的重试和后续用例。其他文件能否继续，取决于资源的共享范围：
-
-| 情况 | 影响范围 |
-| --- | --- |
-| 文件独享的设备故障，操作和清理都已结束 | 有 `fileSetup` 时，其他独立文件可以继续，仍受 `bail` 约束 |
-| 已确认并显式报告的项目共享资源故障 | 停止该项目的其他文件；未配置 `fileSetup` 时，资源故障或清理异常也按项目处理 |
-| 操作尚未退出或清理仍在等待 | 停止启动所有新文件 |
-
-普通 `afterEach` 步骤失败仍按用例失败处理；操作已退出且已登记的清理完成后，可以重试。报告写入等运行基础设施错误会取消整次运行。
-
-资源配置见[使用 setup 创建和清理共享资源](./configuration#使用-setup-创建和清理共享资源)，Node 内部的清理方式见[资源的生命周期与清理](./extend#资源的生命周期与清理)。
-
-## 运行测试
-
-在项目根目录下，使用以下命令运行 YAML 测试用例：
+常用示例：
 
 ```bash
-pnpm exec midscene-test
+# 创建 iOS 项目并安装依赖，全程不询问
+pnpm dlx @midscene/test create my-ios-tests --platform ios --package-manager pnpm --yes
+
+# 仅生成 Web 项目文件，暂不安装依赖
+pnpm dlx @midscene/test create my-web-tests --platform web --package-manager pnpm --skip-install
+
+# 查看完整参数说明
+pnpm dlx @midscene/test create --help
 ```
 
-### 指定用例目录或文件
-
-生成的项目通过 `files.include` 选择 `cases/` 下的 `.yaml` 和 `.yml` 文件。未配置 `files` 时，Midscene Test 会递归查找测试目录下的 YAML 文件，自动忽略 `node_modules` 和 `.git`。
-
-如果你只想执行特定目录或特定用例文件，可以将其作为参数传入：
-
-```bash
-# 运行指定目录下的所有用例
-pnpm exec midscene-test ./cases/smoke
-
-# 运行单个指定的用例文件
-pnpm exec midscene-test ./cases/order.yaml
-```
-
-### 过滤运行目标与配置文件
-
-如果项目配置了多个运行平台或环境，你可以指定仅运行特定的执行项目，或者通过命令行指定自定义配置文件：
-
-```bash
-# 只运行名为 android-smoke 和 ios-regression 的执行项目
-pnpm exec midscene-test --project android-smoke --project ios-regression
-
-# 使用指定的配置文件运行测试
-pnpm exec midscene-test --config ./config/midscene.config.ts
-```
-
-为某个执行项目生成 Node 说明书时，也可以指定 `--project`：
-
-```bash
-pnpm exec midscene-test nodes --project android-smoke
-```
-
-### 结果输出
-
-需要把结构化运行结果写到指定目录时，使用 `--result-dir`：
-
-```bash
-pnpm exec midscene-test --result-dir ./test-results
-```
-
-当发生用例运行失败、文档解析失败或收集阶段发生错误时，CLI 会返回退出码 `1`。
-
-## 查看测试结果
-
-每次运行结束后，CLI 会打印执行结果和 `Report:` 路径。打开 HTML 报告，即可查看项目、Case、重试记录、截图、Step 输入输出、错误及关联的 Agent 执行详情。
-
-顶部摘要和进度条按最终结果展示 **Passed**、**Failed** 和 **Not run**。Passed 包含此前失败、后来通过的 Case。绿色通过区段内部的描边留白部分表示这些恢复通过的 Case，图例通过 **passed after retry** 展示其数量。它是 Passed 的子集，不会作为独立结果重复计数。运行信息、Project 数和 File 数仍展示在摘要旁。
-
-**Test Report** 总览展示 **Project → File → Case** 三层结构。左侧导航按 Failed、Passed、Not run 分组，每组名称后显示项目数，Projects 标题不重复显示数量。每个 Project 展示 Case 总数及非零的最终结果数。名称和摘要过长时显示省略号，悬浮可查看完整内容。恢复通过的 Project、File、Case 均使用绿色 Passed 标记。受影响的 Project、Case 名称后显示橙色圆形警告图标，悬浮或键盘聚焦可查看 **passed after retry** 提示。文件整体重试的历史保留在 File 的 Attention 和 Project 提示中，不会让其中一直通过的 Case 都被标记为恢复通过。
-
-状态筛选旁的按钮可以统一展开或收起当前 Project 中可见的 File，保留被筛选隐藏的 File 和其他 Project 的展开状态。有失败、文件级错误或恢复通过尝试的 File 默认展开。空文件和收集失败的文件仍然可见。File 错误显示在所属 File 下，Project 初始化、清理错误显示在项目标题下。Case 通过不会覆盖 File 或 Project 自身的错误。
-
-**Compact** 展示 Case 名称、最终结果、执行次数和耗时。**Detailed** 增加截图时间线和简短的报错或未执行原因。此前的失败会注明来自历史尝试，不会改变最终结果。打开通过的 Case 时默认展示最后一次成功执行，可通过 Attempts 查看历史。点击此前失败的摘要会打开对应的失败 Step，点击截图会进入所属 Step。
-
-搜索框查找整个报告中的 Project、File、Case 和错误详情，左侧只保留匹配的 Project。项目标题旁的 **All / Failed / Passed / Not run** 复选框只筛选该 Project，多个选项按“或”组合。**Clear filters** 清空搜索并恢复 All：
-
-- **Passed** 包含所有最终通过的 Case，无论此前是否失败。警告图标和尝试历史提供排查信息，不是独立状态类别。
-- **Failed** 包含最终失败的 Case，并保留匹配的 File、Project 错误。因作用域失败而作为上下文展示的未执行 Case 仍属于 Not run。
-- **Not run** 筛选没有执行的 Case，包括被初始化失败或调度错误阻断的 Case。
-- File 清理失败时，Case 可以全部通过、通过率可以为 100%。该错误仍归属 File，不会虚构失败 Case。
-- 未收集到 Case 的文件收集错误仍然可见，不虚构 Case 数量或通过率。
-
-多 Case 报告可以通过左侧悬浮菜单按钮（**View all cases**）打开 Case 目录。面板在按钮下方展开，报告背景不会变暗。目录按 Project 展示所有 Case 的结果和来源文件，当前 Case 会高亮显示。该列表不受 Overview 筛选条件影响，点击其他 Case 可直接跳转，也支持跨 Project 切换；失败 Case 会定位到失败 Step。打开目录后，焦点会落在当前 Case 上。可以使用 Tab 切换控件，按 Esc 关闭目录并将焦点返回菜单按钮。再次点击菜单按钮或关闭面板不会切换 Case，返回 Overview 时会恢复原来的筛选、排序、展开状态和滚动位置。单 Case 报告不显示这个入口。
-
-Case 的 **Execution** 表头集中展示 **Visual / YAML** 切换、多次尝试时的 **Attempts** 下拉框，以及 Step 状态统计。报告保存了源 YAML 快照时，才可使用 YAML 视图。Visual 视图在截图时间线下方展示统一的 Step 列表和选中 Step 的详情，列表中的生命周期分组使用分割线区分。在宽屏下，拖动分栏线可调整 Step 列表宽度，聚焦后也可使用方向键调整，双击可恢复默认宽度。工作区会定位当前尝试或 File 作用域中的失败 Step，并将对应行和错误滚动到可见位置；此前失败记录通过 Attempts 或显式错误链接查看。
-
-选中 Step 后，可以查看 **Information** 和 **Events**；有录屏或截图证据时，还会显示 **Record**：
-
-- **Record** 展示关联的 Agent 执行过程或截图。悬停时间线缩略图可以预览，点击后会选中截图所属的 Step。
-- **Information** 按对齐的行展示 Input、Output 和 Stable IDs。有对应数据时，还会展示配置、Planned input 和 **Information captured at**（信息采集时间）。采集时间按浏览器本地时区显示，包含毫秒和 UTC 偏移，不一定是 Step 的结束时间。悬停可查看原始 UTC 时间，以及前往 **Events** 查看后续完成或取消情况的说明。
-- **Events** 以表格展示 Time、Operation、Event 和 Status。缺少详细操作事件时，会根据已知时间展示 Step 的开始和结束；没有事件的 Step 会显示空状态。
-
-**Operation** 列说明正在执行什么。悬停 Operation 或 Event 文案，可以查看原始日志名称及解释；Operation 提示还保留了 Operation ID，方便对照日志。
-
-| Operation 文案 | 原始名称 | 含义 |
-| --- | --- | --- |
-| Run step | `node` | 执行整个 Step，包含其内部的 Agent 操作；内置和自定义 Node 都有这一层。 |
-| Get Agent | `acquisition` | 获取本次 Step 使用的 Agent，可能复用已有实例。 |
-| Run Agent operation | `resource` | 通过 Agent 执行操作，例如点击、断言或记录截图。 |
-| Wait for app readiness | `readiness` | 动作完成后，等待配置的就绪回调。 |
-| Clean up resources | `cleanup` | 清理执行过程中使用的资源。 |
-
-这些操作不是互不重叠、依次执行的阶段。**Run step** 包含其内部操作，因此不能把内部操作耗时再加到 Step 总耗时上。例如，Runner 的 `wait` 和不经过 Agent 适配层的自定义 Node 只有 **Run step** 事件；`aiAct`、`aiAssert` 通常在 **Run step** 内先获取 Agent，再执行 Agent 操作。规划、定位及具体页面动作请查看 **Record**。
-
-| Event 文案 | 原始名称 | 含义 |
-| --- | --- | --- |
-| Started | `started` | 操作开始。 |
-| Finished | `settled` | 操作已结束，成功或失败看 Status。 |
-| Result returned | `runner-returned` | Runner 已返回 Step 结果，底层操作可能仍未结束。 |
-| Cancellation requested | `cancel-requested` | 已请求取消，但操作可能仍在运行。 |
-| Cleanup postponed | `cleanup-deferred` | 尚未结束的操作仍在使用资源，清理被推迟。 |
-
-**Execution still running** 和 **pending** 徽标表示 Runner 返回结果时，操作尚未结束，可能出现在超时或取消场景。这不代表报告记录截止时间之后的实时状态。Status 为 `-` 表示这条事件没有结果状态，不代表失败。
-
-Step 错误显示在这些标签页上方。展开 **details** 可查看错误类型、错误码和失败 Node。堆栈共用一个滚动区域，先展示原始错误堆栈，再展示逐层包装的错误和框架调用堆栈。其他诊断信息及关联错误保留在下方。堆栈默认折叠，复制问题详情时也会包含堆栈。敏感信息会脱敏；超出报告大小或 cause 深度限制的诊断信息会标注截断。存在多个问题时，可通过 **View all … issues** 查看。Case 和生命周期清理错误仍显示在 Execution 上方。页头的主题按钮可以切换浅色和深色主题。
-
-报告保留执行前的测试计划，以及实际执行和未执行的步骤、未执行原因、重试停止原因。等待旧操作退出的时间与步骤执行时间分开记录。报告是生成时的快照：`cleanup pending` 表示当时清理尚未完成，资源仍保持隔离；之后完成的清理不会回写已生成的 HTML。
-
-报告默认保存在：
-
-```text
-midscene_run/report/midscene-e2e-<runId>.html
-```
-
-使用外置截图时，报告是包含 `index.html` 和 `screenshots/` 的目录，复制或上传时需保留整个目录。
-
-通过 `midscene.config.ts` 中的 `output.reportDir` 可以修改报告目录。
-
-### 链接到报告中的 Step
-
-使用 URL Hash 参数 `runner-step`，可以直接打开报告中的指定 Step。除了具体的 Step ID，报告还支持不依赖运行 ID 的通用选择器：
-
-| 选择器 | 定位目标 |
-| --- | --- |
-| `first` | 最早开始执行的 Step |
-| `last` | 最晚执行完成的 Step |
-| `first-error` | 最早开始执行的失败 Step，包括失败的重试记录 |
-| `last-error` | 最晚执行完成的失败 Step，包括失败的重试记录 |
-
-URL 没有指定 Case 路由时，选择器会搜索整份报告。URL 同时包含 `runner-page=case`、`runner-project` 和 `runner-case` 时，选择器只搜索这个 Case。没有匹配的 Step 时，报告会显示提示，并且不会打开无关的 Agent 执行详情。
-
-例如，以下 URL 会打开报告中最后一个失败的 Step：
-
-```text
-https://example.com/report/index.html#runner-step=last-error
-```
-
-如果该 Step 关联了 Agent 执行详情，可以增加 `runner-trace=page`，直接以整页方式打开 Agent 执行详情：
-
-```text
-https://example.com/report/index.html#runner-step=last-error&runner-trace=page
-```
-
-## 用例设计约定
-
-Midscene Test 通过顺序执行和显式共享状态，让每个 Node 的输入、执行上下文和依赖关系更清晰。YAML 用例遵循以下设计：
-
-* **按声明顺序执行**：YAML 描述线性的测试步骤，不引入 DAG、分支或循环语法。对于需要复杂编排的场景，建议在更上层构建 YAML 脚本生成能力，将编排结果生成为明确的步骤序列，再交给 Midscene Test 执行。
-* **每个节点是无状态的**：每次 Node 调用依赖当前声明的输入和项目显式提供的上下文，不会自动继承前序 Step 的输出。YAML 不提供跨步骤或跨用例的输出引用语法；需要共享业务状态时，应在自定义 Node 中读取和更新项目 `context`，并实现相应的业务逻辑。
-
-例如，下面的断言使用“上一步的图标”指代目标，依赖前一步的指令上下文，是错误的写法：
-
-```yaml
-steps:
-  - aiAct: 点击商品详情页的收藏星标，将其点亮
-  # 错误：断言不会继承前一步的指令上下文，无法通过“上一步的图标”明确识别目标。
-  - aiAssert: 上一步的图标已经点亮
-```
-
-应在断言中明确写出检查对象和预期状态，让这条断言本身就能表达完整的检查条件：
-
-```yaml
-steps:
-  - aiAct: 点击商品详情页的收藏星标，将其点亮
-  - aiAssert: 商品详情页的收藏星标处于点亮状态
-```
-
-界面状态会保留前一步操作的结果，但后续 Node 的指令应独立描述目标，不依赖“上一步”“刚才那个”等指代。
-
-## 接下来
-
-添加业务 Node 和共享运行数据，见[编写自定义 Node](./extend)。平台接入和多执行项目管理，见[配置测试项目](./configuration)。
+</details>

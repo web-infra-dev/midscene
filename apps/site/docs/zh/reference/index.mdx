@@ -114,17 +114,14 @@ await agent.aiAct('登录');
 ### 报告配置 {#report-options}
 
 - `generateReport?: boolean` —— 是否生成执行报告文件。默认值：`true`。
-- `persistExecutionDump?: boolean` —— 是否在生成报告的同时，在同目录下额外输出每次执行的原始 JSON dump 文件（要求 `generateReport` 为 `true`）。默认值：`false`。
+- `persistExecutionDump?: boolean` —— 是否额外保存原始执行 JSON，供诊断或分析使用（要求 `generateReport` 为 `true`）。默认值：`false`。
 - `reportFileName?: string` —— 自定义报告输出名称（默认由 Midscene 自动生成）。其具体含义取决于 `outputFormat`：
   - 当 `outputFormat` 为 `'single-html'`（默认）时：作为文件名，输出到 `midscene_run/report/<reportFileName>.html`（若已包含 `.html` 后缀则不会重复追加）。
   - 当 `outputFormat` 为 `'html-and-external-assets'` 时：作为子目录名，输出到 `midscene_run/report/<reportFileName>/index.html` 及同级静态资源目录。
 - `autoPrintReportMsg?: boolean` —— 是否在终端打印报告文件路径提示。默认值：`true`。
 - `outputFormat?: 'single-html' | 'html-and-external-assets'` —— 报告输出格式。默认值：`'single-html'`：
-  - `'single-html'`（默认）：将所有截图以 Base64 编码内嵌到单个 HTML 文件中。
-  - `'html-and-external-assets'`：将截图保存为独立的 PNG 文件并输出到子目录中，适用于步骤较多、单文件体积过大的场景。由于浏览器的同源策略（CORS）会拦截 `file://` 协议下的相对路径资源请求，该格式生成的报告必须通过 HTTP 服务访问。本地预览时，可进入报告目录并启动静态文件服务：
-    - 使用 Node.js：`npx serve`
-    - 使用 Python：`python3 -m http.server`
-    然后在浏览器中访问终端输出的地址（如 `http://localhost:3000`）。
+  - `'single-html'`（默认）：生成自包含 HTML，直接用浏览器打开，支持离线查看和单文件分享。
+  - `'html-and-external-assets'`：生成 HTML 和外置资源，重复图片自动复用。分享时上传整个报告目录。预览时，在报告目录运行 `pnpm dlx serve`，再打开终端显示的地址。
 
 ### 回调 {#callback-options}
 
@@ -241,7 +238,7 @@ const agent = new PlaywrightAgent(page, {
 const isOnSale = await agent.aiBoolean('这个商品是否正在促销？');
 ```
 
-`aiContexts` 支持配置的键名包括：`aiAct`、`aiTap`、`aiRightClick`、`aiDoubleClick`、`aiHover`、`aiInput`、`aiKeyboardPress`、`aiScroll`、`aiPinch`、`aiLongPress`、`aiClearInput`、`aiLocate`、`aiQuery`、`aiBoolean`、`aiNumber`、`aiString`、`aiAsk`、`aiAssert` 和 `aiWaitFor`（其中 `ai` 及已废弃的 `aiAction` 别名共用 `aiAct` 的上下文）。
+`aiContexts` 支持配置的键名包括：`aiAct`、`aiTap`、`aiRightClick`、`aiMiddleClick`、`aiDoubleClick`、`aiHover`、`aiInput`、`aiKeyboardPress`、`aiScroll`、`aiPinch`、`aiLongPress`、`aiClearInput`、`aiLocate`、`aiQuery`、`aiBoolean`、`aiNumber`、`aiString`、`aiAsk`、`aiAssert` 和 `aiWaitFor`（其中 `ai` 及已废弃的 `aiAction` 别名共用 `aiAct` 的上下文）。
 
 <a id="深度定位deeplocate"></a>
 
@@ -457,6 +454,40 @@ await agent.aiDoubleClick('页面顶部的文件名称');
 
 // 开启 deepLocate 精确定位元素
 await agent.aiDoubleClick('页面顶部的文件名称', { deepLocate: true });
+```
+
+### `aiMiddleClick()` {#agentaimiddleclick}
+
+> 仅支持 Web 页面和桌面端（`@midscene/computer`），不支持移动设备（Android、iOS 或 HarmonyOS）。
+
+使用鼠标中键点击指定元素。具体行为由应用决定。
+
+- 类型
+
+```typescript
+function aiMiddleClick(locate: string | object, options?: object): Promise<void>;
+```
+
+- 参数：
+
+  - `locate: string | object` —— 目标元素的自然语言描述，或[带参考图片的提示词](#使用图片作为提示词)。
+  - `options?: object` —— 可选配置对象：
+    - `deepLocate?: boolean` —— 是否开启[深度定位](#深度定位deeplocate)（旧参数名 `deepThink` 仍保留兼容）。默认值：`false`。
+    - `context?: string` —— 本次调用的补充上下文，详见[`context` 与 `aiContexts` 的优先级](#per-call-context)。
+    - `xpath?: string` —— 目标元素的 XPath。传入后，Midscene 会优先按该 XPath 查找元素，未命中时再依次尝试缓存与 AI 模型。默认值：`undefined`。
+    - `cacheable?: boolean` —— 启用[缓存功能](../caching.mdx)时，是否允许缓存本次调用结果。默认值：`true`。
+
+- 返回值：
+
+  - `Promise<void>`
+
+- 示例：
+
+```typescript
+await agent.aiMiddleClick('搜索结果中的链接');
+
+// 开启 deepLocate 精确定位元素
+await agent.aiMiddleClick('搜索结果中的链接', { deepLocate: true });
 ```
 
 ### `aiRightClick()` {#agentairightclick}
@@ -1864,6 +1895,7 @@ function mergeReports(
     rmOriginalReports?: boolean;
     overwrite?: boolean;
     outputDir?: string;
+    outputFormat?: 'single-html' | 'html-and-external-assets';
   },
 ): string | null;
 ```
@@ -1875,12 +1907,13 @@ function mergeReports(
     - `rmOriginalReports?: boolean` —— 合并完成后是否删除各源报告文件。默认值：`false`。
     - `overwrite?: boolean` —— 当目标输出路径已存在同名文件时是否覆盖。默认值：`false`。
     - `outputDir?: string` —— 合并报告的输出目录（相对路径基于当前工作目录解析）。默认值：`midscene_run/report/`。
+    - `outputFormat` —— `'single-html'`（默认）或 `'html-and-external-assets'`，独立于源报告格式。
 
 - 返回值：
 
   - 返回合并后报告的入口 HTML 路径；若待合并列表为空，则返回 `null`。
-  - 当所有源报告均为 `'single-html'` 格式时，输出路径为 `<outputDir>/<reportFileName>.html`。
-  - 当任意源报告使用了 `'html-and-external-assets'` 格式时，输出路径为 `<outputDir>/<reportFileName>/index.html` 及同级截图资源目录。
+  - 使用 `'single-html'`（默认）时，输出路径为 `<outputDir>/<reportFileName>.html`。
+  - 使用 `'html-and-external-assets'` 时，输出路径为 `<outputDir>/<reportFileName>/index.html`。分享时需保留整个报告目录，并通过 HTTP 服务查看。
 
 - 示例：
 
@@ -1936,6 +1969,28 @@ function clear(): void;
 ```typescript
 reportMergingTool.mergeReports('first-batch');
 reportMergingTool.clear(); // 清空列表，准备下一批合并
+```
+
+## `exportReportArtifact()`
+
+将一份 Agent 或 Test 报告导出为指定格式，源报告保持不变。
+
+```ts
+import { exportReportArtifact } from '@midscene/core/report';
+
+const reportPath = await exportReportArtifact({
+  reportPath: './reports/run/index.html',
+  outputDir: './delivery',
+  reportFileName: 'run', // 无需 .html 后缀
+  outputFormat: 'single-html', // 默认；也可选 'html-and-external-assets'
+  overwrite: false, // 默认
+});
+```
+
+也可以通过 CLI 完成同样的操作：
+
+```bash
+pnpm exec midscene report-tool --action export --htmlPath ./reports/run/index.html --outputDir ./delivery --outputName run --outputFormat single-html
 ```
 
 ## 运行时配置 {#runtime-configuration}

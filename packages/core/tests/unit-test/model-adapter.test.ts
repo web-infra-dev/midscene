@@ -206,7 +206,13 @@ describe('ResolvedModelAdapter', () => {
     if (adapter.locate.kind !== 'standard') {
       throw new Error('default adapter should use standard locate');
     }
-    expect(adapter.locate.userMessageContentOrder).toBe('image-first');
+    expect(adapter.locate.promptOrder).toEqual({
+      groups: [
+        { mode: 'system', parts: ['instructions'] },
+        { mode: 'userTogether', parts: ['screenshot', 'task'] },
+        { mode: 'userEach', parts: ['references'] },
+      ],
+    });
     expect(adapter.locate.element.protocol).toBeDefined();
     expect(adapter.locate.searchArea?.protocol).toBeDefined();
     expect(adapter.locate.searchArea?.resultCodec).toBeDefined();

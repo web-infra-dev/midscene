@@ -59,7 +59,9 @@ cases:
 
       # inspect retry errors and cumulative Case token usage
       - aiTap: the Checkout with retry Case
-      - aiAssert: The Case is Passed with a warning about an earlier failure. Attempt 2 is selected and aiAct succeeded with a recorded execution.
+      # The recovery message is a tooltip; expose it before asserting its meaning.
+      - aiHover: the small warning icon between the Checkout with retry title and its passed badge
+      - aiAssert: The warning tooltip says passed after retry. The Case is Passed, Attempt 2 is selected, and aiAct succeeded with a recorded execution.
       - aiTap: the Attempt 2 selector
       - aiTap: Attempt 1 in the open attempt menu
       - aiAssert: Attempt 1 is selected. order.create failed with Inventory was not ready, and the Case has a nonzero Tokens total. Information shows input sku demo-item and a redacted apiKey.
