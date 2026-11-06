@@ -1,5 +1,27 @@
 import type { z } from 'zod';
 
+const MIDSCENE_LOCATOR_FIELD_MARKER = Symbol.for(
+  '@midscene/shared/midscene-locator-field',
+);
+
+type MarkedZodDefinition = {
+  [MIDSCENE_LOCATOR_FIELD_MARKER]?: true;
+};
+
+/**
+ * Mark a Zod schema as a Midscene locator field.
+ *
+ * The marker lives on the unwrapped Zod definition object so schema clones
+ * created by helpers such as `.describe()` retain it, regardless of whether
+ * wrapper schemas are applied before or after this function.
+ */
+export function markMidsceneLocatorField<T extends z.ZodTypeAny>(field: T): T {
+  const actualField = unwrapZodField(field) as z.ZodTypeAny;
+  (actualField._def as MarkedZodDefinition)[MIDSCENE_LOCATOR_FIELD_MARKER] =
+    true;
+  return field;
+}
+
 /**
  * Recursively unwrap optional, nullable, default, and effects wrapper types
  * to get the actual inner Zod type
@@ -32,23 +54,11 @@ export function unwrapZodField(field: unknown): unknown {
 }
 
 /**
- * Check if a field is a Midscene locator field
- * Locator input schemas are identified by their prompt field.
+ * Check if a field is explicitly marked as a Midscene locator field.
  */
 export function isMidsceneLocatorField(field: unknown): boolean {
-  const actualField = unwrapZodField(field) as {
-    _def?: { typeName?: string; shape?: () => Record<string, unknown> };
-  };
-
-  if (actualField._def?.typeName === 'ZodObject') {
-    const shape = actualField._def.shape?.();
-    if (shape) {
-      if ('prompt' in shape && shape.prompt) {
-        return true;
-      }
-    }
-  }
-  return false;
+  const actualField = unwrapZodField(field) as { _def?: MarkedZodDefinition };
+  return actualField._def?.[MIDSCENE_LOCATOR_FIELD_MARKER] === true;
 }
 
 /**
