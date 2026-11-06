@@ -1,0 +1,250 @@
+.agent-vision-steps,
+.platform-hub {
+  --vision-border: rgb(16 24 40 / 10%);
+  --vision-surface: #fbfbfb;
+  --vision-muted: rgb(16 24 40 / 55%);
+  --vision-strong: rgb(16 24 40 / 90%);
+  --vision-accent: #0555ff;
+  --vision-accent-bg: rgb(5 85 255 / 8%);
+}
+
+.dark .agent-vision-steps,
+.dark .platform-hub {
+  --vision-border: rgb(255 255 255 / 10%);
+  --vision-surface: #111;
+  --vision-muted: rgb(255 255 255 / 55%);
+  --vision-strong: rgb(255 255 255 / 90%);
+  --vision-accent: rgb(128 168 255);
+  --vision-accent-bg: rgb(128 168 255 / 12%);
+}
+
+/* See, act, and verify: four steps connected by a vertical line */
+
+.agent-vision-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.agent-vision-steps ol {
+  position: relative;
+  display: flex;
+  margin: 0;
+  padding: 0;
+  flex-direction: column;
+  gap: 18px;
+  list-style: none;
+}
+
+.agent-vision-steps ol::before {
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  left: 17px;
+  border-left: 1px dashed var(--vision-border);
+  content: "";
+}
+
+.agent-vision-steps li {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin: 0;
+}
+
+.agent-vision-steps__icon {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--vision-border);
+  border-radius: 10px;
+  background: var(--vision-surface);
+  color: var(--vision-accent);
+}
+
+.agent-vision-steps__text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding-top: 1px;
+}
+
+.agent-vision-steps__text strong {
+  color: var(--vision-strong);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.agent-vision-steps__text span {
+  color: var(--vision-muted);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.agent-vision-steps .agent-vision-steps__link {
+  display: inline-flex;
+  margin-left: 50px;
+  align-self: flex-start;
+  align-items: center;
+  gap: 6px;
+  color: var(--vision-accent);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.agent-vision-steps__link svg {
+  transition: transform 160ms ease;
+}
+
+.agent-vision-steps__link:hover svg {
+  transform: translateX(3px);
+}
+
+/* One API across platforms: platform tiles around a shared API call */
+
+.platform-hub {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px 12px;
+}
+
+.platform-hub .platform-hub__tile {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--vision-border);
+  border-radius: 8px;
+  background: var(--vision-surface);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.platform-hub .platform-hub__tile:hover {
+  border-color: rgb(5 85 255 / 36%);
+  box-shadow: 0 10px 24px rgb(16 24 40 / 8%);
+}
+
+.dark .platform-hub .platform-hub__tile:hover {
+  border-color: rgb(128 168 255 / 42%);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 28%);
+}
+
+.platform-hub__tile::after {
+  position: absolute;
+  left: 50%;
+  height: 24px;
+  border-left: 1px dashed var(--vision-muted);
+  content: "";
+  opacity: 0.6;
+}
+
+.platform-hub__tile--top::after {
+  top: 100%;
+}
+
+.platform-hub__tile--bottom::after {
+  bottom: 100%;
+}
+
+.platform-hub__icon {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  grid-row: span 2;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--vision-accent-bg);
+  color: var(--vision-accent);
+}
+
+.platform-hub__tile strong {
+  overflow: hidden;
+  color: var(--vision-strong);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.platform-hub__tile code {
+  overflow: hidden;
+  padding: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: none;
+  color: var(--vision-muted);
+  font-size: 12px;
+}
+
+.platform-hub__api {
+  display: flex;
+  min-width: 0;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 10px 20px;
+  border: 1px solid var(--vision-accent);
+  border-radius: 999px;
+  background: var(--vision-accent-bg);
+}
+
+.platform-hub__api-label {
+  color: var(--vision-accent);
+  font-family: var(--rp-font-family-mono, monospace);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.platform-hub__api code {
+  overflow: hidden;
+  padding: 0;
+  background: none;
+  color: var(--vision-strong);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.platform-hub__api code span {
+  color: var(--vision-muted);
+}
+
+.platform-hub__api code strong {
+  color: var(--vision-accent);
+  font-weight: 500;
+}
+
+@container (max-width: 640px) {
+  .platform-hub {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .platform-hub__api {
+    order: -1;
+    border-radius: 12px;
+  }
+
+  .platform-hub__api-label {
+    display: none;
+  }
+
+  .platform-hub__tile::after {
+    display: none;
+  }
+}

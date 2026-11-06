@@ -94,10 +94,31 @@ describe('chrome extension dark Playground timeline', () => {
       connectorCount: number;
       connectorHeights: number[];
       clearButtonInsideViewport: boolean;
+      visibleProgressCount: number;
     }>(
       extensionTarget.webSocketDebuggerUrl,
-      `(() => {
-        const connectorItems = Array.from(document.querySelectorAll('.list-item')).filter(
+      `(async () => {
+        const timeline = document.querySelector('.info-list-container');
+        if (!timeline) throw new Error('Execution timeline not found');
+        const progressItems = Array.from(timeline.querySelectorAll('.list-item')).filter(
+          (item) => item.querySelector('.progress-row'),
+        );
+        if (!progressItems.length) throw new Error('Execution steps not found');
+        // The completed report auto-scrolls to its player below the steps.
+        // Scroll the list item because .progress-row uses display: contents.
+        progressItems[0].scrollIntoView({ block: 'start', behavior: 'instant' });
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+        const timelineRect = timeline.getBoundingClientRect();
+        const visibleProgressCount = progressItems.filter((item) => {
+          const rect = item.querySelector('.progress-row-copy')?.getBoundingClientRect();
+          return rect && rect.width > 0 && rect.height > 0 &&
+            rect.top >= Math.max(timelineRect.top, 0) &&
+            rect.bottom <= Math.min(timelineRect.bottom, window.innerHeight) &&
+            rect.left >= Math.max(timelineRect.left, 0) &&
+            rect.right <= Math.min(timelineRect.right, window.innerWidth);
+        }).length;
+        const connectorItems = progressItems.filter(
           (item) => item.querySelector('.progress-row:not(.progress-row-last)'),
         );
         const connectorColors = Array.from(
@@ -118,6 +139,7 @@ describe('chrome extension dark Playground timeline', () => {
           connectorColors,
           connectorCount: connectorItems.length,
           connectorHeights,
+          visibleProgressCount,
           clearButtonInsideViewport: Boolean(
             clearRect &&
               clearRect.left >= 0 &&
@@ -133,6 +155,7 @@ describe('chrome extension dark Playground timeline', () => {
     expect(visualState.connectorColors).toEqual(['rgb(217, 217, 217)']);
     expect(Math.min(...visualState.connectorHeights)).toBeGreaterThan(0);
     expect(visualState.clearButtonInsideViewport).toBe(true);
+    expect(visualState.visibleProgressCount).toBeGreaterThanOrEqual(2);
   });
 
   it('reveals the completed execution timeline in dark mode', async () => {

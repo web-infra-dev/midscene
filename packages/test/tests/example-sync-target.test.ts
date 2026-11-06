@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import {
   mkdirSync,
   mkdtempSync,
@@ -8,10 +8,12 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { promisify } from 'node:util';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resolveExampleTarget } from '../src/cli/example-sync-target';
 
 const roots: string[] = [];
+const execFileAsync = promisify(execFile);
 const temp = () => {
   const root = realpathSync(
     mkdtempSync(join(tmpdir(), 'midscene-sync-target-')),
@@ -99,36 +101,33 @@ describe('example sync target', () => {
     expect(readdirSync(target).sort()).toEqual(['.git', 'subdir']);
   });
 
-  it('preserves the calling directory through the real pnpm sync command', () => {
+  it('preserves the calling directory through the real pnpm sync command', async () => {
     const root = temp();
     const caller = join(root, 'caller');
     mkdirSync(caller);
     const target = checkout(join(root, 'midscene-example'));
-    let failure: { stderr?: Buffer | string } | undefined;
-    try {
-      execFileSync(
-        'pnpm',
-        [
-          '--dir',
-          resolve(__dirname, '../../..'),
-          'run',
-          'examples:sync',
-          '--',
-          '--target',
-          '../midscene-example',
-          '--version',
-          'invalid',
-        ],
-        { cwd: caller, stdio: 'pipe' },
-      );
-    } catch (error) {
-      failure = error as typeof failure;
-    }
+    // Nested pnpm/tsx startup can exceed the default unit-test timeout under
+    // CI coverage load. Bound the child separately so a hang still fails.
+    const command = execFileAsync(
+      'pnpm',
+      [
+        '--dir',
+        resolve(__dirname, '../../..'),
+        'run',
+        'examples:sync',
+        '--',
+        '--target',
+        '../midscene-example',
+        '--version',
+        'invalid',
+      ],
+      { cwd: caller, timeout: 20_000 },
+    );
     // Reaching version validation proves target resolution and repository
     // validation succeeded; the invalid version prevents all writes.
-    expect(failure?.stderr?.toString()).toContain(
-      'Pass the published Midscene version',
-    );
+    await expect(command).rejects.toMatchObject({
+      stderr: expect.stringContaining('Pass the published Midscene version'),
+    });
     expect(readdirSync(target)).toEqual(['.git']);
-  });
+  }, 30_000);
 });

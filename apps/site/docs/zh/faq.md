@@ -119,14 +119,14 @@ JSON.stringify({ defaultHeaders: { foo: 'bar' } })
 
 ## 如何使用 Azure OpenAI Service？
 
-使用 Azure OpenAI Service 时，请先按照[使用模型 API Key](./model-common-config)选择模型，并填写常规配置。Azure 只需要把模型服务地址和 API Key 换成 Azure 的写法：
+使用 Azure OpenAI Service 时，请先按照[使用模型 API Key](./model-api-setup)选择模型，并填写常规配置。Azure 只需要把模型服务地址和 API Key 换成 Azure 的写法：
 
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1" # 或 https://<your-resource>.openai.azure.com/openai/v1
 MIDSCENE_MODEL_API_KEY="<your-azure-api-key>"
 ```
 
-`MIDSCENE_MODEL_NAME` 和 `MIDSCENE_MODEL_FAMILY` 等配置，仍应按照[使用模型 API Key](./model-common-config)中的对应模型说明填写。Azure 只是鉴权方式不同的模型供应商，并非一种特殊模型。
+`MIDSCENE_MODEL_NAME` 和 `MIDSCENE_MODEL_FAMILY` 等配置，仍应按照[使用模型 API Key](./model-api-setup)中的对应模型说明填写。Azure 只是鉴权方式不同的模型供应商，并非一种特殊模型。
 
 这会走普通 OpenAI-compatible 路径，使用 `Authorization: Bearer ...` 请求头。根据 `MIDSCENE_MODEL_PROTOCOL` 的配置，请求发送到 `/openai/v1/chat/completions`（默认）或 `/openai/v1/responses`；请确认 Azure 上所选模型和端点支持对应协议。`MIDSCENE_MODEL_BASE_URL` 不要追加 `/chat/completions` 或 `/responses`。大多数 `/openai/v1` 端点不需要 `api-version`。
 
@@ -160,7 +160,7 @@ Azure AD / keyless 鉴权（`DefaultAzureCredential`）的方式现在已经不�
 
 在使用 GPT-5 系列模型时，你可能会发现：同一份脚本在 OpenAI 官方 API 上点击位置正确，但切到 Azure OpenAI 的 Chat Completions API 后点击位置出现固定比例的偏移。这个偏移和分辨率相关：截图较大时（如 `1920x1080`）出现，截图较小时（如 `1280x600`）则正常。
 
-我们观察到，该问题与 Azure Chat Completions API 的图片处理有关。GPT-5 返回的是基于它实际看到的截图尺寸的绝对坐标，而 Midscene 发送图片时带上了 `"detail": "original"`，让模型看到原始分辨率的图片（参见 [GPT-5 说明](./model-common-config#gpt)）。在出现此问题的 Chat Completions 请求中，Azure 没有正确处理 `"detail": "original"`，会在服务端对大图进行缩放（短边被压缩到 768）。于是模型在缩放后的坐标系里作答，而 Midscene 仍按原始分辨率还原坐标，最终产生按比例的偏移。可以通过 token 消耗来验证 `original` 是否生效：如果 `original` 生效，图片的 token 消耗会明显更高。
+我们观察到，该问题与 Azure Chat Completions API 的图片处理有关。GPT-5 返回的是基于它实际看到的截图尺寸的绝对坐标，而 Midscene 发送图片时带上了 `"detail": "original"`，让模型看到原始分辨率的图片（参见 [GPT-5 说明](./model-api-setup#gpt)）。在出现此问题的 Chat Completions 请求中，Azure 没有正确处理 `"detail": "original"`，会在服务端对大图进行缩放（短边被压缩到 768）。于是模型在缩放后的坐标系里作答，而 Midscene 仍按原始分辨率还原坐标，最终产生按比例的偏移。可以通过 token 消耗来验证 `original` 是否生效：如果 `original` 生效，图片的 token 消耗会明显更高。
 
 我们在 Azure 的 Responses API 上验证了 `"detail": "original"` 能够正常生效，因此建议优先切换到 Responses 协议：
 
@@ -177,7 +177,7 @@ MIDSCENE_MODEL_PROTOCOL="openai-responses"
 
 ## 如何配置 midscene_run 目录？
 
-Midscene 会将运行产物（报告、日志、缓存等）保存在 `midscene_run` 目录下。默认情况下，该目录会创建在当前工作目录下。
+Midscene 默认将报告、日志和缓存保存在 `midscene_run/`。独立脚本、旧 YAML 和 Playwright 以当前工作目录为基准，Midscene Test 以测试项目为基准。详见[产物目录](./midscene-test/running#统一产物根与迁移)。
 
 你可以通过环境变量 `MIDSCENE_RUN_DIR` 来自定义该目录的位置，支持相对路径或绝对路径：
 
@@ -189,11 +189,13 @@ export MIDSCENE_RUN_DIR="./my_custom_dir"
 export MIDSCENE_RUN_DIR="/tmp/midscene_output"
 ```
 
-该目录包含以下子目录：
+常用子目录：
 
-- `report/` - 测试报告文件（HTML 格式）
+- `report/` - Agent 报告与 Midscene Test 整合报告，默认是自包含 HTML
+- `test-results/` - 执行结果与诊断记录
 - `log/` - 调试日志文件
 - `cache/` - 缓存文件（详见 [缓存](./caching)）
+- `output/` - 执行操作产生的文件
 
 更多全局运行参数请参考[运行时配置](./reference/#runtime-configuration)。
 
@@ -242,11 +244,11 @@ Midscene 的元素定位能力依赖于 AI 模型的视觉理解能力，所以�
 
 通常来说新版本、参数大的模型会比老版本、参数小的模型表现更好。比如 Qwen3-VL 会好于 Qwen2.5-VL，它的 plus 版本会好于 flash 版本。
 
-当前的模型建议请参考[使用模型 API Key](./model-common-config)。
+当前的模型建议请参考[模型选择指南](./model-selection)。
 
 ### 3. 检查 Model Family 配置
 
-确认你的模型配置中 `MIDSCENE_MODEL_FAMILY` 参数设置是否正确，`MIDSCENE_MODEL_FAMILY` 配置错误会影响 Midscene 对模型的适配逻辑。详见 [模型配置](./model-config)。
+确认你的模型配置中 `MIDSCENE_MODEL_FAMILY` 参数设置是否正确，`MIDSCENE_MODEL_FAMILY` 配置错误会影响 Midscene 对模型的适配逻辑。详见 [使用模型 API Key](./model-api-setup)。
 
 ### 4. 优化提示词，结合视觉特征和位置信息
 
@@ -315,3 +317,9 @@ Midscene 会优先要求模型根据滚动和滑动的目的确定操作方向�
 ## 豆包手机是否使用了 Midscene 作为底层方案？
 
 没有。
+
+## Web 包应该使用哪些导入入口？
+
+Web 接入使用 `@midscene/web/playwright`、`@midscene/web/playwright/agent`、`@midscene/web/puppeteer` 或包根入口。通用 Agent 与 YAML API 分别位于 `@midscene/core/agent` 和 `@midscene/core/yaml`。
+
+`@midscene/web/utils`、`@midscene/web/ui-utils`、`@midscene/web/yaml` 和 `@midscene/web/agent` 四项残留声明已清理，它们指向的文件此前没有包含在发布包中。更新自定义接入时，请按包支持的导出入口导入。

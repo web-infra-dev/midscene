@@ -32,7 +32,7 @@ import { initDebugConfig } from './init-debug';
 
 declare const __VERSION__: string | undefined;
 
-const MODEL_CONFIG_DOC_URL = 'https://midscenejs.com/model-common-config.html';
+const MODEL_CONFIG_DOC_URL = 'https://midscenejs.com/model-api-setup.html';
 
 const getCurrentVersion = (): string => {
   if (typeof __VERSION__ !== 'undefined' && __VERSION__) {
@@ -221,6 +221,7 @@ export const parseOpenaiSdkConfig = ({
     provider[keys.openaiApiKey] || legacyAPIKey;
   const openaiBaseURL: string | undefined =
     provider[keys.openaiBaseURL] || legacyBaseURL;
+  const endpoint = provider[keys.endpoint] || undefined;
   const socksProxy: string | undefined =
     provider[keys.socksProxy] || legacySocksProxy;
   const httpProxy: string | undefined =
@@ -238,6 +239,10 @@ export const parseOpenaiSdkConfig = ({
 
   const modelFamily = modelFamilyRaw as unknown as TModelFamily;
   validateModelFamily(modelFamily);
+  assert(
+    !endpoint || modelFamily === 'jev',
+    `${keys.endpoint} is only supported for System One models (currently Jev)`,
+  );
   const uiTarsModelVersion = getUITarsModelVersion(modelFamily);
 
   const modelDescription = getModelDescription(modelFamily, uiTarsModelVersion);
@@ -245,7 +250,17 @@ export const parseOpenaiSdkConfig = ({
   return {
     socksProxy,
     httpProxy,
+    authMode: (() => {
+      const value = provider[keys.authMode]?.trim() ?? 'api-key';
+      if (value === 'api-key' || value === 'siwc') {
+        return value;
+      }
+      throw new Error(
+        `Invalid ${keys.authMode}: "${value}". Expected "api-key" or "siwc".`,
+      );
+    })(),
     openaiBaseURL,
+    endpoint,
     openaiApiKey,
     openaiExtraConfig: normalizeOpenaiExtraConfig(openaiExtraConfig),
     extraBody,
@@ -368,13 +383,15 @@ export const decideModelConfigFromIntentConfig = (
   );
 
   assert(
-    finalResult.openaiBaseURL,
-    `failed to get base URL of model (intent=${intent}). See https://midscenejs.com/model-strategy`,
+    finalResult.authMode === 'siwc' ||
+      finalResult.endpoint ||
+      finalResult.openaiBaseURL,
+    `failed to get base URL or System One endpoint of model (intent=${intent}). See https://midscenejs.com/model-api-setup`,
   );
 
   if (!finalResult.modelName) {
     console.warn(
-      `modelName is not set for intent ${intent}, this may cause unexpected behavior. See https://midscenejs.com/model-strategy`,
+      `modelName is not set for intent ${intent}, this may cause unexpected behavior. See https://midscenejs.com/model-api-setup`,
     );
   }
 

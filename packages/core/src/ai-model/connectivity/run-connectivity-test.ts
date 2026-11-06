@@ -4,8 +4,8 @@ import type { UIContext } from '@/types';
 import type { IModelConfig, TIntent } from '@midscene/shared/env';
 import { getModelRuntime } from '../models';
 import type { ModelRuntime } from '../models';
-import { callAI } from '../service-caller';
-import { systemOneResponseSchema } from '../service-caller/system-one';
+import { callGenerativeAI, callSystemOneAI } from '../service-caller';
+import { systemOneResponseSchema } from '../service-caller/system-one/schema';
 import {
   CONNECTIVITY_FIXTURE_IMAGE,
   CONNECTIVITY_FIXTURE_SHOT_SIZE,
@@ -124,32 +124,32 @@ async function runTextConnectivityCheck(
   const startTime = Date.now();
   try {
     const isJev = modelRuntime.config.modelFamily === 'jev';
-    const result = await callAI(
-      [
-        {
-          role: 'system',
-          content: 'Reply with the exact token the user asks for.',
-        },
-        {
-          role: 'user',
-          content: `Return exactly ${TEXT_EXPECTED_TOKEN}`,
-        },
-      ],
-      modelRuntime,
-      isJev
-        ? {
-            systemOneRequest: {
-              state: { token: TEXT_EXPECTED_TOKEN },
-              questions: {
-                result: {
-                  type: 'noul',
-                  instructions: `Does token equal ${TEXT_EXPECTED_TOKEN}?`,
-                },
+    const result = await (isJev
+      ? callSystemOneAI(
+          {
+            state: { token: TEXT_EXPECTED_TOKEN },
+            questions: {
+              result: {
+                type: 'noul',
+                instructions: `Does token equal ${TEXT_EXPECTED_TOKEN}?`,
               },
             },
-          }
-        : undefined,
-    );
+          },
+          modelRuntime,
+        )
+      : callGenerativeAI(
+          [
+            {
+              role: 'system',
+              content: 'Reply with the exact token the user asks for.',
+            },
+            {
+              role: 'user',
+              content: `Return exactly ${TEXT_EXPECTED_TOKEN}`,
+            },
+          ],
+          modelRuntime,
+        ));
     const content = result.content.trim();
     const answer = isJev
       ? systemOneResponseSchema.parse(JSON.parse(content)).answers.result
@@ -176,17 +176,22 @@ async function runVisionConnectivityCheck(
 ): Promise<ConnectivityCheckResultItem> {
   const startTime = Date.now();
   try {
-    if (modelRuntime.adapter.insight.booleanFn) {
-      await new Service(buildFixtureContext()).extract(
-        { Boolean: 'Does this screenshot show a form?' },
+    if (modelRuntime.config.modelFamily === 'jev') {
+      await callSystemOneAI(
+        {
+          state: {},
+          images: { screenshot: CONNECTIVITY_FIXTURE_IMAGE },
+          questions: {
+            result: {
+              type: 'noul',
+              instructions: 'Does `screenshot` show a form?',
+            },
+          },
+        },
         modelRuntime,
-        { screenshotIncluded: true },
-        undefined,
-        undefined,
-        buildFixtureContext(),
       );
     } else {
-      await callAI(
+      await callGenerativeAI(
         [
           {
             role: 'user',

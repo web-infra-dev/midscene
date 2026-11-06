@@ -17,6 +17,7 @@ export interface NavActionsProps {
   className?: string;
   playgroundSDK?: PlaygroundSDKLike | null;
   onVerify?: EnvConfigProps['onVerify'];
+  modelConfigActions?: EnvConfigProps['modelConfigActions'];
   agentOptions?: CommonAgentOptions;
   onAgentOptionsSave?: (options: CommonAgentOptions) => void | Promise<void>;
   configModalClassName?: EnvConfigProps['configModalClassName'];
@@ -34,6 +35,7 @@ export function NavActions({
   className = '',
   playgroundSDK,
   onVerify,
+  modelConfigActions,
   agentOptions,
   onAgentOptionsSave,
   configModalClassName,
@@ -59,6 +61,7 @@ export function NavActions({
           configModalClassName={configModalClassName}
           configModalWidth={configModalWidth}
           envTextareaAutoSize={envTextareaAutoSize}
+          modelConfigActions={modelConfigActions}
           envTextareaMinRows={envTextareaMinRows}
           onAgentOptionsSave={onAgentOptionsSave}
         />

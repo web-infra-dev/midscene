@@ -9,7 +9,7 @@ assignees: ''
 
 ## Read this before open issue
 
-How to choose and config a model: https://midscenejs.com/model-provider.html
+How to choose and config a model: https://midscenejs.com/model-selection
 
 Use this project to check the connection: https://github.com/web-infra-dev/midscene-example/tree/main/connectivity-test
 

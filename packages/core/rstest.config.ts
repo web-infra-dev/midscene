@@ -18,10 +18,11 @@ const enableAiTest = Boolean(process.env.AITEST);
 const basicTest = ['tests/unit-test/**/*.test.ts'];
 
 export default defineConfig({
+  name: '@midscene/core',
   coverage: createCoverageConfig(__dirname),
   include: enableAiTest ? ['tests/ai/**/*.test.ts'] : basicTest,
   retry: process.env.CI ? 1 : 0,
-  ...(enableAiTest && process.env.CI ? { pool: { maxWorkers: 4 } } : {}),
+  ...(enableAiTest && process.env.CI ? { pool: { maxWorkers: 2 } } : {}),
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

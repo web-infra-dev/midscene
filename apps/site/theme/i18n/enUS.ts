@@ -4,7 +4,7 @@ export const EN_US = {
   chapterFramework: 'MIDSCENE TEST',
   agentChapterHeading: 'A GUI Agent built for testing',
   agentChapterDesc:
-    'Understand interfaces, perform test steps, and verify what users see. Integrate with your existing test stack through APIs, or let AI coding agents test your UI through Skills.',
+    'E2E testing aims to verify complete workflows from the user’s perspective. Midscene uses vision to observe, act, and check results. Integrate through APIs or let AI coding agents use it through Skills.',
   frameworkChapterHeading:
     'A new E2E testing framework designed for natural language',
   frameworkChapterDesc:
@@ -14,19 +14,44 @@ export const EN_US = {
   agentIntegrationDesc:
     'Use the GUI Agent directly without adopting Midscene Test. Connect it to your workflow through APIs, Playwright, Puppeteer, or Skills.',
   executionEyebrow: 'TEST EXECUTION',
-  executionHeading: 'Run and maintain a growing test suite',
-  executionLifecycleTitle: 'Lifecycle and cleanup',
+  executionHeading: 'Test framework capabilities',
+  executionLifecycleHref: '/midscene-test/execution#project-lifecycle',
+  executionLifecycleTitle: 'Lifecycle hooks and cleanup',
   executionLifecycleDesc:
-    'Use Before / After hooks to prepare data and clean up resources around each run.',
-  executionRetryTitle: 'Failure retries',
+    'Prepare and clean up resources at the project, file, and case level with setup, fileSetup, beforeAll, beforeEach, and their counterparts. Cleanup still runs after failures, timeouts, or Ctrl+C.',
+  executionLifecycleLink: 'Project lifecycle',
+  executionScopeProject: 'Project',
+  executionInterrupted: 'Timeout or Ctrl+C',
+  executionCleanupRuns: 'Cleanup still runs',
+  executionRetryHref: '/midscene-test/execution#handling-failures',
+  executionRetryTitle: 'Retries and timeouts',
   executionRetryDesc:
-    'Configure retry limits for failed cases. A new attempt starts after cleanup completes and no operations remain running.',
-  executionConcurrencyTitle: 'Isolation and concurrency',
+    'Retry failed cases; each attempt reruns beforeEach, steps, and afterEach. Set step timeouts, keep going after a failed step with continue-on-error, and stop early with bail.',
+  executionRetryLink: 'Handling failures',
+  executionAttempt1: 'Attempt 1',
+  executionAttempt2: 'Attempt 2',
+  executionAttemptTimeout: 'aiAssert timed out after 120 s',
+  executionAttemptPassed: 'All steps passed',
+  executionRetryAfterCleanup: 'Retry after cleanup',
+  executionConcurrencyHref:
+    '/midscene-test/execution#concurrency-and-isolation',
+  executionConcurrencyTitle: 'Concurrency and isolation',
   executionConcurrencyDesc:
-    'Isolate environments with separate Project contexts and configure concurrent Project execution.',
-  executionReportTitle: 'Test results in context',
+    'Run YAML files concurrently with maxConcurrentFiles. fileSetup gives each file its own page, Agent, or device, so concurrent files do not share state.',
+  executionConcurrencyLink: 'Concurrency and isolation',
+  executionConcurrencyRunning: 'Running',
+  executionConcurrencyEnv: 'Own page + Agent',
+  executionConcurrencyQueued: 'Queued',
+  executionReportHref: '/midscene-test/running#output-and-exit-codes',
+  executionReportTitle: 'Step-level reports',
   executionReportDesc:
-    'Inspect Projects, cases, steps, and retry attempts in the test report, including failures and reasons steps did not run.',
+    'The HTML report records screenshots, inputs, outputs, errors, and Agent replay for every step. A #runner-step=last-error link opens the latest failed step from CI notifications or PR comments, and summary.json and result.md are written for scripts and AI agents.',
+  executionReportLink: 'Output and reports',
+  executionReportSkipped: 'Not run',
+  executionReportScreenshot: 'Screenshot',
+  executionReportReplay: 'Agent replay',
+  executionReportError: 'Error',
+  executionReportMachine: 'For scripts and AI agents',
 
   // Banner - Title
   heroTitle: 'See interfaces like a human\nE2E testing in natural language',
@@ -61,17 +86,17 @@ export const EN_US = {
   clientsTitle: 'PLATFORMS',
   clientsHeading: 'One API, across platforms',
   platformWeb: 'Web',
-  platformColumnName: 'Platform',
-  platformColumnPackage: 'Package',
-  platformColumnDescription: 'Description',
-  platformWebAccess: 'Playwright · Puppeteer · Desktop\u00a0Chrome',
   platformDesktop: 'Desktop',
-  platformDesktopAccess: 'macOS · Windows · Linux, with remote\u00a0RDP',
-  platformAndroidAccess: 'Devices / emulators · ADB',
-  platformIosAccess: 'Devices / simulators · WebDriverAgent',
-  platformHarmonyAccess: 'HarmonyOS\u00a0NEXT · HDC',
+  platformsApiLabel: 'Same API',
+  platformsApiPrompt: 'Search for headphones',
+  visionStepObserve: 'Observe',
+  visionStepObserveDesc: 'Read screenshots, not the DOM',
+  visionStepAct: 'Act',
+  visionStepActDesc: 'Find the target, then tap, type, or scroll',
+  visionStepVerify: 'Verify',
+  visionStepVerifyDesc: 'Assert on what users actually see',
+  visionShowcaseLink: 'See real-world examples',
   platformCustom: 'Custom interfaces',
-  platformCustomAccess: 'Connect through screenshots and actions',
   platformCustomDoc: 'Extension guide',
   platformBridgeDoc: 'Bridge Mode',
 
@@ -101,16 +126,18 @@ export const EN_US = {
   modelCostTasks: '/ 60 tasks',
 
   // Test framework
-  frameworkHeading: 'AI steps and Nodes\nin one YAML file',
+  frameworkHeading: 'AI and business operations\nin one YAML file',
   frameworkDesc:
-    'Organize tests in YAML so people and AI agents can read, write, and review natural-language intent alongside code steps.',
+    'Each YAML step calls a Node: an AI operation, a platform operation, or a custom business operation. Compose these Nodes into test cases that people and AI agents can read, write, and review.',
+  frameworkAiTag: 'AI',
+  frameworkNodeTag: 'Business',
   frameworkLegendLabel: 'Step types',
-  frameworkAiTitle: 'AI steps',
+  frameworkAiTitle: 'AI operations',
   frameworkAiDesc:
     'APIs such as aiAct and aiAssert read the screen and follow natural-language instructions.',
-  frameworkNodeTitle: 'Deterministic Nodes',
+  frameworkNodeTitle: 'Business operations',
   frameworkNodeDesc:
-    'TypeScript code for test data, API checks, and cleanup. It runs the same way every time.',
+    'Custom Nodes use TypeScript to prepare test data, check APIs, and clean up resources.',
   frameworkStartLink: 'Create a test project',
   frameworkLink: 'Explore the framework design',
   frameworkCaseName: 'A paid order supports a full refund',
@@ -121,7 +148,7 @@ export const EN_US = {
   projectEyebrow: 'TEST PROJECT',
   projectHeading: 'Customize your test project',
   projectDesc:
-    'Extend Midscene Test with TypeScript Nodes for your business operations. Register them to make them callable from YAML, then generate a Markdown Node Spec describing the available operations and their inputs. People and AI agents can use the Spec to reference these Nodes in test cases.',
+    'Extend Midscene Test with TypeScript Nodes for your business operations. Register them to make them callable from YAML, then generate a Markdown Node Spec describing all Nodes registered for the current execution project, including AI, platform, and custom business operations and their inputs. People and AI agents can use the Spec to reference these Nodes in test cases.',
   projectNodesRole: 'Define your operations',
   projectNodesDesc:
     'Implement business logic and declare its inputs in TypeScript.',

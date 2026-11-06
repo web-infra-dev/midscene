@@ -1,3 +1,5 @@
+import type { ReportModelUsageSummary } from './report-stats';
+
 export const TEST_RUN_REPORT_SCRIPT_TYPE = 'midscene_test_run_dump';
 
 export type TestRunReportRunStatus = 'success' | 'failed';
@@ -103,6 +105,8 @@ export interface TestRunReportDiagnostic {
 }
 
 export interface TestRunReportMetrics {
+  /** Actual models observed in usage records, independent of configured defaults. */
+  models?: ReportModelUsageSummary[];
   modelCallCount: number;
   modelTimeMs: number;
   promptTokens: number;
@@ -117,7 +121,13 @@ export interface TestRunReportMetrics {
     fields?: Record<
       'modelCallCount' | 'modelTimeMs' | 'totalTokens',
       'complete' | 'partial' | 'unknown'
-    >;
+    > &
+      Partial<
+        Record<
+          'promptTokens' | 'completionTokens',
+          'complete' | 'partial' | 'unknown'
+        >
+      >;
   };
 }
 
@@ -357,9 +367,9 @@ export interface TestRunReportDump {
 export interface TestRunReportSource {
   /** Resource/report scope that owns this Midscene Agent source. */
   scopeId: string;
-  /** Absolute path identifying the Midscene Agent report. */
+  /** Absolute path identifying structured Agent records or an external Agent HTML report. */
   sourcePath: string;
-  /** Current Agent dump JSON; when present, HTML is not parsed for execution data. */
+  /** Immutable execution snapshot JSON; when present, execution data is read from it. */
   dumpPath?: string;
   collection?: TestRunReportSnapshotCollection;
 }
@@ -383,6 +393,8 @@ export interface TestRunReportSourceIndex {
 
 export interface AssembleTestRunReportOptions {
   outputDir: string;
+  /** Final delivery format; defaults to a self-contained, offline-readable HTML. */
+  outputFormat?: 'single-html' | 'html-and-external-assets';
   /** File or directory name without an extension. */
   reportFileName: string;
   sources: readonly TestRunReportSource[];

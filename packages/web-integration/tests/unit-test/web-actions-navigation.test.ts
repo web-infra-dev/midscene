@@ -6,6 +6,20 @@ import { commonWebActionsForWebPage } from '../../src/web-page';
 const mockExecutorContext = { task: {} } as ExecutorContext;
 
 describe('commonWebActionsForWebPage navigation actions', () => {
+  it('supports System One for simple navigation but delegates URL generation', () => {
+    const actions = commonWebActionsForWebPage({} as any);
+
+    for (const name of ['Reload', 'GoBack', 'GoForward']) {
+      expect(
+        actions.find((action) => action.name === name)?.supportedBySystemOne,
+      ).toBe(true);
+    }
+    expect(
+      actions.find((action) => action.name === 'Navigate')
+        ?.supportedBySystemOne,
+    ).toBeUndefined();
+  });
+
   it('exposes forward without exposing stop as an action-space entry', async () => {
     const page = {
       goForward: rs.fn(async () => undefined),

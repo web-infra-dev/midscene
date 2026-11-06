@@ -31,7 +31,7 @@ export class AIResponseParseError extends Error {
 }
 
 /**
- * Internal field name stamped onto every AIUsageInfo shaped by callAI().
+ * Internal field name stamped onto AIUsageInfo by the shared model call pipeline.
  * Used for cross-path dedup when the provider does not return a request_id.
  */
 export const INTERNAL_CALL_ID_FIELD = '_midscene_call_id';
@@ -94,7 +94,7 @@ export function appendAIRequestFailureSummary<T extends Error>(
 }
 
 export const buildUsageInfo = ({
-  apiProtocol,
+  requestKind,
   stream,
   usageData,
   requestId,
@@ -107,7 +107,7 @@ export const buildUsageInfo = ({
   slot,
   internalCallId,
 }: {
-  apiProtocol: NonNullable<AIUsageInfo['api_protocol']>;
+  requestKind: NonNullable<AIUsageInfo['request_kind']>;
   stream: boolean;
   usageData?: OpenAI.CompletionUsage;
   requestId?: string | null;
@@ -128,7 +128,7 @@ export const buildUsageInfo = ({
 
   return {
     ...usageData,
-    api_protocol: apiProtocol,
+    request_kind: requestKind,
     stream,
     prompt_tokens: usageData.prompt_tokens ?? 0,
     completion_tokens: usageData.completion_tokens ?? 0,

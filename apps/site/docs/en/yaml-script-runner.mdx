@@ -39,7 +39,7 @@ MIDSCENE_MODEL_NAME="replace with your model name"
 MIDSCENE_MODEL_FAMILY="replace with your model family"
 ```
 
-For supported models and complete setup examples, see [Use a model API key](./model-common-config).
+For supported models and complete setup examples, see [Use a model API key](./model-api-setup).
 
 Notes:
 
@@ -196,17 +196,7 @@ CDP mode and bridge mode are mutually exclusive. In CDP mode, Midscene will only
 
 ### Use bridge mode
 
-> Web page scenarios only
-
-Bridge mode lets YAML scripts drive your existing desktop browser so you can reuse cookies, extensions, or state. Install the Chrome extension, then add:
-
-```diff
-page:
-  url: https://www.bing.com
-+ bridgeMode: newTabWithUrl
-```
-
-See [Bridge Mode via Chrome Extension](./bridge-mode) for details.
+After [Chrome Bridge environment setup](./bridge-mode), select the current tab or a new tab in YAML. See [Chrome Bridge in YAML](./automate-with-scripts-in-yaml#chrome-bridge) for fields, examples, and unsupported options.
 
 ### Run YAML scripts with JavaScript
 

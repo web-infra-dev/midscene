@@ -1,0 +1,241 @@
+# iOS JavaScript SDK
+
+`@midscene/ios` controls iOS devices through WebDriverAgent (WDA). `IOSAgent` inherits all [AI methods](../reference/#interaction-methods) from the base `Agent`.
+
+## Imports and API overview
+
+```typescript
+import { IOSAgent, IOSDevice, agentFromWebDriverAgent } from '@midscene/ios';
+```
+
+In most cases, use the `agentFromWebDriverAgent()` factory to create and connect a Device in one step. If you need to configure and manage the `IOSDevice` and `IOSAgent` instances separately, construct them explicitly.
+
+<a id="use-the-javascript-sdk"></a>
+
+<a id="ios-quick-start"></a>
+
+<a id="ios-custom-host-and-port"></a>
+
+## `agentFromWebDriverAgent()`
+
+```typescript
+agentFromWebDriverAgent(options?: IOSAgentOpt & IOSDeviceOpt): Promise<IOSAgent>
+```
+
+Connects to WebDriverAgent and returns an `IOSAgent` bound to the connected Device. `options` accepts both Agent and Device settings. Note that `wdaBaseUrl` cannot be combined with `wdaHost` or `wdaPort`.
+
+```typescript
+const agent = await agentFromWebDriverAgent({ wdaHost: 'localhost', wdaPort: 8100 });
+```
+
+<a id="agentfromwebdriveragent"></a>
+
+Set `MIDSCENE_IOS_DEVICE_CLASS_OVERRIDE` to configure a device class override module. An explicit `iOSDeviceClassOverride` passed to the factory takes precedence over the environment variable.
+
+<a id="iosdevice"></a>
+
+<a id="iosagent"></a>
+
+## `IOSDevice` / `IOSAgent`
+
+```typescript
+new IOSDevice(options?: IOSDeviceOpt)
+new IOSAgent(device: IOSDevice, options?: IOSAgentOpt)
+```
+
+When constructing `IOSDevice` explicitly, call `await device.connect()` before passing the Device to `IOSAgent`. Each Device instance belongs to a single Agent.
+
+```typescript
+const device = new IOSDevice({ wdaHost: 'localhost', wdaPort: 8100 });
+await device.connect();
+const agent = new IOSAgent(device);
+```
+
+<a id="custom-actions"></a>
+<a id="api-reference-and-more-resources"></a>
+
+## Configuration options
+
+### Agent options
+
+Accepts all [shared Agent options](../reference/#agent-options), plus the following platform option:
+
+- `appNameMapping?: Record<string, string>` — Maps friendly app names to iOS bundle IDs so you can reference apps by name in `launch()`, `terminate()`, or natural-language prompts. User-provided mappings take precedence over built-in defaults.
+
+### Device options
+
+- `wdaPort?: number` — WebDriverAgent server port. Default: `8100`.
+- `wdaHost?: string` — WebDriverAgent server host. Default: `'localhost'`.
+- `wdaBaseUrl?: string` — Full HTTP(S) base URL for the WDA API (including any gateway path prefix). Cannot be combined with `wdaHost` or `wdaPort`.
+- `iOSDeviceClassOverride?: string` — Custom npm module path used to replace the default `IOSDevice` implementation when calling `agentFromWebDriverAgent()` or running the iOS Playground. The module must export an `IOSDevice` class or a default class.
+- `sessionId?: string` — Existing WebDriverAgent session ID to reuse. When provided, Midscene skips creating a new WDA session, and detaches from the external session during cleanup instead of deleting it.
+- `wdaMjpegPort?: number` — WDA MJPEG server port for real-time screen streaming. Default: `9100`.
+- `wdaMjpegUrl?: string` — Full HTTP(S) MJPEG stream URL (including any gateway path or query string). Cannot be combined with `wdaMjpegPort`.
+- `wdaMjpegFrameSource?: { enabled?: boolean }` — Whether to use WDA's MJPEG stream as the continuous frame source for `agent.startObserving()`. Disabled by default; when disabled, observers fall back to sequential `screenshotBase64()` calls.
+- `autoDismissKeyboard?: boolean` — Whether to automatically dismiss the on-screen keyboard after text input. Default: `true`.
+- `keyboardTypeDelay?: number` — Delay in milliseconds between keystrokes (must be a finite non-negative number). When set to a positive value, `'legacy'` input sends characters one Unicode code point at a time through WDA's `/wda/keys` endpoint. Useful when an input field drops characters during fast typing.
+- `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` — Default text input strategy for `Input` actions. Default: `'legacy'`:
+  - `'sequential'`: Makes one WDA call per Unicode code point. Use this strategy when setting a positive `keyboardTypeDelay`.
+  - `'bulk'`: Sends the entire string in a single WDA text call. Requires `keyboardTypeDelay` to be omitted or set to `0`.
+- `customActions?: DeviceAction<any>[]` — Custom actions registered for the Agent planner to invoke. Pass this option to `new IOSDevice()` or `agentFromWebDriverAgent()`; see [Integrate with any interface](../integrate-with-any-interface) for details.
+
+## Platform methods
+
+<a id="ios-agentlaunch"></a>
+
+### `launch()`
+
+Open a web URL, launch a native app, or trigger a custom URL scheme.
+
+```ts
+function launch(target: string): Promise<void>;
+```
+
+- `target: string` — Web URL, app bundle ID, custom URL scheme (such as `tel:` or `mailto:`), or app name. If `target` matches a key in `appNameMapping`, Midscene resolves it to the mapped bundle ID; otherwise, it launches `target` as provided.
+
+```ts
+await agent.launch('https://www.apple.com');
+await agent.launch('com.apple.Preferences');
+await agent.launch('myapp://profile/user/123');
+await agent.launch('tel:+1234567890');
+```
+
+<a id="ios-agentterminate"></a>
+
+### `terminate()`
+
+Terminate (close) a running iOS app by its bundle ID.
+
+```ts
+function terminate(bundleId: string): Promise<void>;
+```
+
+- `bundleId: string` — Bundle ID of the app to terminate (such as `com.apple.Preferences`) or an app name registered in `appNameMapping`.
+
+```ts
+await agent.terminate('com.apple.Preferences');
+await agent.terminate('com.apple.mobilesafari');
+```
+
+<a id="ios-agentrunwdarequest"></a>
+
+### `runWdaRequest()`
+
+Send raw requests to WebDriverAgent REST endpoints when you need low-level control.
+
+```ts
+function runWdaRequest(params: {
+  method: 'GET' | 'POST' | 'DELETE' | 'PUT';
+  endpoint: string;
+  data?: Record<string, any>;
+}): Promise<any>;
+```
+
+- `params.method` — HTTP method: `'GET'`, `'POST'`, `'DELETE'`, or `'PUT'`.
+- `params.endpoint` — WebDriverAgent endpoint path.
+- `params.data` — Optional JSON request body.
+
+```ts
+const screen = await agent.runWdaRequest({
+  method: 'GET',
+  endpoint: '/wda/screen',
+});
+```
+
+When calling `device.runWdaRequest()` directly on an `IOSDevice` instance, use the positional signature: `runWdaRequest(method, endpoint, data?)`.
+
+<a id="ios-navigation-helpers"></a>
+
+### System navigation
+
+- `agent.home(): Promise<void>` — Return to the Home screen.
+- `agent.appSwitcher(): Promise<void>` — Open the app switcher.
+
+<a id="keyboard-dismissal"></a>
+
+### `device.hideKeyboard()`
+
+```typescript
+device.hideKeyboard(keyNames?: string[]): Promise<boolean>
+```
+
+Dismisses the on-screen keyboard and returns whether it was hidden. When called explicitly, a failed WDA request throws an error.
+
+By default (`autoDismissKeyboard: true`), after entering text, Midscene attempts to locate the standard iOS keyboard accessory toolbar, tap its dismiss button, and wait until WebDriverAgent confirms that the keyboard is hidden. Some keyboards (such as the iPhone number pad) do not include a dismiss button. If the toolbar cannot be safely identified, the keyboard remains visible, or the dismissal request fails, Midscene logs a warning instead of failing the text input step.
+
+When an `Enter`, `Return`, or `Tab` key action immediately follows an auto-dismissed input, Midscene restores focus to that input field once before sending the key. Any intervening pointer, touch, system, custom, or text-input action clears the pending focus target.
+
+:::warning
+Custom input accessory toolbars defined by an app may contain business buttons such as Save or Submit. To avoid accidental taps, Midscene skips toolbars that do not match the standard iOS layout (navigation controls on the left, dismiss button on the right). If your app uses a custom toolbar, set `autoDismissKeyboard: false` and call `hideKeyboard()` explicitly with the dismiss control's accessibility name.
+:::
+
+```typescript
+const device = new IOSDevice({
+  autoDismissKeyboard: false,
+});
+await device.connect();
+
+// After entering text, explicitly tap the custom keyboard dismiss control
+await device.hideKeyboard(['Close Keyboard']);
+```
+
+<a id="ios-device-destroy"></a>
+
+## Lifecycle
+
+```typescript
+agent.destroy(): Promise<void>
+```
+
+Calling `agent.destroy()` waits for pending operations to complete, calls the underlying Device's `destroy()`, and finalizes the execution report. Do not share a single Device instance across multiple Agents or reuse a Device after cleanup.
+
+On iOS, `device.destroy()` stops the MJPEG frame source, deletes the WDA session created by Midscene, and stops the WDA manager (an external session passed via `sessionId` is detached rather than deleted). Any Device cleanup errors are logged.
+
+## Troubleshooting
+
+<a id="how-to-use-custom-webdriveragent-port-and-host"></a>
+
+### How do I customize the WebDriverAgent port and host?
+
+Pass `wdaPort` and `wdaHost` to `agentFromWebDriverAgent()` or the `IOSDevice` constructor:
+
+```typescript
+// Option 1: Via factory function (recommended)
+const agent = await agentFromWebDriverAgent({
+  wdaPort: 8100,            // Custom port
+  wdaHost: '192.168.1.100', // Custom host
+});
+
+// Option 2: Via IOSDevice constructor
+const device = new IOSDevice({
+  wdaPort: 8100,
+  wdaHost: '192.168.1.100',
+});
+```
+
+For physical or remote devices, make sure port forwarding is set up accordingly:
+
+```bash
+iproxy 8100 8100 YOUR_DEVICE_ID
+```
+
+If WebDriverAgent is exposed behind a gateway with a path prefix, specify the full API base URL using `wdaBaseUrl` instead:
+
+```typescript
+const agent = await agentFromWebDriverAgent({
+  wdaBaseUrl: 'https://gateway.example/device/wda',
+});
+```
+
+Midscene appends `/status`, `/session`, and session command paths to this base URL. Use either `wdaBaseUrl` or `wdaHost` / `wdaPort`—combining them throws an error.
+
+Note that `wdaBaseUrl` only configures WDA API requests; by default, the MJPEG screen stream still connects to `http://localhost:9100`. If your gateway also proxies the MJPEG stream, configure `wdaMjpegUrl` separately:
+
+```typescript
+const agent = await agentFromWebDriverAgent({
+  wdaBaseUrl: 'https://gateway.example/device/wda',
+  wdaMjpegUrl: 'https://gateway.example/device/mjpeg',
+});
+```
+
+`wdaMjpegUrl` must be a full HTTP(S) URL (with its own host, port, path, and query string; embedded credentials and URL fragments are rejected) and cannot be combined with `wdaMjpegPort`. For local port forwarding, leave `wdaMjpegUrl` unset and configure `wdaMjpegPort` (default `9100`). If the MJPEG stream is unavailable, Playground automatically falls back to screenshot polling.

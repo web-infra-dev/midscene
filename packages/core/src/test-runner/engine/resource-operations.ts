@@ -171,6 +171,9 @@ export function createResourceScope(parent?: AbortSignal) {
   else parent?.addEventListener('abort', abort, { once: true });
   return {
     signal: controller.signal,
+    abort(reason?: unknown) {
+      controller.abort(reason);
+    },
     dispose() {
       parent?.removeEventListener('abort', abort);
       scope.resources = undefined;
@@ -447,6 +450,17 @@ export async function waitForResourceIdle(resource: object): Promise<void> {
     await Promise.allSettled([...resources.get(resource)!.operations.keys()]);
 }
 
+/** Wait for actual descendant settlement, including deferred cleanup. */
+export async function waitForScopeOperations(
+  signal: AbortSignal,
+): Promise<void> {
+  while (true) {
+    const active = [...(scopes.get(signal)?.operations.keys() ?? [])];
+    if (!active.length) return;
+    await Promise.all(active.map(waitForResourceIdle));
+  }
+}
+
 /** Wait for this scope's cancelled work before scheduling its next Step. */
 export async function recoverCancelledScopeResources(
   signal: AbortSignal,
@@ -559,6 +573,8 @@ interface CleanupOptions {
   /** Parent scope observes deferred completion without host-specific forwarding. */
   signal?: AbortSignal;
   graceMs?: number;
+  /** Optional total deadline, including hooks, draining and all disposers. */
+  totalTimeoutMs?: number;
   onDeferredError(error: unknown): void;
 }
 
@@ -569,6 +585,7 @@ async function runResourceCleanup<T>(
   options: CleanupOptions,
   beforeCleanup?: {
     signal: AbortSignal;
+    abort(reason: unknown): void;
     run(signal: AbortSignal): Promise<void>;
   },
 ): Promise<T> {
@@ -584,12 +601,26 @@ async function runResourceCleanup<T>(
 
   let defer!: () => void;
   const deferred = new Promise<{ deferred: true }>((resolve) => {
-    defer = () => resolve({ deferred: true });
+    defer = () => {
+      if (options.totalTimeoutMs !== undefined)
+        beforeCleanup?.abort(
+          new WorkflowError(
+            `Resource cleanup timed out after ${options.totalTimeoutMs}ms.`,
+            {
+              code: 'TEARDOWN_TIMEOUT',
+              details: { timeoutMs: options.totalTimeoutMs },
+            },
+          ),
+        );
+      resolve({ deferred: true });
+    };
   });
-  let graceMs = options.graceMs ?? RESOURCE_CLEANUP_GRACE_MS;
+  let graceMs =
+    options.totalTimeoutMs ?? options.graceMs ?? RESOURCE_CLEANUP_GRACE_MS;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const drain = async () => {
-    timer = setTimeout(defer, graceMs);
+    if (options.totalTimeoutMs === undefined)
+      timer = setTimeout(defer, graceMs);
     try {
       // An acquisition may finish late and add another shared resource to its
       // owner. Keep draining that resource before calling any disposer.
@@ -601,10 +632,12 @@ async function runResourceCleanup<T>(
         await Promise.all(pending.map(waitForResourceIdle));
       }
     } finally {
-      clearTimeout(timer);
+      if (options.totalTimeoutMs === undefined) clearTimeout(timer);
     }
   };
   const completion = (async () => {
+    if (options.totalTimeoutMs !== undefined)
+      timer = setTimeout(defer, Math.max(0, options.totalTimeoutMs));
     try {
       if (beforeCleanup) {
         // Hooks may use idle resources owned by this cleanup. Busy resources
@@ -615,8 +648,10 @@ async function runResourceCleanup<T>(
       // Drain both the original work and any operation started by the hook
       // before disposing the resource.
       await drain();
-      graceMs = options.graceMs ?? RESOURCE_TEARDOWN_GRACE_MS;
-      timer = setTimeout(defer, graceMs);
+      if (options.totalTimeoutMs === undefined) {
+        graceMs = options.graceMs ?? RESOURCE_TEARDOWN_GRACE_MS;
+        timer = setTimeout(defer, graceMs);
+      }
       return await cleanup();
     } finally {
       clearTimeout(timer);
@@ -695,7 +730,8 @@ export async function cleanupScopeResources<T>(
     beforeCleanup?(signal: AbortSignal): Promise<void>;
   },
 ): Promise<T> {
-  const cleanupSignal = new AbortController().signal;
+  const cleanupController = new AbortController();
+  const cleanupSignal = cleanupController.signal;
   linkResourceSignal(cleanupSignal, signal);
   const scope = scopes.get(signal);
   return runResourceCleanup(
@@ -703,7 +739,11 @@ export async function cleanupScopeResources<T>(
     cleanup,
     { ...options, owner: signal, signal },
     options.beforeCleanup
-      ? { signal: cleanupSignal, run: options.beforeCleanup }
+      ? {
+          signal: cleanupSignal,
+          abort: (reason) => cleanupController.abort(reason),
+          run: options.beforeCleanup,
+        }
       : undefined,
   );
 }
