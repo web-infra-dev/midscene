@@ -1,4 +1,5 @@
 import { resolve } from 'node:path';
+import type { Agent } from '@midscene/core/agent';
 import { commonAgentTestRunnerNodeDefinitions } from '@midscene/core/agent/test';
 import { load } from 'js-yaml';
 import { describe, expect, it, vi } from 'vitest';
@@ -30,12 +31,13 @@ const collected = (
   definition: { name: 'midscene case', steps },
 });
 
-const commonAgent = (
-  overrides: Partial<MidsceneUIAgent> = {},
-): MidsceneUIAgent => ({
+type TestAgent = MidsceneUIAgent & Pick<Agent, 'aiWaitFor'>;
+
+const commonAgent = (overrides: Partial<TestAgent> = {}): TestAgent => ({
   aiAct: vi.fn(async () => undefined),
   aiTap: vi.fn(async () => undefined),
   aiAssert: vi.fn(async () => undefined),
+  aiWaitFor: vi.fn(async () => undefined),
   aiBoolean: vi.fn(async () => false),
   aiNumber: vi.fn(async () => 0),
   aiString: vi.fn(async () => ''),
@@ -49,6 +51,225 @@ const testAgentClass = {
 };
 
 describe('createMidsceneNodes', () => {
+  it('routes namespaced YAML Nodes to separate Agents without changing their definitions', async () => {
+    const originalNames = commonAgentTestRunnerNodeDefinitions.map(
+      (node) => node.name,
+    );
+    const mobile = commonAgent();
+    const web = commonAgent();
+    const getMobile = vi.fn(() => mobile);
+    const getWeb = vi.fn(() => web);
+    const registry = new NodeRegistry([
+      ...createMidsceneNodes({
+        namespace: 'mobile',
+        agentClass: testAgentClass,
+        getAgent: getMobile,
+      }),
+      ...createMidsceneNodes({
+        namespace: 'web',
+        agentClass: testAgentClass,
+        getAgent: getWeb,
+      }),
+    ]);
+
+    expect(getMobile).not.toHaveBeenCalled();
+    expect(getWeb).not.toHaveBeenCalled();
+    expect(registry.get('aiAct')).toBeUndefined();
+    expect(registry.get('wait')).toBeUndefined();
+    expect(
+      commonAgentTestRunnerNodeDefinitions.map((node) => node.name),
+    ).toEqual(originalNames);
+    expect(
+      createMidsceneNodes({
+        agentClass: testAgentClass,
+        getAgent: getMobile,
+      }).map((node) => node.name),
+    ).toEqual([...originalNames, 'wait']);
+
+    const result = await runCollectedCase(
+      collected(
+        normalizeSteps(
+          load(`
+- mobile.aiAct: Create a Todo
+- web.aiTap: the completion checkbox
+- mobile.wait:
+    duration: 1
+`),
+          registry.require.bind(registry),
+        ),
+      ),
+      { resolveNode: registry.require.bind(registry) },
+    );
+
+    expect(result.status).toBe('success');
+    expect(mobile.aiAct).toHaveBeenCalledWith(
+      'Create a Todo',
+      expect.any(Object),
+    );
+    expect(web.aiTap).toHaveBeenCalledWith(
+      'the completion checkbox',
+      undefined,
+    );
+    expect(mobile.aiTap).not.toHaveBeenCalled();
+    expect(web.aiAct).not.toHaveBeenCalled();
+    expect(getMobile).toHaveBeenCalledOnce();
+    expect(getWeb).toHaveBeenCalledOnce();
+    const spec = renderNodeSpec(registry.definitions()).markdown;
+    expect(spec).toContain('### `mobile.aiAct`');
+    expect(spec).toContain('### `web.aiTap`');
+    expect(spec).toContain('### `mobile.wait`');
+  });
+
+  it('supports a dot-separated namespace with an AgentProvider', async () => {
+    const agent = commonAgent();
+    const getAgent = vi.fn((_runId: string) => agent);
+    const releaseAgent = vi.fn(async (_runId: string) => undefined);
+    const registry = new NodeRegistry(
+      createMidsceneNodes({
+        namespace: 'checkout.mobile',
+        agentClass: testAgentClass,
+        agentProvider: { getAgent, releaseAgent },
+      }),
+    );
+    const result = await runCollectedCase(
+      collected([
+        {
+          node: 'checkout.mobile.aiAct',
+          input: { prompt: 'Open checkout' },
+          meta: { continueOnError: false },
+        },
+      ]),
+      { resolveNode: registry.require.bind(registry) },
+    );
+
+    expect(result.status).toBe('success');
+    expect(agent.aiAct).toHaveBeenCalledWith(
+      'Open checkout',
+      expect.any(Object),
+    );
+    expect(getAgent).toHaveBeenCalledOnce();
+    expect(releaseAgent).toHaveBeenCalledOnce();
+    expect(releaseAgent.mock.calls[0]).toEqual([getAgent.mock.calls[0][0]]);
+  });
+
+  it.each([
+    null,
+    1,
+    false,
+    '',
+    ' ',
+    ' mobile',
+    'mobile ',
+    'mobile web',
+    '.mobile',
+    'mobile.',
+    'mobile..web',
+  ])(
+    'rejects an invalid namespace %j before acquiring an Agent',
+    (namespace) => {
+      const getAgent = vi.fn(() => commonAgent());
+      expect(() =>
+        createMidsceneNodes({
+          namespace: namespace as string,
+          agentClass: testAgentClass,
+          getAgent,
+        }),
+      ).toThrow(
+        'createMidsceneNodes() namespace must be a non-empty dot-separated string without whitespace.',
+      );
+      expect(getAgent).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([false, true])(
+    'keeps namespaced execution traces and snapshots separate when failure=%s',
+    async (fail) => {
+      type DumpListener = Parameters<
+        NonNullable<MidsceneUIAgent['addDumpUpdateListener']>
+      >[0];
+      const mobileListeners = new Set<DumpListener>();
+      const webListeners = new Set<DumpListener>();
+      const mobileSnapshot = vi.fn(async () => ({
+        sourcePath: resolve('/tmp/mobile-report.html'),
+        dumpPath: resolve('/tmp/mobile-report.json'),
+      }));
+      const webSnapshot = vi.fn(async () => ({
+        sourcePath: resolve('/tmp/web-report.html'),
+        dumpPath: resolve('/tmp/web-report.json'),
+      }));
+      const mobile = commonAgent({
+        async aiAct() {
+          for (const listener of mobileListeners) {
+            listener('', { id: 'mobile-execution' });
+            listener('', { id: 'mobile-execution' });
+          }
+          if (fail) throw new Error('Mobile action failed');
+          return undefined;
+        },
+        addDumpUpdateListener(listener) {
+          mobileListeners.add(listener);
+          return () => mobileListeners.delete(listener);
+        },
+        _createReportSource: mobileSnapshot,
+      });
+      const web = commonAgent({
+        async aiTap() {
+          for (const listener of webListeners)
+            listener('', { id: 'web-execution' });
+        },
+        addDumpUpdateListener(listener) {
+          webListeners.add(listener);
+          return () => webListeners.delete(listener);
+        },
+        _createReportSource: webSnapshot,
+      });
+      const registry = new NodeRegistry([
+        ...createMidsceneNodes({
+          namespace: 'mobile',
+          agentClass: testAgentClass,
+          getAgent: () => mobile,
+        }),
+        ...createMidsceneNodes({
+          namespace: 'web',
+          agentClass: testAgentClass,
+          getAgent: () => web,
+        }),
+      ]);
+      const result = await runCollectedCase(
+        collected([
+          {
+            node: 'mobile.aiAct',
+            input: { prompt: 'Create a Todo' },
+            meta: { continueOnError: true },
+          },
+          {
+            node: 'web.aiTap',
+            input: { prompt: 'the completion checkbox' },
+            meta: { continueOnError: false },
+          },
+        ]),
+        { resolveNode: registry.require.bind(registry) },
+      );
+
+      expect(result.steps.map((step) => step.status)).toEqual([
+        fail ? 'failed' : 'success',
+        'success',
+      ]);
+      expect(result.steps.map((step) => step.report?.traces)).toEqual([
+        [{ type: 'midscene-execution', executionId: 'mobile-execution' }],
+        [{ type: 'midscene-execution', executionId: 'web-execution' }],
+      ]);
+      expect(mobileSnapshot).toHaveBeenCalledWith(result.runId, [
+        'mobile-execution',
+      ]);
+      expect(webSnapshot).toHaveBeenCalledWith(result.runId, ['web-execution']);
+      expect(mobileListeners.size).toBe(0);
+      expect(webListeners.size).toBe(0);
+      if (fail)
+        expect(result.steps[0].error?.message).toContain('mobile.aiAct');
+    },
+  );
+
   it('continues with the same Agent only after a timed out call has actually finished', async () => {
     vi.useFakeTimers();
     let release!: () => void;
@@ -213,8 +434,9 @@ describe('createMidsceneNodes', () => {
   it('maps case inputs to one Agent from setup context', async () => {
     const aiAct = vi.fn(async () => 'action completed');
     const aiAssert = vi.fn(async () => undefined);
+    const aiWaitFor = vi.fn(async () => undefined);
     const recordToReport = vi.fn(async () => undefined);
-    const agent = commonAgent({ aiAct, aiAssert, recordToReport });
+    const agent = commonAgent({ aiAct, aiAssert, aiWaitFor, recordToReport });
     const getAgent = vi.fn(
       ({ context }: { context: { uiAgent: MidsceneUIAgent } }) =>
         context.uiAgent,
@@ -242,6 +464,14 @@ describe('createMidsceneNodes', () => {
           meta: { continueOnError: false },
         },
         {
+          node: 'aiWaitFor',
+          input: {
+            prompt: 'The order status becomes paid',
+            options: { timeoutMs: 30_000, checkIntervalMs: 1_000 },
+          },
+          meta: { continueOnError: false },
+        },
+        {
           node: 'recordToReport',
           input: {
             title: 'Order created',
@@ -260,7 +490,7 @@ describe('createMidsceneNodes', () => {
       ...commonAgentTestRunnerNodeDefinitions.map((node) => node.name),
       'wait',
     ]);
-    expect(getAgent).toHaveBeenCalledTimes(3);
+    expect(getAgent).toHaveBeenCalledTimes(4);
     expect(aiAct).toHaveBeenCalledWith('Create an order', {
       deepThink: true,
       abortSignal: expect.any(AbortSignal),
@@ -274,12 +504,18 @@ describe('createMidsceneNodes', () => {
         abortSignal: expect.any(AbortSignal),
       },
     );
+    expect(aiWaitFor).toHaveBeenCalledWith('The order status becomes paid', {
+      timeoutMs: 30_000,
+      checkIntervalMs: 1_000,
+      abortSignal: expect.any(AbortSignal),
+    });
     expect(recordToReport).toHaveBeenCalledWith('Order created', {
       content: 'order-1',
     });
     expect(result.steps.map((step) => step.output?.summary)).toEqual([
       'action completed',
       'Assertion passed: The order is paid',
+      undefined,
       'Recorded to report: Order created',
     ]);
   });
@@ -964,7 +1200,7 @@ describe('createMidsceneNodes', () => {
     expect(listeners.size).toBe(0);
   });
 
-  it('rejects overlapping Midscene Test scopes that share one Agent instance', async () => {
+  it('marks overlapping Midscene Test scopes as not started when they share one Agent instance', async () => {
     let resolveEntered!: () => void;
     const entered = new Promise<void>((resolve) => {
       resolveEntered = resolve;
@@ -1009,12 +1245,10 @@ describe('createMidsceneNodes', () => {
 
     expect(firstResult.status).toBe('success');
     expect(secondResult.steps[0]).toMatchObject({
-      status: 'failed',
-      error: {
-        message: expect.stringContaining(
-          'same Agent instance cannot execute overlapping',
-        ),
-      },
+      status: 'not-run',
+      blockedBy: 'scope-first:steps:0',
+      error: { code: 'RESOURCE_OPERATION_PENDING' },
     });
+    expect(secondResult.steps[0].startedAt).toBeUndefined();
   });
 });

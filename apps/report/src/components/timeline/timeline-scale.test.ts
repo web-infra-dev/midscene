@@ -6,17 +6,40 @@ import {
 } from './timeline-scale';
 
 describe('formatTimelineTime', () => {
-  it('uses milliseconds for values below one second', () => {
-    expect(formatTimelineTime(50)).toBe('50ms');
-    expect(formatTimelineTime(100)).toBe('100ms');
-    expect(formatTimelineTime(500)).toBe('500ms');
-    expect(formatTimelineTime(999)).toBe('999ms');
+  it('uses integer milliseconds below two seconds', () => {
+    expect(formatTimelineTime(0)).toBe('0 ms');
+    expect(formatTimelineTime(50.4)).toBe('50 ms');
+    expect(formatTimelineTime(1000)).toBe('1000 ms');
+    expect(formatTimelineTime(1500)).toBe('1500 ms');
+    expect(formatTimelineTime(1999)).toBe('1999 ms');
   });
 
-  it('uses seconds for values at or above one second', () => {
-    expect(formatTimelineTime(1000)).toBe('1s');
-    expect(formatTimelineTime(1500)).toBe('1.5s');
-    expect(formatTimelineTime(300000)).toBe('300s');
+  it('uses seconds with at most one decimal from two seconds to one minute', () => {
+    expect(formatTimelineTime(2000)).toBe('2 s');
+    expect(formatTimelineTime(2100)).toBe('2.1 s');
+    expect(formatTimelineTime(32_340)).toBe('32.3 s');
+    expect(formatTimelineTime(54_741)).toBe('54.7 s');
+    expect(formatTimelineTime(59_949)).toBe('59.9 s');
+  });
+
+  it('uses minutes and integer seconds for long timelines', () => {
+    expect(formatTimelineTime(60_000)).toBe('1m 0s');
+    expect(formatTimelineTime(109_482)).toBe('1m 49s');
+    expect(formatTimelineTime(164_223)).toBe('2m 44s');
+    expect(formatTimelineTime(300_000)).toBe('5m 0s');
+  });
+
+  it('carries rounded values into the next unit', () => {
+    expect(formatTimelineTime(1999.6)).toBe('2 s');
+    expect(formatTimelineTime(59_950)).toBe('1m 0s');
+    expect(formatTimelineTime(119_500)).toBe('2m 0s');
+  });
+
+  it('preserves negative offsets without showing negative zero', () => {
+    expect(formatTimelineTime(-0.4)).toBe('0 ms');
+    expect(formatTimelineTime(-1500)).toBe('-1500 ms');
+    expect(formatTimelineTime(-2100)).toBe('-2.1 s');
+    expect(formatTimelineTime(-59_950)).toBe('-1m 0s');
   });
 });
 

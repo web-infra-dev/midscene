@@ -47,6 +47,7 @@ import type {
   VisualizerProps,
 } from './types';
 import { prepareAnimatedWebpFrames } from './utils/animated-webp';
+import { hydrateDirectoryReport } from './utils/directory-report';
 import {
   downloadMarkdownZip,
   getReportMarkdownView,
@@ -840,8 +841,18 @@ export function App() {
       }
     };
 
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const loadDumps = async () => {
       console.time('loading_dump');
+      try {
+        await hydrateDirectoryReport(document, fetch, controller.signal);
+      } catch (error) {
+        if (!controller.signal.aborted)
+          setError(error instanceof Error ? error.message : String(error));
+        console.timeEnd('loading_dump');
+        return;
+      }
       try {
         const animation = await prepareAnimatedWebpFrames();
         for (const [id, url] of animation.frameUrls) {
@@ -863,6 +874,7 @@ export function App() {
         );
       }
       try {
+        if (controller.signal.aborted) return;
         loadDumpElements();
       } catch (error) {
         setError(error instanceof Error ? error.message : String(error));
@@ -876,13 +888,15 @@ export function App() {
       document.readyState === 'interactive'
     ) {
       // Use a small timeout to ensure all scripts are parsed
-      setTimeout(loadDumps, 0);
+      timer = setTimeout(loadDumps, 0);
     } else {
       // Wait for DOM content to be fully loaded
       document.addEventListener('DOMContentLoaded', loadDumps);
     }
 
     return () => {
+      controller.abort();
+      clearTimeout(timer);
       document.removeEventListener('DOMContentLoaded', loadDumps);
     };
   }, []);

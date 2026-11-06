@@ -1,7 +1,7 @@
 import type { AgentOpt, ConnectivityTestResult } from '@midscene/core';
 import { Alert, Button, Divider, Input, Modal, Select, Typography } from 'antd';
 import type { ModalProps } from 'antd';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import './index.less';
 
 const { TextArea } = Input;
@@ -30,6 +30,7 @@ export interface ConfigModalProps {
   agentOptionsValue?: CommonAgentOptions;
   initialTab?: ConfigModalTab;
   showEnvStyleSelect?: boolean;
+  modelConfigActions?: ReactNode;
   envTextareaMinRows?: number;
   envTextareaAutoSize?: boolean;
   showAgentOptions?: boolean;
@@ -229,6 +230,7 @@ export function ConfigModal({
   onClose,
   onSave,
   onVerify,
+  modelConfigActions,
 }: ConfigModalProps) {
   const [tab, setTab] = useState<ConfigModalTab>(initialTab);
   const [text, setText] = useState(textValue);
@@ -369,6 +371,8 @@ export function ConfigModal({
               />
             ) : null}
           </div>
+
+          {modelConfigActions}
 
           {tab === 'form' && showEnvStyleSelect ? (
             <div className="midscene-config-modal-env-fields">

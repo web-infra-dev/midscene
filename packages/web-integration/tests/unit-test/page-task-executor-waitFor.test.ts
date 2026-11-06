@@ -35,13 +35,15 @@ const mockedModelConfig: IModelConfig = {
 };
 const mockedModelRuntime = getModelRuntime(mockedModelConfig);
 
-describe('TaskExecutor waitFor method with doNotThrowError', () => {
+describe('TaskExecutor waitFor', () => {
   let taskExecutor: TaskExecutor;
   let mockInsight: any;
   let mockPage: any;
+  let abortSignal: AbortSignal | undefined;
 
   beforeEach(async () => {
     rs.clearAllMocks();
+    abortSignal = undefined;
 
     // Create mock page
     mockPage = {
@@ -69,12 +71,14 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
     };
 
     taskExecutor = new TaskExecutor(mockPage, mockInsight, {
+      getDefaultModelRuntime: () => mockedModelRuntime,
       onTaskStart: rs.fn(),
       actionSpace: mockPage.actionSpace(),
+      getAbortSignal: () => abortSignal,
     });
   });
 
-  it('should pass doNotThrowError=true to createTypeQueryTask in waitFor method', async () => {
+  it('passes query options and the execution id without a cancellation signal', async () => {
     // Spy on the private createTypeQueryTask method
     const createTypeQueryTaskSpy = rs.spyOn(
       taskExecutor as any,
@@ -106,21 +110,21 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       mockedModelRuntime,
     );
 
-    // Verify that createTypeQueryTask was called with ServiceExtractOption.
-    // modelRuntime objects may carry extra CI-injected fields (e.g. an
-    // execution id) when running the full suite, so match on its core shape.
+    // waitFor associates its queries with the current runner's execution id.
     expect(createTypeQueryTaskSpy).toHaveBeenCalledWith(
       'WaitFor',
       'test assertion',
       expect.objectContaining({
         config: mockedModelRuntime.config,
         adapter: mockedModelRuntime.adapter,
+        executionId: result.runner.id,
       }),
       {
         domIncluded: undefined,
         screenshotIncluded: undefined,
       },
       undefined,
+      { abortSignal: undefined },
     );
 
     // Verify the result structure - waitFor returns runner, not executor
@@ -128,7 +132,8 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
     expect(result.output).toBeUndefined(); // waitFor returns undefined output on success
   });
 
-  it('should handle AI failures gracefully with doNotThrowError in waitFor loop', async () => {
+  it('preserves the cancellation signal and execution id when retrying a false assertion', async () => {
+    abortSignal = new AbortController().signal;
     // Spy on the private createTypeQueryTask method
     const createTypeQueryTaskSpy = rs.spyOn(
       taskExecutor as any,
@@ -166,25 +171,22 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       mockedModelRuntime,
     );
 
-    // Verify that createTypeQueryTask was called multiple times with ServiceExtractOption.
-    // modelRuntime objects may carry extra CI-injected fields (e.g. an
-    // execution id) when running the full suite, so match on its core shape.
-    expect(createTypeQueryTaskSpy).toHaveBeenCalledWith(
-      'WaitFor',
-      'test assertion',
-      expect.objectContaining({
-        config: mockedModelRuntime.config,
-        adapter: mockedModelRuntime.adapter,
-      }),
-      {
-        domIncluded: undefined,
-        screenshotIncluded: undefined,
-      },
-      undefined,
-    );
-
-    // Should have been called at least twice (first failed, second succeeded)
+    // Both checks belong to the same execution and share its cancellation signal.
     expect(createTypeQueryTaskSpy).toHaveBeenCalledTimes(2);
+    for (const args of createTypeQueryTaskSpy.mock.calls) {
+      expect(args).toEqual([
+        'WaitFor',
+        'test assertion',
+        expect.objectContaining({
+          config: mockedModelRuntime.config,
+          adapter: mockedModelRuntime.adapter,
+          executionId: result.runner.id,
+        }),
+        { domIncluded: undefined, screenshotIncluded: undefined },
+        undefined,
+        { abortSignal },
+      ]);
+    }
 
     // Verify the result
     expect(result.runner).toBeDefined();

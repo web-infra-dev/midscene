@@ -16,6 +16,7 @@ export {
 } from './parse';
 export type {
   CoordinateRounding,
+  BboxBoundsType,
   LocateResultBbox,
   PixelBbox,
   PixelLocateResult,

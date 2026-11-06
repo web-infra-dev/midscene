@@ -1,16 +1,15 @@
+import { Link } from '@rspress/core/theme-original';
+import { ArrowRight } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { TiltCard } from './TiltCard';
+import './FeatureCard.css';
 
 interface FeatureCardProps {
   href: string;
   title: string;
   description: string;
-  actionLabel?: string;
-  lightBackground: string;
-  darkBackground: string;
-  visualClassName?: string;
-  lightContent?: ReactNode;
-  darkContent?: ReactNode;
+  actionLabel: string;
+  wide?: boolean;
+  children: ReactNode;
 }
 
 export function FeatureCard({
@@ -18,41 +17,54 @@ export function FeatureCard({
   title,
   description,
   actionLabel,
-  lightBackground,
-  darkBackground,
-  visualClassName,
-  lightContent,
-  darkContent,
+  wide = false,
+  children,
 }: FeatureCardProps) {
   return (
-    <TiltCard href={href} className="home-feature-card">
-      <div
-        className={`home-feature-card__visual${visualClassName ? ` ${visualClassName}` : ''}`}
-        aria-hidden="true"
-      >
-        <div
-          className="home-feature-card__theme home-feature-card__theme--light"
-          style={{ backgroundImage: `url(${lightBackground})` }}
-        >
-          {lightContent}
-        </div>
-        <div
-          className="home-feature-card__theme home-feature-card__theme--dark"
-          style={{ backgroundImage: `url(${darkBackground})` }}
-        >
-          {darkContent ?? lightContent}
-        </div>
+    <Link href={href} className={`home-card${wide ? ' home-card--wide' : ''}`}>
+      <div className="home-card__visual" aria-hidden="true">
+        {children}
       </div>
-      <div className="home-feature-card__content">
+      <div className="home-card__content">
         <h3>{title}</h3>
         <p>{description}</p>
-        {actionLabel && (
-          <span className="home-feature-card__action">
-            {actionLabel}
-            <span aria-hidden="true"> →</span>
-          </span>
-        )}
+        <span className="home-card__action">
+          {actionLabel}
+          <ArrowRight size={14} strokeWidth={1.5} />
+        </span>
       </div>
-    </TiltCard>
+    </Link>
+  );
+}
+
+export function FeatureCardGrid({
+  columns = 2,
+  children,
+}: { columns?: 2 | 3; children: ReactNode }) {
+  return (
+    <div className={`home-card-grid home-card-grid--${columns}`}>
+      {children}
+    </div>
+  );
+}
+
+/** Light and dark variants of an image that fills the card visual. */
+export function FeatureCardImage({
+  light,
+  dark,
+}: { light: string; dark: string }) {
+  return (
+    <>
+      <img
+        className="home-card__image home-card__image--light"
+        src={light}
+        alt=""
+      />
+      <img
+        className="home-card__image home-card__image--dark"
+        src={dark}
+        alt=""
+      />
+    </>
   );
 }

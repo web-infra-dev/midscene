@@ -39,7 +39,7 @@ export class CaseRunner<TContext = undefined> {
     });
 
     const fatalStepError = result.steps.find(
-      (step) => step.status === 'failed' && !step.continuedAfterError,
+      (step) => step.status !== 'success' && !step.continuedAfterError,
     )?.error;
     if (fatalStepError) throw fatalStepError;
     return result;

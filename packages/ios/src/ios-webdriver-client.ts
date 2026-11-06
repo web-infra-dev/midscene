@@ -1,5 +1,10 @@
 import { getDebug } from '@midscene/shared/logger';
-import { WebDriverClient, WebDriverRequestError } from '@midscene/webdriver';
+import { WebDriverClient } from '@midscene/webdriver';
+import {
+  type InputRequest,
+  clearInputWithFocus,
+  waitForInputFocus,
+} from './input-focus';
 import {
   type KeyboardAccessoryButton,
   type WebDriverElementRect,
@@ -271,45 +276,6 @@ export class IOSWebDriverClient extends WebDriverClient {
     }
   }
 
-  /** Wait for a keyboard focus owner before synthesizing text key events. */
-  async waitForInputFocus(): Promise<void> {
-    this.ensureSession();
-    const deadline = Date.now() + 3000;
-    while (Date.now() < deadline) {
-      try {
-        const response = await this.makeRequest(
-          'GET',
-          `/session/${this.sessionId}/element/active`,
-          undefined,
-          { timeout: Math.max(1, deadline - Date.now()) },
-        );
-        if (Date.now() >= deadline) break;
-        const value = response?.value ?? response;
-        const elementId = value?.[w3cElementId] ?? value?.ELEMENT;
-        if (typeof elementId !== 'string' || !elementId) {
-          throw new Error('WDA returned an invalid active element response');
-        }
-        return;
-      } catch (error) {
-        // A modal transition can temporarily have no focus owner. Connection
-        // errors and unsupported endpoints must not be treated as readiness.
-        if (
-          !(error instanceof WebDriverRequestError) ||
-          error.response?.value?.error !== 'no such element'
-        ) {
-          throw error;
-        }
-      }
-      const remaining = deadline - Date.now();
-      if (remaining > 0) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, Math.min(50, remaining)),
-        );
-      }
-    }
-    throw new Error('Timed out waiting for iOS input focus after 3000ms');
-  }
-
   /**
    * Clear an element using WebDriver's clear endpoint
    * @param elementId WebDriver element ID
@@ -332,23 +298,27 @@ export class IOSWebDriverClient extends WebDriverClient {
 
   /**
    * Clear the currently focused input field using WebDriver Clear API
-   * @returns true if successful, false otherwise
+   * @returns false if active-element discovery is unavailable or no input is active
+   * @throws if clearing or restoring the input cannot be verified
    */
   async clearActiveElement(): Promise<boolean> {
-    try {
-      const elementId = await this.getActiveElement();
-      if (!elementId) {
-        debugIOS('No active element to clear');
-        return false;
-      }
-
-      await this.clearElement(elementId);
-      return true;
-    } catch (error) {
-      debugIOS(`Failed to clear active element: ${error}`);
-      return false;
-    }
+    return clearInputWithFocus(this.requestInput);
   }
+
+  /** Wait for keyboard focus before attempting to clear or type text. */
+  async waitForInputFocus(): Promise<void> {
+    await waitForInputFocus(this.requestInput);
+  }
+
+  private requestInput: InputRequest = (method, path, data, options) => {
+    this.ensureSession();
+    return this.makeRequest(
+      method,
+      `/session/${this.sessionId}${path}`,
+      data,
+      options,
+    );
+  };
 
   private normalizeKeyName(key: string): string {
     // Convert to proper case for mapping (first letter uppercase, rest lowercase)

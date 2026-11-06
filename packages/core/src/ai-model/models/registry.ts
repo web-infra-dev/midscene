@@ -6,6 +6,7 @@ import type {
   ModelAdapterDefinition,
   ModelRuntime,
 } from '../model-adapter/types';
+import { antLingAdapters } from './ant-ling/adapter';
 import { autoGlmAdapters } from './auto-glm/adapter';
 import { deepSeekAdapters } from './deepseek/adapter';
 import { defaultOpenAICompatibleAdapterConfig } from './default';
@@ -13,12 +14,15 @@ import { doubaoAdapters } from './doubao';
 import { geminiAdapters } from './gemini';
 import { glmAdapters } from './glm';
 import { gptAdapters } from './gpt';
+import { jevAdapters } from './jev/adapter';
 import { kimiAdapters } from './kimi';
 import { mimoAdapters } from './mimo';
 import { qwenAdapters } from './qwen';
 import { uiTarsAdapters } from './ui-tars/adapter';
 
 export const MODEL_ADAPTER_CONFIGS = {
+  ...antLingAdapters,
+  ...jevAdapters,
   ...qwenAdapters,
   ...deepSeekAdapters,
   ...doubaoAdapters,

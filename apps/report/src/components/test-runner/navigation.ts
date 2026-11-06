@@ -3,10 +3,10 @@ import {
   runnerRouteFromHash,
   runnerStepIdFromHash,
 } from '../../utils/test-run-report';
+import type { ReportIssue } from './issues';
 import {
   type RunnerCaseView,
   type RunnerProjectView,
-  type RunnerStepSelector,
   type RunnerStepTarget,
   getRunnerCaseStepTargets,
   isRunnerStepSelector,
@@ -19,7 +19,7 @@ export interface RunnerNavigationState {
   page: RunnerPage;
   selectedCaseKey?: string;
   deepLinkedStepId?: string;
-  unmatchedStepSelector?: RunnerStepSelector;
+  navigationIssue?: ReportIssue;
 }
 
 export const isSingleCaseReport = (
@@ -49,9 +49,6 @@ export const resolveRunnerNavigation = (
 ): RunnerNavigationState => {
   const route = runnerRouteFromHash(hash);
   const stepReference = runnerStepIdFromHash(hash);
-  const stepSelector = isRunnerStepSelector(stepReference)
-    ? stepReference
-    : undefined;
   const selectedRouteCase =
     route.page === 'case'
       ? cases.find(
@@ -64,31 +61,38 @@ export const resolveRunnerNavigation = (
     ? getRunnerCaseStepTargets(selectedRouteCase)
     : stepIndex;
   const stepTarget = resolveRunnerStepTarget(stepReference, targetPool);
-  const unmatchedStepSelector =
-    stepSelector && !stepTarget ? stepSelector : undefined;
+  const navigationIssue: ReportIssue | undefined =
+    stepReference && !stepTarget
+      ? {
+          id: 'navigation',
+          severity: 'warning',
+          code: 'STEP_NOT_FOUND',
+          message: `No Step matches runner-step=${stepReference}.`,
+        }
+      : undefined;
 
   if (selectedRouteCase) {
     return {
       page: 'case',
       selectedCaseKey: selectedRouteCase.key,
       deepLinkedStepId: stepTarget?.step.id,
-      ...(unmatchedStepSelector ? { unmatchedStepSelector } : {}),
-    };
-  }
-
-  if (isSingleCaseReport(projects) && cases.length === 1) {
-    const [onlyCase] = cases;
-    return {
-      page: 'case',
-      selectedCaseKey: onlyCase.key,
-      deepLinkedStepId: stepTarget?.step.id,
-      ...(unmatchedStepSelector ? { unmatchedStepSelector } : {}),
+      ...(navigationIssue ? { navigationIssue } : {}),
     };
   }
 
   const hasExplicitPage = new URLSearchParams(
     hash.startsWith('#') ? hash.slice(1) : '',
   ).has('runner-page');
+  if (!hasExplicitPage && isSingleCaseReport(projects) && cases.length === 1) {
+    const [onlyCase] = cases;
+    return {
+      page: 'case',
+      selectedCaseKey: onlyCase.key,
+      deepLinkedStepId: stepTarget?.step.id,
+      ...(navigationIssue ? { navigationIssue } : {}),
+    };
+  }
+
   if (!hasExplicitPage && stepTarget) {
     return {
       page: 'case',
@@ -99,6 +103,6 @@ export const resolveRunnerNavigation = (
 
   return {
     page: 'overview',
-    ...(unmatchedStepSelector ? { unmatchedStepSelector } : {}),
+    ...(navigationIssue ? { navigationIssue } : {}),
   };
 };

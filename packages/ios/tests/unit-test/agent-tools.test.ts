@@ -1,3 +1,7 @@
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { setMidsceneRunDir } from '@midscene/shared/common';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { agentFromWebDriverAgent } from '../../src/agent';
 import { IOSMidsceneTools } from '../../src/agent-tools';
@@ -314,5 +318,43 @@ describe('IOSMidsceneTools', () => {
         sessionId: 'session-B',
       }),
     );
+  });
+});
+
+// These adapters share the CLI writer tested with real subprocesses in Core.
+// Here we verify that each real platform adapter forwards the session identity.
+describe('IOSMidsceneTools report sessions', () => {
+  it('reuses the report across tool instances and rotates it on connect', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'ios-report-session-'));
+    setMidsceneRunDir(root);
+    const factory = rs.mocked(agentFromWebDriverAgent);
+    factory.mockResolvedValue(createMockAgent() as any);
+    const call = async (command: string) => {
+      const tools = new IOSMidsceneTools();
+      await tools.initTools();
+      const tool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === command)!;
+      try {
+        await tool.handler({ prompt: 'continue recording' });
+      } finally {
+        await tools.destroy();
+      }
+      return factory.mock.calls.at(-1)![0]!;
+    };
+    try {
+      const first = await call('ios_connect');
+      expect(first).toMatchObject({
+        reportFileName: expect.stringContaining('midscene-ios'),
+        reportAttributes: { 'data-group-id': first.reportFileName },
+      });
+      expect(await call('act')).toEqual(first);
+      const next = await call('ios_connect');
+      expect(next.reportFileName).not.toBe(first.reportFileName);
+      expect(await call('act')).toEqual(next);
+    } finally {
+      setMidsceneRunDir(undefined);
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

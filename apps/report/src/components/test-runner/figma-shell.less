@@ -7,20 +7,6 @@
 }
 
 .test-runner-report {
-  --runner-bg: #f7f7f7;
-  --runner-surface-muted: #fcfcfc;
-  --runner-control-bg: #f3f3f4;
-  --runner-text: rgba(16, 24, 40, 0.9);
-  --runner-muted: rgba(16, 24, 40, 0.7);
-  --runner-subtle: rgba(0, 0, 0, 0.5);
-  --runner-border: #ededed;
-  --runner-border-strong: #e5e5e5;
-  --runner-primary: #4f78ff;
-  --runner-primary-soft: #edf3ff;
-  --runner-scroll-thumb: rgba(16, 24, 40, 0.24);
-  --runner-scroll-thumb-hover: rgba(16, 24, 40, 0.42);
-  --runner-sort-arrow-idle: rgb(51 51 51 / 30%);
-  --runner-sort-arrow-active: rgb(51 51 51 / 50%);
   background: var(--runner-bg);
   font-family:
     'Report Inter',
@@ -32,7 +18,7 @@
 
   .runner-header {
     display: block;
-    min-height: 64px;
+    min-height: 56px;
     padding: 0;
     border: 0;
     background: var(--runner-bg);
@@ -41,21 +27,11 @@
   .runner-header-inner {
     display: grid;
     grid-template-columns: minmax(230px, 1fr) auto;
-    width: min(1424px, 100%);
-    min-height: 64px;
+    width: 100%;
+    min-height: 56px;
     align-items: center;
     margin-inline: auto;
     padding: 0 40px;
-  }
-
-  .runner-header-title {
-    gap: 8px;
-  }
-
-  .runner-header-title strong {
-    color: var(--runner-text);
-    font-size: 14px;
-    font-weight: 600;
   }
 
   .runner-header-actions {
@@ -123,7 +99,7 @@
     position: relative;
     z-index: 1;
     isolation: isolate;
-    width: min(1424px, 100%);
+    width: 100%;
     margin-inline: auto;
     padding: 40px;
   }
@@ -133,12 +109,10 @@
     height: 20px;
   }
 
-  .runner-overview-title-row,
   .runner-detail-title-line {
     gap: 12px;
   }
 
-  .runner-overview-title-row h1,
   .runner-detail-title-line h1 {
     margin: 0;
     color: #000;
@@ -149,25 +123,20 @@
     line-height: 38px;
   }
 
-  .runner-overview-title-row .runner-status-pill > .anticon,
-  .runner-detail-title-line .runner-status-pill > .anticon {
-    display: none;
-  }
-
-  .runner-overview-run-meta strong,
+  .runner-run-meta strong,
   .runner-case-meta strong {
     color: var(--runner-text);
     font-weight: 600;
   }
 
-  .runner-overview-run-meta,
+  .runner-run-meta,
   .runner-case-meta {
     color: var(--runner-muted);
     font-size: 12px;
     line-height: 24px;
   }
 
-  .runner-overview-run-meta > span,
+  .runner-run-meta > span,
   .runner-case-meta > span {
     display: inline-flex;
     max-width: none;
@@ -175,7 +144,7 @@
     gap: 8px;
   }
 
-  .runner-overview-run-meta > span + span,
+  .runner-run-meta > span + span,
   .runner-case-meta > span + span {
     position: relative;
     margin-left: 16px;
@@ -183,7 +152,7 @@
     border-left: 0;
   }
 
-  .runner-overview-run-meta > span + span::before,
+  .runner-run-meta > span + span::before,
   .runner-case-meta > span + span::before {
     display: block;
     position: absolute;

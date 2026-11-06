@@ -43,6 +43,7 @@ async function fixture(failure?: string) {
         )
         .setSubject('test-user')
         .setAudience(failure === 'audience' ? 'other-client' : 'oaiapp_test')
+        .setNotBefore(failure === 'future' ? '1h' : 0)
         .setIssuedAt()
         .setExpirationTime(failure === 'expired' ? '0s' : '5m')
         .sign(
@@ -115,7 +116,6 @@ describe('OpenAI loopback login', () => {
     'nonce',
     'issuer',
     'audience',
-    'expired',
     'signature',
     'scope',
     'http',
@@ -133,6 +133,22 @@ describe('OpenAI loopback login', () => {
           context.dependencies,
         ),
       ).rejects.toThrow();
+    });
+  }
+
+  for (const clockMismatch of ['expired', 'future']) {
+    it(`accepts a verified ID token despite local clock mismatch: ${clockMismatch}`, async () => {
+      const context = await fixture(clockMismatch);
+      const result = await loginWithOpenAI(
+        {
+          signal: context.controller.signal,
+          onAuthorization: async (url) => {
+            await fetch(await context.receive(url));
+          },
+        },
+        context.dependencies,
+      );
+      expect(result.subject).toBe('test-user');
     });
   }
 
@@ -171,7 +187,10 @@ describe('OpenAI loopback login', () => {
         },
         context.dependencies,
       ),
-    ).rejects.toThrow('denied');
+    ).rejects.toMatchObject({
+      message: expect.stringContaining('Stage: Authorization callback'),
+      cause: { message: expect.stringContaining('denied') },
+    });
     expect(context.calls).toHaveLength(0);
   });
 

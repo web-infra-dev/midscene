@@ -1,6 +1,10 @@
-import { existsSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { getMidsceneRunBaseDir } from '@midscene/shared/common';
+import {
+  getMidsceneRunBaseDir,
+  setMidsceneRunDir,
+} from '@midscene/shared/common';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { agentForRDPComputer, agentFromComputer } from '../../src/agent';
 import { ComputerMidsceneTools } from '../../src/agent-tools';
@@ -401,4 +405,50 @@ describe('ComputerMidsceneTools', () => {
     expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
     expect(agentFromComputer).toHaveBeenLastCalledWith(undefined);
   });
+});
+
+describe('ComputerMidsceneTools report sessions', () => {
+  it.each(['local', 'rdp'] as const)(
+    'forwards the same report identity across %s calls and rotates on connect',
+    async (mode) => {
+      const root = mkdtempSync(join(tmpdir(), 'computer-report-session-'));
+      setMidsceneRunDir(root);
+      const factory =
+        mode === 'local'
+          ? rs.mocked(agentFromComputer)
+          : rs.mocked(agentForRDPComputer);
+      factory.mockResolvedValue(createMockAgent() as any);
+      const args =
+        mode === 'rdp'
+          ? { computer: { host: 'fixture.invalid', username: 'fixture' } }
+          : {};
+      const call = async (command: string) => {
+        const tools = new ComputerMidsceneTools();
+        await tools.initTools();
+        try {
+          await tools
+            .getToolDefinitions()
+            .find((tool) => tool.name === command)!
+            .handler({ ...args, prompt: 'continue recording' });
+        } finally {
+          await tools.destroy();
+        }
+        return factory.mock.calls.at(-1)![0]!;
+      };
+      try {
+        const first = await call('computer_connect');
+        expect(first).toMatchObject({
+          reportFileName: expect.stringContaining('midscene-computer'),
+          reportAttributes: { 'data-group-id': first.reportFileName },
+        });
+        expect(await call('act')).toEqual(first);
+        const next = await call('computer_connect');
+        expect(next.reportFileName).not.toBe(first.reportFileName);
+        expect(await call('act')).toEqual(next);
+      } finally {
+        setMidsceneRunDir(undefined);
+        rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
 });

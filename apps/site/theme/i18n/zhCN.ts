@@ -1,10 +1,64 @@
 import type { EN_US } from './enUS';
 
 export const ZH_CN: Record<keyof typeof EN_US, string> = {
+  // Homepage chapters
+  chapterAgent: 'GUI Agent',
+  chapterFramework: 'Midscene Test',
+  agentChapterHeading: '为测试而生的 GUI Agent',
+  agentChapterDesc:
+    '从用户视角验证完整流程，是 E2E 测试的初衷。Midscene 通过视觉观察界面、执行操作并验证结果，可通过 API 接入已有工程，或通过 Skills 交给 AI 编程 Agent 使用。',
+  frameworkChapterHeading: '全新设计的自然语言 E2E 测试框架',
+  frameworkChapterDesc:
+    'Midscene Test 是为自然语言 E2E 测试全新设计的框架。在 YAML 中用自然语言描述操作与断言，通过 TypeScript Node 扩展测试步骤，并由框架统一管理数据准备、清理、重试与执行报告。',
+  exampleDesc:
+    '按用户的操作意图写步骤，按用户看到的结果写预期。同一个测试意图，可以用 YAML 表达，也可以接入现有 JavaScript 测试。',
+  agentIntegrationDesc:
+    '可以直接使用 GUI Agent，无需采用 Midscene Test。通过 API、Playwright、Puppeteer 或 Skills 接入你的工作流。',
+  executionEyebrow: '执行管理',
+  executionHeading: '测试框架能力',
+  executionLifecycleHref: '/midscene-test/execution#项目生命周期',
+  executionLifecycleTitle: '生命周期钩子与资源清理',
+  executionLifecycleDesc:
+    '通过 setup、fileSetup、beforeAll、beforeEach 及对应的清理钩子，分别在项目、文件和用例层级准备与清理资源。用例失败、超时或按下 Ctrl+C 后，清理流程仍会执行。',
+  executionLifecycleLink: '项目生命周期',
+  executionScopeProject: '项目',
+  executionInterrupted: '超时或 Ctrl+C',
+  executionCleanupRuns: '清理照常执行',
+  executionRetryHref: '/midscene-test/execution#失败时如何执行',
+  executionRetryTitle: '失败重试与超时',
+  executionRetryDesc:
+    '失败用例可以重试，每次尝试都会重新执行 beforeEach、步骤和 afterEach。可以设置步骤超时，用 continue-on-error 在步骤失败后继续执行，用 bail 提前停止。',
+  executionRetryLink: '失败时如何执行',
+  executionAttempt1: '第 1 次尝试',
+  executionAttempt2: '第 2 次尝试',
+  executionAttemptTimeout: 'aiAssert 超时（120 秒）',
+  executionAttemptPassed: '全部步骤通过',
+  executionRetryAfterCleanup: '清理完成后重试',
+  executionConcurrencyHref: '/midscene-test/execution#并发与资源隔离',
+  executionConcurrencyTitle: '并发与隔离',
+  executionConcurrencyDesc:
+    '通过 maxConcurrentFiles 并发运行多个 YAML 文件。fileSetup 为每个文件准备独立的页面、Agent 或设备，并发文件之间不共享状态。',
+  executionConcurrencyLink: '并发与资源隔离',
+  executionConcurrencyRunning: '运行中',
+  executionConcurrencyEnv: '独立页面与 Agent',
+  executionConcurrencyQueued: '排队中',
+  executionReportHref: '/midscene-test/running#输出与退出码',
+  executionReportTitle: '精确到步骤的报告',
+  executionReportDesc:
+    'HTML 报告记录每个步骤的截图、输入、输出、错误和 Agent 回放。通过 #runner-step=last-error 链接，可以从 CI 通知或 PR 评论直接打开最近一次失败的步骤；summary.json 和 result.md 则供脚本和 AI Agent 读取。',
+  executionReportLink: '输出与报告',
+  executionReportSkipped: '未执行',
+  executionReportScreenshot: '截图',
+  executionReportReplay: 'Agent 回放',
+  executionReportError: '错误',
+  executionReportMachine: '供脚本和 AI Agent 读取',
+
   // Banner - Title
   heroTitle: '像人一样看懂界面\n用自然语言完成 E2E 测试',
   heroSubtitle:
-    'Midscene.js 帮助开发者将 AI 引入 E2E 测试，提供基于视觉的 GUI Agent 与可扩展的测试框架，覆盖 Web、移动端和桌面应用。',
+    'Midscene.js 提供基于视觉的 GUI Agent 和自然语言 E2E 测试框架，支持 Web、移动端和桌面应用。',
+
+  openSource: '完全开源',
 
   // Banner - Stats
   githubStars: 'Github Stars',
@@ -17,7 +71,6 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   completion: '完成率',
 
   // Natural-language test example
-  exampleYamlTitle: '@midscene/test + yaml 格式的用例',
   exampleSetupOmitted: '省略模型配置、page 初始化与资源清理',
   exampleEyebrow: '编写测试',
   exampleHeading: '用自然语言描述步骤与预期',
@@ -31,20 +84,23 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   clientsTitle: '跨端支持',
   clientsHeading: '一套 API，覆盖不同平台',
   platformWeb: 'Web',
-  platformWebAccess: 'Playwright · Puppeteer · 桌面 Chrome',
   platformDesktop: '桌面',
-  platformDesktopAccess: 'macOS · Windows · Linux，支持远程 RDP',
-  platformAndroidAccess: '真机 / 模拟器 · ADB',
-  platformIosAccess: '真机 / 模拟器 · WebDriverAgent',
-  platformHarmonyAccess: 'HarmonyOS NEXT · HDC',
+  platformsApiLabel: '同一套 API',
+  platformsApiPrompt: '搜索耳机',
+  visionStepObserve: '观察屏幕',
+  visionStepObserveDesc: '读取截图，不依赖 DOM',
+  visionStepAct: '执行操作',
+  visionStepActDesc: '找到目标，点击、输入或滚动',
+  visionStepVerify: '检查结果',
+  visionStepVerifyDesc: '断言用户实际看到的内容',
+  visionShowcaseLink: '查看实际案例',
   platformCustom: '自定义界面',
-  platformCustomAccess: '提供截图与操作能力，即可接入',
   platformCustomDoc: '扩展指南',
   platformBridgeDoc: 'Bridge 模式',
 
   // Feature Sections - MODELS
   modelsTitle: '视觉模型与策略',
-  modelsHeading: '视觉驱动\n低成本运行测试',
+  modelsHeading: '看懂界面，验证结果',
 
   // Model Cards
   modelVisionName: '截图定位与操作',
@@ -55,6 +111,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   modelAssertDesc:
     '用自然语言描述预期颜色、布局与状态，通过视觉断言检查界面实际呈现的效果。',
   modelAssertMetric: '颜色 · 布局 · 状态',
+  modelSupportedLink: '查看模型配置',
   modelSupportedName: '支持多种模型',
   modelSupportedDesc:
     '支持豆包、DeepSeek、Qwen、GPT、Gemini、Kimi 等模型，按效果与预算选择。',
@@ -63,38 +120,57 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
     '以豆包 Seed 2.1 Turbo 为例：该次 AppControlBench 评测中，60 项任务通过 58 项，模型调用总费用为 $0.59。',
   modelCostExample: '评测案例 · AppControlBench',
   modelCostReport: '查看评测报告',
-  modelCostMetric: '60 项任务的模型调用总费用',
+  modelCostMetric: '模型调用总费用',
+  modelCostTasks: '/ 60 项任务',
 
   // Test framework
-  frameworkHeading: '用 YAML 组织用例\n用 TypeScript 扩展',
-  frameworkYamlTitle: '用自然语言组织测试用例',
-  frameworkYamlDesc:
-    '在 YAML 中组合界面操作、断言与业务节点，专注描述测试流程。',
-  frameworkNodeTitle: '把业务能力封装为可复用节点',
+  frameworkHeading: 'AI 操作与业务操作\n写在同一个 YAML 里',
+  frameworkDesc:
+    '每个 YAML 步骤都调用一个 Node，可以是 AI 操作、平台操作或自定义业务操作。将这些 Node 组合成人和 AI 都能读写、审阅的测试用例。',
+  frameworkAiTag: 'AI',
+  frameworkNodeTag: '业务',
+  frameworkLegendLabel: '步骤类型',
+  frameworkAiTitle: 'AI 操作',
+  frameworkAiDesc:
+    'aiAct、aiAssert 等接口读取界面截图，按自然语言指令操作和断言。',
+  frameworkNodeTitle: '业务操作',
   frameworkNodeDesc:
-    '用 TypeScript 实现数据准备、接口调用与清理，供不同用例复用。',
-  frameworkSpecTitle: '自动生成 Node 说明书',
-  frameworkSpecDesc:
-    '将已注册节点与参数定义导出为 Markdown，让开发者和 AI Agent 了解项目能力，共同编写与维护用例。',
-  frameworkSpecOmitted: '其余 Schema 字段与节点说明省略。',
-  frameworkSpecNote:
-    '运行 pnpm exec midscene-test nodes 自动生成。这里展示 user.create 的说明片段，与 TypeScript 节点定义对应。',
-  frameworkLink: '了解 Midscene Test',
-  frameworkYamlTab: 'YAML 用例',
-  frameworkNodeTab: 'TypeScript 扩展节点',
-  frameworkCase: '搜索新建用户',
-  frameworkAct: '搜索用户名 Alice',
-  frameworkAssert: '搜索结果中显示用户 Alice',
-  frameworkNodeDescription: '创建测试用户，并在用例结束后清理',
-  frameworkYamlNote:
-    '示例：准备用户数据，再通过界面搜索并验证。需先配置模型与 Web 运行环境，并替换示例网址。',
-  frameworkNodeNote:
-    'user.create 对应 YAML 中的同名步骤；userService 是你实现的业务接口，负责创建和删除测试用户。',
+    '通过自定义 Node，用 TypeScript 准备测试数据、校验接口并清理资源。',
+  frameworkStartLink: '创建测试项目',
+  frameworkLink: '了解框架设计',
+  frameworkCaseName: '已支付订单支持全额退款',
+  frameworkCaseAct: '申请全额退款并提交',
+  frameworkCaseAssert: '页面显示退款申请已提交',
+
+  // Test project
+  projectEyebrow: '测试工程',
+  projectHeading: '定制属于自己的测试工程',
+  projectDesc:
+    'Midscene Test 提供扩展机制，用 TypeScript 将业务操作定义为 Node，注册后即可在 YAML 中调用。再生成 Markdown Node Spec，描述当前执行项目注册的全部 Node 及其输入参数，包括 AI、平台和自定义业务操作，让人和 AI 都能据此在用例中引用这些 Node。',
+  projectNodesRole: '定义自己的操作',
+  projectNodesDesc: '用 TypeScript 实现业务逻辑，并声明操作的输入参数。',
+  projectSpecOperation: '已注册的 Node 名称',
+  projectSpecInputs: '用途说明与输入参数',
+  projectSpecUsage: '编写用例时的参考文档',
+  projectCaseSetup: '引用自定义 Node',
+  projectCaseAction: '传入所需参数',
+  projectCaseCheck: '与 AI 操作、断言组合成用例',
+  projectOutputsDesc:
+    '生成描述测试工程能力的 Markdown 文档，再在 YAML 用例中引用已注册的 Node。',
+  projectSpecRole: '由 midscene-test nodes 生成',
+  projectSpecDesc: '列出所有已注册的 Node 及其输入 Schema。',
+  projectCasesRole: '测试工程师 · AI Agent',
+  projectCasesDesc: '根据 Spec 中的 Node 组合用例，无需阅读 TypeScript 代码。',
+  projectLink: '开发自定义 Node',
+  projectNodeDescription: '创建测试订单',
+  projectCaseName: '全额退款',
+  projectCaseAct: '为订单申请全额退款',
+  projectCaseAssert: '退款申请已提交',
 
   // Testing toolkit
-  debuggingTitle: '测试工具链',
-  debuggingHeading: '完整的 AI Native 测试工具链',
-  toolkitFrameworkTitle: 'AI Native 测试框架',
+  debuggingTitle: 'AGENT 工具链',
+  debuggingHeading: '接入、回放与调试',
+  toolkitFrameworkTitle: 'AI Native E2E 测试框架',
   toolkitFrameworkDesc:
     '用 YAML 与自然语言写用例，用 TypeScript 扩展业务节点，组合 AI 操作与业务逻辑。',
   toolkitYaml: '描述用例与预期',
