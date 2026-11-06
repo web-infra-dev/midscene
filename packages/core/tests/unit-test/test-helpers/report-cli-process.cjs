@@ -8,7 +8,7 @@ const { BaseMidsceneTools } = req('@midscene/shared/agent-tools/base-tools');
 const { runToolsCLI } = req('@midscene/shared/cli');
 const { createReportCliCommands } = req('./report-cli.js');
 const png =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWNgYGD4DwABBAEAfbLI3wAAAABJRU5ErkJggg==';
 class Tools extends BaseMidsceneTools {
   getCliReportSessionName() {
     return `midscene-${platform}`;

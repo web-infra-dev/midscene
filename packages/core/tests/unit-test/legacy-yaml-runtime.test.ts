@@ -11,7 +11,7 @@ import { describe, expect, rstest as rs, test } from '@rstest/core';
 
 const createUIContext = (): UIContext => ({
   screenshot: ScreenshotItem.create(
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=',
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWNgYGD4DwABBAEAfbLI3wAAAABJRU5ErkJggg==',
     Date.now(),
   ),
   shotSize: { width: 1, height: 1 },
@@ -204,7 +204,7 @@ describe('legacy YAML runtime', () => {
         describe: () => 'sleep test page',
         size: async () => ({ width: 1, height: 1 }),
         screenshotBase64: async () =>
-          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=',
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWNgYGD4DwABBAEAfbLI3wAAAABJRU5ErkJggg==',
       } as any,
       {
         generateReport: false,
