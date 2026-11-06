@@ -83,7 +83,7 @@ let logDirectoryResolver: (() => string) | undefined;
 // main process can keep running while macOS has deprioritized a backgrounded
 // app, so retaining diagnostic logs here can otherwise grow without bound.
 // Drop best-effort logs until the stream drains instead.
-const backpressuredLogStreams = new Set<string>();
+const backpressuredLogStreams = new Map<string, fs.WriteStream>();
 const unavailableLogStreams = new Set<string>();
 // Map to store debug instances
 const debugInstances = new Map<string, DebugFunction>();
@@ -115,15 +115,26 @@ function getLogDirectory(): string {
 }
 
 // Function to get or create a log stream
-function getLogStream(topic: string): fs.WriteStream | null {
-  const topicFileName = topic.replace(/:/g, '-');
-  if (unavailableLogStreams.has(topicFileName)) {
+function getLogStream(logFile: string): fs.WriteStream | null {
+  if (unavailableLogStreams.has(logFile)) {
     return null;
   }
-  const logFile = path.join(getLogDirectory(), `${topicFileName}.log`);
-  const existingStream = logStreams.get(topicFileName);
-  if (existingStream && logStreamPaths.get(topicFileName) !== logFile) {
-    existingStream.end();
+  const topicFileName = path.basename(logFile);
+  const existing = logStreams.get(topicFileName);
+  const previousPath = logStreamPaths.get(topicFileName);
+  if (existing && previousPath !== logFile) {
+    // An ended stream emits finish rather than drain. Keep dropping logs
+    // until its queued bytes are flushed, then allow this run to resume.
+    if (
+      previousPath &&
+      backpressuredLogStreams.get(previousPath) === existing
+    ) {
+      existing.once('finish', () => {
+        if (backpressuredLogStreams.get(previousPath) === existing)
+          backpressuredLogStreams.delete(previousPath);
+      });
+    }
+    existing.end();
     logStreams.delete(topicFileName);
     logStreamPaths.delete(topicFileName);
   }
@@ -133,8 +144,9 @@ function getLogStream(topic: string): fs.WriteStream | null {
     // Logging must remain best-effort, so disable this topic after a file error
     // rather than repeatedly queuing writes to a broken stream.
     stream.on('error', () => {
-      unavailableLogStreams.add(topicFileName);
-      backpressuredLogStreams.delete(topicFileName);
+      unavailableLogStreams.add(logFile);
+      if (backpressuredLogStreams.get(logFile) === stream)
+        backpressuredLogStreams.delete(logFile);
       if (logStreams.get(topicFileName) === stream) {
         logStreams.delete(topicFileName);
         logStreamPaths.delete(topicFileName);
@@ -151,11 +163,12 @@ function writeLogToFile(topic: string, message: string): void {
   if (!ifInNode) return;
 
   const topicFileName = topic.replace(/:/g, '-');
-  if (backpressuredLogStreams.has(topicFileName)) {
+  const logFile = path.join(getLogDirectory(), `${topicFileName}.log`);
+  if (backpressuredLogStreams.has(logFile)) {
     return;
   }
 
-  const stream = getLogStream(topic);
+  const stream = getLogStream(logFile);
   if (!stream) return;
   // Generate ISO format timestamp with local timezone
   const now = new Date();
@@ -176,14 +189,16 @@ function writeLogToFile(topic: string, message: string): void {
   const localISOTime = `${isoDate}T${isoTime}.${milliseconds}${timezoneString}`;
   try {
     if (!stream.write(`[${localISOTime}] ${message}\n`)) {
-      backpressuredLogStreams.add(topicFileName);
+      backpressuredLogStreams.set(logFile, stream);
       stream.once('drain', () => {
-        backpressuredLogStreams.delete(topicFileName);
+        if (backpressuredLogStreams.get(logFile) === stream)
+          backpressuredLogStreams.delete(logFile);
       });
     }
   } catch {
-    unavailableLogStreams.add(topicFileName);
-    backpressuredLogStreams.delete(topicFileName);
+    unavailableLogStreams.add(logFile);
+    if (backpressuredLogStreams.get(logFile) === stream)
+      backpressuredLogStreams.delete(logFile);
   }
 }
 

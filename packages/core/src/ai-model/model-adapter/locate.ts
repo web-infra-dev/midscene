@@ -6,6 +6,7 @@ import {
   createDefaultElementProtocol,
   createDefaultSearchAreaProtocol,
 } from './default-locate-protocol';
+import { parseLocatePromptOrder } from './locate-prompt-order';
 import type {
   StandardLocateProtocolContext,
   StandardLocateProtocolDefinition,
@@ -82,7 +83,7 @@ export function resolveLocate(
 
   return {
     kind: 'standard',
-    userMessageContentOrder: locate?.userMessageContentOrder ?? 'image-first',
+    promptOrder: parseLocatePromptOrder(locate?.promptOrder),
     element: {
       protocol: elementProtocol,
       resultCodec: elementResultCodec,

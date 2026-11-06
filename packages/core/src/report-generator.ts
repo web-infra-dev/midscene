@@ -80,7 +80,7 @@ export interface IReportGenerator {
    * Wait for all queued write operations to complete.
    */
   flush(): Promise<void>;
-  enableSourceSnapshots?(): void;
+  enableSourceSnapshots?(scopeId?: string): void;
   createSourceSnapshot?(
     scopeId: string,
     executionIds?: readonly string[],
@@ -133,6 +133,8 @@ export class ReportGenerator implements IReportGenerator {
 
   // Tracks screenshots already written to disk (by id) to avoid duplicates
   private screenshotStore: ReportImageStore;
+  private sourceStore?: ReportImageStore;
+  private sourceDirectory?: string;
   private initialized = false;
 
   // Tracks the last execution + groupMeta for re-writing on finalize
@@ -311,12 +313,13 @@ export class ReportGenerator implements IReportGenerator {
       });
       for (const diagnostic of dump.diagnostics ?? [])
         warnReport(diagnostic.message);
+      this.enableSourceSnapshots(scopeId);
       const sourceDump = await this.serializeSourceDump();
       const images: string[] = [];
       if (this.screenshotMode === 'inline') {
         for (const ref of sourceDump.images.values()) {
           const bytes = await readFileAsync(
-            join(dirname(this.reportPath), ref.path!),
+            join(this.sourceDirectory!, ref.path!),
           );
           images.push(
             generateImageScriptTag(
@@ -391,12 +394,30 @@ ${generateAgentReportComment(agentDump)}`;
     return this.reportPath;
   }
 
-  enableSourceSnapshots(): void {
-    this.screenshotStore.enableFileCopies();
+  enableSourceSnapshots(scopeId = this.reportStreamId): void {
+    if (
+      !scopeId ||
+      scopeId === '.' ||
+      scopeId === '..' ||
+      /[/\\]/.test(scopeId)
+    )
+      throw new Error('Invalid report scope ID');
+    if (this.sourceStore) return;
+    this.sourceDirectory = join(
+      getMidsceneRunSubDir('test-results'),
+      scopeId,
+      'records',
+    );
+    this.sourceStore = new ReportImageStore({
+      mode: 'directory',
+      reportPath: join(this.sourceDirectory, 'source.json'),
+      screenshotsDir: join(this.sourceDirectory, 'screenshots'),
+    });
   }
 
   private async serializeSourceDump(snapshot?: ExecutionRecordSnapshot) {
     this.enableSourceSnapshots();
+    const store = this.sourceStore!;
     const captured =
       snapshot ??
       this.recorder.capture(
@@ -408,13 +429,10 @@ ${generateAgentReportComment(agentDump)}`;
         },
       );
     for (const screenshot of captured.screenshots)
-      await this.screenshotStore.persist(screenshot);
+      await store.persistFileCopy(screenshot);
     const references = new Map<string, ImageUrlRef>();
     for (const url of captured.referenceImageUrls) {
-      references.set(
-        url,
-        await this.screenshotStore.persistReferenceImage(url),
-      );
+      references.set(url, await store.persistReferenceImage(url));
     }
     const images = new Map<
       string,
@@ -428,10 +446,7 @@ ${generateAgentReportComment(agentDump)}`;
         const stored = {
           ...ref,
           storage: 'file' as const,
-          path:
-            ref.storage === 'file'
-              ? ref.path
-              : this.screenshotStore.getFilePath(ref.id),
+          path: store.getFilePath(ref.id),
         };
         images.set(ref.id, stored);
         return stored;
@@ -457,7 +472,10 @@ ${generateAgentReportComment(agentDump)}`;
     );
     const publication = (async () => {
       const { serialized } = await this.serializeSourceDump(snapshot);
-      const dumpPath = `${this.reportPath}.${scopeId}.${uuid()}.json`;
+      const dumpPath = join(
+        this.sourceDirectory!,
+        `${this.reportStreamId}.${scopeId}.${uuid()}.json`,
+      );
       mkdirSync(dirname(dumpPath), { recursive: true });
       await writeFileAsync(dumpPath, serialized, { flag: 'wx' });
       return {
@@ -619,6 +637,7 @@ ${generateAgentReportComment(agentDump)}`;
 
     // Append new screenshots (skip already-written ones)
     for (const screenshot of execution.collectScreenshots()) {
+      await this.sourceStore?.persistFileCopy(screenshot);
       await this.screenshotStore.persist(screenshot);
     }
     const referenceImageRefs = await this.persistReferenceImages(execution);

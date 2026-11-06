@@ -4,25 +4,24 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - '**/*.md'
-      - 'apps/site/**'
-      - '.changeset/**'
-      - 'docs/**'
   pull_request:
-    paths-ignore:
-      - '**/*.md'
-      - 'apps/site/**'
-      - '.changeset/**'
-      - 'docs/**'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  changes:
+    uses: ./.github/workflows/ci-changes.yml
+
   rdp-native:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -102,12 +101,11 @@ jobs:
         name: rdp-midscene-report
         path: midscene_run/report/rdp-xrdp-ci-e2e.html
 
-  main:
+  unit-tests:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     # The viewport e2e relies on the hosted image's Chrome window behavior.
     runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        node-version: [24.13.0]
 
     # do NOT provide API keys here. The test cases should not rely on any API keys.
     # env:
@@ -115,45 +113,25 @@ jobs:
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
-      with:
-        version: 9.3.0
-  
-    - name: Setup Node.js
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-      with:
-        node-version: '24.13.0'
-
-    - name: Cache Puppeteer dependencies
-      uses: ./.github/actions/cache/restore
-      id: cache-puppeteer
-      with:
-        path: ~/.cache/puppeteer
-        key: ${{ runner.os }}-puppeteer-${{ hashFiles('pnpm-lock.yaml') }}
-        restore-keys: |
-          ${{ runner.os }}-puppeteer-
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile --ignore-scripts
-    
-    - name: Install puppeteer dependencies
-      run: |
-        cd packages/web-integration
-        npx puppeteer browsers install chrome
 
-    - name: Save Puppeteer cache
-      if: steps.cache-puppeteer.outputs.cache-hit != 'true'
-      uses: ./.github/actions/cache/save
-      with:
-        path: ~/.cache/puppeteer
-        key: ${{ runner.os }}-puppeteer-${{ hashFiles('pnpm-lock.yaml') }}
+    - name: Setup Puppeteer browser
+      uses: ./.github/actions/setup-puppeteer-browser
 
     - name: Check tsconfig references
       run: pnpm run check:references
 
     - name: Build project
       run: pnpm run build
+
+    - name: Check packaged Web entry points
+      run: |
+        pnpm --dir packages/web-integration pack --pack-destination "$RUNNER_TEMP/web-package"
+        node scripts/check-package-exports.mjs "$RUNNER_TEMP/web-package"
 
     - name: Check Report build feedback loop
       run: pnpm run check:report-build-feedback-loop
@@ -203,20 +181,8 @@ jobs:
     - name: Type check tests
       run: pnpm run type-check:tests
 
-    - name: Test repository scripts
-      run: pnpm run test:scripts
-
     - name: Run tests with coverage
       run: pnpm run test:coverage
-
-    - name: Test generated Midscene Test projects with the built CLI
-      run: pnpm --filter @midscene/test exec vitest --run --config vitest.e2e.config.ts tests/e2e/create-cli.test.ts
-
-    # Run the Chrome/YAML batch after full-workspace coverage so it does not compete
-    # with the other Nx projects for runner resources.
-    - name: Run CLI shared-browser YAML e2e
-      timeout-minutes: 5
-      run: pnpm --filter @midscene/cli test:e2e:shared-browser
 
     - name: Upload coverage reports
       id: upload-coverage
@@ -232,3 +198,45 @@ jobs:
       env:
         COVERAGE_ARTIFACT_URL: ${{ steps.upload-coverage.outputs.artifact-url }}
       run: node scripts/github-coverage-summary.js
+
+  integration:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile --ignore-scripts
+    - name: Setup Puppeteer browser
+      uses: ./.github/actions/setup-puppeteer-browser
+    - name: Build integration projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/cli,@midscene/test"
+    - name: Test repository scripts
+      run: pnpm run test:scripts
+
+    - name: Test generated Midscene Test projects with the built CLI
+      run: pnpm --filter @midscene/test exec vitest --run --config vitest.e2e.config.ts tests/e2e/create-cli.test.ts
+
+    # Browser integration has its own runner, isolated from unit-test workers.
+    - name: Run CLI shared-browser YAML e2e
+      timeout-minutes: 5
+      run: pnpm --filter @midscene/cli test:e2e:shared-browser
+
+
+  # Keep the original check context; failures/skips in any required suite fail it.
+  main:
+    needs: [changes, unit-tests, integration, rdp-native]
+    if: always() && (needs.changes.result != 'success' || needs.changes.outputs.code == 'true')
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [24.13.0]
+    steps:
+    - name: Check CI suites
+      env:
+        UNIT: ${{ needs.unit-tests.result }}
+        INTEGRATION: ${{ needs.integration.result }}
+        RDP: ${{ needs.rdp-native.result }}
+      run: test "$UNIT" = success && test "$INTEGRATION" = success && test "$RDP" = success

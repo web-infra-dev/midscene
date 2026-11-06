@@ -17,6 +17,7 @@ import {
   TestRunReportAssembler,
   calculateTestRunHealth,
 } from '@midscene/core/report';
+import { runWithMidsceneRunDir } from '@midscene/shared/common';
 import { getDebug } from '@midscene/shared/logger';
 import { writeTestResultJUnit } from '../report/result-junit';
 import { writeTestResultMarkdown } from '../report/result-markdown';
@@ -123,7 +124,9 @@ export async function runPreparedTestProject(
   plan: PreparedTestRunPlan,
 ): Promise<TestProjectRunResult> {
   const reports = new ReportSession(join(plan.runDir, 'records'));
-  return reports.run(() => runWithReportSession(plan, reports));
+  return runWithMidsceneRunDir(plan.artifactDir, () =>
+    reports.run(() => runWithReportSession(plan, reports)),
+  );
 }
 
 async function runWithReportSession(

@@ -216,7 +216,6 @@ export class Page<
   underlyingPage: InterfaceType;
   protected waitForNavigationTimeout: number;
   protected waitForNetworkIdleTimeout: number;
-  private viewportSize?: Size;
   private onBeforeInvokeAction?: AbstractInterface['beforeInvokeAction'];
   private onAfterInvokeAction?: AbstractInterface['afterInvokeAction'];
   private customActions?: DeviceAction<any>[];
@@ -462,16 +461,14 @@ export class Page<
   }
 
   async size(): Promise<Size> {
-    if (this.viewportSize) return this.viewportSize;
+    // Tabs and window sizes can change while this wrapper stays alive.
     /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
-    const sizeInfo: Size = await this.evaluate(() => {
+    return this.evaluate(() => {
       return {
         width: window.innerWidth,
         height: window.innerHeight,
       };
     });
-    this.viewportSize = sizeInfo;
-    return sizeInfo;
   }
 
   async screenshotBase64(): Promise<string> {
@@ -1348,49 +1345,36 @@ export class Page<
     to: { x: number; y: number },
     duration?: number,
   ) {
-    const LONG_PRESS_THRESHOLD = 500;
     const MIN_PRESS_THRESHOLD = 150;
     duration = duration || 100;
     if (duration < MIN_PRESS_THRESHOLD) {
       duration = MIN_PRESS_THRESHOLD;
     }
-    if (duration > LONG_PRESS_THRESHOLD) {
-      duration = LONG_PRESS_THRESHOLD;
-    }
+    // Preserve explicit slow gestures; a moving pointer is not a long press.
     debugPage(
       `mouse swipe from ${from.x}, ${from.y} to ${to.x}, ${to.y} with duration ${duration}ms`,
     );
 
-    if (this.interfaceType === 'puppeteer') {
-      const page = this.underlyingPage as PuppeteerPage;
-      await page.mouse.move(from.x, from.y);
-      await page.mouse.down({ button: 'left' });
-
+    const page = this.underlyingPage as PuppeteerPage | PlaywrightPage;
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down({ button: 'left' });
+    let completed = false;
+    try {
       const steps = 30;
-      const delay = duration / steps;
       for (let i = 1; i <= steps; i++) {
         const x = from.x + (to.x - from.x) * (i / steps);
         const y = from.y + (to.y - from.y) * (i / steps);
         await page.mouse.move(x, y);
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await sleep(duration / steps);
       }
-
-      await page.mouse.up({ button: 'left' });
-    } else if (this.interfaceType === 'playwright') {
-      const page = this.underlyingPage as PlaywrightPage;
-      await page.mouse.move(from.x, from.y);
-      await page.mouse.down();
-
-      const steps = 30;
-      const delay = duration / steps;
-      for (let i = 1; i <= steps; i++) {
-        const x = from.x + (to.x - from.x) * (i / steps);
-        const y = from.y + (to.y - from.y) * (i / steps);
-        await page.mouse.move(x, y);
-        await page.waitForTimeout(delay);
+      completed = true;
+    } finally {
+      if (completed) {
+        await page.mouse.up({ button: 'left' });
+      } else {
+        // Release best-effort without replacing the original movement error.
+        await page.mouse.up({ button: 'left' }).catch(() => {});
       }
-
-      await page.mouse.up({ button: 'left' });
     }
   }
   async longPress(x: number, y: number, duration?: number) {
@@ -1555,19 +1539,25 @@ export class Page<
         capturedError = error as Error;
       }
     };
-    session.on('Page.fileChooserOpened', this.puppeteerFileChooserHandler);
+    const listener = this.puppeteerFileChooserHandler;
+    session.on('Page.fileChooserOpened', listener);
+    let disposed = false;
     return {
       dispose: () => {
-        if (this.puppeteerFileChooserHandler) {
-          session.off(
-            'Page.fileChooserOpened',
-            this.puppeteerFileChooserHandler,
-          );
+        if (disposed) return;
+        disposed = true;
+        session.off('Page.fileChooserOpened', listener);
+        if (this.puppeteerFileChooserHandler === listener) {
+          this.puppeteerFileChooserHandler = undefined;
         }
-        void session.detach();
-        this.puppeteerFileChooserHandler = undefined;
-        if (this.puppeteerFileChooserSession === session) {
+        if (
+          this.puppeteerFileChooserSession === session &&
+          !this.puppeteerFileChooserHandler
+        ) {
           this.puppeteerFileChooserSession = undefined;
+          void session.detach().catch((error) => {
+            debugPage('failed to detach file chooser session: %s', error);
+          });
         }
       },
       getError: () => capturedError,

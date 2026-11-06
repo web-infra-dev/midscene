@@ -119,6 +119,8 @@ Midscene 支持豆包 Seed、千问 Qwen、DeepSeek、Gemini、GPT、Kimi 等模
 
 从[创建和使用测试项目](https://midscenejs.com/zh/midscene-test/use)开始，再了解如何[编写自定义 Node](https://midscenejs.com/zh/midscene-test/extend)，以及如何控制[生命周期与并发](https://midscenejs.com/zh/midscene-test/execution)。
 
+报告、Test 结果、缓存和日志保存在 `midscene_run/`。路径配置与 CI 归档方式见[产物目录](https://midscenejs.com/zh/midscene-test/running#统一产物根与迁移)。
+
 ## 🚀 开始使用
 
 - **编写 YAML 测试用例**：[创建 Midscene Test 项目](https://midscenejs.com/zh/midscene-test/use)。

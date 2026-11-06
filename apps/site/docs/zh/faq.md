@@ -177,7 +177,7 @@ MIDSCENE_MODEL_PROTOCOL="openai-responses"
 
 ## 如何配置 midscene_run 目录？
 
-Midscene 会将运行产物（报告、日志、缓存等）保存在 `midscene_run` 目录下。默认情况下，该目录会创建在当前工作目录下。
+Midscene 默认将报告、日志和缓存保存在 `midscene_run/`。独立脚本、旧 YAML 和 Playwright 以当前工作目录为基准，Midscene Test 以测试项目为基准。详见[产物目录](./midscene-test/running#统一产物根与迁移)。
 
 你可以通过环境变量 `MIDSCENE_RUN_DIR` 来自定义该目录的位置，支持相对路径或绝对路径：
 
@@ -189,11 +189,13 @@ export MIDSCENE_RUN_DIR="./my_custom_dir"
 export MIDSCENE_RUN_DIR="/tmp/midscene_output"
 ```
 
-该目录包含以下子目录：
+常用子目录：
 
-- `report/` - 测试报告文件（HTML 格式）
+- `report/` - Agent 报告与 Midscene Test 整合报告，默认是自包含 HTML
+- `test-results/` - 执行结果与诊断记录
 - `log/` - 调试日志文件
 - `cache/` - 缓存文件（详见 [缓存](./caching)）
+- `output/` - 执行操作产生的文件
 
 更多全局运行参数请参考[运行时配置](./reference/#runtime-configuration)。
 
@@ -315,3 +317,9 @@ Midscene 会优先要求模型根据滚动和滑动的目的确定操作方向�
 ## 豆包手机是否使用了 Midscene 作为底层方案？
 
 没有。
+
+## Web 包应该使用哪些导入入口？
+
+Web 接入使用 `@midscene/web/playwright`、`@midscene/web/playwright/agent`、`@midscene/web/puppeteer` 或包根入口。通用 Agent 与 YAML API 分别位于 `@midscene/core/agent` 和 `@midscene/core/yaml`。
+
+`@midscene/web/utils`、`@midscene/web/ui-utils`、`@midscene/web/yaml` 和 `@midscene/web/agent` 四项残留声明已清理，它们指向的文件此前没有包含在发布包中。更新自定义接入时，请按包支持的导出入口导入。

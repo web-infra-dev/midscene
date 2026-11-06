@@ -18,11 +18,6 @@ export const jevLocate: LocateFn = async ({
       state: { target, references: references.references },
       images: { screenshot: image.imageBase64, ...references.images },
       questions: {
-        present: {
-          type: 'noul',
-          instructions:
-            'Is the target described in `target` present in `screenshot`? Reference images, if any, describe the target; they are not the screenshot.',
-        },
         target: {
           type: 'box',
           instructions:
@@ -36,17 +31,10 @@ export const jevLocate: LocateFn = async ({
   const { answers } = systemOneResponseSchema.parse(
     JSON.parse(response.content),
   );
-  assert(
-    answers.present.type === 'noul' && answers.target.type === 'box',
-    'Invalid Jev locate answers',
-  );
+  assert(answers.target?.type === 'box', 'Invalid Jev locate answer');
   return {
     rawResponse: response.content,
     usage: response.usage,
-    ...(answers.present.noul >= 0.5
-      ? {
-          locatedPixelResult: mapJevBox(answers.target.box, locateImage),
-        }
-      : { errors: ['The target is not present in the screenshot'] }),
+    locatedPixelResult: mapJevBox(answers.target.box, locateImage),
   };
 };
