@@ -14,11 +14,17 @@ Projects generated from templates use `files.include` to match `.yaml` and `.yml
 
 When passing a directory or file path on the command line, be aware of how the **test root** changes and affects path resolution:
 
-- **Determining the test root**: Without path arguments, the test root is the current working directory. With a directory argument, the test root becomes that directory. With a single file argument, the test root becomes the file's containing directory.
-- **Resolved relative to the test root**: Default configuration file discovery (searches only within the test root, without traversing parent directories), the `--config` parameter path, and `files.include` / `files.exclude` patterns in the configuration.
+- **Determining the test root**: Without path arguments, the test root is the current working directory. With a directory argument, it becomes that directory. For a single file without `--config`, Midscene Test searches for the nearest config from the file's directory up to and including the working directory. The directory containing that config becomes the test root. If no config is found, or the file is outside the working directory, the file's directory remains the test root.
+- **Resolved relative to the test root**: The `--config` parameter path and `files.include` / `files.exclude` patterns. With an explicit `--config` and a single file, the test root remains the file's directory; parent config discovery is skipped.
 - **Resolved relative to the current working directory**: The `--result-dir` parameter path.
 
-Therefore, when `midscene.config.ts` lives in the project root and you only want to run a single file in the `cases/` subdirectory, you need to explicitly pass `--config` (note that it resolves relative to the `cases/` directory where the target file is located):
+When `midscene.config.ts` lives in the project root, run one nested file from that root without repeating the config path:
+
+```bash
+pnpm exec midscene-test ./cases/order.yaml
+```
+
+To select a config explicitly, its path is still relative to the file's directory:
 
 ```bash
 pnpm exec midscene-test ./cases/order.yaml --config ../midscene.config.ts

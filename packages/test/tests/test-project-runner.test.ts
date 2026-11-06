@@ -663,6 +663,98 @@ describe('test project main-process runner', () => {
     });
   });
 
+  it.each(['cases', '..fixtures/cases'])(
+    'runs a single YAML file in %s with the nearest parent config',
+    async (directory) => {
+      const root = createProject();
+      writeFileSync(
+        join(root, 'midscene.config.ts'),
+        `export default {
+        nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
+      };`,
+      );
+      writeWorkflow(
+        root,
+        `${directory}/example.yaml`,
+        'cases: [{ name: example, steps: [{ noop: run }] }]',
+      );
+      writeWorkflow(root, `${directory}/other.yaml`, 'cases: invalid');
+
+      const result = await runTestProject({
+        cwd: root,
+        projectRoot: `${directory}/example.yaml`,
+      });
+
+      expect(result.status).toBe('success');
+      expect(result.cases).toEqual([
+        expect.objectContaining({
+          name: 'example',
+          sourcePath: `${directory}/example.yaml`,
+          status: 'success',
+        }),
+      ]);
+      expect(result.resultDir).toBe(join(root, 'midscene_run', 'test-results'));
+      expect(
+        JSON.parse(readFileSync(result.summaryPath, 'utf8')).projectRoot,
+      ).toBe(root);
+    },
+  );
+
+  it('prefers a config next to a single YAML file over a parent config', async () => {
+    const root = createProject();
+    writeFileSync(join(root, 'midscene.config.ts'), 'export default {};');
+    mkdirSync(join(root, 'cases'));
+    writeFileSync(
+      join(root, 'cases', 'midscene.config.ts'),
+      `export default {
+        nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
+      };`,
+    );
+    writeWorkflow(
+      root,
+      'cases/example.yaml',
+      'cases: [{ name: example, steps: [{ noop: run }] }]',
+    );
+
+    const result = await runTestProject({
+      cwd: root,
+      projectRoot: 'cases/example.yaml',
+    });
+
+    expect(result.status).toBe('success');
+    expect(result.cases[0].sourcePath).toBe('example.yaml');
+    expect(result.resultDir).toBe(
+      join(root, 'cases', 'midscene_run', 'test-results'),
+    );
+  });
+
+  it('does not look for a single YAML file config above the working directory', async () => {
+    const root = createProject();
+    const cwd = join(root, 'work');
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `export default {
+        nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
+      };`,
+    );
+    writeWorkflow(
+      root,
+      'work/cases/example.yaml',
+      'cases: [{ name: example, steps: [{ noop: run }] }]',
+    );
+
+    const result = await runTestProject({
+      cwd,
+      projectRoot: 'cases/example.yaml',
+      resultDir: join(root, 'results'),
+    });
+
+    expect(result.status).toBe('failed');
+    expect(
+      JSON.parse(readFileSync(result.summaryPath, 'utf8')).projectRoot,
+    ).toBe(join(cwd, 'cases'));
+  });
+
   it('reports live document, case, and step progress', async () => {
     const root = createProject();
     const resultDir = join(root, 'results');
