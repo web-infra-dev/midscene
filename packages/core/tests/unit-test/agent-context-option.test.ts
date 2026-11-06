@@ -78,6 +78,35 @@ const createAgentStub = () => {
 };
 
 describe('Agent per-call context option', () => {
+  it('applies middle-click context defaults, API overrides and explicit blank context', async () => {
+    const { agent } = createAgentStub();
+    const dispatch = rs
+      .spyOn(agent, 'callActionInActionSpace')
+      .mockResolvedValue(undefined);
+    await agent.aiMiddleClick('target');
+    expect(dispatch).toHaveBeenLastCalledWith(
+      'MiddleClick',
+      expect.objectContaining({
+        locate: expect.objectContaining({ context: 'Default context.' }),
+      }),
+    );
+    agent.setAIContext('aiMiddleClick', 'Middle-click context.');
+    await agent.aiMiddleClick('target');
+    expect(dispatch).toHaveBeenLastCalledWith(
+      'MiddleClick',
+      expect.objectContaining({
+        locate: expect.objectContaining({ context: 'Middle-click context.' }),
+      }),
+    );
+    await agent.aiMiddleClick('target', { context: '' });
+    expect(dispatch).toHaveBeenLastCalledWith(
+      'MiddleClick',
+      expect.objectContaining({
+        locate: expect.not.objectContaining({ context: expect.any(String) }),
+      }),
+    );
+  });
+
   it('retains caller inputs when planning resolves an action locator', async () => {
     const { agent, taskExecutor } = createAgentStub();
     const params = { locate: { prompt: 'search field' }, value: 'headphones' };

@@ -27,6 +27,7 @@ const testFiles = (() => {
 })();
 
 export default defineConfig({
+  name: '@midscene/android',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

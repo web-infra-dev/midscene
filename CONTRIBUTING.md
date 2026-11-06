@@ -255,6 +255,29 @@ See the Report e2e guidelines in
 [English](./apps/report/e2e/README.md) or
 [中文](./apps/report/e2e/README.zh.md) for coverage and authoring guidance.
 
+### Artifact and logging conventions
+
+- Use `MIDSCENE_RUN_DIR` to choose the artifact root (default `midscene_run/`).
+  Keep reports in `report/`, results and diagnostic records in `test-results/`,
+  and logs in `log/`. Use `getMidsceneRunSubDir()` during execution and respect
+  the current run's root and explicit path overrides.
+- Default to self-contained single HTML. Native Test owns one integrated report;
+  its Agents contribute records. External reports must include their dependencies
+  and remain readable after moving the directory.
+- Freeze snapshot data and collection status together. Retain failure, timeout,
+  retry, and setup/teardown evidence before releasing execution references.
+- Clean only owned progress files after successful publication. Overwrite only
+  the selected output target, preserve diagnostic sources on failure, and
+  coordinate shared-report updates across processes.
+- Reuse existing report and image helpers. Deduplicate external and exported
+  images while preserving step associations; keep pending writes and retained
+  image data bounded.
+- Use `getDebug('module:topic')` for diagnostics,
+  `getDebug(topic, { console: true })` for user-visible warnings, and `logReport()`
+  for report paths. Keep required evidence in structured results; avoid secrets,
+  full dumps, and Base64 images in ordinary logs.
+- Cover affected report formats and consumers with focused tests, including
+  Agent, legacy YAML, Native Test, CLI append/export, and Playground where relevant.
 
 ### Add New Tests
 

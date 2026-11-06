@@ -185,7 +185,7 @@ There are several ways to improve the running time:
 
 ## How do I configure the midscene_run directory?
 
-Midscene saves runtime artifacts (reports, logs, cache, etc.) in the `midscene_run` directory. By default, this directory is created in the current working directory.
+Midscene saves reports, logs, and caches in `midscene_run/` by default. Standalone scripts, legacy YAML, and Playwright use the working directory as their base. Midscene Test uses the Test project. See [artifact directories](./midscene-test/running#unified-artifact-root-and-migration).
 
 You can customize the directory location using the `MIDSCENE_RUN_DIR` environment variable, which accepts both relative and absolute paths:
 
@@ -197,11 +197,13 @@ export MIDSCENE_RUN_DIR="./my_custom_dir"
 export MIDSCENE_RUN_DIR="/tmp/midscene_output"
 ```
 
-The directory contains the following subdirectories:
+Common subdirectories:
 
-- `report/` - Test report files (HTML format)
+- `report/` - Agent and Midscene Test reports (self-contained HTML by default)
+- `test-results/` - Execution results and diagnostic records
 - `log/` - Debug log files
 - `cache/` - Cache files (see [Caching](./caching))
+- `output/` - Files produced during execution
 
 For global runtime options, see [Runtime configuration](./reference/#runtime-configuration).
 
@@ -315,3 +317,9 @@ Midscene instructs the model to prioritize the goal of the scroll or swipe when 
 ## Does the Doubao phone use Midscene under the hood?
 
 No.
+
+## Which Web package entry points should I import?
+
+Use `@midscene/web/playwright`, `@midscene/web/playwright/agent`, `@midscene/web/puppeteer` or the package root for Web integration. Generic Agent and YAML APIs are available from `@midscene/core/agent` and `@midscene/core/yaml`.
+
+The stale `@midscene/web/utils`, `@midscene/web/ui-utils`, `@midscene/web/yaml` and `@midscene/web/agent` declarations have been removed: they referenced files absent from published packages. Check the package's supported exports when updating custom integrations.

@@ -6,10 +6,11 @@ footer: true
 title: Midscene.js — GUI Agent 与 E2E 测试框架
 ---
 
-import { HeroStats, TestExample, AgentVisionDemo, AgentModels, AgentPlatforms, WhoIsUsing } from '@theme';
+import { HeroStats, TestExample, AgentVisionDemo, AgentVisionSteps, AgentModels, AgentPlatforms, WhoIsUsing } from '@theme';
 import TestPhilosophy from './common/test-philosophy.mdx';
 import TestWorkflow from './common/test-workflow.mdx';
 import TestCollaboration from './common/test-collaboration.mdx';
+import TestExecutionSection from './common/test-execution.mdx';
 
 # 像人一样看懂界面<br />用自然语言完成 E2E 测试
 
@@ -17,7 +18,7 @@ import TestCollaboration from './common/test-collaboration.mdx';
 
 Midscene.js 提供基于视觉的 GUI Agent 和自然语言 E2E 测试框架，支持 Web、移动端和桌面应用。
 
-**🔥 最新动态** 从 v1.16 起，Midscene 支持使用 Jev 1.4 的视觉能力驱动 E2E 测试。[查看新特性](./changelog#v1160)
+**🔥 最新动态** 从 v1.16 起，Midscene 支持使用 Jev 1.14 的视觉能力驱动 E2E 测试。[查看新特性](./changelog#v1160)
 
 <div className="rp-not-doc">
   <HeroStats />
@@ -37,10 +38,12 @@ Midscene 的 GUI Agent 为已有的 JavaScript 测试提供视觉操作与断言
 
 ### 像人一样观察、操作并验证结果 {#visual-capabilities}
 
-<div className="agent-vision-intro">
-<div>
+E2E 测试的初衷是从用户视角验证完整流程，所以 Midscene 按用户的方式来测。
 
-E2E 测试的初衷是从用户视角验证完整流程。Midscene 通过视觉模拟用户的操作方式：观察屏幕、找到目标、执行操作，再检查用户实际看到的结果。[查看实际案例](./showcases)
+<div className="agent-vision-intro">
+<div className="rp-not-doc">
+
+<AgentVisionSteps />
 
 </div>
 <div className="rp-not-doc">
@@ -50,7 +53,7 @@ E2E 测试的初衷是从用户视角验证完整流程。Midscene 通过视觉�
 
 ### 一套 API，覆盖不同平台 {#platforms}
 
-视觉定位不依赖特定的界面渲染结构。各平台适配器提供截图和操作能力，让同一种交互方式覆盖 Web、移动端和桌面应用，也适用于 HTML canvas 等自定义界面。
+视觉定位不依赖界面渲染结构，同一套 API 可用于 Web、移动端、桌面端以及 canvas 等自定义界面。
 
 <div className="rp-not-doc introduction-block">
   <AgentPlatforms hideHeading />
@@ -79,6 +82,10 @@ E2E 测试的初衷是从用户视角验证完整流程。Midscene 通过视觉�
 ### 让人和 AI 共同维护测试用例 {#nodes-and-spec}
 
 <TestCollaboration />
+
+### 测试框架能力 {#framework-capabilities}
+
+<TestExecutionSection />
 
 ## 谁在使用 Midscene {#users}
 

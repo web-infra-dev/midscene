@@ -14,6 +14,10 @@ import {
   executionRecordsToReportInput,
 } from '@midscene/core/internal/test-runner';
 import { getLegacyYamlPlayerState } from '@midscene/core/internal/yaml-runtime';
+import {
+  readReportDumpScripts,
+  readReportRunnerDump,
+} from '@midscene/core/report';
 import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import { afterEach, describe, expect, it } from '@rstest/core';
@@ -229,7 +233,10 @@ tasks:
     async (screenshotMode) => {
       const root = mkdtempSync(join(tmpdir(), 'yaml-viewer-contract-'));
       roots.push(root);
-      const reportPath = join(root, 'report.html');
+      const reportPath = join(
+        root,
+        screenshotMode === 'directory' ? 'index.html' : 'report.html',
+      );
       const agent = createFixtureAgent(reportPath, screenshotMode);
       try {
         await agent.runYaml(
@@ -250,11 +257,9 @@ tasks:
       expect(executableScripts.length).toBeGreaterThan(0);
       for (const [, , source] of executableScripts)
         expect(() => new Script(source)).not.toThrow();
-      const scripts = scriptElements.filter((match) =>
-        /(?:^|\s)type="midscene_test_run_dump"/.test(match[1]),
+      const dump = parseTestRunReportDump(
+        JSON.stringify(readReportRunnerDump(reportPath)),
       );
-      expect(scripts).toHaveLength(1);
-      const dump = parseTestRunReportDump(scripts[0][2]);
       const cases = flattenRunnerCases(dump);
       expect(cases).toHaveLength(1);
       const item = cases[0];
@@ -281,18 +286,16 @@ tasks:
       expect(runnerStepIdFromHash(hash)).toBe(step.id);
 
       const [detail] = step.agentDetails!;
-      const sources = scriptElements.filter((match) =>
-        /(?:^|\s)type="midscene_web_dump"/.test(match[1]),
-      );
-      const source = sources.find((match) =>
+      const sources = readReportDumpScripts(reportPath);
+      const source = sources.find(({ openTag }) =>
         ['data-report-id', 'data-group-id'].some((attribute) =>
-          match[1].includes(
+          openTag.includes(
             `${attribute}="${encodeURIComponent(detail.reportId)}"`,
           ),
         ),
       );
       expect(source).toBeDefined();
-      const agentDump = JSON.parse(antiEscapeScriptTag(source![2]));
+      const agentDump = JSON.parse(antiEscapeScriptTag(source!.content));
       expect(agentDump.executions).toContainEqual(
         expect.objectContaining({ id: detail.executionId }),
       );

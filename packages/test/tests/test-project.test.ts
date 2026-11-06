@@ -591,10 +591,21 @@ describe('test project config', () => {
     });
     expect(loaded.output).toEqual({
       reportDir: './out/report',
+      reportFormat: 'single-html',
     });
   });
 
   it.each([
+    [
+      'invalid report format',
+      "output: { reportFormat: 'png' }",
+      'output.reportFormat must be',
+    ],
+    [
+      'unsupported artifact root option',
+      "output: { runDir: 'artifacts' }",
+      'output.runDir is not supported',
+    ],
     ['empty projects', 'projects: []', 'projects must be a non-empty array'],
     [
       'duplicate project names',

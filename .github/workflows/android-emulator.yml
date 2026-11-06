@@ -9,7 +9,12 @@ on:
       - 'packages/core/**'
       - 'packages/shared/**'
       - 'scripts/mobile-scroll-regression.mjs'
+      - 'scripts/install-android-system-image.mjs'
+      - 'scripts/retry.mjs'
       - '.github/actions/ai-ci/**'
+      - '.github/actions/**'
+      - '!**/*.md'
+      - '!**/*.mdx'
       - 'scripts/report-template-utils.mjs'
       - 'scripts/validate-core-report-template.mjs'
       - 'nx.json'
@@ -28,7 +33,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: android-emulator-${{ github.event.pull_request.number || inputs.branch || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -147,6 +152,10 @@ jobs:
       - name: Prepare Android AI CI environment
         id: ai-ci
         uses: ./.github/actions/ai-ci
+
+      - name: Download Android system image
+        shell: bash
+        run: node scripts/install-android-system-image.mjs 'system-images;android-35;google_apis;x86_64'
 
       - name: Run Android default scroll, smoke, and TodoMVC tests
         id: emulator-tests

@@ -6,6 +6,10 @@ import {
   extractTestRunReportDumpSync,
   parseImageScripts,
 } from '@/dump/html-utils';
+import {
+  readReportArtifactManifest,
+  readReportDumpScripts,
+} from '@/dump/report-artifact-reader';
 import type { ReportGenerator } from '@/report-generator';
 import {
   enterYamlExecution,
@@ -98,14 +102,18 @@ describe('Agent independent report lifecycle', () => {
           .collectAllScreenshots()
           .map((screenshot) => screenshot.id);
         const generator = (agent as any).reportManager.reportState.generator;
-        expect(generator.executionsByKey.size).toBe(2);
+        expect(generator.recorder.executions.length).toBe(2);
         const reportPath = await agent.finalizeReport();
-        expect(generator.executionsByKey.size).toBe(0);
+        expect(generator.recorder.executions.length).toBe(0);
         expect(generator.lastExecution).toBeUndefined();
         expect(agent.dump.executions).toEqual([]);
         expect(reportPath).toBeDefined();
         const html = await readFile(reportPath!, 'utf8');
-        expect(executionIds(html)).toEqual(ids);
+        expect(
+          readReportDumpScripts(reportPath!).flatMap(({ content }) =>
+            JSON.parse(content).executions.map(({ id }: { id: string }) => id),
+          ),
+        ).toEqual(ids);
         const dumpDirectory =
           format === 'single-html'
             ? join(
@@ -114,12 +122,17 @@ describe('Agent independent report lifecycle', () => {
                 basename(reportPath!),
               )
             : dirname(reportPath!);
-        const dumpNames = (await readdir(dumpDirectory))
-          .filter((name) => name.endsWith('.execution.json'))
-          .sort();
-        expect(dumpNames).toEqual(['1.execution.json', '2.execution.json']);
-        for (const [index, name] of dumpNames.entries()) {
-          const path = join(dumpDirectory, name);
+        const dumpPaths =
+          format === 'single-html'
+            ? (await readdir(dumpDirectory))
+                .filter((name) => name.endsWith('.execution.json'))
+                .sort()
+                .map((name) => join(dumpDirectory, name))
+            : readReportArtifactManifest(reportPath!)!.groups.flatMap((group) =>
+                group.dumps.map((path) => join(dirname(reportPath!), path)),
+              );
+        expect(dumpPaths).toHaveLength(2);
+        for (const [index, path] of dumpPaths.entries()) {
           const content = await readFile(path, 'utf8');
           const dump = JSON.parse(content);
           expect(
@@ -127,7 +140,14 @@ describe('Agent independent report lifecycle', () => {
           ).toEqual([ids[index]]);
           const screenshot = dump.executions[0].tasks[0].recorder[0].screenshot;
           expect(screenshot.storage).toBe('file');
-          expect(await readFile(join(dumpDirectory, screenshot.path))).toEqual(
+          expect(
+            await readFile(
+              join(
+                format === 'single-html' ? dumpDirectory : dirname(reportPath!),
+                screenshot.path,
+              ),
+            ),
+          ).toEqual(
             Buffer.from(index === 0 ? `before-${run}` : `action-${run}`),
           );
           persistedFiles.push({ path, content });
@@ -137,16 +157,23 @@ describe('Agent independent report lifecycle', () => {
             [...imageIds].sort(),
           );
         } else {
-          for (const id of imageIds) {
-            const screenshotPath = join(
-              reportPath!,
-              '..',
-              'screenshots',
-              `${id}.png`,
-            );
-            expect((await readFile(screenshotPath)).length).toBeGreaterThan(0);
-          }
+          const refs = readReportDumpScripts(reportPath!).flatMap(
+            ({ content }) =>
+              JSON.parse(content).executions.flatMap((execution: any) =>
+                execution.tasks.flatMap((task: any) =>
+                  task.recorder.map((record: any) => record.screenshot),
+                ),
+              ),
+          );
+          expect(refs.map((ref) => ref.id).sort()).toEqual(
+            [...imageIds].sort(),
+          );
+          for (const ref of refs)
+            expect(
+              (await readFile(join(dirname(reportPath!), ref.path))).length,
+            ).toBeGreaterThan(0);
         }
+
         reports.push({ path: reportPath!, html });
 
         // A repeated finalize, the next run and eventual destroy must leave
@@ -519,7 +546,11 @@ describe('Agent independent report lifecycle', () => {
         const ids = agent.dump.executions.map((execution) => execution.id);
         const path = await agent.finalizeReport();
         const html = await readFile(path!, 'utf8');
-        expect(executionIds(html)).toEqual(ids);
+        expect(
+          readReportDumpScripts(path!).flatMap(({ content }) =>
+            JSON.parse(content).executions.map(({ id }: { id: string }) => id),
+          ),
+        ).toEqual(ids);
         expect(html).not.toContain('failed finalization');
         paths.push(path!);
       }

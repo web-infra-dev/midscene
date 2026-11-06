@@ -11,7 +11,8 @@
     "test": "rstest",
     "test:watch": "rstest --watch",
     "generate-demo": "node scripts/generate-demo-report.mjs",
-    "e2e": "pnpm --dir ../.. exec nx run-many --target=build --projects=\"@midscene/report,@midscene/cli\" --verbose && node ../../scripts/validate-core-report-template.mjs && node scripts/generate-demo-report.mjs && node ../../packages/test/bin/midscene-test --config ./e2e/midscene.config.ts"
+    "e2e": "pnpm run e2e:prepare && node ../../packages/test/bin/midscene-test --config ./e2e/midscene.config.ts",
+    "e2e:prepare": "pnpm --dir ../.. exec nx run-many --target=build --projects=\"@midscene/report,@midscene/cli\" --verbose && node ../../scripts/validate-core-report-template.mjs && node scripts/generate-demo-report.mjs"
   },
   "nx": {
     "targets": {

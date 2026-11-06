@@ -19,6 +19,7 @@ import {
 import type { DeviceAction, UIContext } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
+import yaml from 'js-yaml';
 import { z } from 'zod';
 
 import * as serviceCallerActual from '@/ai-model/service-caller/index' with {
@@ -113,6 +114,69 @@ describe('plan XML parse retry', () => {
   beforeEach(() => {
     rs.mocked(callGenerativeAI).mockReset();
     rs.mocked(buildYamlFlowFromPlans).mockClear();
+  });
+
+  it('sends complete nested custom-action fields to the model before parsing its reply', async () => {
+    const parameters = {
+      target: { by: 'label', name: 'Access key' },
+      items: [{ name: 'example', enabled: true }],
+    };
+    rs.mocked(callGenerativeAI).mockResolvedValueOnce(
+      mockAIResponse(
+        `<action-type>FillBoundInput</action-type><action-param-json>${JSON.stringify(parameters)}</action-param-json>`,
+      ),
+    );
+    const result = await standardPlan('Fill the named input', {
+      context: mockContext(),
+      actionSpace: [
+        {
+          name: 'FillBoundInput',
+          paramSchema: z.object({
+            target: z.object({
+              by: z.enum(['label', 'placeholder']),
+              name: z.string(),
+            }),
+            items: z.array(
+              z.object({ name: z.string(), enabled: z.boolean() }),
+            ),
+          }),
+          call: rs.fn(),
+        },
+      ],
+      modelRuntime: getModelRuntime({ ...mockModelConfig(), retryCount: 0 }),
+      conversationHistory: new ConversationHistory(),
+      includeLocateInPlanning: false,
+      effort: 'balance',
+    });
+
+    const messages = rs.mocked(callGenerativeAI).mock.calls[0][0];
+    const system = toChatMessages(messages, resolveImageDetail)[0];
+    assert(typeof system.content === 'string');
+    const actionSpace = system.content
+      .split('### Supporting actions list\n\n')[1]
+      .split('\n\n### ')[0];
+    const [action] = yaml.load(actionSpace) as Array<{
+      param: Record<string, unknown>;
+    }>;
+    expect(action.param).toMatchObject({
+      target: {
+        properties: {
+          by: { type: "enum('label', 'placeholder')" },
+          name: { type: 'string' },
+        },
+      },
+      items: {
+        items: {
+          properties: {
+            name: { type: 'string' },
+            enabled: { type: 'boolean' },
+          },
+        },
+      },
+    });
+    expect(callGenerativeAI).toHaveBeenCalledTimes(1);
+    assert(result.actions);
+    expect(result.actions[0].param).toEqual(parameters);
   });
 
   it.each([

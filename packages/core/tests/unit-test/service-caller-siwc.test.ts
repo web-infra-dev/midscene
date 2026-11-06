@@ -41,6 +41,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   rs.unstubAllGlobals();
+  rs.unstubAllEnvs();
   rs.restoreAllMocks();
   syncBuiltinESMExports();
   await Promise.all(
@@ -437,6 +438,39 @@ it('refreshes on token_expired despite local expiry and streams the retried outp
     new Headers(fetchMock.mock.calls[2][1]?.headers).get('authorization'),
   ).toBe('Bearer new-access');
   expect(onChunk.mock.calls.filter(([chunk]) => chunk.content)).toHaveLength(1);
+});
+
+it('uses the requesting model proxy for refresh and signing-key retrieval', async () => {
+  const runtime = await prepareRejectedTokenTest();
+  runtime.config.httpProxy = 'http://127.0.0.1:7891';
+  // Re-reading the CLI proxy here would fail before either request is sent.
+  rs.stubEnv('MIDSCENE_MODEL_HTTP_PROXY', 'invalid-proxy-url');
+  const encoded = (value: object) =>
+    Buffer.from(JSON.stringify(value)).toString('base64url');
+  const idToken = [
+    encoded({ alg: 'RS256' }),
+    encoded({ sub: 'user' }),
+    'AA',
+  ].join('.');
+  fetchMock
+    .mockResolvedValueOnce(tokenExpiredResponse())
+    .mockResolvedValueOnce(
+      Response.json({ ...refreshedTokens, id_token: idToken }),
+    )
+    .mockResolvedValueOnce(new Response(null, { status: 503 }));
+  await expect(
+    callGenerativeAI([{ role: 'user', content: 'Hello' }], runtime),
+  ).rejects.toThrow('HTTP 503');
+  expect(fetchMock.mock.calls.slice(1)).toEqual([
+    [
+      'https://auth.openai.com/api/accounts/oauth/token',
+      expect.objectContaining({ dispatcher: expect.any(Object) }),
+    ],
+    [
+      'https://auth.openai.com/.well-known/jwks.json',
+      expect.objectContaining({ dispatcher: expect.any(Object) }),
+    ],
+  ]);
 });
 
 it('cancels a caller waiting for refresh without cancelling the shared refresh', async () => {

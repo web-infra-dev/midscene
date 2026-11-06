@@ -9,6 +9,26 @@
   min-width: 0;
 }
 
+/* Landing-page rhythm: visual blocks end each subsection, so headings need
+   more room than the default doc spacing. */
+.introduction-page > h2 {
+  margin-top: 96px;
+}
+
+.introduction-page > h3 {
+  margin-top: 64px;
+}
+
+@container (max-width: 640px) {
+  .introduction-page > h2 {
+    margin-top: 64px;
+  }
+
+  .introduction-page > h3 {
+    margin-top: 48px;
+  }
+}
+
 .introduction-page .home-feature__header {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 32px;
@@ -31,15 +51,8 @@
   }
 }
 
-.introduction-page .home-feature--models .home-feature-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
 @container (max-width: 640px) {
-  .introduction-page .home-feature--models .home-feature-grid,
-  .introduction-page .home-feature-grid,
-  .introduction-page .home-benchmark-grid,
-  .introduction-page .home-execution-grid {
+  .introduction-page .home-benchmark-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 }

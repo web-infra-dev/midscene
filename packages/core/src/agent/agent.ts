@@ -219,8 +219,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   }
 
   /** @internal Runner snapshots retain immutable data and shared image files. */
-  _prepareForTestRunner(): void {
-    this.reportManager._prepareForTestRunner();
+  async _prepareForTestRunner(): Promise<void> {
+    await this.reportManager._prepareForTestRunner();
   }
   async _createReportSource(scopeId: string, executionIds?: readonly string[]) {
     return this.reportManager._createReportSource(scopeId, executionIds);
@@ -935,6 +935,28 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     );
 
     await this.callActionInActionSpace('RightClick', {
+      locate: detailedLocateParam,
+    });
+  }
+
+  /**
+   * Locate an element and click it with the middle mouse button.
+   * Requires a device with the MiddleClick action (Web or Computer).
+   * @param locatePrompt Description or locator of the target element.
+   * @param opt Locator options; per-call context overrides Agent context.
+   */
+  async aiMiddleClick(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption,
+  ): Promise<void> {
+    assert(locatePrompt, 'missing locate prompt for middle click');
+
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt,
+      this.withContext('aiMiddleClick', opt),
+    );
+
+    await this.callActionInActionSpace('MiddleClick', {
       locate: detailedLocateParam,
     });
   }

@@ -2,25 +2,72 @@ type ConfigValue<T extends string = string> =
   | T
   | { value: T; comment?: string };
 
-export interface ModelConfigCardProps {
-  layout?: 'tabs' | 'combined';
-  purposes?: [
-    'default' | 'locate' | 'planning' | 'insight',
-    ...('default' | 'locate' | 'planning' | 'insight')[],
-  ];
+export type ModelPurpose = 'default' | 'locate' | 'planning' | 'insight';
+
+export type ModelProtocol = 'openai-chat' | 'openai-responses';
+
+/** Flat configuration for one provider, used to generate the env lines. */
+export interface ModelConfig {
   baseUrl: ConfigValue;
   modelName: ConfigValue;
   modelFamily: ConfigValue;
   apiKey?: ConfigValue;
-  protocol?: ConfigValue<'openai-chat' | 'openai-responses'>;
+  protocol?: ConfigValue<ModelProtocol>;
   streamMode?: ConfigValue;
+  /** Offer the Chat/Responses switch, optionally with a Responses-only Base URL. */
   responses?: boolean | { baseUrl: ConfigValue };
 }
 
+export interface ModelProvider
+  extends Pick<ModelConfig, 'baseUrl' | 'modelName' | 'responses'> {
+  name: string;
+  /** Where to get an API key from this provider. */
+  href?: string;
+}
+
+export interface ModelConfigCardProps
+  extends Omit<ModelConfig, 'baseUrl' | 'modelName' | 'responses'> {
+  layout?: 'select' | 'combined';
+  purposes?: [ModelPurpose, ...ModelPurpose[]];
+  providers: [ModelProvider, ...ModelProvider[]];
+  /** OpenRouter model ID, e.g. `qwen/qwen3.7-plus`. Appends an OpenRouter provider. */
+  openRouterModel?: string;
+}
+
+export const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
+
+export function getModelProviders(card: ModelConfigCardProps): ModelProvider[] {
+  if (!card.openRouterModel) return card.providers;
+  return [
+    ...card.providers,
+    {
+      name: 'OpenRouter',
+      href: 'https://openrouter.ai/settings/keys',
+      baseUrl: OPENROUTER_BASE_URL,
+      modelName: card.openRouterModel,
+    },
+  ];
+}
+
+export function resolveModelConfig(
+  card: ModelConfigCardProps,
+  provider: ModelProvider,
+): ModelConfig {
+  return {
+    baseUrl: provider.baseUrl,
+    modelName: provider.modelName,
+    responses: provider.responses,
+    modelFamily: card.modelFamily,
+    apiKey: card.apiKey,
+    protocol: card.protocol,
+    streamMode: card.streamMode,
+  };
+}
+
 export function buildCombinedModelConfigCode(
-  config: ModelConfigCardProps,
-  purposes: NonNullable<ModelConfigCardProps['purposes']>,
-  selectedProtocol: 'openai-chat' | 'openai-responses',
+  config: ModelConfig,
+  purposes: ModelPurpose[],
+  selectedProtocol: ModelProtocol,
 ): string {
   return purposes
     .map(
@@ -38,9 +85,9 @@ function formatConfigLine(name: string, config: ConfigValue): string {
 }
 
 export function buildModelConfigCode(
-  config: ModelConfigCardProps,
-  purpose: 'default' | 'locate' | 'planning' | 'insight',
-  selectedProtocol: 'openai-chat' | 'openai-responses',
+  config: ModelConfig,
+  purpose: ModelPurpose,
+  selectedProtocol: ModelProtocol,
 ): string {
   const protocolConfig = config.protocol ?? selectedProtocol;
   const protocol =
