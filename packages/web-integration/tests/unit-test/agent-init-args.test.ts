@@ -14,7 +14,8 @@ import {
   WebPuppeteerMidsceneTools,
 } from '@/agent-tools-puppeteer';
 import { AgentOverChromeBridge } from '@/bridge-mode';
-import { PuppeteerAgent } from '@/puppeteer';
+import { saveTargetId } from '@/cdp-target-store';
+import { PuppeteerBrowserAgent } from '@/puppeteer';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 const validPngBase64 =
@@ -22,6 +23,8 @@ const validPngBase64 =
 
 const mockPage = {
   url: rs.fn(() => 'https://example.com/'),
+  title: rs.fn(async () => 'Example'),
+  isClosed: rs.fn(() => false),
   bringToFront: rs.fn(),
   goto: rs.fn(),
   setExtraHTTPHeaders: rs.fn(),
@@ -45,18 +48,31 @@ rs.mock('puppeteer-core', () => ({
 rs.mock('@/bridge-mode', () => ({
   AgentOverChromeBridge: rs.fn().mockImplementation(() => ({
     connectCurrentTab: rs.fn(),
+    getBrowserTabList: rs.fn(async () => [
+      {
+        id: '42',
+        title: 'Example',
+        url: 'https://example.com/',
+        currentActiveTab: true,
+      },
+    ]),
     connectNewTabWithUrl: rs.fn(),
     page: {
       screenshotBase64: rs.fn(async () => validPngBase64),
+      getActiveTabId: rs.fn(async () => 42),
     },
     destroy: rs.fn(),
   })),
 }));
 
 rs.mock('@/puppeteer', () => ({
-  PuppeteerAgent: rs.fn().mockImplementation(() => ({
+  PuppeteerBrowserAgent: rs.fn().mockImplementation(() => ({
+    activePage: mockPage,
+    pages: () => mockBrowser.pages(),
+    setActivePage: rs.fn(),
     page: {
       screenshotBase64: rs.fn(async () => validPngBase64),
+      getActiveTabId: rs.fn(async () => 42),
     },
     destroy: rs.fn(),
   })),
@@ -111,6 +127,139 @@ describe('web agent tool init args', () => {
 
   afterEach(() => {
     mockPage.url.mockReturnValue('https://example.com/');
+  });
+
+  it('lists and switches CDP tabs using the shared browser agent and target store', async () => {
+    const tools = new WebCdpMidsceneTools('ws://127.0.0.1:9222/devtools/1');
+    await tools.initTools();
+    const tabs = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'web_tabs')!;
+    const select = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'web_switch-tab')!;
+    const result = await tabs.handler({});
+    expect(JSON.parse((result.content[0] as { text: string }).text)).toEqual([
+      {
+        id: 'target-1',
+        title: 'Example',
+        url: 'https://example.com/',
+        active: true,
+      },
+    ]);
+    await select.handler({ id: 'target-1' });
+    expect(saveTargetId).toHaveBeenLastCalledWith('target-1');
+    expect(
+      rs.mocked(PuppeteerBrowserAgent).mock.results[0].value.setActivePage,
+    ).toHaveBeenCalledWith(mockPage);
+    await expect(select.handler({ id: 'missing' })).rejects.toThrow(
+      'does not exist or has closed',
+    );
+    await tools.destroy();
+  });
+
+  it.each(['connect', 'readback', 'mismatch'] as const)(
+    'cleans up a new Bridge agent when tab reconnection fails at %s',
+    async (failurePoint) => {
+      const tools = new WebMidsceneTools();
+      await tools.initTools();
+      const tabs = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'web_tabs')!;
+      await tabs.handler({});
+      const failure = new Error('bridge failure');
+      const replacement = {
+        connectCurrentTab: rs.fn(async () => {
+          if (failurePoint === 'connect') throw failure;
+        }),
+        page: {
+          getActiveTabId: rs.fn(async () => {
+            if (failurePoint === 'readback') throw failure;
+            return 99;
+          }),
+        },
+        destroy: rs.fn(async () => {}),
+      };
+      rs.mocked(AgentOverChromeBridge).mockImplementationOnce(
+        () => replacement as unknown as AgentOverChromeBridge,
+      );
+      const select = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'web_switch-tab')!;
+      await expect(select.handler({ id: '42' })).rejects.toThrow(
+        failurePoint === 'mismatch' ? 'did not switch tabs' : 'bridge failure',
+      );
+      expect(replacement.destroy).toHaveBeenCalledTimes(1);
+      await tools.destroy();
+    },
+  );
+
+  it('reuses the selected Bridge agent with unchanged behavior options', async () => {
+    const tools = new WebMidsceneTools();
+    await tools.initTools();
+    const definitions = tools.getToolDefinitions();
+    const screenshot = definitions.find(
+      (tool) => tool.name === 'take_screenshot',
+    )!;
+    const select = definitions.find((tool) => tool.name === 'web_switch-tab')!;
+    const args = { web: { waitAfterAction: 650 } };
+    try {
+      await screenshot.handler(args);
+      await select.handler({ id: '42' });
+      await screenshot.handler(args);
+      expect(AgentOverChromeBridge).toHaveBeenCalledTimes(2);
+      expect(AgentOverChromeBridge).toHaveBeenLastCalledWith(
+        expect.objectContaining({ waitAfterAction: 650 }),
+      );
+    } finally {
+      await tools.destroy();
+    }
+  });
+
+  it('reports Bridge cleanup failure and does not reuse the disposed agent', async () => {
+    const tools = new WebMidsceneTools();
+    await tools.initTools();
+    const definitions = tools.getToolDefinitions();
+    const tabs = definitions.find((tool) => tool.name === 'web_tabs')!;
+    const disconnect = definitions.find(
+      (tool) => tool.name === 'web_disconnect',
+    )!;
+    await tabs.handler({});
+    const first = rs.mocked(AgentOverChromeBridge).mock.results[0].value;
+    first.destroy.mockRejectedValueOnce(new Error('cleanup failed'));
+    await expect(disconnect.handler({})).rejects.toThrow('cleanup failed');
+    await tabs.handler({});
+    expect(AgentOverChromeBridge).toHaveBeenCalledTimes(2);
+    expect(first.destroy).toHaveBeenCalledTimes(1);
+    await tools.destroy();
+    await tools.destroy();
+    const second = rs.mocked(AgentOverChromeBridge).mock.results[1].value;
+    expect(second.destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it('switches Bridge tabs by reconnecting to an existing ID without navigating', async () => {
+    const tools = new WebMidsceneTools();
+    await tools.initTools();
+    const select = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'web_switch-tab')!;
+    await expect(select.handler({ id: '42oops' })).rejects.toThrow(
+      'Invalid Bridge tab ID',
+    );
+    await expect(select.handler({ id: '99' })).rejects.toThrow(
+      'does not exist or has closed',
+    );
+    await select.handler({ id: '42' });
+    const agents = rs
+      .mocked(AgentOverChromeBridge)
+      .mock.results.map((result) => result.value);
+    expect(agents[0].destroy).toHaveBeenCalledTimes(1);
+    expect(agents[1].connectCurrentTab).toHaveBeenCalledWith({
+      tabId: 42,
+      forceSameTabNavigation: false,
+    });
+    expect(agents[1].connectNewTabWithUrl).not.toHaveBeenCalled();
+    await tools.destroy();
   });
 
   it.each<[string, WebInitArgTestFactory]>([
@@ -199,7 +348,9 @@ describe('web agent tool init args', () => {
     expect(
       rs.mocked(AgentOverChromeBridge).mock.results[0].value
         .connectNewTabWithUrl,
-    ).toHaveBeenCalledWith('https://example.com');
+    ).toHaveBeenCalledWith('https://example.com', {
+      forceSameTabNavigation: false,
+    });
   });
 
   it('passes common behavior args to Puppeteer agent creation', async () => {
@@ -221,7 +372,8 @@ describe('web agent tool init args', () => {
         },
       });
 
-      expect(PuppeteerAgent).toHaveBeenCalledWith(
+      expect(PuppeteerBrowserAgent).toHaveBeenCalledWith(
+        mockBrowser,
         mockPage,
         expect.objectContaining({
           waitAfterAction: 650,
@@ -260,7 +412,8 @@ describe('web agent tool init args', () => {
         .find((tool) => tool.name === 'take_screenshot');
       await takeScreenshotTool?.handler({});
 
-      expect(PuppeteerAgent).toHaveBeenLastCalledWith(
+      expect(PuppeteerBrowserAgent).toHaveBeenLastCalledWith(
+        mockBrowser,
         newerPage,
         expect.any(Object),
       );
@@ -286,7 +439,7 @@ describe('web agent tool init args', () => {
         `Failed to read Puppeteer targetId from "${persistence.targetIdFile}"`,
       );
       expect(error.cause).toBeInstanceOf(Error);
-      expect(PuppeteerAgent).not.toHaveBeenCalled();
+      expect(PuppeteerBrowserAgent).not.toHaveBeenCalled();
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -311,7 +464,7 @@ describe('web agent tool init args', () => {
         `Failed to save Puppeteer targetId to "${persistence.targetIdFile}"`,
       );
       expect(error.cause).toBeInstanceOf(Error);
-      expect(PuppeteerAgent).not.toHaveBeenCalled();
+      expect(PuppeteerBrowserAgent).not.toHaveBeenCalled();
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -331,7 +484,7 @@ describe('web agent tool init args', () => {
       await expect(connectTool!.handler({})).rejects.toThrow(
         `Puppeteer targetId file "${persistence.targetIdFile}" is empty`,
       );
-      expect(PuppeteerAgent).not.toHaveBeenCalled();
+      expect(PuppeteerBrowserAgent).not.toHaveBeenCalled();
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -349,7 +502,11 @@ describe('web agent tool init args', () => {
 
       await takeScreenshotTool!.handler({});
 
-      expect(PuppeteerAgent).toHaveBeenCalledWith(mockPage, expect.any(Object));
+      expect(PuppeteerBrowserAgent).toHaveBeenCalledWith(
+        mockBrowser,
+        mockPage,
+        expect.any(Object),
+      );
       expect(readFileSync(persistence.targetIdFile, 'utf-8')).toBe('target-1');
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -374,7 +531,7 @@ describe('web agent tool init args', () => {
       await expect(connectTool!.handler({})).rejects.toThrow(
         'Puppeteer did not expose a Chrome targetId',
       );
-      expect(PuppeteerAgent).not.toHaveBeenCalled();
+      expect(PuppeteerBrowserAgent).not.toHaveBeenCalled();
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -416,16 +573,18 @@ describe('web agent tool init args', () => {
       const firstAgent = {
         page: {
           screenshotBase64: rs.fn(async () => validPngBase64),
+          getActiveTabId: rs.fn(async () => 42),
         },
         destroy: rs.fn(),
       };
       const secondAgent = {
         page: {
           screenshotBase64: rs.fn(async () => validPngBase64),
+          getActiveTabId: rs.fn(async () => 42),
         },
         destroy: rs.fn(),
       };
-      rs.mocked(PuppeteerAgent)
+      rs.mocked(PuppeteerBrowserAgent)
         .mockReturnValueOnce(firstAgent as any)
         .mockReturnValueOnce(secondAgent as any);
 
@@ -446,9 +605,10 @@ describe('web agent tool init args', () => {
         web: { waitAfterAction: 900 },
       });
 
-      expect(PuppeteerAgent).toHaveBeenCalledTimes(2);
+      expect(PuppeteerBrowserAgent).toHaveBeenCalledTimes(2);
       expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
-      expect(PuppeteerAgent).toHaveBeenLastCalledWith(
+      expect(PuppeteerBrowserAgent).toHaveBeenLastCalledWith(
+        mockBrowser,
         mockPage,
         expect.objectContaining({
           waitAfterAction: 900,
@@ -465,16 +625,18 @@ describe('web agent tool init args', () => {
       const firstAgent = {
         page: {
           screenshotBase64: rs.fn(async () => validPngBase64),
+          getActiveTabId: rs.fn(async () => 42),
         },
         destroy: rs.fn(),
       };
       const secondAgent = {
         page: {
           screenshotBase64: rs.fn(async () => validPngBase64),
+          getActiveTabId: rs.fn(async () => 42),
         },
         destroy: rs.fn(),
       };
-      rs.mocked(PuppeteerAgent)
+      rs.mocked(PuppeteerBrowserAgent)
         .mockReturnValueOnce(firstAgent as any)
         .mockReturnValueOnce(secondAgent as any);
 
@@ -490,9 +652,11 @@ describe('web agent tool init args', () => {
       });
       await takeScreenshotTool?.handler({});
 
-      expect(PuppeteerAgent).toHaveBeenCalledTimes(2);
+      expect(PuppeteerBrowserAgent).toHaveBeenCalledTimes(2);
       expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
-      const lastAgentOptions = rs.mocked(PuppeteerAgent).mock.calls.at(-1)?.[1];
+      const lastAgentOptions = rs
+        .mocked(PuppeteerBrowserAgent)
+        .mock.calls.at(-1)?.[2];
       expect(lastAgentOptions).not.toHaveProperty('waitAfterAction');
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -528,7 +692,7 @@ describe('web agent tool init args', () => {
         };
       },
       () => {
-        expect(PuppeteerAgent).toHaveBeenCalledTimes(2);
+        expect(PuppeteerBrowserAgent).toHaveBeenCalledTimes(2);
         expect(mockBrowser.newPage).toHaveBeenCalledTimes(2);
         expect(mockPage.goto).toHaveBeenCalledTimes(2);
       },
@@ -539,7 +703,7 @@ describe('web agent tool init args', () => {
         tools: new WebCdpMidsceneTools('ws://127.0.0.1:9222/devtools/1'),
       }),
       () => {
-        expect(PuppeteerAgent).toHaveBeenCalledTimes(2);
+        expect(PuppeteerBrowserAgent).toHaveBeenCalledTimes(2);
         expect(mockPage.goto).toHaveBeenCalledTimes(2);
       },
     ],
@@ -586,7 +750,8 @@ describe('web agent tool init args', () => {
       },
     });
 
-    expect(PuppeteerAgent).toHaveBeenCalledWith(
+    expect(PuppeteerBrowserAgent).toHaveBeenCalledWith(
+      mockBrowser,
       mockPage,
       expect.objectContaining({
         waitAfterAction: 650,

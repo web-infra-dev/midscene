@@ -1,5 +1,5 @@
 import { ifInNode } from '../utils';
-type TSharpModule = typeof import('sharp');
+type TSharpModule = typeof import('sharp').default;
 
 export default async function getSharp(): Promise<TSharpModule> {
   if (!ifInNode) {
@@ -7,7 +7,6 @@ export default async function getSharp(): Promise<TSharpModule> {
   }
 
   try {
-    // @ts-ignore
     const sharp = await import('sharp');
     return sharp.default;
   } catch (error) {

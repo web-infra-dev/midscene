@@ -100,6 +100,30 @@ header 会在 `connect --url` 导航前生效，因此初始文档请求也会�
 
 如果 Chrome 安装在非标准路径，请将 `MIDSCENE_CHROME_PATH` 设置为 Chrome 可执行文件路径。`MIDSCENE_MCP_CHROME_PATH` 会暂时作为迁移别名继续生效。
 
+## 切换浏览器标签页
+
+使用 `tabs` 列出标签，用 `switch-tab --id <id>` 切换到指定标签。点击会打开新标签的链接前，先保存原标签页 ID；打开后再次列出标签，找到新标签页 ID：
+
+```bash
+npx @midscene/web tabs
+# 打开新标签页后：
+npx @midscene/web tabs
+npx @midscene/web switch-tab --id <new-tab-id>
+npx @midscene/web take_screenshot
+# 新标签页操作完成后返回原标签页：
+npx @midscene/web switch-tab --id <original-tab-id>
+```
+
+`tabs` 返回包含 `id`、`title`、`url` 和 `active` 的 JSON 数组。`active` 表示 Midscene 当前控制的页面。切换会选中已有标签，不会重新导航或刷新页面，因此能保留页面状态。ID 不存在或标签已关闭时会报错。如果网站异步打开标签，等标签出现后再次运行 `tabs`。
+
+每条命令要保持相同的连接模式。在默认 Puppeteer 和 CDP 模式下，后续命令会继续使用选中的标签。这两种模式会保留新打开的标签，但不会自动切换过去。
+
+在 CDP 模式下，每条命令都需要传入 `--cdp <endpoint>`，或设置 `MIDSCENE_CDP_ENDPOINT` 后传入 `--cdp`。
+
+在 Bridge 模式下，每条命令都需要传入 `--bridge`，并使用更新后的 Midscene Chrome 扩展。切换会激活当前 Chrome 窗口中的指定标签。后续命令连接前台标签，因此手动切换标签也会改变下一条命令控制的页面。
+
+`disconnect` 释放连接。默认 Puppeteer 模式下的 `close` 会关闭整个浏览器，包括所有标签。
+
 ## 更多
 
 请参考 [Skills 仓库](https://github.com/web-infra-dev/midscene-skills) 获取更多详情。

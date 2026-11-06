@@ -41,10 +41,10 @@
 ```
 
 ### Screenshots
-- #1 type=ui-context, ts=2024-03-09T16:00:00.000Z, timing=ui-context
+- #1 type=ui-context, ts=2024-03-09T16:00:00.000Z, timing=ui-context, id=shot-exec-1
 
 ![task-1-ui-context](./screenshots/execution-1-task-1-shot-exec-1.png)
-- #2 type=screenshot, ts=2024-03-09T16:00:00.060Z, timing=record-step-1
+- #2 type=screenshot, ts=2024-03-09T16:00:00.060Z, timing=record-step-1, id=shot-recorder-exec-1
 
 ![task-1-record-step-1](./screenshots/execution-1-task-1-shot-recorder-exec-1.png)
 
@@ -90,6 +90,6 @@
 ```
 
 ### Screenshots
-- #1 type=ui-context, ts=2024-03-09T16:00:00.000Z, timing=ui-context
+- #1 type=ui-context, ts=2024-03-09T16:00:00.000Z, timing=ui-context, id=shot-exec-2
 
 ![task-1-ui-context](./screenshots/execution-2-task-1-shot-exec-2.png)

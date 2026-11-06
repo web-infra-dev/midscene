@@ -14,11 +14,17 @@ Projects generated from templates use `files.include` to match `.yaml` and `.yml
 
 When passing a directory or file path on the command line, be aware of how the **test root** changes and affects path resolution:
 
-- **Determining the test root**: Without path arguments, the test root is the current working directory. With a directory argument, the test root becomes that directory. With a single file argument, the test root becomes the file's containing directory.
-- **Resolved relative to the test root**: Default configuration file discovery (searches only within the test root, without traversing parent directories), the `--config` parameter path, and `files.include` / `files.exclude` patterns in the configuration.
+- **Determining the test root**: Without path arguments, the test root is the current working directory. With a directory argument, it becomes that directory. For a single file without `--config`, Midscene Test searches for the nearest config from the file's directory up to and including the working directory. The directory containing that config becomes the test root. If no config is found, or the file is outside the working directory, the file's directory remains the test root.
+- **Resolved relative to the test root**: The `--config` parameter path and `files.include` / `files.exclude` patterns. With an explicit `--config` and a single file, the test root remains the file's directory; parent config discovery is skipped.
 - **Resolved relative to the current working directory**: The `--result-dir` parameter path.
 
-Therefore, when `midscene.config.ts` lives in the project root and you only want to run a single file in the `cases/` subdirectory, you need to explicitly pass `--config` (note that it resolves relative to the `cases/` directory where the target file is located):
+When `midscene.config.ts` lives in the project root, run one nested file from that root without repeating the config path:
+
+```bash
+pnpm exec midscene-test ./cases/order.yaml
+```
+
+To select a config explicitly, its path is still relative to the file's directory:
 
 ```bash
 pnpm exec midscene-test ./cases/order.yaml --config ../midscene.config.ts
@@ -62,12 +68,27 @@ pnpm exec midscene-test --help
 
 Each run generates two types of output artifacts. Their exact paths are printed at the end of the terminal output as `Summary:` and `Report:`:
 
-- **Structured result files**: By default written to `.midscene/test-results/<runId>/` under the test root, containing machine-readable `summary.json` and human-readable `result.md`. You can customize the root results directory with `--result-dir` (each run will still create an isolated `<runId>` subdirectory underneath):
+- **Result files**: Saved in `midscene_run/test-results/<runId>/` by default, including the readable `result.md`, machine-readable `summary.json`, and diagnostic records. Set `--result-dir` to change the results root; relative paths use the command's working directory:
   ```bash
   pnpm exec midscene-test --result-dir ./test-results
   ```
-  Note: The schema of `summary.json` may evolve across versions; external tools consuming this file should align with the actual output of the installed version.
-- **HTML visual report**: Can be opened directly in a browser after tests finish. It provides a complete log of case outcomes, screenshots for each step, input/output arguments, error traces, and Agent visual replay to help diagnose issues quickly. The output directory is controlled by `output.reportDir` in the configuration file (defaults to `midscene_run/report/`), independent of the structured results directory.
+- **HTML report**: Saved in `midscene_run/report/` by default. Open it directly in a browser to inspect case outcomes, screenshots, errors, and replay. Set `output.reportDir` to change the report directory; relative paths use the Test project as their base.
+
+Keep the complete results directory for troubleshooting or programmatic analysis. Use the `summary.json` fields produced by your installed version.
+
+### Artifact directory {#unified-artifact-root-and-migration}
+
+The default artifact directory is `midscene_run/` in the Test project. Reports are in `report/`; results and diagnostic records are in `test-results/`. Set the `MIDSCENE_RUN_DIR` environment variable to change the artifact directory. Relative paths use the Test project as their base:
+
+```bash
+MIDSCENE_RUN_DIR="./artifacts" pnpm exec midscene-test
+```
+
+In CI:
+
+- Update collection rules from `.midscene/test-results` to `midscene_run/test-results`, or your configured results directory.
+- With the [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action), set `run-directory` or `MIDSCENE_RUN_DIR`. Execution and artifact collection use the same directory.
+- Collect files using the printed `Summary:` / `Report:` paths or the SDK's `summaryPath`, `markdownPath`, and `reportPath`. See below for sharing reports.
 
 ### Exit codes
 
@@ -80,7 +101,16 @@ You can determine the overall outcome of a test run from the CLI exit code:
 
 ### Report archiving
 
-Reports default to a single HTML file: `midscene_run/report/midscene-e2e-<runId>.html`. When external screenshot mode is enabled, the report directory contains `index.html` and a `screenshots/` directory; preserve the entire directory when archiving or uploading artifacts. See [Run in GitHub Actions](#run-in-github-actions) for CI artifact configuration.
+Reports default to a single HTML file: `midscene_run/report/midscene-e2e-<runId>.html`. To choose the delivery format, set `output.reportFormat` in `midscene.config.ts`:
+
+```ts
+output: {
+  reportFormat: 'single-html', // default: open the HTML directly, including offline
+  // reportFormat: 'html-and-external-assets',
+}
+```
+
+When using `html-and-external-assets`, preserve the entire report directory when archiving or uploading, and view it over HTTP. See [Run in GitHub Actions](#run-in-github-actions) for CI artifact configuration.
 
 ### Link to a specific step (URL hash)
 

@@ -601,6 +601,11 @@ describe('test project config', () => {
       "output: { reportFormat: 'png' }",
       'output.reportFormat must be',
     ],
+    [
+      'unsupported artifact root option',
+      "output: { runDir: 'artifacts' }",
+      'output.runDir is not supported',
+    ],
     ['empty projects', 'projects: []', 'projects must be a non-empty array'],
     [
       'duplicate project names',

@@ -39,6 +39,7 @@ export interface PreparedDocumentInvocation {
 
 export interface ProjectPreparationOptions {
   files?: readonly string[];
+  excludedDirectories?: readonly string[];
   prerequisiteFile?: string;
   documentConcurrency?: number;
   platform?: string;
@@ -87,6 +88,7 @@ export interface PreparedTestRunPlan {
   startedAt: Date;
   runId: string;
   projectRoot: string;
+  artifactDir: string;
   configPath?: string;
   resultDir: string;
   runDir: string;
