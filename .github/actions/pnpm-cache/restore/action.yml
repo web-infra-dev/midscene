@@ -12,6 +12,7 @@ runs:
   steps:
     - name: Resolve pnpm store
       id: pnpm-store
+      if: ${{ runner.environment == 'self-hosted' }}
       shell: bash
       run: |
         echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
@@ -20,6 +21,7 @@ runs:
 
     - name: Restore pnpm store
       id: cache
+      if: ${{ runner.environment == 'self-hosted' }}
       uses: ./.github/actions/cache/restore
       with:
         path: ${{ steps.pnpm-store.outputs.path }}

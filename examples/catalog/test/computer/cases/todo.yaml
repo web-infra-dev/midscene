@@ -1,0 +1,31 @@
+beforeEach:
+  - todo.setup: {}
+  - aiAssert:
+      prompt: >-
+        The React TodoMVC page shows the "What needs to be done?" input and no
+        Todo items, including completed items. The list is unfiltered: All is
+        selected whenever the filter controls are visible. No browser,
+        permission, or other dialog covers the page.
+      message: >-
+        TodoMVC initial-state check failed. If tasks remain, select All and
+        delete every task, including completed tasks, or clear this website's
+        data. Close blocking dialogs and rerun. If the reported reason is a
+        model or connection error, fix that error first.
+
+cases:
+  - name: Manage TodoMVC on the desktop
+    steps:
+      - aiAssert: The Todo input box is visible
+      - aiAct: Type "Learn JS today" in the new Todo input and press Enter
+      - aiAct: Type "Learn Rust tomorrow" in the new Todo input and press Enter
+      - aiAct: Type "Learning AI the day after tomorrow" in the new Todo input and press Enter
+      - aiAssert: >-
+          The Todo list contains "Learn JS today", "Learn Rust tomorrow",
+          and "Learning AI the day after tomorrow".
+      - aiAct: Hover over the second Todo, "Learn Rust tomorrow", then click its delete button
+      - aiAct: Complete the second remaining Todo, "Learning AI the day after tomorrow"
+      - aiAct: Select the Completed filter below the Todo list
+      - aiAssert: >-
+          The Completed list shows exactly one Todo,
+          "Learning AI the day after tomorrow".
+      - aiAssert: The input placeholder says "What needs to be done?"

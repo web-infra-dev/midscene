@@ -1,0 +1,203 @@
+# HarmonyOS JavaScript SDK
+
+`@midscene/harmony` controls HarmonyOS devices over HDC. `HarmonyAgent` inherits all [AI methods](../reference/#interaction-methods) from the base `Agent`.
+
+## Imports and API overview
+
+```typescript
+import { HarmonyAgent, HarmonyDevice, agentFromHdcDevice, getConnectedDevices } from '@midscene/harmony';
+```
+
+In most cases, use the `agentFromHdcDevice()` factory to create and connect a Device in one step. If you need to configure and manage the `HarmonyDevice` and `HarmonyAgent` instances separately, construct them explicitly.
+
+<a id="use-the-javascript-sdk"></a>
+
+<a id="harmonyos-agentfromhdcdevice"></a>
+
+<a id="harmonyos-quick-start"></a>
+
+<a id="harmonyos-launch-apps"></a>
+
+## `agentFromHdcDevice()`
+
+```typescript
+agentFromHdcDevice(
+  deviceId?: string,
+  options?: HarmonyAgentOpt & HarmonyDeviceOpt,
+): Promise<HarmonyAgent>
+```
+
+Connects to a HarmonyOS device and returns a `HarmonyAgent` bound to the connected Device. `deviceId` is optional; when omitted, Midscene selects the first connected device and throws an error if none is found. `options` accepts both Agent and Device settings (including HDC connection settings used during device discovery).
+
+```typescript
+const agent = await agentFromHdcDevice('device-id');
+```
+
+<a id="harmonydevice"></a>
+
+<a id="harmonyagent"></a>
+
+## `HarmonyDevice` / `HarmonyAgent`
+
+```typescript
+new HarmonyDevice(deviceId: string, options?: HarmonyDeviceOpt)
+new HarmonyAgent(device: HarmonyDevice, options?: HarmonyAgentOpt)
+```
+
+When constructing `HarmonyDevice` explicitly, call `await device.connect()` before passing the Device to `HarmonyAgent`. Each Device instance belongs to a single Agent.
+
+```typescript
+const device = new HarmonyDevice('device-id');
+await device.connect();
+const agent = new HarmonyAgent(device);
+```
+
+<a id="advanced"></a>
+
+## Configuration options
+
+### Agent options
+
+Accepts all [shared Agent options](../reference/#agent-options), plus the following platform option:
+
+- `appNameMapping?: Record<string, string>` — Maps friendly app names to HarmonyOS bundle names or explicit `bundle/Ability` targets so you can reference apps by name in `launch()`, `terminate()`, or natural-language prompts. User-provided mappings take precedence over built-in defaults.
+
+### Device options
+
+- `hdcPath?: string` — Custom path to the `hdc` executable. If omitted, Midscene searches the `HDC_HOME` environment variable and common installation paths.
+- `autoDismissKeyboard?: boolean` — Whether to automatically dismiss the on-screen keyboard after text input. Default: `true`.
+- `keyboardDismissStrategy?: 'esc-first' | 'back-first'` — Key strategy used when dismissing the on-screen keyboard. Default: `'esc-first'` (on HarmonyOS, `'esc-first'` sends the Escape key, while `'back-first'` sends the Back key).
+- `keyboardTypeDelay?: number` — Delay in milliseconds between keystrokes (must be a finite non-negative number). When set to a positive value, `'legacy'` input sends characters one Unicode code point at a time via `uitest uiInput inputText`. Useful when an input field drops characters during fast typing.
+- `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` — Default text input strategy for `Input` actions. Default: `'legacy'`:
+  - `'sequential'`: Makes one HDC input call per Unicode code point. Use this strategy when setting a positive `keyboardTypeDelay`.
+  - `'bulk'`: Sends the entire string in a single HDC text input call. Requires `keyboardTypeDelay` to be omitted or set to `0`.
+- `screenshotResizeScale?: number` — **Deprecated** (removed and no longer has any effect). Use `screenshotShrinkFactor` in `AgentOpt` instead to control the screenshot size sent to the AI model.
+- `customActions?: DeviceAction[]` — Custom actions registered for the Agent planner to invoke. Pass this option to `new HarmonyDevice()` or `agentFromHdcDevice()`; see [Integrate with any interface](../integrate-with-any-interface) for details.
+
+## Platform methods
+
+<a id="harmonyos-agentlaunch"></a>
+
+### `launch()`
+
+Open a web URL or launch a HarmonyOS app.
+
+```ts
+function launch(uri: string): Promise<void>;
+```
+
+- `uri: string` — App bundle name (such as `com.huawei.hmos.settings`), explicit `bundle/Ability` target, app name registered in `appNameMapping`, or `http://` / `https://` URL (web URLs are opened in the system browser).
+
+```ts
+await agent.launch('com.huawei.hmos.settings'); // Open Settings
+await agent.launch('com.huawei.hmos.camera');   // Open Camera
+await agent.launch('Video');                    // Open the mapped ability
+```
+
+<a id="harmonyos-agentrunhdcshell"></a>
+
+### `runHdcShell()`
+
+Execute a raw `hdc shell` command on the connected device.
+
+```ts
+function runHdcShell(command: string): Promise<string>;
+```
+
+- `command: string` — Command string passed directly to `hdc shell`.
+
+```ts
+const result = await agent.runHdcShell('hidumper -s RenderService -a screen');
+console.log(result);
+```
+
+<a id="harmonyos-agentterminate"></a>
+
+### `terminate()`
+
+Force-stop a running HarmonyOS app.
+
+```ts
+function terminate(uri: string): Promise<void>;
+```
+
+- `uri: string` — Bundle name, app name registered in `appNameMapping`, or `bundle/Ability` string (only the bundle name portion is used).
+
+```ts
+await agent.terminate('com.huawei.hmos.settings');
+```
+
+<a id="harmonyos-navigation-helpers"></a>
+
+### System navigation
+
+- `agent.back(): Promise<void>` — Trigger the system Back action.
+- `agent.home(): Promise<void>` — Return to the home screen.
+- `agent.recentApps(): Promise<void>` — Open the recent apps (multitasking) screen.
+
+<a id="harmonyos-getconnecteddevices"></a>
+
+## Device discovery
+
+```typescript
+getConnectedDevices(
+  hdcPath?: string,
+  options?: { timeout?: number },
+): Promise<Array<{ deviceId: string }>>
+```
+
+Returns the list of devices discovered by HDC. Pass `hdcPath` to specify a custom `hdc` executable path.
+
+<a id="harmony-device-destroy"></a>
+
+## Lifecycle
+
+```typescript
+agent.destroy(): Promise<void>
+```
+
+Calling `agent.destroy()` waits for pending operations to complete, calls the underlying Device's `destroy()`, and finalizes the execution report. Do not share a single Device instance across multiple Agents or reuse a Device after cleanup.
+
+On HarmonyOS, `device.destroy()` clears screen caches and HDC client state. It does not disconnect the physical device from HDC or close apps on the device.
+
+## Troubleshooting
+
+<a id="keyboard-is-not-dismissed-or-the-page-goes-back-after-typing"></a>
+
+### Keyboard is not dismissed or the page navigates back after typing
+
+By default, Midscene automatically dismisses the on-screen keyboard after entering text. On HarmonyOS, it sends the ESC key (`'esc-first'`) by default to avoid accidentally navigating back. If ESC does not close the keyboard in your app, switch `keyboardDismissStrategy` to `'back-first'`:
+
+```typescript
+const device = new HarmonyDevice('device-id', {
+  keyboardDismissStrategy: 'back-first',
+});
+```
+
+If your input field also reacts to the Back key by clearing its text or closing a modal, set `autoDismissKeyboard` to `false` to disable automatic dismissal:
+
+```typescript
+const device = new HarmonyDevice('device-id', {
+  autoDismissKeyboard: false,
+});
+```
+
+With automatic dismissal disabled, the keyboard stays on screen. You can use `aiAct` to collapse it when needed, e.g., `await agent.aiAct('dismiss the keyboard')`.
+
+<a id="how-to-use-a-custom-hdc-path"></a>
+
+### How do I specify a custom HDC path?
+
+Point the `HDC_HOME` environment variable to the directory containing the `hdc` executable:
+
+```bash
+export HDC_HOME=/path/to/hdc/directory
+```
+
+Or pass the full executable path via `hdcPath` in the `HarmonyDevice` constructor (or `agentFromHdcDevice`):
+
+```typescript
+const device = new HarmonyDevice('0123456789ABCDEF', {
+  hdcPath: '/path/to/hdc',
+});
+```

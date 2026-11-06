@@ -5,6 +5,16 @@
  * the Chrome extension execute it in a browser realm where Node-side coverage
  * counters and module bindings do not exist.
  */
+export const focusedInputFrameScript = `(() => {
+  let element = document.activeElement;
+  while (element?.shadowRoot?.activeElement) {
+    element = element.shadowRoot.activeElement;
+  }
+  return element instanceof HTMLIFrameElement || element instanceof HTMLFrameElement
+    ? element
+    : null;
+})()`;
+
 export const selectAllInputScript = `(() => {
   let activeElement = document.activeElement;
   while (activeElement?.shadowRoot?.activeElement) {

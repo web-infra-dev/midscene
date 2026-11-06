@@ -9,6 +9,7 @@ export interface EnvConfigReminderProps
     EnvConfigProps,
     | 'playgroundSDK'
     | 'onVerify'
+    | 'modelConfigActions'
     | 'agentOptions'
     | 'onAgentOptionsSave'
     | 'configModalClassName'
@@ -23,6 +24,7 @@ export const EnvConfigReminder: React.FC<EnvConfigReminderProps> = ({
   className = '',
   playgroundSDK,
   onVerify,
+  modelConfigActions,
   agentOptions,
   onAgentOptionsSave,
   configModalClassName,
@@ -49,6 +51,7 @@ export const EnvConfigReminder: React.FC<EnvConfigReminderProps> = ({
         configModalWidth={configModalWidth}
         envTextareaAutoSize={envTextareaAutoSize}
         envTextareaMinRows={envTextareaMinRows}
+        modelConfigActions={modelConfigActions}
         mode="text"
         onAgentOptionsSave={onAgentOptionsSave}
         onVerify={onVerify}

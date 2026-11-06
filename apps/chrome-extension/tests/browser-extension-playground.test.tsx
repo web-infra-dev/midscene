@@ -133,6 +133,7 @@ describe('BrowserExtensionPlayground', () => {
       'chrome-extension-playground playground-conversation-skin',
     );
     expect(universalPlaygroundProps.at(-1)?.envConfigReminderProps).toEqual({
+      modelConfigActions: expect.anything(),
       agentOptions,
       configModalClassName: 'chrome-extension-model-env-config-modal',
       configModalWidth: 360,

@@ -1,0 +1,79 @@
+import { ChromeExtensionButton } from '@theme';
+
+# Web environment setup
+
+For Web automation, you can either launch a controlled browser with Playwright / Puppeteer or connect to an existing desktop Chrome instance via [Chrome Bridge](../bridge-mode) to reuse active login sessions. Start by verifying your model settings and page interactions in the Chrome extension Playground, then prepare the browser environment for your chosen integration method.
+
+## Prerequisites
+
+- Desktop Chrome installed (for running the extension Playground).
+- [Model credentials configured](../model-api-setup), or obtained via [Use a ChatGPT subscription](../chatgpt-subscription).
+- Node.js installed (`^20.19.0 || ^22.12.0 || >=24.0.0`, required for running tests or scripts later), with `node -v` and `npx --version` working in your terminal.
+
+## Launch Playground
+
+1. Install the Midscene Chrome extension:
+
+   <ChromeExtensionButton linkLabel="Install Midscene Chrome Extension from the Chrome Web Store" />
+
+2. Open the Midscene side panel from Chrome's extensions menu, click the gear icon to open settings, paste your model configuration, and save.
+3. Open [TodoMVC](https://todomvc.com/examples/react/dist/#/) in the active tab and keep the page visible.
+
+## Run an action and verify the result
+
+1. Select `aiAct` in the side panel, enter the following instruction, and run it:
+
+```text
+Add a todo named "Try Midscene", then mark it as completed.
+```
+
+2. Once the completed todo item appears on the page, switch to `aiAssert`, enter the following assertion, and run it:
+
+```text
+The list contains a todo named "Try Midscene", and it is marked as completed.
+```
+
+3. Confirm that the assertion passes and inspect the step-by-step screenshots in the results panel.
+
+This step verifies model calls and page interactions inside the Chrome extension. Note that the extension does not install browser binaries for Playwright or Puppeteer, nor does it share its model configuration or login sessions with external test processes.
+
+## Prepare the browser for project integration
+
+### Playwright
+
+Install pnpm and run `pnpm init` in your project directory (skip if `package.json` already exists), then install the dependencies and Chromium browser:
+
+```bash
+pnpm add -D @midscene/web playwright
+pnpm exec playwright install chromium
+```
+
+If you generated a Web project using Midscene Test, follow the generated `README` to install the browser. Then run the first example in [Midscene Test](../midscene-test/use) or [Integrate with Playwright Test](../integrate-with-playwright) to verify your runtime setup.
+
+### Puppeteer
+
+```bash
+pnpm add -D @midscene/web puppeteer
+```
+
+Allow Puppeteer to download its bundled browser during installation (if using a custom browser binary or remote connection, make sure the executable path or CDP debugging endpoint is accessible). Then run the Web / Puppeteer example in [Write standalone automation scripts](../sdk/standalone); see the [Puppeteer integration guide](../integrate-with-puppeteer) for connection options.
+
+### Reuse existing Chrome (Chrome Bridge)
+
+To reuse existing tabs, login sessions, or extensions in desktop Chrome, complete the [Chrome Bridge connection check](../bridge-mode#verify-connection) (a successful run in the extension Playground does not verify Bridge communication).
+
+## Next steps
+
+Once your environment and Playground are verified, choose how to integrate Midscene:
+
+- **Write YAML tests**: Initialize a project, run test cases, and inspect reports with [Midscene Test](../midscene-test/use).
+- **Integrate with existing JavaScript tests**: [Integrate with Playwright Test](../integrate-with-playwright).
+- **Write standalone automation scripts**: Follow [Write standalone automation scripts](../sdk/standalone) and pick the example for your platform.
+
+Note: Model credentials entered in the Playground UI are stored locally in the browser and are not automatically shared with test or script processes. Copy your verified settings into your project's `.env` file and load them as shown in the integration guides.
+
+## Troubleshooting
+
+- **Extension installation, restricted pages, or local model CORS issues**: See the [Quick start FAQ](../quick-start#chrome-extension-faq).
+- **Model request failures**: Double-check your configuration settings and [verify model connectivity](../model-config#verify-model-connectivity).
+- **Playground works, but tests or scripts fail**: Confirm that your Node.js process loads the `.env` file, the Playwright / Puppeteer browser is installed, and the target URL is reachable (note that login sessions in your regular Chrome profile are not automatically shared with newly launched browser instances).

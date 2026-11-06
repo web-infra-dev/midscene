@@ -10,12 +10,16 @@ interface SourceNode {
   end: number;
   value: unknown;
   children: SourceNode[];
+  kind: string | null;
 }
 
 /** Keep author formatting while redacting values by parsed YAML keys, including aliases. */
 export function parseWorkflowSource(source: string): {
   parsed: unknown;
   sourceYaml: TestRunReportValue;
+  locate(
+    path: readonly (string | number)[],
+  ): { line: number; column: number } | undefined;
 } {
   const stack: SourceNode[] = [];
   const nodes: SourceNode[] = [];
@@ -33,12 +37,14 @@ export function parseWorkflowSource(source: string): {
           end: 0,
           value: null,
           children: [],
+          kind: null,
         });
         return;
       }
       const node = stack.pop()!;
       node.end = state.position + sourceOffset;
       node.value = state.result;
+      node.kind = state.kind;
       stack.at(-1)?.children.push(node);
       nodes.push(node);
       if (state.kind !== 'mapping') return;
@@ -73,6 +79,41 @@ export function parseWorkflowSource(source: string): {
   const value = sanitizeReportText(redacted, 64 * 1024);
   return {
     parsed,
+    locate(path) {
+      let node = nodes.at(-1);
+      for (const part of path) {
+        if (!node) return undefined;
+        // js-yaml can emit a wrapper around a block collection.
+        while (
+          node.children.length === 1 &&
+          node.children[0].value === node.value
+        )
+          node = node.children[0];
+        if (typeof part === 'number' && node.kind === 'sequence')
+          node = node.children[part];
+        else if (typeof part === 'string' && node.kind === 'mapping') {
+          const children = node.children;
+          node = undefined;
+          for (let index = 0; index < children.length; index += 2)
+            if (children[index].value === part) {
+              node = children[index + 1];
+              break;
+            }
+        } else return undefined;
+      }
+      if (!node) return undefined;
+      let start = node.start;
+      while (start < node.end) {
+        if (/\s/.test(source[start])) start++;
+        else if (source[start] === '#') {
+          const end = source.indexOf('\n', start);
+          if (end < 0) return undefined;
+          start = end + 1;
+        } else break;
+      }
+      const prefix = source.slice(0, start).split(/\r\n|\r|\n/);
+      return { line: prefix.length, column: prefix.at(-1)!.length + 1 };
+    },
     sourceYaml: {
       value,
       ...(redactedPaths.size ? { redactedPaths: [...redactedPaths] } : {}),

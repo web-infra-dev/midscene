@@ -18,6 +18,7 @@ import {
   type ResolvedTextInputOptions,
   createDefaultMobileActions,
   defineAction,
+  resolveDefaultMobileScroll,
   resolveTextInputOptions,
   sendTextSequentially,
   shouldInputSequentially,
@@ -266,18 +267,16 @@ export class IOSDevice implements AbstractInterface {
     this.invalidatePendingKeyboardFollowUp('clear input');
     if (point) {
       await this.tapPoint(point);
-      await sleep(100);
     }
 
+    await this.wdaBackend.waitForInputFocus();
     debugDevice('Attempting to clear input with WebDriver Clear API');
     const cleared = await this.wdaBackend.clearActiveElement();
-    if (cleared) {
-      debugDevice('Successfully cleared input with WebDriver Clear API');
-    } else {
-      debugDevice(
-        'WebDriver Clear API returned false (no active element or clear failed)',
-      );
-    }
+    assert(
+      cleared,
+      'Cannot verify that input was cleared; refusing to append text',
+    );
+    debugDevice('Successfully cleared input with WebDriver Clear API');
   }
 
   actionSpace(): DeviceAction<any>[] {
@@ -681,8 +680,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     debugDevice(`Typing text: "${text}"`);
 
     try {
-      // Wait a bit to ensure keyboard is ready
-      await sleep(200);
+      await this.wdaBackend.waitForInputFocus();
 
       if (inputSequentially) {
         // Type one character at a time with a delay between keystrokes.
@@ -742,6 +740,26 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     await this.wdaBackend.pressKey(key);
   }
 
+  // Keep default browsing gestures inside the screen and leave overlapping
+  // content between observations. Content displacement remains OS/control dependent.
+  private async scrollDefault(
+    direction: 'up' | 'down' | 'left' | 'right',
+  ): Promise<void> {
+    const { from, to } = resolveDefaultMobileScroll(
+      direction,
+      await this.size(),
+    );
+    // A fixed duration changes release velocity with screen size/orientation.
+    // Cap velocity at 400 points/second and keep short gestures at least 1s:
+    // faster short gestures can intermittently fling beyond the viewport.
+    // Swipe keeps its fast default.
+    const duration = Math.max(
+      1000,
+      Math.round(Math.hypot(to.x - from.x, to.y - from.y) / 0.4),
+    );
+    await this.swipePoint(from, to, duration);
+  }
+
   // A scroll is a bounded gesture from the chosen touch origin. Never move
   // that origin to accommodate a large distance: it may avoid a nested control.
   private async scrollInDirection(
@@ -750,6 +768,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     startPoint?: Point,
     duration = 500,
   ): Promise<void> {
+    if (distance === undefined && !startPoint) {
+      return this.scrollDefault(direction);
+    }
     const { width, height } = await this.size();
     const x = Math.round(startPoint?.left ?? width / 2);
     const y = Math.round(startPoint?.top ?? height / 2);
@@ -1258,6 +1279,7 @@ const createPlatformActions = (device: IOSDevice) => {
     }),
     IOSHomeButton: defineAction({
       name: 'IOSHomeButton',
+      supportedBySystemOne: true,
       description: 'Trigger the system "home" operation on iOS devices',
       call: async () => {
         await device.home();
@@ -1265,6 +1287,7 @@ const createPlatformActions = (device: IOSDevice) => {
     }),
     IOSAppSwitcher: defineAction({
       name: 'IOSAppSwitcher',
+      supportedBySystemOne: true,
       description: 'Trigger the system "app switcher" operation on iOS devices',
       call: async () => {
         await device.appSwitcher();

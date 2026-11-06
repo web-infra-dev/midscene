@@ -1,0 +1,203 @@
+# HarmonyOS JavaScript SDK
+
+`@midscene/harmony` 通过 HDC 控制 HarmonyOS 设备。`HarmonyAgent` 继承基础 `Agent` 的 [AI 方法](../reference/#interaction-methods)。
+
+## 导入与 API 概览
+
+```typescript
+import { HarmonyAgent, HarmonyDevice, agentFromHdcDevice, getConnectedDevices } from '@midscene/harmony';
+```
+
+日常使用推荐通过工厂函数 `agentFromHdcDevice()` 一步完成 Device 的创建与连接；如果需要分别管理 Device 和 Agent 的初始化过程，也可以显式构造 `HarmonyDevice` 与 `HarmonyAgent`。
+
+<a id="使用-javascript-sdk"></a>
+
+<a id="harmonyos-agentfromhdcdevice"></a>
+
+<a id="harmonyos-快速开始"></a>
+
+<a id="harmonyos-启动应用"></a>
+
+## `agentFromHdcDevice()`
+
+```typescript
+agentFromHdcDevice(
+  deviceId?: string,
+  options?: HarmonyAgentOpt & HarmonyDeviceOpt,
+): Promise<HarmonyAgent>
+```
+
+连接指定的 HarmonyOS 设备并返回绑定了该 Device 的 `HarmonyAgent`。`deviceId` 可选；省略时默认连接第一台可用设备，若未发现任何已连接设备则抛出错误。`options` 同时接受 Agent 配置与 Device 配置（设备发现过程同样会使用其中的 HDC 连接配置）。
+
+```typescript
+const agent = await agentFromHdcDevice('device-id');
+```
+
+<a id="harmonydevice"></a>
+
+<a id="harmonyagent"></a>
+
+## `HarmonyDevice` / `HarmonyAgent`
+
+```typescript
+new HarmonyDevice(deviceId: string, options?: HarmonyDeviceOpt)
+new HarmonyAgent(device: HarmonyDevice, options?: HarmonyAgentOpt)
+```
+
+显式实例化 `HarmonyDevice` 时，必须先调用 `await device.connect()` 完成连接，再将其传给 `HarmonyAgent`。每个 Device 实例只能归属于一个 Agent。
+
+```typescript
+const device = new HarmonyDevice('device-id');
+await device.connect();
+const agent = new HarmonyAgent(device);
+```
+
+<a id="进阶"></a>
+
+## 配置选项
+
+### Agent 配置
+
+支持所有[通用 Agent 配置](../reference/#agent-options)，并额外提供以下平台配置：
+
+- `appNameMapping?: Record<string, string>` —— 将应用名称映射为对应的 HarmonyOS Bundle Name 或显式的 `bundle/Ability` 目标，方便在 `launch()`、`terminate()` 或自然语言指令中直接使用应用名称。用户传入的映射会覆盖内置映射。
+
+### Device 配置
+
+- `hdcPath?: string` —— `hdc` 可执行文件的自定义路径。若未设置，Midscene 会依次从 `HDC_HOME` 环境变量及常见安装路径中查找。
+- `autoDismissKeyboard?: boolean` —— 文本输入完成后是否自动收起软键盘。默认值：`true`。
+- `keyboardDismissStrategy?: 'esc-first' | 'back-first'` —— 自动收起软键盘时发送的按键策略。默认值：`'esc-first'`（HarmonyOS 下仅发送所选策略的首选按键：`'esc-first'` 发送 ESC 键，`'back-first'` 发送返回键）。
+- `keyboardTypeDelay?: number` —— 按键之间的延迟（单位：毫秒，须为有限非负数）。设为正数时，`'legacy'` 输入模式会通过 `uitest uiInput inputText` 逐个 Unicode 码点发送字符，适用于输入框因输入过快而丢字的场景。
+- `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` —— `Input` 动作的默认文本输入策略。默认值为 `'legacy'`：
+  - `'sequential'`：按每个 Unicode 码点调用一次 HDC 输入命令；如需配合 `keyboardTypeDelay` 延迟输入，请使用此策略。
+  - `'bulk'`：整段文本仅调用一次 HDC 文本输入命令；使用此策略时，不能设置 `keyboardTypeDelay`（或须将其设为 `0`）。
+- `screenshotResizeScale?: number` —— **已废弃**（该选项已移除且不再生效）。如需调整发送给 AI 模型的截图缩放比例，请改用 `AgentOpt` 中的 `screenshotShrinkFactor`。
+- `customActions?: DeviceAction[]` —— 注册自定义动作，供 Agent 在规划时调用。可传入 `HarmonyDevice` 构造函数或 `agentFromHdcDevice()`，定义方式请参阅[自定义动作](../integrate-with-any-interface)。
+
+## 平台方法
+
+<a id="harmonyos-agentlaunch"></a>
+
+### `launch()`
+
+打开网页或启动指定的 HarmonyOS 应用。
+
+```ts
+function launch(uri: string): Promise<void>;
+```
+
+- `uri: string` —— 应用的 Bundle Name（如 `com.huawei.hmos.settings`）、显式的 `bundle/Ability` 目标、`appNameMapping` 中注册的应用名称，或以 `http://` / `https://` 开头的网页 URL（网页 URL 会通过系统浏览器打开）。
+
+```ts
+await agent.launch('com.huawei.hmos.settings'); // 打开系统设置
+await agent.launch('com.huawei.hmos.camera');   // 打开相机
+await agent.launch('视频');                     // 打开映射的指定 Ability
+```
+
+<a id="harmonyos-agentrunhdcshell"></a>
+
+### `runHdcShell()`
+
+在当前连接的设备上执行原始 `hdc shell` 命令。
+
+```ts
+function runHdcShell(command: string): Promise<string>;
+```
+
+- `command: string` —— 原样传给 `hdc shell` 的命令字符串。
+
+```ts
+const result = await agent.runHdcShell('hidumper -s RenderService -a screen');
+console.log(result);
+```
+
+<a id="harmonyos-agentterminate"></a>
+
+### `terminate()`
+
+强制停止正在运行的 HarmonyOS 应用。
+
+```ts
+function terminate(uri: string): Promise<void>;
+```
+
+- `uri: string` —— 应用的 Bundle Name、`appNameMapping` 中注册的应用名称，或 `bundle/Ability`（仅取斜杠前的 Bundle Name 部分）。
+
+```ts
+await agent.terminate('com.huawei.hmos.settings');
+```
+
+<a id="harmonyos-导航辅助"></a>
+
+### 系统导航
+
+- `agent.back(): Promise<void>` —— 触发系统返回操作。
+- `agent.home(): Promise<void>` —— 返回系统桌面。
+- `agent.recentApps(): Promise<void>` —— 打开最近任务（多任务）界面。
+
+<a id="harmonyos-getconnecteddevices"></a>
+
+## 设备发现
+
+```typescript
+getConnectedDevices(
+  hdcPath?: string,
+  options?: { timeout?: number },
+): Promise<Array<{ deviceId: string }>>
+```
+
+返回当前通过 HDC 发现的设备列表。可通过 `hdcPath` 指定自定义的 `hdc` 可执行文件路径。
+
+<a id="harmony-device-destroy"></a>
+
+## 生命周期
+
+```typescript
+agent.destroy(): Promise<void>
+```
+
+调用 `agent.destroy()` 时，Agent 会等待进行中的操作结束，调用底层 Device 的 `destroy()`，并完成报告写入。切勿让多个 Agent 共用同一个 Device 实例，也不要在销毁后复用该 Device。
+
+在 HarmonyOS 平台上，`device.destroy()` 会清理屏幕缓存和 HDC 客户端状态，但不会断开宿主机 HDC 与物理设备的连接，也不会关闭设备上的应用。
+
+## 问题排查
+
+<a id="输入后键盘没有隐藏或页面发生返回"></a>
+
+### 输入文本后键盘未收起，或页面意外返回
+
+Midscene 在输入文本后默认会自动收起软键盘。为降低误触页面返回的概率，HarmonyOS 下默认发送 ESC 键（`'esc-first'`）。如果在目标应用中 ESC 键无法收起键盘，可以将策略切换为 `'back-first'`（改用系统返回键）：
+
+```typescript
+const device = new HarmonyDevice('device-id', {
+  keyboardDismissStrategy: 'back-first',
+});
+```
+
+如果目标输入框同时监听了返回键，并在收到返回键时清空内容或关闭弹窗，可以将 `autoDismissKeyboard` 设为 `false` 以禁用自动收起：
+
+```typescript
+const device = new HarmonyDevice('device-id', {
+  autoDismissKeyboard: false,
+});
+```
+
+禁用后软键盘会保持常驻，需要时可通过 `aiAct` 手动收起键盘，例如 `await agent.aiAct('收起键盘')`。
+
+<a id="如何使用自定义的-hdc-路径"></a>
+
+### 如何指定自定义的 HDC 路径？
+
+可以通过 `HDC_HOME` 环境变量指定 `hdc` 所在的目录：
+
+```bash
+export HDC_HOME=/path/to/hdc/directory
+```
+
+也可以在构造 `HarmonyDevice`（或调用 `agentFromHdcDevice`）时通过 `hdcPath` 参数传入可执行文件的完整路径：
+
+```typescript
+const device = new HarmonyDevice('0123456789ABCDEF', {
+  hdcPath: '/path/to/hdc',
+});
+```

@@ -202,7 +202,7 @@ describe('gpt model adapter', () => {
     ]);
     expect(
       gpt5Adapter.resolveImageDetail({
-        intent: 'default',
+        intent: 'locate',
       }),
     ).toBe('original');
     expect(
@@ -210,6 +210,7 @@ describe('gpt model adapter', () => {
         intent: 'planning',
       }),
     ).toBe('high');
+    expect(gpt5Adapter.resolveImageDetail({ intent: 'default' })).toBe('high');
     expect(
       gpt5Adapter.resolveImageDetail({
         intent: 'planning',
@@ -338,7 +339,7 @@ it.each(['low', 'auto', 'high'] as const)(
       gpt5Adapter.resolveImageDetail({ intent: 'planning', imageDetail }),
     ).toBe(imageDetail);
     expect(
-      gpt5Adapter.resolveImageDetail({ intent: 'default', imageDetail }),
+      gpt5Adapter.resolveImageDetail({ intent: 'locate', imageDetail }),
     ).toBe('original');
   },
 );

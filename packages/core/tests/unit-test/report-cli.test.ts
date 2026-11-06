@@ -2,6 +2,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  readdirSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -17,6 +18,7 @@ import {
   reportFileToMarkdown,
   splitReportFile,
 } from '../../src/report-cli';
+import { ReportGenerator } from '../../src/report-generator';
 import { ScreenshotItem } from '../../src/screenshot-item';
 import { ExecutionDump, ReportActionDump } from '../../src/types';
 
@@ -222,6 +224,119 @@ describe('createReportCliCommands', () => {
     expect(result.markdownFiles.length).toBe(1);
     expect(existsSync(join(outputDir, 'report.md'))).toBe(true);
   });
+
+  it.each(['inline', 'directory'] as const)(
+    'deduplicates image bytes in split and Markdown exports from %s reports while retaining observations',
+    async (mode) => {
+      const sourceDir = join(tmpDir, `source-${mode}`);
+      const reportPath = join(
+        sourceDir,
+        mode === 'inline' ? 'run.html' : 'index.html',
+      );
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: mode,
+        autoPrint: false,
+      });
+      const screenshots = [
+        ScreenshotItem.create(fakeBase64(100), 100),
+        ScreenshotItem.create(fakeBase64(100), 200),
+        ScreenshotItem.create(fakeBase64(120), 300),
+      ];
+      const userText = `Keep ./screenshots/execution-1-task-1-${screenshots[0].id}.png in the diagnostic text`;
+      for (const [index, screenshot] of screenshots.entries()) {
+        const execution = createExecution(`observation-${index}`, screenshot);
+        execution.tasks[0].param = { prompt: userText };
+        if (index === 0)
+          execution.tasks[0].recorder = [
+            {
+              type: 'screenshot',
+              ts: 110,
+              timing: 'after click',
+              description: 'Repeated observation',
+              screenshot: screenshots[1],
+            },
+          ];
+        generator.onExecutionUpdate(execution, {
+          groupName: 'image deduplication',
+          sdkVersion: '1.0.0-test',
+          modelBriefs: [],
+        });
+      }
+      await generator.finalize();
+      const splitDir = join(tmpDir, `split-${mode}`);
+      const split = splitReportFile({
+        htmlPath: mode === 'directory' ? sourceDir : reportPath,
+        outputDir: splitDir,
+      });
+      const markdownDir = join(tmpDir, `markdown-${mode}`);
+      // Single HTML inputs use their file path; directory reports also accept
+      // the report directory through the same public API.
+      const markdown = await reportFileToMarkdown({
+        htmlPath: reportPath,
+        outputDir: markdownDir,
+      });
+      expect(split.executionJsonFiles).toHaveLength(3);
+      expect(split.screenshotFiles).toHaveLength(2);
+      expect(markdown.screenshotFiles).toHaveLength(2);
+      rmSync(sourceDir, { recursive: true, force: true });
+
+      const dumps = split.executionJsonFiles.map((file) =>
+        JSON.parse(readFileSync(file, 'utf8')),
+      );
+      const refs = dumps.map(
+        (dump) => dump.executions[0].tasks[0].uiContext.screenshot,
+      );
+      expect(refs.map((ref) => [ref.id, ref.capturedAt])).toEqual(
+        screenshots.map((shot) => [shot.id, shot.capturedAt]),
+      );
+      expect(refs[0].path).toBe(refs[1].path);
+      expect(refs[2].path).not.toBe(refs[0].path);
+      expect(dumps[0].executions[0].tasks[0].recorder[0]).toMatchObject({
+        ts: 110,
+        timing: 'after click',
+        description: 'Repeated observation',
+        screenshot: {
+          id: screenshots[1].id,
+          capturedAt: 200,
+          path: refs[1].path,
+        },
+      });
+      for (const [index, ref] of refs.entries())
+        expect(readFileSync(join(splitDir, ref.path))).toEqual(
+          Buffer.from(
+            fakeBase64(index === 2 ? 120 : 100).split(',')[1],
+            'base64',
+          ),
+        );
+      const md = readFileSync(markdown.markdownFiles[0], 'utf8');
+      const links = [
+        ...md.matchAll(/!\[[^\]]*\]\(\.\/screenshots\/([^)]*)\)/g),
+      ].map((match) => match[1]);
+      expect(links).toHaveLength(4);
+      expect(new Set(links).size).toBe(2);
+      expect(md).toContain(userText);
+      for (const screenshot of screenshots)
+        expect(md).toContain(`id=${screenshot.id}`);
+      expect(md).toContain('Repeated observation');
+      expect(md).toContain('1970-01-01T00:00:00.110Z');
+      for (const link of links)
+        expect(existsSync(join(markdownDir, 'screenshots', link))).toBe(true);
+      expect(
+        new Set(
+          markdown.screenshotFiles.map((file) =>
+            readFileSync(file).toString('base64'),
+          ),
+        ),
+      ).toEqual(
+        new Set(
+          split.screenshotFiles.map((file) =>
+            readFileSync(file).toString('base64'),
+          ),
+        ),
+      );
+    },
+  );
 
   it('throws SDK-friendly validation errors for reportFileToMarkdown', async () => {
     await expect(
@@ -464,22 +579,17 @@ describe('createReportCliCommands', () => {
       action: 'to-markdown',
     });
 
-    const exportedScreenshot = join(
-      outputDir,
-      'screenshots',
-      'execution-1-task-1-file-shot.png',
-    );
+    const [exportedName] = readdirSync(join(outputDir, 'screenshots'));
+    const exportedScreenshot = join(outputDir, 'screenshots', exportedName);
     expect(existsSync(exportedScreenshot)).toBe(true);
     expect(readFileSync(exportedScreenshot)).toEqual(
       readFileSync(sourceScreenshotPath),
     );
 
-    // The markdown must reference the exported (prefixed) file name, not the
+    // The markdown must reference the exported file name, not the
     // original source path. See issue #2392.
     const mdContent = readFileSync(join(outputDir, 'report.md'), 'utf-8');
-    expect(mdContent).toContain(
-      './screenshots/execution-1-task-1-file-shot.png',
-    );
+    expect(mdContent).toContain(`./screenshots/${exportedName}`);
     expect(mdContent).not.toContain(sourceScreenshotPath);
   });
 
@@ -487,7 +597,7 @@ describe('createReportCliCommands', () => {
     // Reproduces the exact issue #2392 scenario: the android
     // html-and-external-assets mode stores screenshots as
     // ./screenshots/<id>.png relative to the report file. The exported markdown
-    // must point at the prefixed copy, not the original relative path.
+    // must point at the exported copy, not the original relative path.
     const reportDir = join(tmpDir, 'input-report-md-rel');
     const reportPath = join(reportDir, 'index.html');
     const sourceScreenshotsDir = join(reportDir, 'screenshots');
@@ -526,11 +636,8 @@ describe('createReportCliCommands', () => {
       action: 'to-markdown',
     });
 
-    const exportedScreenshot = join(
-      outputDir,
-      'screenshots',
-      'execution-1-task-1-rel-shot.png',
-    );
+    const [exportedName] = readdirSync(join(outputDir, 'screenshots'));
+    const exportedScreenshot = join(outputDir, 'screenshots', exportedName);
     expect(existsSync(exportedScreenshot)).toBe(true);
     expect(readFileSync(exportedScreenshot)).toEqual(
       readFileSync(sourceScreenshotPath),
@@ -539,9 +646,7 @@ describe('createReportCliCommands', () => {
     // Markdown references the exported copy; the original relative path
     // ./screenshots/rel-shot.png must no longer appear on its own.
     const mdContent = readFileSync(join(outputDir, 'report.md'), 'utf-8');
-    expect(mdContent).toContain(
-      './screenshots/execution-1-task-1-rel-shot.png',
-    );
+    expect(mdContent).toContain(`./screenshots/${exportedName}`);
     expect(mdContent).not.toContain('(./screenshots/rel-shot.png)');
   });
 

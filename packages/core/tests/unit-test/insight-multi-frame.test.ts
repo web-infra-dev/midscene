@@ -13,12 +13,12 @@ import * as serviceCallerActual from '@/ai-model/service-caller/index' with {
 rs.mock('@/ai-model/service-caller/index', () => ({
   ...serviceCallerActual,
   AIResponseParseError: class AIResponseParseError extends Error {},
-  callAI: rs.fn(),
+  callGenerativeAI: rs.fn(),
   callAIWithObjectResponse: rs.fn(),
   callAIWithStringResponse: rs.fn(),
 }));
 
-import { callAI } from '@/ai-model/service-caller/index';
+import { callGenerativeAI } from '@/ai-model/service-caller/index';
 import { AiExtractElementInfo } from '@/ai-model/workflows/insight';
 
 describe('insight extraction multi-frame context', () => {
@@ -32,7 +32,7 @@ describe('insight extraction multi-frame context', () => {
 
   beforeEach(() => {
     rs.clearAllMocks();
-    rs.mocked(callAI).mockResolvedValue({
+    rs.mocked(callGenerativeAI).mockResolvedValue({
       content:
         '<thought>Saw the toast.</thought><data-json>{"result":true}</data-json>',
       usage: undefined,
@@ -56,6 +56,7 @@ describe('insight extraction multi-frame context', () => {
     const context = withSequence(3);
 
     await AiExtractElementInfo<{ result: boolean }>({
+      taskType: 'extract',
       context,
       dataQuery: {
         StatementIsTruthy: 'Boolean, whether a success toast briefly appeared',
@@ -63,7 +64,7 @@ describe('insight extraction multi-frame context', () => {
       modelRuntime: getModelRuntime(modelConfig),
     });
 
-    const msgs = rs.mocked(callAI).mock.calls[0]?.[0];
+    const msgs = rs.mocked(callGenerativeAI).mock.calls[0]?.[0];
     const message = msgs?.[1];
     assert(message && 'role' in message);
     assert(Array.isArray(message.content));
@@ -106,6 +107,7 @@ describe('insight extraction multi-frame context', () => {
     const context = withSequence(1);
 
     await AiExtractElementInfo<{ result: boolean }>({
+      taskType: 'extract',
       context,
       dataQuery: {
         StatementIsTruthy: 'Boolean, whether a success toast briefly appeared',
@@ -113,7 +115,7 @@ describe('insight extraction multi-frame context', () => {
       modelRuntime: getModelRuntime(modelConfig),
     });
 
-    const msgs = rs.mocked(callAI).mock.calls[0]?.[0];
+    const msgs = rs.mocked(callGenerativeAI).mock.calls[0]?.[0];
     const message = msgs?.[1];
     assert(message && 'role' in message);
     assert(Array.isArray(message.content));

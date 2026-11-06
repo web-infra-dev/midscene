@@ -1,4 +1,7 @@
-import type { TestRunReportStep } from '@midscene/core';
+import type {
+  TestRunReportOperationEvent,
+  TestRunReportStep,
+} from '@midscene/core';
 import { describe, expect, it } from '@rstest/core';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ErrorCards } from './error-card';
@@ -333,9 +336,164 @@ describe('one home for errors and supporting information', () => {
         onChange={() => {}}
       />,
     );
-    expect(html).toContain('settled');
+    expect(html).toContain('title="settled:');
+    expect(html).toContain('>Finished</span>');
     expect(html).not.toContain('Unexpected title.');
     expect(html).not.toContain('Debugger Tool');
+  });
+
+  it('keeps operation ordering, exact timestamps and pending failures in the event table', () => {
+    const html = renderToStaticMarkup(
+      <EvidenceTabs
+        step={{
+          ...step,
+          operations: {
+            capturedAt: step.endedAt,
+            events: [
+              {
+                operationId: 'op',
+                operationKind: 'resource',
+                kind: 'cancel-requested',
+                at: step.startedAt,
+              },
+              {
+                operationId: 'op',
+                operationKind: 'resource',
+                kind: 'runner-returned',
+                at: step.endedAt,
+                status: 'failed',
+                pending: true,
+              },
+            ],
+          },
+        }}
+        tab="logs"
+        onChange={() => {}}
+      />,
+    );
+    expect(html).toContain('<table aria-label="Operation events">');
+    expect(html).toContain('<th scope="col">Time</th>');
+    expect(html).toContain(`dateTime="${step.startedAt}"`);
+    expect(html).toContain('title="resource:');
+    expect(html).toContain('Operation ID: op');
+    expect(html).toContain('Run Agent operation</span>');
+    expect(html.indexOf('cancel-requested')).toBeLessThan(
+      html.indexOf('runner-returned'),
+    );
+    expect(html).toContain('Execution still running');
+    expect(html).toContain('>pending</span>');
+    expect(html).toContain('>failed</span>');
+    expect(html).toContain('<span class="runner-muted">-</span>');
+  });
+
+  it('explains every operation and event while preserving raw names in hover hints', () => {
+    const examples: Array<{
+      operationKind: TestRunReportOperationEvent['operationKind'];
+      kind: TestRunReportOperationEvent['kind'];
+      operationLabel: string;
+      eventLabel: string;
+    }> = [
+      {
+        operationKind: 'node',
+        kind: 'started',
+        operationLabel: 'Run step',
+        eventLabel: 'Started',
+      },
+      {
+        operationKind: 'acquisition',
+        kind: 'settled',
+        operationLabel: 'Get Agent',
+        eventLabel: 'Finished',
+      },
+      {
+        operationKind: 'resource',
+        kind: 'runner-returned',
+        operationLabel: 'Run Agent operation',
+        eventLabel: 'Result returned',
+      },
+      {
+        operationKind: 'readiness',
+        kind: 'cancel-requested',
+        operationLabel: 'Wait for app readiness',
+        eventLabel: 'Cancellation requested',
+      },
+      {
+        operationKind: 'cleanup',
+        kind: 'cleanup-deferred',
+        operationLabel: 'Clean up resources',
+        eventLabel: 'Cleanup postponed',
+      },
+    ];
+    const html = renderToStaticMarkup(
+      <EvidenceTabs
+        step={{
+          ...step,
+          operations: {
+            capturedAt: step.endedAt,
+            events: examples.map(({ operationKind, kind }) => ({
+              operationId: `${operationKind}-operation`,
+              operationKind,
+              kind,
+              at: step.startedAt,
+            })),
+          },
+        }}
+        tab="logs"
+        onChange={() => {}}
+      />,
+    );
+    for (const example of examples) {
+      expect(html).toContain(`title="${example.operationKind}:`);
+      expect(html).toContain(
+        `Operation ID: ${example.operationKind}-operation`,
+      );
+      expect(html).toContain(`${example.operationLabel}</span>`);
+      expect(html).toContain(`title="${example.kind}:`);
+      expect(html).toContain(`>${example.eventLabel}</span>`);
+      expect(html).not.toContain(`>${example.operationKind}</`);
+      expect(html).not.toContain(`>${example.kind}</`);
+    }
+    expect(html).toContain('An existing Agent may be reused.');
+    expect(html).toContain('including any Agent operations.');
+    expect(html).toContain('The underlying operation may still be running.');
+    expect(html).not.toContain('<small>Execution still running</small>');
+  });
+
+  it('retains start and completion facts when no operation snapshot exists', () => {
+    const html = renderToStaticMarkup(
+      <EvidenceTabs step={step} tab="logs" onChange={() => {}} />,
+    );
+    expect(html).toContain('Step started: aiAssert');
+    expect(html).toContain('Step ended in 1.00 s');
+    expect(html).toContain(`dateTime="${step.endedAt}"`);
+    expect(html).toContain('>failed</span>');
+    expect(html).toContain('Run step</span>');
+    expect(html).toContain('>Started</span>');
+    expect(html).toContain('>Finished</span>');
+  });
+
+  it('shows the same empty state for uncaptured events and steps that did not run', () => {
+    const emptySteps: TestRunReportStep[] = [
+      { ...step, operations: { capturedAt: step.endedAt, events: [] } },
+      {
+        id: 'not-run',
+        node: 'aiAssert',
+        phase: 'steps',
+        stepIndex: 0,
+        status: 'not-run',
+        continuedAfterError: false,
+        notRunReason: 'Blocked by failure.',
+      },
+    ];
+    for (const empty of emptySteps) {
+      const html = renderToStaticMarkup(
+        <EvidenceTabs step={empty} tab="logs" onChange={() => {}} />,
+      );
+      expect(html).toContain('runner-events-empty');
+      expect(html).toContain('No operation events were recorded.');
+      expect(html).not.toContain('<table');
+      expect(html).not.toContain('Step started');
+    }
   });
 
   it('shows plan configuration on the node without duplicating identical input', () => {

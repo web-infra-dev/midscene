@@ -1,4 +1,4 @@
-import { callAI, getModelRuntime } from '@midscene/core/ai-model';
+import { callGenerativeAI, getModelRuntime } from '@midscene/core/ai-model';
 import { describe, expect, it } from '@rstest/core';
 
 // This suite resolves '@midscene/core' through node_modules into the built
@@ -22,7 +22,7 @@ describe('proxy-deps resolution through built @midscene/core', () => {
 
     let caught: unknown;
     try {
-      await callAI([{ role: 'user', content: 'ping' }], modelRuntime);
+      await callGenerativeAI([{ role: 'user', content: 'ping' }], modelRuntime);
     } catch (error) {
       caught = error;
     }

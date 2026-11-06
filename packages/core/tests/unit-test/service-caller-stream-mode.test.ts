@@ -1,5 +1,5 @@
 import { getModelRuntime } from '@/ai-model/models';
-import { callAI } from '@/ai-model/service-caller';
+import { callGenerativeAI } from '@/ai-model/service-caller';
 import {
   type IModelConfig,
   MIDSCENE_MODEL_STREAM_MODE,
@@ -43,7 +43,7 @@ afterEach(() => {
 
 describe('model request stream mode', () => {
   for (const protocol of ['openai-chat', 'openai-responses'] as const) {
-    const config: IModelConfig = {
+    const baseConfig: IModelConfig = {
       modelName: 'test-model',
       modelFamily: 'gpt-5',
       modelDescription: 'test',
@@ -54,8 +54,8 @@ describe('model request stream mode', () => {
       protocol,
       retryCount: 0,
     };
-    it(`${protocol}: aggregates an environment-enabled stream without a chunk callback`, async () => {
-      rs.stubEnv(MIDSCENE_MODEL_STREAM_MODE, 'stream');
+    it(`${protocol}: aggregates a model-configured stream without a chunk callback`, async () => {
+      const config: IModelConfig = { ...baseConfig, streamMode: 'stream' };
       fetchMock.mockResolvedValue(
         sse(
           protocol === 'openai-responses'
@@ -84,7 +84,7 @@ describe('model request stream mode', () => {
       );
       const runtime = getModelRuntime(config);
       runtime.onUsage = rs.fn();
-      const result = await callAI(messages, runtime);
+      const result = await callGenerativeAI(messages, runtime);
       expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body)).stream).toBe(
         true,
       );
@@ -105,13 +105,13 @@ describe('model request stream mode', () => {
     });
     for (const mode of [undefined, 'non-stream', 'stream'] as const) {
       it(`${protocol}: non-streaming with mode ${mode} and explicit override when needed`, async () => {
-        rs.stubEnv(MIDSCENE_MODEL_STREAM_MODE, mode);
+        const config = { ...baseConfig, streamMode: mode };
         fetchMock.mockResolvedValue(
           Response.json(
             protocol === 'openai-responses' ? response : chatResponse,
           ),
         );
-        const result = await callAI(
+        const result = await callGenerativeAI(
           messages,
           getModelRuntime(config),
           mode === 'stream' ? { stream: false } : undefined,
@@ -127,7 +127,7 @@ describe('model request stream mode', () => {
       });
     }
     it(`${protocol}: explicit streaming overrides non-stream mode`, async () => {
-      rs.stubEnv(MIDSCENE_MODEL_STREAM_MODE, 'non-stream');
+      const config: IModelConfig = { ...baseConfig, streamMode: 'non-stream' };
       fetchMock.mockResolvedValue(
         sse(
           protocol === 'openai-responses'
@@ -150,7 +150,7 @@ describe('model request stream mode', () => {
         ),
       );
       const onChunk = rs.fn();
-      const result = await callAI(messages, getModelRuntime(config), {
+      const result = await callGenerativeAI(messages, getModelRuntime(config), {
         stream: true,
         onChunk,
       });
@@ -162,36 +162,25 @@ describe('model request stream mode', () => {
       );
       expect(onChunk).toHaveBeenCalled();
     });
-    it(`${protocol}: skips environment parsing when stream is explicitly specified`, async () => {
-      rs.stubEnv(MIDSCENE_MODEL_STREAM_MODE, 'invalid');
+    it(`${protocol}: uses model configuration independently of global environment`, async () => {
+      rs.stubEnv(MIDSCENE_MODEL_STREAM_MODE, 'stream');
+      const config: IModelConfig = { ...baseConfig, streamMode: 'non-stream' };
       fetchMock.mockResolvedValue(
         Response.json(
           protocol === 'openai-responses' ? response : chatResponse,
         ),
       );
-      const result = await callAI(messages, getModelRuntime(config), {
-        stream: false,
-      });
+      const result = await callGenerativeAI(messages, getModelRuntime(config));
       expect(result.isStreamed).toBe(false);
       expect(result.content).toBe('Hello');
     });
-    for (const mode of ['auto', 'true', 'invalid']) {
-      it(`${protocol}: rejects unsupported mode ${mode} before fetching`, async () => {
-        rs.stubEnv(MIDSCENE_MODEL_STREAM_MODE, mode);
-        await expect(callAI(messages, getModelRuntime(config))).rejects.toThrow(
-          'Invalid MIDSCENE_MODEL_STREAM_MODE',
-        );
-        expect(fetchMock).not.toHaveBeenCalled();
-      });
-    }
   }
-  it('rejects a truncated environment-enabled Responses stream instead of returning partial text', async () => {
-    rs.stubEnv(MIDSCENE_MODEL_STREAM_MODE, 'stream');
+  it('rejects a truncated model-configured Responses stream instead of returning partial text', async () => {
     fetchMock.mockResolvedValue(
       sse([{ type: 'response.output_text.delta', delta: 'partial' }]),
     );
     await expect(
-      callAI(
+      callGenerativeAI(
         messages,
         getModelRuntime({
           modelName: 'test',
@@ -202,6 +191,7 @@ describe('model request stream mode', () => {
           intent: 'default',
           slot: 'default',
           protocol: 'openai-responses',
+          streamMode: 'stream',
           retryCount: 0,
         }),
       ),

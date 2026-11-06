@@ -71,6 +71,7 @@ describe('TaskExecutor waitFor', () => {
     };
 
     taskExecutor = new TaskExecutor(mockPage, mockInsight, {
+      getDefaultModelRuntime: () => mockedModelRuntime,
       onTaskStart: rs.fn(),
       actionSpace: mockPage.actionSpace(),
       getAbortSignal: () => abortSignal,

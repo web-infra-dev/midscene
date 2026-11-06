@@ -1,9 +1,14 @@
 import type { TestRunReportDump } from '@midscene/core';
+import type { PlaywrightTasks } from '../../types';
+import { TokenUsageTooltip } from './token-usage';
+import { getRunTokenUsage } from './token-usage-model';
 import { formatDuration, formatTimestamp } from './view-primitives';
 
 export function SingleCaseRunInfo({
   dump,
-}: { dump: TestRunReportDump }): JSX.Element {
+  reports,
+}: { dump: TestRunReportDump; reports?: PlaywrightTasks[] }): JSX.Element {
+  const usage = getRunTokenUsage(dump.metrics);
   const metricStatus = (
     field: 'modelCallCount' | 'modelTimeMs' | 'totalTokens',
   ) => {
@@ -37,14 +42,14 @@ export function SingleCaseRunInfo({
           </strong>{' '}
           model calls{partial('modelCallCount')}
         </span>
-        <span>
+        <TokenUsageTooltip usage={usage} reports={reports} scope="run">
           <strong>
-            {metricStatus('totalTokens') === 'unknown'
+            {usage.status === 'unknown'
               ? '—'
               : dump.metrics.totalTokens.toLocaleString()}
           </strong>{' '}
-          tokens{partial('totalTokens')}
-        </span>
+          tokens{usage.status === 'partial' ? ' (partial)' : ''}
+        </TokenUsageTooltip>
       </div>
     </section>
   );

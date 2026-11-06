@@ -86,6 +86,10 @@ if [[ -z "$resolve_output" || "$resolve_output" == *"No activity found"* ]]; the
 fi
 
 set +e
+node scripts/mobile-scroll-regression.mjs android 2>&1 |
+  tee "$diagnostics_dir/default-scroll.log"
+scroll_exit=${PIPESTATUS[0]}
+
 AI_TEST_TYPE=android \
 MIDSCENE_ANDROID_EMULATOR_SMOKE=1 \
 pnpm exec nx test @midscene/android --skip-nx-cache -- \
@@ -117,6 +121,7 @@ adb logcat -d -t 2000 > "$diagnostics_dir/emulator-logcat.txt" 2>&1 || true
 adb exec-out screencap -p > "$diagnostics_dir/emulator-final.png" 2>/dev/null || true
 
 BROWSER_PREFLIGHT_EXIT="$browser_preflight_exit" \
+SCROLL_EXIT="$scroll_exit" \
 SMOKE_EXIT="$smoke_exit" \
 TODO_EXIT="$todo_exit" \
 REPORT_EXIT="$report_exit" \
@@ -125,6 +130,7 @@ node -e '
   const path = require("node:path");
   const outcomes = {
     browserPreflight: Number(process.env.BROWSER_PREFLIGHT_EXIT),
+    defaultScroll: Number(process.env.SCROLL_EXIT),
     deterministicSmoke: Number(process.env.SMOKE_EXIT),
     todoMvc: Number(process.env.TODO_EXIT),
     requiredReports: Number(process.env.REPORT_EXIT),
@@ -135,7 +141,7 @@ node -e '
   );
 '
 
-if ((browser_preflight_exit != 0 || smoke_exit != 0 || todo_exit != 0 || report_exit != 0)); then
-  echo "Android emulator validation failed: browser=$browser_preflight_exit smoke=$smoke_exit todo=$todo_exit reports=$report_exit" >&2
+if ((scroll_exit != 0 || browser_preflight_exit != 0 || smoke_exit != 0 || todo_exit != 0 || report_exit != 0)); then
+  echo "Android emulator validation failed: scroll=$scroll_exit browser=$browser_preflight_exit smoke=$smoke_exit todo=$todo_exit reports=$report_exit" >&2
   exit 1
 fi
