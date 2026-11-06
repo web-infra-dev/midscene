@@ -3,11 +3,15 @@ import { createServer } from 'node:http';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineNode, z } from '@midscene/test';
-import { defineProjectSetup, defineTestProject } from '@midscene/test/config';
+import {
+  defineFileSetup,
+  defineProjectSetup,
+  defineTestProject,
+} from '@midscene/test/config';
 import { createMidsceneNodes } from '@midscene/test/midscene';
 import { PuppeteerAgent } from '@midscene/web/puppeteer';
 import { config as loadEnv } from 'dotenv';
-import puppeteer, { type Browser } from 'puppeteer';
+import puppeteer, { type Browser, type Page } from 'puppeteer';
 import sirv from 'sirv';
 
 const reportRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -15,10 +19,15 @@ const reportRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 loadEnv({ path: resolve(reportRoot, '.env') });
 loadEnv({ path: resolve(reportRoot, '../../.env') });
 
-interface ReportContext {
+interface ReportProjectContext {
   browser: Browser;
   baseUrl: string;
-  agent?: PuppeteerAgent;
+}
+
+interface ReportFileContext {
+  baseUrl: string;
+  page: Page;
+  agent: PuppeteerAgent;
 }
 
 const openReportSchema = z.object({
@@ -28,38 +37,24 @@ const openReportSchema = z.object({
   deviceScaleFactor: z.number().positive().optional(),
 });
 
-const openReport = defineNode<typeof openReportSchema, unknown, ReportContext>({
+const openReport = defineNode<
+  typeof openReportSchema,
+  unknown,
+  ReportFileContext
+>({
   name: 'report.open',
   description:
     'Open a report in an isolated browser context for this YAML file.',
   inputSchema: openReportSchema,
-  async execute({ scope, input, context, onTeardown }) {
+  async execute({ scope, input, context }) {
     if (scope !== 'document') {
       throw new Error('report.open must run in a document beforeAll hook.');
     }
-    if (context.agent) {
-      throw new Error(
-        'The previous report document has not released its Agent.',
-      );
-    }
-    const browserContext = await context.browser.createBrowserContext();
-    // Register immediately so navigation failures also close the Page/context.
-    onTeardown(() => browserContext.close());
-    const page = await browserContext.newPage();
+    const { page } = context;
     await page.setViewport({
       width: input.viewportWidth ?? 1440,
       height: input.viewportHeight ?? 800,
       deviceScaleFactor: input.deviceScaleFactor ?? 0,
-    });
-    const agent = new PuppeteerAgent(page);
-    context.agent = agent;
-    // File cleanup runs in reverse order: Agent, then context and its Page.
-    onTeardown(async () => {
-      try {
-        await agent.destroy();
-      } finally {
-        context.agent = undefined;
-      }
     });
     await page.goto(new URL(input.path, context.baseUrl).href, {
       waitUntil: 'networkidle0',
@@ -69,7 +64,7 @@ const openReport = defineNode<typeof openReportSchema, unknown, ReportContext>({
   },
 });
 
-const setup = defineProjectSetup<ReportContext>({
+const setup = defineProjectSetup<ReportProjectContext>({
   name: 'report',
   async setup({ env, onTeardown }) {
     const server = createServer(
@@ -99,25 +94,42 @@ const setup = defineProjectSetup<ReportContext>({
   },
 });
 
-export default defineTestProject<ReportContext>({
+const fileSetup = defineFileSetup<ReportFileContext, ReportProjectContext>({
+  name: 'report-file',
+  async setup({ projectContext, signal, onTeardown }) {
+    if (!projectContext) {
+      throw new Error('Report project setup did not complete.');
+    }
+    const browserContext = await projectContext.browser.createBrowserContext();
+    onTeardown(() => browserContext.close());
+    signal.throwIfAborted();
+    const page = await browserContext.newPage();
+    const agent = new PuppeteerAgent(page);
+    // File cleanup runs in reverse order: Agent, then context and its Page.
+    onTeardown(() => agent.destroy());
+    return { baseUrl: projectContext.baseUrl, page, agent };
+  },
+});
+
+export default defineTestProject<ReportFileContext, ReportProjectContext>({
   // midscene-action publishes a report directory whose entry is index.html.
   output: { reportFormat: 'html-and-external-assets' },
   projects: [
-    { name: 'report', setup, files: { include: ['e2e/*.yaml'] }, retry: 0 },
+    {
+      name: 'report',
+      setup,
+      fileSetup,
+      files: { include: ['e2e/*.yaml'] },
+      retry: 0,
+    },
   ],
 
   nodes: [
     openReport,
-    ...createMidsceneNodes<ReportContext>({
+    ...createMidsceneNodes<ReportFileContext>({
       agentClass: PuppeteerAgent,
-      getAgent: ({ context }) => {
-        if (!context.agent) {
-          throw new Error('Open a report with report.open in beforeAll first.');
-        }
-        return context.agent;
-      },
+      getAgent: ({ context }) => context.agent,
     }),
   ],
-  // Files share the browser/server, but own their context, Page and Agent.
-  test: { maxConcurrentFiles: 1, bail: 0, testTimeout: 600_000 },
+  test: { maxConcurrentFiles: 3, bail: 0, testTimeout: 600_000 },
 });

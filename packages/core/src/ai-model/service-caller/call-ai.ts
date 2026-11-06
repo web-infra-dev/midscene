@@ -229,7 +229,10 @@ async function callModelWithRetry(
       if (error instanceof SiwcTokenExpiredError) {
         const refresh = async () => {
           assert(config.openaiApiKey, 'Missing rejected SIWC access token');
-          await siwcTokenManager.refreshAccessToken(config.openaiApiKey);
+          await siwcTokenManager.refreshAccessToken(config.openaiApiKey, {
+            httpProxy: config.httpProxy,
+            socksProxy: config.socksProxy,
+          });
           return prepareSiwcCall(input.modelRuntime, options);
         };
         // Cancel only this caller's wait; other callers may share the refresh.
