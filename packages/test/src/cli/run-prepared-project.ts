@@ -19,6 +19,7 @@ import {
 } from '@midscene/core/report';
 import { runWithMidsceneRunDir } from '@midscene/shared/common';
 import { getDebug } from '@midscene/shared/logger';
+import { writeTestResultJUnit } from '../report/result-junit';
 import { writeTestResultMarkdown } from '../report/result-markdown';
 import {
   buildTestRunReportDump,
@@ -517,6 +518,19 @@ async function runWithReportSession(
       completedResult = { ...completedResult, markdownPath };
     },
   );
+  if (plan.junitEnabled) {
+    await publish(
+      'write-result',
+      join(dirname(summaryPath), 'junit.xml'),
+      async () => {
+        const junitPath = await writeTestResultJUnit(
+          completedResult,
+          reportIndex,
+        );
+        completedResult = { ...completedResult, junitPath };
+      },
+    );
+  }
   if (completedResult.reportPath && !hasInfrastructureError)
     await publish('write-result', reports.directory, () => reports.prune());
   await writeSummary();

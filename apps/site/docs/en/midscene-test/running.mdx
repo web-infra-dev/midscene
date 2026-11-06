@@ -84,6 +84,20 @@ In CI:
 - With the [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action), set `run-directory` or `MIDSCENE_RUN_DIR`. Execution and artifact collection use the same directory.
 - Collect files using the printed `Summary:` / `Report:` paths or the SDK's `summaryPath`, `markdownPath`, and `reportPath`. See below for sharing reports.
 
+### JUnit XML
+
+JUnit XML output is disabled by default. Enable it when your CI needs this format:
+
+```bash
+pnpm exec midscene-test --junit
+```
+
+With the Node SDK, pass `junit: true` to `runTestProject()`. When enabled, `junit.xml` is written beside `summary.json`, including failed runs that reach result publication. The SDK returns its path as `junitPath`; the verbose reporter prints it as `JUnit:`. Without this option, no JUnit file or result-path field is generated. The option can be combined with `--reporter verbose`.
+
+Configure your CI test-results collector to read `midscene_run/test-results/*/junit.xml`, or the corresponding path under `--result-dir`. Run collection even when the test command fails, and keep the command's exit code as the job result: a publication failure can prevent an artifact from being written.
+
+Each YAML file becomes a test suite. Passed Cases remain passed after a successful retry; failed Cases produce `<failure>`, and Cases that did not run produce `<skipped>`. Collection, file-hook, project-lifecycle, and run-infrastructure errors produce additional `<error>` test cases. These extra entries mean the JUnit test count can exceed the number of Cases.
+
 ### Exit codes
 
 You can determine the overall outcome of a test run from the CLI exit code:

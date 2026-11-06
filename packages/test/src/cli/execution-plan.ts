@@ -16,6 +16,8 @@ export interface TestProjectRunOptions {
   projectRoot?: string;
   configPath?: string;
   resultDir?: string;
+  /** Write junit.xml beside summary.json for CI integration. Defaults to false. */
+  junit?: boolean;
   projectNames?: readonly string[];
   onProgress?(message: string): void;
   onEvent?(event: TestReporterEvent): void;
@@ -98,6 +100,7 @@ export interface PreparedTestRunPlan {
   projects: readonly PreparedExecutionProject[];
   preflightScope: 'project' | 'run';
   reportEnabled: boolean;
+  junitEnabled: boolean;
   publications: readonly PreparedRunPublication[];
   onProgress(message: string): void;
   onEvent?(event: TestReporterEvent): void;

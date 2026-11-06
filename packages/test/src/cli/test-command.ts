@@ -38,6 +38,7 @@ interface ParsedTestArgs {
   resultDir?: string;
   projectNames?: string[];
   reporter?: TerminalReporterMode;
+  junit?: boolean;
 }
 
 export const parseTestCliArgs = (
@@ -51,6 +52,7 @@ export const parseTestCliArgs = (
   let resultDir: string | undefined;
   const projectNames: string[] = [];
   let reporter: TerminalReporterMode | undefined;
+  let junit = false;
 
   for (let index = commandOffset; index < args.length; index += 1) {
     const token = args[index];
@@ -61,6 +63,12 @@ export const parseTestCliArgs = (
       if (projectRoot)
         throw new Error('Only one test project directory is allowed.');
       projectRoot = resolve(cwd, arg);
+      continue;
+    }
+    if (arg === '--junit') {
+      if (inlineValue !== undefined)
+        throw new Error('--junit does not accept a value.');
+      junit = true;
       continue;
     }
     if (
@@ -91,6 +99,8 @@ export const parseTestCliArgs = (
   if (command === 'nodes' && resultDir) {
     throw new Error('--result-dir is not supported by nodes.');
   }
+  if (command === 'nodes' && junit)
+    throw new Error('--junit is not supported by nodes.');
   if (command === 'nodes' && reporter)
     throw new Error('--reporter is not supported by nodes.');
   if (command === 'nodes' && projectNames.length > 1) {
@@ -104,6 +114,7 @@ export const parseTestCliArgs = (
     resultDir,
     ...(projectNames.length > 0 ? { projectNames } : {}),
     ...(reporter ? { reporter } : {}),
+    ...(junit ? { junit } : {}),
   };
 };
 
@@ -137,6 +148,7 @@ Options:
   --config <path>              Native TypeScript or JavaScript Test config
   --project <name>             Select a native execution Project (repeatable)
   --result-dir <path>          Store Test result files in this directory
+  --junit                     Write JUnit XML results (disabled by default)
   --reporter <default|verbose> Concise Case results or full step diagnostics
   --help, -h                  Show this help
   --version                   Show the package version
@@ -436,6 +448,8 @@ const reportTestProjectResult = (
   io.log(`Summary: ${result.summaryPath}`);
   if (result.markdownPath && reporter.mode === 'verbose')
     io.log(`Markdown: ${result.markdownPath}`);
+  if (result.junitPath && reporter.mode === 'verbose')
+    io.log(`JUnit: ${result.junitPath}`);
   if (result.reportPath) io.log(`Report: ${result.reportPath}`);
   return result.exitCode;
 };

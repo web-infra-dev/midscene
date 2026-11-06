@@ -84,6 +84,20 @@ MIDSCENE_RUN_DIR="./artifacts" pnpm exec midscene-test
 - 使用 [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action) 时，通过 `run-directory` 或 `MIDSCENE_RUN_DIR` 指定目录，执行与产物收集共用该目录。
 - 按终端打印的 `Summary:` / `Report:`，或 SDK 返回的 `summaryPath`、`markdownPath`、`reportPath` 收集文件。分享报告的方式见下文。
 
+### JUnit XML
+
+JUnit XML 输出默认关闭。需要接入 CI 的测试结果面板时，可显式开启：
+
+```bash
+pnpm exec midscene-test --junit
+```
+
+使用 Node SDK 时，向 `runTestProject()` 传入 `junit: true`。开启后，会在 `summary.json` 旁生成 `junit.xml`，包括执行到结果写入阶段的失败运行。SDK 通过 `junitPath` 返回路径，verbose reporter 会打印 `JUnit:`。未开启时，不生成 JUnit 文件，也不返回对应的路径字段。此选项可与 `--reporter verbose` 同时使用。
+
+将 CI 的测试结果收集路径设为 `midscene_run/test-results/*/junit.xml`；使用 `--result-dir` 时，改为对应目录下的路径。测试命令失败后也应执行收集，同时保留命令的退出码作为作业结果：产物写入失败时，文件可能无法生成。
+
+每个 YAML 文件对应一个测试套件。重试后通过的 Case 仍记为通过；失败的 Case 对应 `<failure>`，未运行的 Case 对应 `<skipped>`。收集、文件钩子、Project 生命周期和运行级基础设施错误会生成额外的 `<error>` 测试条目，因此 JUnit 的测试总数可能大于 Case 数量。
+
 ### 退出码
 
 你可以根据 CLI 退出码判断整次测试运行是否成功：
