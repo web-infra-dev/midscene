@@ -232,6 +232,33 @@ describe('JUnit result', () => {
     expect(xml).toContain('beforeAll / Submit order: Browser did not start');
   });
 
+  it('includes run failures even when every Case passed', () => {
+    const run = result([step()]);
+    run.status = 'failed';
+    run.exitCode = 1;
+    run.errors = [new WorkflowError('Report publication failed')];
+    const xml = renderTestResultJUnit(buildTestRunReportDump(run, index));
+
+    expect(xml).toContain('tests="2" failures="0" errors="1" skipped="0"');
+    expect(xml).toContain('<testcase name="(run infrastructure)"');
+    expect(xml).toContain('<error message="Report publication failed">');
+    expect(xml).toContain('<testcase name="submit"');
+  });
+
+  it('does not convert report warnings into failed tests', () => {
+    const dump = buildTestRunReportDump(result([step()]), index);
+    dump.diagnostics = [
+      {
+        level: 'warning',
+        code: 'source-without-executions',
+        message: 'No agent executions were captured',
+      },
+    ];
+    const xml = renderTestResultJUnit(dump);
+    expect(xml).toContain('tests="1" failures="0" errors="0" skipped="0"');
+    expect(xml).not.toContain('(run infrastructure)');
+  });
+
   it('drops characters XML 1.0 cannot represent', () => {
     const dump = buildTestRunReportDump(result([step()]), index);
     dump.projects[0].documents[0].cases[0].name = 'bell\u0007 & tab\t';

@@ -160,6 +160,29 @@ const renderSuite = (
 /** Render the run as JUnit XML: one testsuite per YAML file, one testcase per Case. */
 export function renderTestResultJUnit(dump: TestRunReportDump): string {
   const suites: { name: string; cases: JUnitCase[]; xml: string }[] = [];
+  const runErrors = (dump.diagnostics ?? []).filter(
+    (diagnostic) => diagnostic.code === 'run-infrastructure-error',
+  );
+  if (runErrors.length) {
+    const cases: JUnitCase[] = [
+      {
+        name: '(run infrastructure)',
+        classname: 'Midscene Test',
+        file: '',
+        timeMs: 0,
+        outcome: {
+          kind: 'error',
+          message: runErrors[0].message,
+          detail: runErrors.map((error) => error.message).join('\n'),
+        },
+      },
+    ];
+    suites.push({
+      name: 'Midscene Test',
+      cases,
+      xml: renderSuite('Midscene Test', cases, dump.startedAt),
+    });
+  }
   const multipleProjects = dump.projects.length > 1;
   for (const project of dump.projects) {
     const prefix = multipleProjects ? `${project.name} / ` : '';

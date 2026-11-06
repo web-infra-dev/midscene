@@ -71,6 +71,14 @@ Each run generates two types of output artifacts. Their exact paths are printed 
 
 Keep the complete results directory for programmatic analysis; the final report can be shared independently.
 
+### JUnit XML
+
+Every run also writes `junit.xml` beside `summary.json`, including failed runs that reach result publication. This output is enabled by default. The SDK returns its path as `junitPath`; the verbose reporter prints it as `JUnit:`.
+
+Configure your CI test-results collector to read `.midscene/test-results/*/junit.xml`, or the corresponding path under `--result-dir`. Run collection even when the test command fails, and keep the command's exit code as the job result: a publication failure can prevent an artifact from being written.
+
+Each YAML file becomes a test suite. Passed Cases remain passed after a successful retry; failed Cases produce `<failure>`, and Cases that did not run produce `<skipped>`. Collection, file-hook, project-lifecycle, and run-infrastructure errors produce additional `<error>` test cases. These extra entries mean the JUnit test count can exceed the number of Cases.
+
 ### Exit codes
 
 You can determine the overall outcome of a test run from the CLI exit code:
