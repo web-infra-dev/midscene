@@ -191,7 +191,7 @@ jobs:
 
     - name: Run apps/report e2e
       id: e2e-tests-app-report
-      uses: web-infra-dev/midscene-action@131b6a9ba6402f4b63f8ecbfa6ffb58bb20c78dc # v1 + environment roots and single HTML
+      uses: web-infra-dev/midscene-action@v1
       env:
         NODE_OPTIONS: ${{ steps.ai-ci.outputs.node-options }}
       with:
