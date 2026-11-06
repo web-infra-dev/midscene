@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type { PlaygroundControllerResult } from '@midscene/playground-app';
 import type { StudioPlaygroundContextValue } from '@renderer/playground/types';
 import type { ReactElement } from 'react';

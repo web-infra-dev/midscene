@@ -26,11 +26,13 @@ export default defineConfig({
   },
   test: {
     coverage: createCoverageConfig(__dirname),
+    // jsdom owns browser storage in tests; Node's native storage conflicts with it.
+    execArgv: process.allowedNodeEnvironmentFlags.has(
+      '--no-experimental-webstorage',
+    )
+      ? ['--no-experimental-webstorage']
+      : [],
     environment: 'node',
-    environmentMatchGlobs: [
-      ['tests/theme-provider.test.ts', 'jsdom'],
-      ['tests/main-content-overview.test.tsx', 'jsdom'],
-    ],
     include: ['tests/**/*.test.{mjs,ts,tsx}'],
   },
 });

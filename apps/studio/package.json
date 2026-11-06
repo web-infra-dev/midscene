@@ -57,7 +57,8 @@
     "less": "^4.2.0",
     "tailwindcss": "4.1.11",
     "typescript": "^5.8.3",
-    "vitest": "3.0.5"
+    "vite": "6.4.5",
+    "vitest": "4.1.12"
   },
   "optionalDependencies": {
     "appdmg": "0.6.6",

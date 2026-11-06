@@ -761,7 +761,7 @@ describe('test project config', () => {
     expect(error.message).toContain(`Failed to load Midscene config "${path}"`);
     expect(error.cause).toBeInstanceOf(Error);
     expect(error.cause.message).toMatch(
-      /Expected a semicolon|Unexpected token/,
+      /Expected a semicolon|Unexpected token|'const' declarations must be initialized/,
     );
   });
 
