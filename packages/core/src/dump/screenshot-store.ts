@@ -238,6 +238,13 @@ export class ReportImageStore {
     return file.relativePath;
   }
 
+  /** Keep diagnostic bytes without changing the screenshot's report location. */
+  persistFileCopy(screenshot: ScreenshotItem): Promise<ScreenshotRef> {
+    return this.persistToSharedFileIfNeeded(screenshot, {
+      markAsPersisted: false,
+    });
+  }
+
   async persist(screenshot: ScreenshotItem): Promise<ScreenshotRef> {
     await this.ensureExistingInlineImageIdsLoaded();
     const shouldWriteFileCopy =

@@ -500,7 +500,7 @@ describe('generated project integration', () => {
         { cwd: root, env: { ...process.env, NODE_PATH: '' } },
       );
       expect(readFileSync(join(project, '.gitignore'), 'utf8')).toBe(
-        'node_modules/\n.env\nmidscene_run/\n.midscene/test-results/\n',
+        'node_modules/\n.env\nmidscene_run/\n',
       );
       expect(existsSync(join(project, 'gitignore'))).toBe(false);
       expect(existsSync(join(project, '.env.example'))).toBe(true);
@@ -514,7 +514,7 @@ describe('generated project integration', () => {
           '.env',
           'node_modules/dependency/index.js',
           'midscene_run/report/run.html',
-          '.midscene/test-results/run/summary.json',
+          'midscene_run/test-results/run/summary.json',
         ],
         { cwd: project },
       );
@@ -522,7 +522,7 @@ describe('generated project integration', () => {
         '.env',
         'node_modules/dependency/index.js',
         'midscene_run/report/run.html',
-        '.midscene/test-results/run/summary.json',
+        'midscene_run/test-results/run/summary.json',
       ]);
     }
   });

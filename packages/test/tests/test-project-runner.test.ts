@@ -369,7 +369,9 @@ describe('test project main-process runner', () => {
 
     const result = await runTestProject({ projectRoot: root });
 
-    expect(result.resultDir).toContain(join(root, '.midscene', 'test-results'));
+    expect(result.resultDir).toBe(join(root, 'midscene_run', 'test-results'));
+    expect(result.reportDir).toBe(join(root, 'midscene_run', 'report'));
+    expect(existsSync(join(root, '.midscene'))).toBe(false);
   });
 
   it('writes each run into an isolated JSON result tree', async () => {

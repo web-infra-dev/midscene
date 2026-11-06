@@ -23,6 +23,8 @@ should point here instead of duplicating rules.
 - Read `CONTRIBUTING.md` before local development. Dev/build workflows,
   app-local dev servers, and report rebuild troubleshooting are maintained
   there to avoid duplication.
+- When changing artifact paths, recording, publication, exports, or logging, read
+  [the artifact and logging conventions](./CONTRIBUTING.md#artifact-and-logging-conventions).
 - Before creating a commit or updating a PR, run `pnpm run lint` from the
   repository root.
 - For code changes, run the smallest relevant Nx target for each touched

@@ -309,9 +309,9 @@ describe('report-tool argv with generated Agent artifacts', () => {
         expect(
           readdirSync(split).filter((file) => file.endsWith('.json')),
         ).toHaveLength(1);
-        expect(readdirSync(join(split, 'screenshots'))).toHaveLength(2);
+        expect(readdirSync(join(split, 'screenshots'))).toHaveLength(1);
         expect(existsSync(join(markdown, 'report.md'))).toBe(true);
-        expect(readdirSync(join(markdown, 'screenshots'))).toHaveLength(2);
+        expect(readdirSync(join(markdown, 'screenshots'))).toHaveLength(1);
       }
       for (const outputFormat of [
         'single-html',

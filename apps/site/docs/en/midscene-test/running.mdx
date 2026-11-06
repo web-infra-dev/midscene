@@ -62,14 +62,27 @@ pnpm exec midscene-test --help
 
 Each run generates two types of output artifacts. Their exact paths are printed at the end of the terminal output as `Summary:` and `Report:`:
 
-- **Structured result files**: By default written to `.midscene/test-results/<runId>/` under the test root, containing machine-readable `summary.json` and human-readable `result.md`. You can customize the root results directory with `--result-dir` (each run will still create an isolated `<runId>` subdirectory underneath):
+- **Result files**: Saved in `midscene_run/test-results/<runId>/` by default, including the readable `result.md`, machine-readable `summary.json`, and diagnostic records. Set `--result-dir` to change the results root; relative paths use the command's working directory:
   ```bash
   pnpm exec midscene-test --result-dir ./test-results
   ```
-  Note: The schema of `summary.json` may evolve across versions; external tools consuming this file should align with the actual output of the installed version.
-- **HTML visual report**: Can be opened directly in a browser after tests finish. It provides a complete log of case outcomes, screenshots for each step, input/output arguments, error traces, and Agent visual replay to help diagnose issues quickly. The output directory is controlled by `output.reportDir` in the configuration file (defaults to `midscene_run/report/`), independent of the structured results directory.
+- **HTML report**: Saved in `midscene_run/report/` by default. Open it directly in a browser to inspect case outcomes, screenshots, errors, and replay. Set `output.reportDir` to change the report directory; relative paths use the Test project as their base.
 
-Keep the complete results directory for programmatic analysis; the final report can be shared independently.
+Keep the complete results directory for troubleshooting or programmatic analysis. Use the `summary.json` fields produced by your installed version.
+
+### Artifact directory {#unified-artifact-root-and-migration}
+
+The default artifact directory is `midscene_run/` in the Test project. Reports are in `report/`; results and diagnostic records are in `test-results/`. Set the `MIDSCENE_RUN_DIR` environment variable to change the artifact directory. Relative paths use the Test project as their base:
+
+```bash
+MIDSCENE_RUN_DIR="./artifacts" pnpm exec midscene-test
+```
+
+In CI:
+
+- Update collection rules from `.midscene/test-results` to `midscene_run/test-results`, or your configured results directory.
+- With the [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action), set `run-directory` or `MIDSCENE_RUN_DIR`. Execution and artifact collection use the same directory.
+- Collect files using the printed `Summary:` / `Report:` paths or the SDK's `summaryPath`, `markdownPath`, and `reportPath`. See below for sharing reports.
 
 ### Exit codes
 

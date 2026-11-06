@@ -126,7 +126,7 @@ export class AgentReportManager {
       report.session = session;
       report.file = undefined;
     }
-    report.generator.enableSourceSnapshots?.();
+    report.generator.enableSourceSnapshots?.(report.yamlScopeId);
   }
   async _createReportSource(scopeId: string, executionIds?: readonly string[]) {
     return this.reportState.generator.createSourceSnapshot?.(

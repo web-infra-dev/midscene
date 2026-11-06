@@ -62,14 +62,27 @@ pnpm exec midscene-test --help
 
 每次运行都会生成两类产物，具体路径以终端末尾打印的 `Summary:` 和 `Report:` 为准：
 
-- **结构化结果文件**：默认写入测试根目录下的 `.midscene/test-results/<runId>/`，包含供程序读取的 `summary.json` 和便于阅读的 `result.md`。你可以通过 `--result-dir` 修改结果根目录（每次运行仍会在其下创建独立的 `<runId>` 子目录）：
+- **结果文件**：默认位于 `midscene_run/test-results/<runId>/`，包含结果摘要 `result.md`、供程序读取的 `summary.json` 和诊断记录。通过 `--result-dir` 可修改结果根目录，相对路径以命令的工作目录为基准：
   ```bash
   pnpm exec midscene-test --result-dir ./test-results
   ```
-  注意：`summary.json` 的字段结构可能随版本演进，外部工具消费时请以当前版本的实际输出为准。
-- **HTML 可视化报告**：测试运行结束后可在浏览器中直接打开。报告中完整记录了用例执行结果、每一步的界面截图、输入输出参数、报错堆栈以及 Agent 视觉执行回放，方便快速定位问题。输出目录由配置文件中的 `output.reportDir` 控制（默认生成在 `midscene_run/report/` 目录下），与结构化结果目录相互独立。
+- **HTML 报告**：默认位于 `midscene_run/report/`，可直接用浏览器打开，查看用例结果、步骤截图、错误和回放。通过 `output.reportDir` 可修改报告目录，相对路径以测试项目为基准。
 
-程序化分析时请保留完整结果目录；最终报告可以独立分享。
+排查问题或进行程序化分析时，请保留完整结果目录。`summary.json` 的字段以当前版本的实际输出为准。
+
+### 产物目录 {#统一产物根与迁移}
+
+默认产物目录为测试项目下的 `midscene_run/`，其中 `report/` 保存报告，`test-results/` 保存结果与诊断记录。通过环境变量 `MIDSCENE_RUN_DIR` 可修改产物目录，相对路径以测试项目为基准：
+
+```bash
+MIDSCENE_RUN_DIR="./artifacts" pnpm exec midscene-test
+```
+
+在 CI 中使用时：
+
+- 将原先收集 `.midscene/test-results` 的规则更新为 `midscene_run/test-results`，或配置后的结果目录。
+- 使用 [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action) 时，通过 `run-directory` 或 `MIDSCENE_RUN_DIR` 指定目录，执行与产物收集共用该目录。
+- 按终端打印的 `Summary:` / `Report:`，或 SDK 返回的 `summaryPath`、`markdownPath`、`reportPath` 收集文件。分享报告的方式见下文。
 
 ### 退出码
 
