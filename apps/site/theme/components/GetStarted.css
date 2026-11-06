@@ -27,11 +27,9 @@
   border-color: var(--rp-c-brand);
 }
 
-.get-started-question-pending .get-started-options span {
-  border-color: color-mix(in srgb, var(--rp-c-brand) 40%, var(--rp-c-divider));
-}
-
 .get-started-choose {
+  flex: none;
+  white-space: nowrap;
   padding: 1px 8px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--rp-c-brand) 15%, transparent);
@@ -63,6 +61,18 @@
   gap: 8px;
 }
 
+.get-started-question {
+  container-type: inline-size;
+}
+
+/* Options with a description need room for two lines of text. When three of
+   them would be squeezed side by side, list them one per row instead. */
+@container (width < 640px) {
+  .get-started-options:has(small) {
+    grid-template-columns: 1fr;
+  }
+}
+
 .get-started-options label {
   position: relative;
   cursor: pointer;
@@ -80,45 +90,86 @@
   border: 0;
 }
 
+/* Options are filled cards with a radio dot, so they read as choices rather
+   than empty text fields. */
 .get-started-options span {
+  position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 4px;
   height: 100%;
   min-height: 44px;
-  padding: 10px 12px;
-  border: 1px solid var(--rp-c-divider);
-  border-radius: 8px;
-  background: var(--rp-c-bg);
+  padding: 11px 14px 11px 40px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--rp-c-bg-soft);
   color: var(--rp-c-text-1);
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.get-started-options span::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--rp-c-text-3);
+  border-radius: 50%;
+  transition: border-color 0.15s, border-width 0.15s;
+}
+
+/* Titles are short labels: keep their line height tight and balance the
+   lines when one wraps, so "project" does not sit alone. */
+.get-started-options strong {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.45;
+  text-wrap: balance;
 }
 
 .get-started-options small {
   color: var(--rp-c-text-2);
   font-size: 13px;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .get-started-options label:hover span {
+  background: var(--rp-c-bg-mute);
+}
+
+.get-started-options label:hover span::before {
   border-color: var(--rp-c-brand);
 }
 
-/* One frame for the chosen option: a brand border and a tinted fill. An
-   inset shadow or offset outline on top of the border reads as a second box. */
+/* One frame for the chosen option: a brand border, a tinted fill and a
+   filled radio dot. */
 .get-started-options input:checked + span {
   border-color: var(--rp-c-brand);
-  background: color-mix(in srgb, var(--rp-c-brand) 8%, var(--rp-c-bg));
+  background: color-mix(in srgb, var(--rp-c-brand) 10%, var(--rp-c-bg));
+}
+
+.get-started-options input:checked + span::before {
+  border: 5px solid var(--rp-c-brand);
 }
 
 .get-started-options input:checked + span strong {
   color: var(--rp-c-brand);
 }
 
-/* Keyboard focus is a soft halo hugging the border, not a separate ring. */
+/* Keyboard focus is a soft halo hugging the card, not a separate ring. */
 .get-started-options input:focus-visible + span {
   outline: none;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rp-c-brand) 35%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rp-c-brand) 30%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .get-started-options span,
+  .get-started-options span::before {
+    transition: none;
+  }
 }
 
 .get-started-status {

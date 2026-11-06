@@ -4,16 +4,19 @@
   min-width: 0;
 }
 
-/* The introduction page turns the outline off, but Rspress still reserves its
-   column with an empty placeholder. Drop the placeholder and let the content
-   take that width, so the page ends where the outline would have. */
+/* The homepage turns the outline off, but Rspress still reserves its column
+   with an empty placeholder. Drop the placeholder and let the content take
+   that width, so the page ends where the outline would have. Pages that keep
+   their outline (such as the Midscene Test overview) have no placeholder and
+   keep the default width. */
 .rp-doc-layout__container:has(.introduction-page)
   .rp-doc-layout__outline-placeholder {
   display: none;
 }
 
 @media (width >= 1280px) {
-  .rp-doc-layout__doc:has(.introduction-page) {
+  .rp-doc-layout__container:has(.rp-doc-layout__outline-placeholder)
+    .rp-doc-layout__doc:has(.introduction-page) {
     max-width: min(100%, var(--rp-content-max-width) + var(--rp-outline-width));
     margin-right: var(--rp-outline-margin-right);
   }
