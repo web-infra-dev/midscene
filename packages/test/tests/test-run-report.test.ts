@@ -301,6 +301,30 @@ describe('result.md', () => {
     expect(markdown).not.toMatch(/Infrastructure|Filtered|### Cases|<details>/);
   });
 
+  it.each([
+    { notRun: 3, documentFailures: 1, projectFailures: 0 },
+    { notRun: 0, documentFailures: 1, projectFailures: 0 },
+    { notRun: 0, documentFailures: 0, projectFailures: 1 },
+  ])('omits a zero-failure badge for a failed run: %j', (failures) => {
+    const run = result([step()]);
+    run.status = 'failed';
+    run.exitCode = 1;
+    run.summary = {
+      ...run.summary,
+      ...failures,
+      total: 5 + failures.notRun,
+      passed: 5,
+    };
+    const markdown = renderTestResultMarkdown(
+      buildTestRunReportDump(run, index),
+    );
+    expect(markdown).not.toContain('https://badge.midscenejs.com/');
+    expect(markdown).toContain(
+      `❌ **0 failed** · 5 passed · ${failures.notRun} not run`,
+    );
+    expect(markdown).toContain('**Infrastructure:**');
+  });
+
   it('writes result.md without an HTML report and records collection failures', async () => {
     const root = await mkdtemp(join(tmpdir(), 'midscene-result-md-'));
     try {
@@ -327,9 +351,7 @@ describe('result.md', () => {
       const markdown = await readFile(output, 'utf8');
       expect(markdown).toContain('Invalid document');
       expect(markdown).toContain('No cases were reported.');
-      expect(markdown).toContain(
-        'https://badge.midscenejs.com/e2e?pass=0&fail=0&style=large',
-      );
+      expect(markdown).not.toContain('https://badge.midscenejs.com/');
       expect(markdown).not.toContain('Open the Midscene');
     } finally {
       await rm(root, { recursive: true, force: true });
