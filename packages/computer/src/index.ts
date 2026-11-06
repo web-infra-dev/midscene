@@ -5,6 +5,7 @@ export {
   ComputerAgent,
   agentForComputer,
   agentForRDPComputer,
+  agentForRemoteComputer,
   agentFromComputer,
 } from './agent';
 export type {
@@ -13,7 +14,18 @@ export type {
   ComputerInterface,
   LocalComputerAgentOpt,
   RDPComputerAgentOpt,
+  RemoteComputerAgentOpt,
 } from './agent';
+
+export { RemoteComputerDevice } from './remote/device';
+export type { RemoteComputerDeviceOpt } from './remote/device';
+export { startComputerBridge } from './remote/server';
+export type {
+  ComputerBridgeOptions,
+  ComputerBridgeServer,
+} from './remote/server';
+export { COMPUTER_BRIDGE_PROTOCOL_VERSION } from './remote/protocol';
+export type { ComputerBridgeConnectionInfo } from './remote/protocol';
 
 export { RDPDevice } from './rdp/device';
 export type { RDPDeviceOpt } from './rdp/device';

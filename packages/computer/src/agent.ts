@@ -2,8 +2,16 @@ import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import type { AbstractInterface } from '@midscene/core/device';
 import { ComputerDevice, type ComputerDeviceOpt } from './device';
 import { RDPDevice, type RDPDeviceOpt } from './rdp/device';
+import {
+  RemoteComputerDevice,
+  type RemoteComputerDeviceOpt,
+} from './remote/device';
 
-export type ComputerInterface = ComputerDevice | RDPDevice;
+export type ComputerInterface =
+  | ComputerDevice
+  | RDPDevice
+  | RemoteComputerDevice;
+export type RemoteComputerAgentOpt = AgentOpt & RemoteComputerDeviceOpt;
 
 type ComputerAgentSharedDeviceOpt = Pick<
   ComputerDeviceOpt,
@@ -86,4 +94,50 @@ export async function agentForRDPComputer(
   const device = createRDPComputerDevice(opts);
   await device.connect();
   return new ComputerAgent(device, opts);
+}
+
+export async function agentForRemoteComputer(
+  opts: RemoteComputerAgentOpt,
+): Promise<ComputerAgent<RemoteComputerDevice>> {
+  const {
+    url,
+    token,
+    timeoutMs,
+    expectedOS,
+    displayId,
+    keyboardDriver,
+    keyboardLayout,
+    keyboardModifierDelay,
+    keyboardTypeDelay,
+    inputStrategy,
+    customActions,
+    ...agentOptions
+  } = opts;
+  const device = new RemoteComputerDevice({
+    url,
+    token,
+    timeoutMs,
+    expectedOS,
+    displayId,
+    keyboardDriver,
+    keyboardLayout,
+    keyboardModifierDelay,
+    keyboardTypeDelay,
+    inputStrategy,
+    customActions,
+  });
+  try {
+    await device.connect();
+    return new ComputerAgent(device, agentOptions);
+  } catch (error) {
+    try {
+      await device.destroy();
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [error, cleanupError],
+        'Remote computer initialization and cleanup failed.',
+      );
+    }
+    throw error;
+  }
 }

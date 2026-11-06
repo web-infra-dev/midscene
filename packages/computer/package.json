@@ -12,9 +12,10 @@
   "module": "./dist/es/index.mjs",
   "types": "./dist/types/index.d.ts",
   "bin": {
-    "midscene-computer": "./bin/midscene-computer"
+    "midscene-computer": "./bin/midscene-computer",
+    "midscene-computer-bridge": "./bin/midscene-computer-bridge"
   },
-  "files": ["bin", "dist", "native", "scripts", "README.md"],
+  "files": ["bin", "dist", "native", "scripts", "README.md", "README.zh.md"],
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
@@ -37,7 +38,9 @@
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
     "clipboardy": "^4.0.0",
-    "screenshot-desktop": "^1.15.3"
+    "screenshot-desktop": "^1.15.3",
+    "ws": "^8.18.1",
+    "zod": "^3.25.1"
   },
   "optionalDependencies": {
     "node-mac-permissions": "2.5.0"
@@ -47,6 +50,7 @@
     "@rstest/core": "0.12.0",
     "@types/node": "^18.0.0",
     "@types/screenshot-desktop": "1.15.0",
+    "@types/ws": "8.18.1",
     "dotenv": "^16.4.5",
     "tsx": "^4.19.2",
     "typescript": "^5.8.3"
