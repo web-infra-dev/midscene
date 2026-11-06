@@ -12,51 +12,56 @@ export type LocateMessages = (
   | ConversationUserMessage
 )[];
 
-type UserGroup = { mode: 'userTogether' | 'userEach'; parts: Part[] };
+type TextPart = Extract<Part, 'instructions' | 'task'>;
+type PromptGroup =
+  | { mode: 'system'; parts: TextPart[] }
+  | { mode: 'userTogether' | 'userEach'; parts: Part[] };
 
 export interface LocatePromptOrder {
-  systemInstructions: boolean;
-  userGroups: readonly UserGroup[];
+  groups: readonly PromptGroup[];
 }
 
 export function parseLocatePromptOrder(
   order = 'system(instructions):userTogether(screenshot:task):userEach(references)',
 ): LocatePromptOrder {
   const groups = order.split(/(?<=\)):/);
-  const systemInstructions = groups[0] === 'system(instructions)';
   const remaining = new Set<string>(parts);
-  if (systemInstructions) {
-    remaining.delete('instructions');
-  }
 
   function invalid(reason: string): Error {
     return new Error(`Invalid locate promptOrder "${order}": ${reason}`);
   }
 
-  const userGroups = groups
-    .slice(systemInstructions ? 1 : 0)
-    .map((group): UserGroup => {
-      const match = /^(userTogether|userEach)\(([^()]+)\)$/.exec(group);
-      if (!match) {
-        throw invalid(
-          `expected userTogether(...) or userEach(...), got "${group}"`,
-        );
+  const promptGroups = groups.map((group): PromptGroup => {
+    const match = /^(system|userTogether|userEach)\(([^()]+)\)$/.exec(group);
+    if (!match) {
+      throw invalid(
+        `expected system(...), userTogether(...) or userEach(...), got "${group}"`,
+      );
+    }
+    const groupParts = match[2].split(':');
+    for (const part of groupParts) {
+      if (!remaining.delete(part)) {
+        throw invalid(`unknown or repeated part "${part}"`);
       }
-      const groupParts = match[2].split(':');
-      for (const part of groupParts) {
-        if (!remaining.delete(part)) {
-          throw invalid(`unknown or repeated part "${part}"`);
-        }
+      if (
+        match[1] === 'system' &&
+        (part === 'screenshot' || part === 'references')
+      ) {
+        throw invalid(`system cannot contain image part "${part}"`);
       }
-      return {
-        mode: match[1] as UserGroup['mode'],
-        parts: groupParts as Part[],
-      };
-    });
+    }
+    if (match[1] === 'system') {
+      return { mode: 'system', parts: groupParts as TextPart[] };
+    }
+    return {
+      mode: match[1] as 'userTogether' | 'userEach',
+      parts: groupParts as Part[],
+    };
+  });
   if (remaining.size) {
     throw invalid(`missing ${[...remaining].join(', ')}`);
   }
-  return { systemInstructions, userGroups };
+  return { groups: promptGroups };
 }
 
 export function buildLocateMessages(
@@ -69,11 +74,14 @@ export function buildLocateMessages(
   },
 ): LocateMessages {
   const messages: LocateMessages = [];
-  if (order.systemInstructions) {
-    messages.push({ role: 'system', content: input.instructions });
-  }
-
-  for (const group of order.userGroups) {
+  for (const group of order.groups) {
+    if (group.mode === 'system') {
+      messages.push({
+        role: 'system',
+        content: group.parts.map((part) => input[part]).join('\n\n'),
+      });
+      continue;
+    }
     const expanded = group.parts.flatMap((part): ConversationUserMessage[] => {
       if (part === 'references') {
         return input.references;

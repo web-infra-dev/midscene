@@ -207,8 +207,8 @@ describe('ResolvedModelAdapter', () => {
       throw new Error('default adapter should use standard locate');
     }
     expect(adapter.locate.promptOrder).toEqual({
-      systemInstructions: true,
-      userGroups: [
+      groups: [
+        { mode: 'system', parts: ['instructions'] },
         { mode: 'userTogether', parts: ['screenshot', 'task'] },
         { mode: 'userEach', parts: ['references'] },
       ],

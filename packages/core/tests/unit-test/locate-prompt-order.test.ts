@@ -174,13 +174,67 @@ describe('locate message assembly', () => {
     ]);
   });
 
+  it('places the task in system and the screenshot and rules in user', () => {
+    expect(
+      buildLocateMessages(
+        parseLocatePromptOrder(
+          'system(task):userTogether(screenshot:instructions):userEach(references)',
+        ),
+        input,
+      ),
+    ).toEqual([
+      { role: 'system', content: 'target' },
+      { role: 'user', content: [screenshot, { type: 'text', text: 'rules' }] },
+    ]);
+  });
+
+  it.each([
+    ['instructions:task', 'rules\n\ntarget'],
+    ['task:instructions', 'target\n\nrules'],
+  ])('preserves text order within system(%s)', (parts, content) => {
+    expect(
+      buildLocateMessages(
+        parseLocatePromptOrder(
+          `system(${parts}):userEach(screenshot:references)`,
+        ),
+        input,
+      ),
+    ).toEqual([
+      { role: 'system', content },
+      { role: 'user', content: [screenshot] },
+    ]);
+  });
+
+  it('preserves system group positions and boundaries', () => {
+    expect(
+      buildLocateMessages(
+        parseLocatePromptOrder(
+          'userEach(screenshot):system(task):userEach(references):system(instructions)',
+        ),
+        { ...input, references: [reference] },
+      ),
+    ).toEqual([
+      { role: 'user', content: [screenshot] },
+      { role: 'system', content: 'target' },
+      reference,
+      { role: 'system', content: 'rules' },
+    ]);
+  });
+
+  it.each(['screenshot', 'references'])('rejects %s in system', (part) => {
+    expect(() =>
+      parseLocatePromptOrder(`system(${part}):userEach(instructions:task)`),
+    ).toThrow(`system cannot contain image part "${part}"`);
+  });
+
   it.each([
     'userEach(screenshot):userTogether(task:references:screenshot)',
-    'userTogether(task:screenshot):system(instructions):userEach(references)',
+    'system(task):userEach(instructions:task:screenshot:references)',
+    'system(instructions):system(instructions):userEach(task:screenshot:references)',
+    'system():userEach(instructions:task:screenshot:references)',
     'userEach():userTogether(instructions:task:references:screenshot)',
     'userEach(screenshot:task:references)',
     'userEach(instructions:task:references:task)',
-    'system(task):userEach(instructions:screenshot:references)',
     'userEach(instructions:screenshot:task:other)',
   ])('rejects invalid order %s', (order) => {
     expect(() => parseLocatePromptOrder(order)).toThrow(

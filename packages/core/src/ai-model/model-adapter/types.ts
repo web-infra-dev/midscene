@@ -274,7 +274,12 @@ export type LocateAdapter = StandardLocateAdapter | CustomLocateAdapter;
 
 type StandardLocateDefinition = {
   kind?: 'standard';
-  /** Shared layout for element and search-area requests. */
+  /**
+   * Shared layout for element and search-area requests, in message order.
+   * system(...) accepts instructions and task; userTogether(...) and
+   * userEach(...) also accept screenshot and references. Each part occurs once.
+   * Text parts within one system group are joined with a blank line.
+   */
   promptOrder?: string;
   element?: LocateOperationDefinition;
   searchArea?: LocateOperationDefinition | false;
