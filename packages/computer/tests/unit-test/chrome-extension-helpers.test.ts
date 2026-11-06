@@ -28,10 +28,10 @@ function createAgent() {
   const tap = rs.fn(async () => undefined);
   const keyboardPress = rs.fn(async () => undefined);
   const size = rs.fn(async () => ({ width: 1920, height: 1080 }));
-  const aiTap = rs.fn(async () => undefined);
+  const aiAct = rs.fn(async () => undefined);
   const aiWaitFor = rs.fn(async () => undefined);
   const agent = {
-    aiTap,
+    aiAct,
     aiWaitFor,
     interface: {
       inputPrimitives: {
@@ -41,7 +41,7 @@ function createAgent() {
       size,
     },
   } as unknown as ComputerAgent;
-  return { agent, aiTap, aiWaitFor, keyboardPress, size, tap };
+  return { agent, aiAct, aiWaitFor, keyboardPress, size, tap };
 }
 
 describe('Chrome extension side-panel helper', () => {
@@ -53,22 +53,14 @@ describe('Chrome extension side-panel helper', () => {
 
   it('locates native controls visually and waits for the panel to become visible', async () => {
     stubCdpTargets([], [EXTENSION_TARGET]);
-    const { agent, tap, aiTap, aiWaitFor, keyboardPress } = createAgent();
+    const { agent, tap, aiAct, aiWaitFor, keyboardPress } = createAgent();
 
     await openExtensionSidePanel(agent, EXTENSION_ID);
 
     expect(tap).not.toHaveBeenCalled();
-    expect(keyboardPress).toHaveBeenCalledWith('Escape');
-    expect(aiTap).toHaveBeenCalledTimes(2);
-    expect(aiTap).toHaveBeenNthCalledWith(
-      1,
-      expect.stringContaining('Extensions button'),
-      { deepLocate: true },
-    );
-    expect(aiTap).toHaveBeenNthCalledWith(
-      2,
-      expect.stringContaining('Midscene.js'),
-      { deepLocate: true },
+    expect(keyboardPress).not.toHaveBeenCalled();
+    expect(aiAct).toHaveBeenCalledWith(
+      expect.stringContaining('If the Extensions menu is already open'),
     );
     expect(aiWaitFor).toHaveBeenCalledWith(
       expect.stringContaining('popup menu has closed'),

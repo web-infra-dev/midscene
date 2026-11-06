@@ -18,7 +18,6 @@ const CDP_INJECTION_TIMEOUT = 10_000;
 const NAVIGATE_INJECT_TIMEOUT = 15_000;
 const RELOAD_TIMEOUT = 5_000;
 const BRING_TO_FRONT_TIMEOUT = 5_000;
-const EXTENSION_MENU_OPEN_DELAY = 500;
 const SIDE_PANEL_READY_MAX_ATTEMPTS = 20;
 const SIDE_PANEL_READY_INTERVAL = 250;
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -147,18 +146,11 @@ export async function openExtensionSidePanel(
   // extension action again in that state closes an already-open side panel,
   // so make this helper idempotent before sending any native input.
   if (!(await findExtensionPageTarget(extensionId))) {
-    // Chrome toolbar positions change between versions and while the profile
-    // chip is appearing. Locate native controls visually instead of assuming
-    // coordinates from a particular Chrome build.
-    await agent.interface.inputPrimitives?.keyboard?.keyboardPress('Escape');
-    await agent.aiTap(
-      'the Chrome toolbar Extensions button with a puzzle-piece icon in the top-right browser chrome, not any icon inside the web page',
-      { deepLocate: true },
-    );
-    await sleep(EXTENSION_MENU_OPEN_DELAY);
-    await agent.aiTap(
-      'the row labeled "Midscene.js" inside the open Chrome Extensions menu below the toolbar, not any text or control inside the web page',
-      { deepLocate: true },
+    // Chrome can move the toolbar controls when its sign-in chip appears,
+    // and a previous attempt may leave the menu open. Let the agent observe
+    // the current state between actions instead of blindly toggling the menu.
+    await agent.aiAct(
+      'Open the Midscene.js extension side panel using Chrome browser controls. If the Extensions menu is already open, click the Midscene.js icon or name in it. Otherwise open the toolbar Extensions puzzle-piece menu first. Do not click the site-access toggle or the three-dot menu. Stop once the Midscene.js side panel is visibly docked on the right; do not close it.',
     );
 
     if (!(await waitForExtensionPageTarget(extensionId))) {
