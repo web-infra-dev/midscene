@@ -1,8 +1,10 @@
+import fs from 'node:fs';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import type { ComputerAgent } from '../../src';
 import {
   type CdpTarget,
   openExtensionSidePanel,
+  readExtensionId,
 } from '../ai/chrome-extension-helpers';
 
 const EXTENSION_ID = 'abcdefghijklmnopabcdefghijklmnop';
@@ -42,6 +44,7 @@ function createAgent() {
 
 describe('Chrome extension side-panel helper', () => {
   afterEach(() => {
+    rs.restoreAllMocks();
     rs.useRealTimers();
     rs.unstubAllGlobals();
   });
@@ -93,5 +96,46 @@ describe('Chrome extension side-panel helper', () => {
 
     expect(size).not.toHaveBeenCalled();
     expect(tap).not.toHaveBeenCalled();
+  });
+});
+
+describe('Chrome extension identification', () => {
+  afterEach(() => {
+    rs.restoreAllMocks();
+    rs.unstubAllGlobals();
+  });
+
+  it('ignores built-in extension workers before Midscene registers', async () => {
+    rs.spyOn(fs, 'existsSync').mockReturnValue(false);
+    const builtin = {
+      type: 'service_worker',
+      url: 'chrome-extension://nkeimhogjdpnpccoofpliimaahmaaome/thunk.js',
+    };
+    stubCdpTargets(
+      [builtin],
+      [
+        builtin,
+        {
+          type: 'service_worker',
+          url: `chrome-extension://${EXTENSION_ID}/scripts/worker.js`,
+        },
+      ],
+    );
+
+    await expect(readExtensionId(2)).resolves.toBe(EXTENSION_ID);
+  });
+
+  it('fails instead of returning an unrelated extension ID', async () => {
+    rs.spyOn(fs, 'existsSync').mockReturnValue(false);
+    stubCdpTargets([
+      {
+        type: 'service_worker',
+        url: 'chrome-extension://nkeimhogjdpnpccoofpliimaahmaaome/thunk.js',
+      },
+    ]);
+
+    await expect(readExtensionId(1)).rejects.toThrow(
+      'Midscene.js extension not found',
+    );
   });
 });

@@ -257,19 +257,17 @@ async function waitForCdpReady(
 // Read the extension id from the live CDP target list. The extension's
 // service worker registers as a `chrome-extension://<id>/...` target as soon
 // as it boots — typically well before Chrome flushes the id into the on-disk
-// Preferences file. Only one extension is loaded
-// (`--disable-extensions-except`), so any chrome-extension target is ours.
+// Preferences file. Chrome also exposes built-in extensions despite
+// --disable-extensions-except. Match our manifest background worker, not the
+// first chrome-extension target (which may belong to a built-in extension).
 async function readExtensionIdFromCdp(): Promise<string | null> {
   try {
     const targets = await listCdpTargets();
     for (const t of targets) {
-      const match = t.url?.match(/^chrome-extension:\/\/([a-p]{32})\//);
-      if (
-        match &&
-        (t.type === 'service_worker' ||
-          t.type === 'background_page' ||
-          t.type === 'page')
-      ) {
+      const match = t.url?.match(
+        /^chrome-extension:\/\/([a-p]{32})\/scripts\/worker\.js$/,
+      );
+      if (match && t.type === 'service_worker') {
         return match[1];
       }
     }
