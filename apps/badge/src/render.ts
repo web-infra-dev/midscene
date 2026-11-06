@@ -180,7 +180,9 @@ const CARD_THEMES = {
 export function formatPassRate(pass: number, fail: number): string {
   const total = pass + fail;
   const rate = total ? (pass / total) * 100 : 0;
-  return `${rate === 100 || rate === 0 ? rate.toFixed(0) : rate.toFixed(1)}%`;
+  if (rate === 100 || rate === 0) return `${rate.toFixed(0)}%`;
+  // A run with a failure must not round up to 100.0%, nor one with a pass down to 0.0%.
+  return `${Math.min(99.9, Math.max(0.1, rate)).toFixed(1)}%`;
 }
 
 /** Two lines: title + totals, stats + pass rate, with a pass/fail ratio bar. */
