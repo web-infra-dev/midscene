@@ -1,8 +1,4 @@
-import {
-  PauseCircleOutlined,
-  PictureOutlined,
-  PlayCircleOutlined,
-} from '@ant-design/icons';
+import { PictureOutlined } from '@ant-design/icons';
 import type { TestRunReportAttempt } from '@midscene/core';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ThumbnailCanvas } from '../timeline/thumbnail-canvas';
@@ -30,58 +26,24 @@ export const resolveTimelinePreviewPlacement = ({
     ? 'above'
     : 'below';
 
-export function RunnerTimelinePlaybackControl({
-  frameCount,
-  isPlaying,
-  compact = false,
-  onTogglePlay,
-}: {
-  frameCount: number;
-  isPlaying: boolean;
-  compact?: boolean;
-  onTogglePlay(): void;
-}): JSX.Element {
-  const action = isPlaying ? 'Pause' : 'Play';
-
-  return (
-    <button
-      type="button"
-      className={`runner-detail-timeline-control ${
-        compact ? 'is-compact' : ''
-      }`}
-      disabled={!frameCount}
-      aria-label={`${action} timeline of ${frameCount} captured frames`}
-      title={`${action} visual timeline`}
-      onClick={onTogglePlay}
-    >
-      {isPlaying ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
-      {compact ? null : action}
-    </button>
-  );
-}
-
 export function RunnerAttemptTimeline({
   attempt,
   frames,
   selectedStepId,
   previewFrameKey,
   lockedFrameKey,
-  isPlaying,
   variant = 'standalone',
   onPreview,
   onSelectFrame,
-  onTogglePlay,
 }: {
-  attempt?: TestRunReportAttempt;
+  attempt?: Pick<TestRunReportAttempt, 'startedAt' | 'endedAt' | 'durationMs'>;
   frames: readonly RunnerPositionedVisualFrame[];
   selectedStepId?: string;
   previewFrameKey?: string;
   lockedFrameKey?: string;
-  isPlaying?: boolean;
   variant?: RunnerAttemptTimelineVariant;
   onPreview(frameKey: string | undefined): void;
   onSelectFrame(frame: RunnerPositionedVisualFrame): void;
-  onTogglePlay?(): void;
 }): JSX.Element {
   const trackRef = useRef<HTMLDivElement>(null);
   const imageItems = useMemo(
@@ -152,7 +114,7 @@ export function RunnerAttemptTimeline({
   return (
     <section
       className={`runner-detail-timeline-card is-${variant}`}
-      aria-label="Attempt visual timeline"
+      aria-label="Execution visual timeline"
     >
       {!isEmbedded ? (
         <div className="runner-detail-timeline-toolbar">
@@ -163,13 +125,6 @@ export function RunnerAttemptTimeline({
           </span>
           <span>
             <small>{frames.length} captured frames</small>
-            {onTogglePlay ? (
-              <RunnerTimelinePlaybackControl
-                frameCount={frames.length}
-                isPlaying={Boolean(isPlaying)}
-                onTogglePlay={onTogglePlay}
-              />
-            ) : null}
           </span>
         </div>
       ) : null}
@@ -186,9 +141,7 @@ export function RunnerAttemptTimeline({
                 key={`${tick}-${index}`}
                 style={{ left: `${tickRatios[index] * 100}%` }}
               >
-                {isEmbedded
-                  ? `${Math.round(tick)}ms`
-                  : formatTimelineTime(tick)}
+                {formatTimelineTime(tick)}
               </span>
             ))}
           </div>

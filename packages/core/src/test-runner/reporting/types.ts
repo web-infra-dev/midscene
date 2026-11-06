@@ -1,4 +1,7 @@
-import type { TestRunReportSummary } from '../../test-run-report';
+import type {
+  TestRunReportDocumentPlan,
+  TestRunReportSummary,
+} from '../../test-run-report';
 import type {
   CaseRunOutcome,
   ProjectRuntimeResult,
@@ -20,11 +23,13 @@ export interface RunReportProjectInput {
   retry: number;
   lifecycle?: ProjectRuntimeResult;
   cases: readonly RunReportCaseInput[];
+  plans?: readonly TestRunReportDocumentPlan[];
   documents: readonly WorkflowDocumentRunResult[];
   collectionErrors: readonly { sourcePath: string; error: unknown }[];
 }
 
 export interface RunReportInput {
+  operationLog?: { path: string; snapshotAt: string };
   runId: string;
   status: 'success' | 'failed';
   startedAt: string;

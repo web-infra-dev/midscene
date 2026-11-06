@@ -52,6 +52,7 @@ describe('TaskExecutor RightClick Action', () => {
   beforeEach(() => {
     rs.clearAllMocks();
     taskExecutor = new TaskExecutor(mockPage, mockInsight, {
+      getDefaultModelRuntime: () => mockModelRuntime,
       actionSpace: mockPage.actionSpace(),
     });
   });

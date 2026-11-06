@@ -1,6 +1,11 @@
 import { getDebug } from '@midscene/shared/logger';
 import { WebDriverClient } from '@midscene/webdriver';
 import {
+  type InputRequest,
+  clearInputWithFocus,
+  waitForInputFocus,
+} from './input-focus';
+import {
   type KeyboardAccessoryButton,
   type WebDriverElementRect,
   isKeyboardAccessoryToolbar,
@@ -293,23 +298,27 @@ export class IOSWebDriverClient extends WebDriverClient {
 
   /**
    * Clear the currently focused input field using WebDriver Clear API
-   * @returns true if successful, false otherwise
+   * @returns false if active-element discovery is unavailable or no input is active
+   * @throws if clearing or restoring the input cannot be verified
    */
   async clearActiveElement(): Promise<boolean> {
-    try {
-      const elementId = await this.getActiveElement();
-      if (!elementId) {
-        debugIOS('No active element to clear');
-        return false;
-      }
-
-      await this.clearElement(elementId);
-      return true;
-    } catch (error) {
-      debugIOS(`Failed to clear active element: ${error}`);
-      return false;
-    }
+    return clearInputWithFocus(this.requestInput);
   }
+
+  /** Wait for keyboard focus before attempting to clear or type text. */
+  async waitForInputFocus(): Promise<void> {
+    await waitForInputFocus(this.requestInput);
+  }
+
+  private requestInput: InputRequest = (method, path, data, options) => {
+    this.ensureSession();
+    return this.makeRequest(
+      method,
+      `/session/${this.sessionId}${path}`,
+      data,
+      options,
+    );
+  };
 
   private normalizeKeyName(key: string): string {
     // Convert to proper case for mapping (first letter uppercase, rest lowercase)

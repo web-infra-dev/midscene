@@ -100,6 +100,7 @@ export interface PointerInputPrimitives {
   tap(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
   doubleClick?(p: PointerPoint): Promise<void>;
   rightClick?(p: PointerPoint): Promise<void>;
+  middleClick?(p: PointerPoint): Promise<void>;
   hover?(p: PointerPoint): Promise<void>;
   longPress?(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
   dragAndDrop?(from: PointerPoint, to: PointerPoint): Promise<void>;
@@ -229,11 +230,23 @@ export abstract class AbstractInterface {
   abstract destroy?(): Promise<void>;
 
   abstract describe?(): string;
-  abstract beforeInvokeAction?(actionName: string, param: any): Promise<void>;
-  abstract afterInvokeAction?(actionName: string, param: any): Promise<void>;
+  abstract beforeInvokeAction?(
+    actionName: string,
+    param: any,
+    signal?: AbortSignal,
+  ): Promise<void>;
+  abstract afterInvokeAction?(
+    actionName: string,
+    param: any,
+    signal?: AbortSignal,
+  ): Promise<void>;
 
   /** Platform readiness heuristics, skipped when a custom action waiter takes over. */
-  async defaultActionWait?(_actionName: string, _param: any): Promise<void> {}
+  async defaultActionWait?(
+    _actionName: string,
+    _param: any,
+    _signal?: AbortSignal,
+  ): Promise<void> {}
 
   // for web only
   registerFileChooserListener?(
@@ -355,6 +368,7 @@ function defineLocatedPointAction<
   TParam extends { locate: LocateResultElement },
 >(config: {
   name: string;
+  supportedBySystemOne?: boolean;
   description: string;
   interfaceAlias?: string;
   paramSchema: TSchema;
@@ -364,6 +378,7 @@ function defineLocatedPointAction<
 }): DeviceAction<TParam> {
   return defineAction<TSchema, TParam>({
     name: config.name,
+    supportedBySystemOne: config.supportedBySystemOne,
     description: config.description,
     interfaceAlias: config.interfaceAlias,
     paramSchema: config.paramSchema,
@@ -390,6 +405,7 @@ export const defineActionTap = (
 ): DeviceAction<ActionTapParam> => {
   return defineLocatedPointAction<typeof actionTapParamSchema, ActionTapParam>({
     name: 'Tap',
+    supportedBySystemOne: true,
     description: 'Tap the element',
     interfaceAlias: 'aiTap',
     paramSchema: actionTapParamSchema,
@@ -453,6 +469,7 @@ export const defineActionRightClick = (
     ActionRightClickParam
   >({
     name: 'RightClick',
+    supportedBySystemOne: true,
     description: 'Right click the element',
     interfaceAlias: 'aiRightClick',
     paramSchema: actionRightClickParamSchema,
@@ -462,6 +479,37 @@ export const defineActionRightClick = (
     missingLocateMessage: 'Element not found, cannot right click',
     call: async (point) => {
       await rightClick(point);
+    },
+  });
+};
+
+// MiddleClick
+export const actionMiddleClickParamSchema = z.object({
+  locate: getMidsceneLocationSchema().describe(
+    'The element to be middle clicked',
+  ),
+});
+export type ActionMiddleClickParam = {
+  locate: LocateResultElement;
+};
+
+export const defineActionMiddleClick = (
+  middleClick: NonNullable<PointerInputPrimitives['middleClick']>,
+): DeviceAction<ActionMiddleClickParam> => {
+  return defineLocatedPointAction<
+    typeof actionMiddleClickParamSchema,
+    ActionMiddleClickParam
+  >({
+    name: 'MiddleClick',
+    description: 'Middle click the element',
+    interfaceAlias: 'aiMiddleClick',
+    paramSchema: actionMiddleClickParamSchema,
+    sample: {
+      locate: { prompt: 'the link to open in a new tab' },
+    },
+    missingLocateMessage: 'Element not found, cannot middle click',
+    call: async (point) => {
+      await middleClick(point);
     },
   });
 };
@@ -484,6 +532,7 @@ export const defineActionDoubleClick = (
     ActionDoubleClickParam
   >({
     name: 'DoubleClick',
+    supportedBySystemOne: true,
     description: 'Double click the element',
     interfaceAlias: 'aiDoubleClick',
     paramSchema: actionDoubleClickParamSchema,
@@ -513,6 +562,7 @@ export const defineActionHover = (
     ActionHoverParam
   >({
     name: 'Hover',
+    supportedBySystemOne: true,
     description: 'Move the mouse to the element',
     interfaceAlias: 'aiHover',
     paramSchema: actionHoverParamSchema,
@@ -692,23 +742,13 @@ export const actionScrollParamSchema = z.object({
 
 export const defineActionScroll = (
   scroll: ScrollInputPrimitives['scroll'],
-  inputMode?: SwipeInputMode,
 ): DeviceAction<ActionScrollParam> => {
   return defineAction<typeof actionScrollParamSchema, ActionScrollParam>({
     name: 'Scroll',
     description:
       'Scroll a page or scrollable region to reveal off-screen content. Use Scroll when the goal is to browse content outside the current viewport. For direct gesture interactions, such as adjusting a slider or wheel picker, switching between paged cards or images, following an on-screen swipe gesture to continue or dismiss, or swiping an item to delete it, use Swipe instead if available in the current Action Space. Supports scrollToBottom/scrollToTop for boundary navigation. Default: direction `down`, scrollType `singleAction`, distance `null`.',
     interfaceAlias: 'aiScroll',
-    paramSchema:
-      inputMode === 'touch'
-        ? actionScrollParamSchema.extend({
-            locate: getMidsceneLocationSchema()
-              .optional()
-              .describe(
-                'The safe touch origin within the scrollable region. Its center is where the finger presses down, not just a description of the containing panel. Before scrolling a parent form with an expanded date/time wheel picker, collapse the picker using its visible toggle. Blank padding beside a picker can still capture the gesture and change its value. Otherwise choose a small non-interactive area in the intended scroll container, outside the entire hit area of sliders, maps, carousels and nested scroll regions. Do not target a whole panel whose center overlaps these controls. Scroll only when the desired content is off-screen; use visible controls directly.',
-              ),
-          })
-        : actionScrollParamSchema,
+    paramSchema: actionScrollParamSchema,
     sample: {
       direction: 'down',
       scrollType: 'singleAction',
@@ -817,6 +857,7 @@ function createActionSwipeParamSchema(inputMode: SwipeInputMode) {
       ),
     distance: z
       .number()
+      .finite()
       .positive()
       .optional()
       .describe(
@@ -829,6 +870,8 @@ function createActionSwipeParamSchema(inputMode: SwipeInputMode) {
       ),
     duration: z
       .number()
+      .finite()
+      .positive()
       .default(300)
       .describe(
         inputMode === 'touch'
@@ -837,9 +880,12 @@ function createActionSwipeParamSchema(inputMode: SwipeInputMode) {
       ),
     repeat: z
       .number()
+      .finite()
+      .int()
+      .nonnegative()
       .optional()
       .describe(
-        'The number of times to repeat the swipe gesture. 1 for default, 0 for infinite (e.g. endless swipe until the end of the page)',
+        'The number of times to repeat the swipe gesture. 1 for default, 0 for continuous mode capped at 10 repeats',
       ),
   });
 }
@@ -869,6 +915,20 @@ export function normalizeSwipeParam(
   const { width, height } = screenSize;
   const { start, end } = param;
 
+  const duration = param.duration ?? 300;
+  if (!Number.isFinite(duration) || duration <= 0) {
+    throw new Error('duration must be a positive finite number');
+  }
+
+  const repeatCount = param.repeat ?? 1;
+  if (
+    !Number.isFinite(repeatCount) ||
+    !Number.isInteger(repeatCount) ||
+    repeatCount < 0
+  ) {
+    throw new Error('repeat must be a non-negative finite integer');
+  }
+
   const startPoint = start
     ? { x: start.center[0], y: start.center[1] }
     : { x: width / 2, y: height / 2 };
@@ -890,7 +950,7 @@ export function normalizeSwipeParam(
       );
     }
 
-    if (param.distance <= 0) {
+    if (!Number.isFinite(param.distance) || param.distance <= 0) {
       throw new Error(
         'Invalid Swipe parameters: "distance" must be a positive number.',
       );
@@ -917,14 +977,12 @@ export function normalizeSwipeParam(
   endPoint.x = Math.max(0, Math.min(endPoint.x, width));
   endPoint.y = Math.max(0, Math.min(endPoint.y, height));
 
-  const duration = param.duration ?? 300;
-
-  let repeatCount = typeof param.repeat === 'number' ? param.repeat : 1;
-  if (repeatCount === 0) {
-    repeatCount = 10;
-  }
-
-  return { startPoint, endPoint, duration, repeatCount };
+  return {
+    startPoint,
+    endPoint,
+    duration,
+    repeatCount: repeatCount === 0 ? 10 : repeatCount,
+  };
 }
 
 /** @deprecated Use {@link normalizeSwipeParam} instead. */
@@ -979,6 +1037,7 @@ export const defineActionClearInput = (
     ActionClearInputParam
   >({
     name: 'ClearInput',
+    supportedBySystemOne: true,
     description: inputLocateDescription,
     interfaceAlias: 'aiClearInput',
     paramSchema: actionClearInputParamSchema,
@@ -1151,6 +1210,7 @@ export interface MobileInputActionContext {
 
 export interface SystemInputActionConfig {
   name: string;
+  supportedBySystemOne?: boolean;
   description: string;
   interfaceAlias?: string;
   delayBeforeRunner?: number;
@@ -1164,8 +1224,6 @@ export interface SystemInputActionOptions {
 }
 
 export interface InputPrimitiveActionOptions {
-  /** Scroll transport semantics. Defaults to wheel; mobile factories select touch. */
-  scrollInputMode?: SwipeInputMode;
   size?: () => Promise<Size>;
   sleep?: (timeMs: number) => Promise<void>;
   includeSwipe?: boolean;
@@ -1179,6 +1237,7 @@ function defineSystemInputAction(
 ): DeviceAction<undefined, void> {
   return defineAction<undefined, undefined, void>({
     name: config.name,
+    supportedBySystemOne: config.supportedBySystemOne,
     description: config.description,
     interfaceAlias: config.interfaceAlias,
     delayBeforeRunner: config.delayBeforeRunner,
@@ -1202,6 +1261,9 @@ export function defineActionsFromInputPrimitives(
     if (pointer.rightClick) {
       actions.push(defineActionRightClick(pointer.rightClick));
     }
+    if (pointer.middleClick) {
+      actions.push(defineActionMiddleClick(pointer.middleClick));
+    }
     if (pointer.hover) {
       actions.push(defineActionHover(pointer.hover));
     }
@@ -1223,7 +1285,7 @@ export function defineActionsFromInputPrimitives(
   }
 
   if (scroll) {
-    actions.push(defineActionScroll(scroll.scroll, options.scrollInputMode));
+    actions.push(defineActionScroll(scroll.scroll));
   }
 
   const swipeConfig = resolveSwipeInputPrimitive({ pointer, touch });
@@ -1266,7 +1328,6 @@ export function createDefaultMobileActions(
   context: MobileInputActionContext,
 ): DeviceAction<any>[] {
   return defineActionsFromInputPrimitives(context.input, {
-    scrollInputMode: 'touch',
     size: context.size,
     sleep: context.sleep,
     systemActions: context.systemActions,
@@ -1297,20 +1358,21 @@ export const defineActionSleep = (
     sample: {
       timeMs: 2000,
     },
-    call: async (param) => {
+    call: async (param, context) => {
+      const signal = abortSignal ?? context?.signal;
       const duration = param?.timeMs ?? 1000;
       getDebug('device:common-action')(`Sleeping for ${duration}ms`);
-      abortSignal?.throwIfAborted();
+      signal?.throwIfAborted();
       await new Promise<void>((resolve, reject) => {
         const abort = () => {
           clearTimeout(timer);
-          reject(abortSignal?.reason);
+          reject(signal?.reason);
         };
         const timer = setTimeout(() => {
-          abortSignal?.removeEventListener('abort', abort);
+          signal?.removeEventListener('abort', abort);
           resolve();
         }, duration);
-        abortSignal?.addEventListener('abort', abort, { once: true });
+        signal?.addEventListener('abort', abort, { once: true });
       });
     },
   });
@@ -1339,3 +1401,5 @@ export type {
   HarmonyDeviceOpt,
   HarmonyDeviceInputOpt,
 } from './device-options';
+
+export { resolveDefaultMobileScroll } from './mobile-scroll';

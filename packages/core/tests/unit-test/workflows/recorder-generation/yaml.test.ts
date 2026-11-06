@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import {
-  callAI,
   callAIWithStringResponse,
+  callGenerativeAI,
 } from '../../../../src/ai-model/service-caller';
 import {
   type ChromeRecordedEvent,
@@ -14,11 +14,11 @@ import {
 } from '../../../../src/ai-model/workflows/recorder-generation/yaml';
 
 rs.mock('../../../../src/ai-model/service-caller', () => ({
-  callAI: rs.fn(),
+  callGenerativeAI: rs.fn(),
   callAIWithStringResponse: rs.fn(),
 }));
 
-const mockCallAI = rs.mocked(callAI);
+const mockCallAI = rs.mocked(callGenerativeAI);
 const mockCallAIWithStringResponse = rs.mocked(callAIWithStringResponse);
 
 const mockEvents: ChromeRecordedEvent[] = [

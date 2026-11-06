@@ -5,12 +5,13 @@ import {
   rmSync,
   statSync,
 } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import {
   parseDumpScript,
   parseImageScripts,
   unescapeContent,
 } from '@/dump/html-utils';
+import { readReportDumpScripts } from '@/dump/report-artifact-reader';
 import { restoreImageReferences } from '@/dump/screenshot-restoration';
 import { ReportGenerator } from '@/report-generator';
 import { ExecutionDump, type ExecutionTaskPlanningParam } from '@/types';
@@ -155,12 +156,21 @@ describe('ReportGenerator reference images', () => {
     ).toBe(true);
     expect(firstPlanningReferenceImageUrl(execution)).toBe(referenceImage);
 
-    const persistedDump = readFileSync(
-      join(temporaryDirectory, '1.execution.json'),
-      'utf-8',
+    const dumpPath = join(
+      temporaryDirectory,
+      '.execution-dumps',
+      'reference-image-dedup.html',
+      '1.execution.json',
     );
+    const persistedDump = readFileSync(dumpPath, 'utf-8');
     expect(persistedDump).not.toContain(referenceImage);
     expect(persistedDump).toContain('midscene_image_url_ref');
+    for (const ref of referenceImageRefsFromDump(JSON.parse(persistedDump))) {
+      expect(ref.storage).toBe('file');
+      expect(readFileSync(join(dirname(dumpPath), ref.path!))).toEqual(
+        Buffer.from(referenceImage.split(',')[1], 'base64'),
+      );
+    }
   });
 
   it('rewrites only descriptors located inside images arrays', async () => {
@@ -208,7 +218,7 @@ describe('ReportGenerator reference images', () => {
     generator.onExecutionUpdate(execution, defaultReportMeta);
     await generator.finalize();
 
-    const serializedDump = parseDumpScript(readFileSync(reportPath, 'utf-8'));
+    const serializedDump = readReportDumpScripts(reportPath)[0]?.content;
     if (!serializedDump) throw new Error('Expected a serialized report dump');
     const taskParam = JSON.parse(serializedDump).executions[0].tasks[0].param;
     expect(taskParam.images[0].url).toMatchObject({
@@ -244,7 +254,12 @@ describe('ReportGenerator reference images', () => {
       }
       await generator.finalize();
 
-      const executionDumpPath = join(reportDirectory, '1.execution.json');
+      const executionDumpPath = join(
+        reportDirectory,
+        '.execution-dumps',
+        'index.html',
+        '1.execution.json',
+      );
       return {
         html: readFileSync(reportPath, 'utf-8'),
         htmlSize: statSync(reportPath).size,
@@ -336,7 +351,7 @@ describe('ReportGenerator reference images', () => {
     expect(imageFiles).toHaveLength(1);
     expect(imageFiles[0]).toMatch(/\.jpeg$/);
 
-    const serializedDump = parseDumpScript(readFileSync(reportPath, 'utf-8'));
+    const serializedDump = readReportDumpScripts(reportPath)[0]?.content;
     if (!serializedDump) throw new Error('Expected a serialized report dump');
     expect(serializedDump).not.toContain(referenceImage);
     expect(Buffer.byteLength(serializedDump)).toBeLessThan(

@@ -11,11 +11,21 @@ import { type PreparedOpenAIInput, callOpenAI } from './openai/call-openai';
 import { prepareChatCompletion } from './openai/chat-completion/chat-completion';
 import { prepareResponses } from './openai/responses/responses';
 import {
+  SiwcTokenExpiredError,
+  prepareSiwcCall,
+  siwcTokenManager,
+} from './openai/siwc';
+import {
   buildRequestAbortSignal,
   resolveEffectiveTimeoutMs,
   runWithAbortSignal,
   waitForRetry,
 } from './request-timeout';
+import {
+  prepareSystemOne,
+  callSystemOne as sendSystemOneRequest,
+} from './system-one';
+import type { SystemOneRequest } from './system-one/schema';
 import type { ModelCallMessages } from './types';
 import type {
   AICallResult,
@@ -33,13 +43,13 @@ import {
 
 const DEFAULT_MODEL_PROTOCOL = 'openai-chat';
 
-export async function callAI(
+export async function callGenerativeAI(
   messages: ModelCallMessages,
-  modelRuntime: ModelRuntime,
-  options?: CallAIOptions,
+  originalModelRuntime: ModelRuntime,
+  originalOptions?: CallAIOptions,
 ): Promise<AICallResult> {
-  options?.abortSignal?.throwIfAborted();
-  const isStreaming = options?.stream === true;
+  originalOptions?.abortSignal?.throwIfAborted();
+  const isStreaming = originalOptions?.stream === true;
   if (isStreaming) {
     // Explicit streaming is currently used only by recorder code generation.
     // Streaming can also be aggregated without onChunk, but then the caller
@@ -48,26 +58,22 @@ export async function callAI(
     // Once onChunk delivers a chunk, later errors are not retried to avoid
     // delivering duplicate content. Errors before the first chunk can retry.
     assert(
-      typeof options?.onChunk === 'function',
+      typeof originalOptions?.onChunk === 'function',
       'onChunk is required when stream: true is explicitly specified',
     );
   }
 
-  // Low-level callers without a TaskRunner still need a stable ID for the
-  // lifetime of this model call (including its network retries).
-  const executionId = modelRuntime.executionId ?? `unscoped-${uuid()}`;
-
-  // Stable internal ID for this call, used by the agent to deduplicate usage
-  // across the onUsage callback and the task-dump-based collectUsageMetrics()
-  // path when the provider does not return a request_id.
-  const internalCallId = nextInternalCallId();
+  // Resolve authentication constraints before protocol selection and validation.
+  const { modelRuntime, options } = await prepareSiwcCall(
+    originalModelRuntime,
+    originalOptions,
+  );
 
   const { config: modelConfig } = modelRuntime;
-
-  const prepare = async (): Promise<PreparedModelInput> => {
+  return executeModelCall(modelRuntime, options, async () => {
     const input = { messages, modelRuntime, options };
     if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
-      return { protocol: 'codex', input: prepareCodexCall(input) };
+      return { kind: 'codex', input: prepareCodexCall(input) };
     }
     const protocol = modelConfig.protocol ?? DEFAULT_MODEL_PROTOCOL;
 
@@ -76,20 +82,47 @@ export async function callAI(
       `Model adapter "${modelConfig.modelFamily ?? 'default'}" does not support protocol "${protocol}"`,
     );
     if (protocol === 'openai-responses') {
-      return { protocol: 'responses', input: await prepareResponses(input) };
+      return { kind: 'responses', input: await prepareResponses(input) };
     }
     return {
-      protocol: 'chat-completion',
+      kind: 'chat-completion',
       input: await prepareChatCompletion(input),
     };
-  };
+  });
+}
+
+export async function callSystemOneAI(
+  request: SystemOneRequest,
+  modelRuntime: ModelRuntime,
+  options?: CallAIOptions,
+): Promise<AICallResult> {
+  options?.abortSignal?.throwIfAborted();
+  assert(!options?.stream, 'Jev does not support streaming output');
+  assert(
+    modelRuntime.config.modelFamily === 'jev',
+    'System One currently only supports the Jev model family in Midscene',
+  );
+  return executeModelCall(modelRuntime, options, async () => ({
+    kind: 'system-one',
+    input: await prepareSystemOne(modelRuntime.config, request),
+  }));
+}
+
+async function executeModelCall(
+  modelRuntime: ModelRuntime,
+  options: CallAIOptions | undefined,
+  prepare: () => Promise<PreparedModelInput>,
+): Promise<AICallResult> {
+  // Keep identifiers stable across all request attempts.
+  const executionId = modelRuntime.executionId ?? `unscoped-${uuid()}`;
+  const internalCallId = nextInternalCallId();
+  const { config: modelConfig } = modelRuntime;
 
   const prepared = options?.abortSignal
     ? await runWithAbortSignal(options.abortSignal, prepare)
     : await prepare();
 
   const result = await callModelWithRetry({
-    messages,
     modelRuntime,
     options,
     executionId,
@@ -107,8 +140,8 @@ export async function callAI(
     ...response
   } = result;
 
-  const usage = buildUsageInfo({
-    apiProtocol: prepared.protocol,
+  const rawUsageInfo = buildUsageInfo({
+    requestKind: prepared.kind,
     stream: response.isStreamed,
     usageData: rawUsage,
     timeCost,
@@ -121,6 +154,10 @@ export async function callAI(
     slot: modelConfig.slot,
     internalCallId,
   });
+
+  const usage = rawUsageInfo
+    ? { ...rawUsageInfo, modelFallback: modelRuntime.modelFallback }
+    : undefined;
 
   const debugProfileStats = getDebug('ai:profile:stats');
   const debugProfileDetail = getDebug('ai:profile:detail');
@@ -136,11 +173,14 @@ export async function callAI(
 }
 
 type PreparedModelInput =
-  | { protocol: 'codex'; input: ReturnType<typeof prepareCodexCall> }
+  | {
+      kind: 'system-one';
+      input: Awaited<ReturnType<typeof prepareSystemOne>>;
+    }
+  | { kind: 'codex'; input: ReturnType<typeof prepareCodexCall> }
   | PreparedOpenAIInput;
 
 type ModelCallInput = {
-  messages: ModelCallMessages;
   modelRuntime: ModelRuntime;
   options?: CallAIOptions;
   executionId: string;
@@ -184,6 +224,39 @@ async function callModelWithRetry(
       if (error instanceof NonRetryableModelCallError) {
         throw error.cause;
       }
+      // A rejected SIWC token gets one authentication retry, independently of
+      // normal retryCount. Delivered chunks are rejected above before refreshing.
+      if (error instanceof SiwcTokenExpiredError) {
+        const refresh = async () => {
+          assert(config.openaiApiKey, 'Missing rejected SIWC access token');
+          await siwcTokenManager.refreshAccessToken(config.openaiApiKey, {
+            httpProxy: config.httpProxy,
+            socksProxy: config.socksProxy,
+          });
+          return prepareSiwcCall(input.modelRuntime, options);
+        };
+        // Cancel only this caller's wait; other callers may share the refresh.
+        const refreshed = options?.abortSignal
+          ? await runWithAbortSignal(options.abortSignal, refresh)
+          : await refresh();
+        options?.abortSignal?.throwIfAborted();
+        try {
+          const result = await callModelOnce(
+            { ...input, ...refreshed },
+            attempt + 1,
+          );
+          return {
+            ...result,
+            totalTimeCost: Date.now() - startTime,
+            retryCount: attempt,
+          };
+        } catch (retryError) {
+          // Do not re-enter either retry path after the refreshed request fails.
+          throw retryError instanceof NonRetryableModelCallError
+            ? retryError.cause
+            : retryError;
+        }
+      }
       const lastError = toError(error);
       attemptErrors.push({ attempt, error: lastError });
       if (attempt === maxAttempts) {
@@ -193,7 +266,18 @@ async function callModelWithRetry(
           maxAttempts,
         );
       }
-      getDebug('ai:call', { console: true })(
+      getDebug('ai:call', {
+        console: true,
+        warning: {
+          kind: 'model-request-retry',
+          modelName: config.modelName,
+          error: lastError,
+          callId: input.internalCallId,
+          attempt,
+          maxAttempts,
+          delayMs: retryInterval,
+        },
+      })(
         `AI call failed (attempt ${attempt}/${maxAttempts}), retrying in ${retryInterval}ms... Error: ${lastError.message}`,
       );
     }
@@ -203,7 +287,6 @@ async function callModelWithRetry(
 
 async function callModelOnce(
   {
-    messages,
     modelRuntime,
     options,
     executionId,
@@ -229,6 +312,7 @@ async function callModelOnce(
             slot: modelConfig.slot,
             intent: modelConfig.intent,
             modelFamily: modelConfig.modelFamily,
+            modelFallback: modelRuntime.modelFallback,
             ...event,
             attempt,
           });
@@ -242,7 +326,6 @@ async function callModelOnce(
   let deliveredChunk = false;
   const onChunk = options?.onChunk;
   const context: ModelCallContext = {
-    messages,
     modelRuntime,
     executionId,
     recordEvent,
@@ -261,9 +344,11 @@ async function callModelOnce(
   };
   try {
     return await runWithAbortSignal(requestSignal, () =>
-      prepared.protocol === 'codex'
-        ? callCodex(context, prepared.input)
-        : callOpenAI(context, prepared),
+      prepared.kind === 'system-one'
+        ? sendSystemOneRequest(context, prepared.input)
+        : prepared.kind === 'codex'
+          ? callCodex(context, prepared.input)
+          : callOpenAI(context, prepared),
     );
   } catch (error) {
     options?.abortSignal?.throwIfAborted();

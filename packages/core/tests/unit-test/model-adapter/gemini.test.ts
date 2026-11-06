@@ -19,7 +19,7 @@ describe('gemini model adapter', () => {
     ).toContain('[ymin, xmin, ymax, xmax]');
   });
 
-  it('uses minimal thinking level for gemini when reasoning is unset', () => {
+  it('uses low thinking level for gemini when reasoning is unset', () => {
     const result = geminiAdapter.chatCompletion.buildChatCompletionParams({});
     expect(geminiAdapter.chatCompletion.unsupportedUserConfig).toEqual([
       'reasoningBudget',
@@ -30,7 +30,7 @@ describe('gemini model adapter', () => {
         google: {
           thinking_config: {
             include_thoughts: true,
-            thinking_level: 'minimal',
+            thinking_level: 'low',
           },
         },
       },
@@ -56,14 +56,14 @@ describe('gemini model adapter', () => {
         google: {
           thinking_config: {
             include_thoughts: true,
-            thinking_level: 'minimal',
+            thinking_level: 'low',
           },
         },
       },
     });
   });
 
-  it('uses minimal thinking level for insight intent by default', () => {
+  it('uses low thinking level for insight intent by default', () => {
     const result = geminiAdapter.chatCompletion.buildChatCompletionParams({
       intent: 'insight',
     });
@@ -73,7 +73,7 @@ describe('gemini model adapter', () => {
         google: {
           thinking_config: {
             include_thoughts: true,
-            thinking_level: 'minimal',
+            thinking_level: 'low',
           },
         },
       },
@@ -119,7 +119,27 @@ describe('gemini model adapter', () => {
     });
   });
 
-  it('uses minimal thinking level and ignores effort when reasoning is disabled', () => {
+  it('preserves an explicitly requested minimal effort when reasoning is enabled', () => {
+    const result = geminiAdapter.chatCompletion.buildChatCompletionParams({
+      userConfig: {
+        reasoningEnabled: true,
+        reasoningEffort: 'minimal',
+      },
+    });
+    expect(result.config).toEqual({
+      temperature: 0,
+      extra_body: {
+        google: {
+          thinking_config: {
+            include_thoughts: true,
+            thinking_level: 'minimal',
+          },
+        },
+      },
+    });
+  });
+
+  it('uses low thinking level and ignores effort when reasoning is disabled', () => {
     const result = geminiAdapter.chatCompletion.buildChatCompletionParams({
       userConfig: {
         reasoningEnabled: false,
@@ -132,7 +152,7 @@ describe('gemini model adapter', () => {
         google: {
           thinking_config: {
             include_thoughts: true,
-            thinking_level: 'minimal',
+            thinking_level: 'low',
           },
         },
       },
@@ -218,12 +238,6 @@ describe('gemini model adapter', () => {
         '<thought>I should locate the add button.</thought>```json\n' +
         '{"bbox":[128,284,151,298]}\n' +
         '```',
-      extra_content: {
-        google: {
-          thought: true,
-          thought_signature: 'signature',
-        },
-      },
     });
 
     expect(result).toEqual({
@@ -235,58 +249,30 @@ describe('gemini model adapter', () => {
     });
   });
 
-  it('extracts thought parts into reasoning_content', () => {
-    const result = extractGeminiContentAndReasoning({
-      content: [
-        {
-          text: 'I need to locate the add button.',
-          thought: true,
-        },
-        {
-          text: '{"bbox":[124,281,157,302]}',
-        },
-      ],
-    });
-
-    expect(result).toEqual({
-      content: '{"bbox":[124,281,157,302]}',
-      reasoning_content: 'I need to locate the add button.',
-    });
-  });
-
-  it('combines thought parts with provider reasoning_content', () => {
-    const result = extractGeminiContentAndReasoning({
-      content: [
-        {
-          text: 'I need to locate the add button.',
-          thought: true,
-        },
-        {
-          text: '{"bbox":[124,281,157,302]}',
-        },
-      ],
+  it.each([
+    'Answer: <thought>quoted thought</thought>',
+    'Answer:\n<thought>quoted thought</thought>',
+  ])('does not extract thought tags after visible content: %s', (content) => {
+    expect(
+      extractGeminiContentAndReasoning({
+        content,
+        reasoning_content: 'provider reasoning',
+      }),
+    ).toEqual({
+      content,
       reasoning_content: 'provider reasoning',
     });
-
-    expect(result).toEqual({
-      content: '{"bbox":[124,281,157,302]}',
-      reasoning_content:
-        'thoughtParts：I need to locate the add button.; reasoning_content：provider reasoning',
-    });
   });
 
-  it('keeps visible content when Gemini parts do not include thought summaries', () => {
-    const result = extractGeminiContentAndReasoning({
-      content: [
-        {
-          text: '{"bbox":[124,281,157,302]}',
-        },
-      ],
-    });
-
-    expect(result).toEqual({
+  it('preserves plain content and provider reasoning_content', () => {
+    expect(
+      extractGeminiContentAndReasoning({
+        content: '{"bbox":[124,281,157,302]}',
+        reasoning_content: 'provider reasoning',
+      }),
+    ).toEqual({
       content: '{"bbox":[124,281,157,302]}',
-      reasoning_content: '',
+      reasoning_content: 'provider reasoning',
     });
   });
 
@@ -305,7 +291,7 @@ describe('gemini model adapter', () => {
         '{"bbox":[128,284,151,298]}\n' +
         '```',
       reasoning_content:
-        'thoughtParts：I should locate the add button.; reasoning_content：provider reasoning',
+        'inlineThought：I should locate the add button.; reasoning_content：provider reasoning',
     });
   });
 

@@ -967,11 +967,9 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
   }
 
   async selectAllInput(element?: ElementInfo) {
-    if (!element) {
-      throw new Error('Bulk replace input requires a target element');
+    if (element) {
+      await this.mouse.click(element.center[0], element.center[1]);
     }
-
-    await this.mouse.click(element.center[0], element.center[1]);
     const selectionResult = await this.sendCommandToDebugger(
       'Runtime.evaluate',
       {
@@ -981,6 +979,10 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     );
     if (selectionResult?.result?.value === true) {
       return;
+    }
+
+    if (!element) {
+      throw new Error('Replacing text requires a focused editable field');
     }
 
     await this.sendCommandToDebugger('Input.dispatchKeyEvent', {

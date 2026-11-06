@@ -1,10 +1,68 @@
 import type {
+  TestRunReportCleanup,
   TestRunReportDocument,
   TestRunReportDump,
+  TestRunReportError,
+  TestRunReportHostError,
   TestRunReportMetrics,
+  TestRunReportOperationReference,
   TestRunReportStep,
 } from '../../test-run-report';
 import type { ReportFileAttributes } from '../../types';
+import { sumTestRunReportMetrics } from './metrics';
+
+function remapError(
+  error: TestRunReportError,
+  id: (value: string) => string,
+): TestRunReportError {
+  const remapReferences = (value: unknown): unknown => {
+    if (!value || typeof value !== 'object' || Array.isArray(value))
+      return value;
+    const result = { ...value } as Record<string, unknown>;
+    for (const key of [
+      'blockedByStepId',
+      'stepId',
+      'scopeId',
+      'caseId',
+      'runId',
+      'documentId',
+      'documentRunId',
+    ])
+      if (typeof result[key] === 'string') result[key] = id(result[key]);
+    return result;
+  };
+  let details = error.details;
+  // Only framework-owned details contain report links. Do not rewrite matching
+  // property names in custom errors or arbitrary nested business data.
+  if (
+    details &&
+    [
+      'RESOURCE_RECOVERY_TIMEOUT',
+      'RESOURCE_CLEANUP_DEFERRED',
+      'NODE_SCOPE_TEARDOWN_ERROR',
+      'REPORT_SNAPSHOT_FAILED',
+      'CASE_EXECUTION_FAILED',
+      'WORKFLOW_DOCUMENT_EXECUTION_FAILED',
+    ].includes(error.code ?? '')
+  ) {
+    const value = remapReferences(details.value);
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      const mapped = value as Record<string, unknown>;
+      for (const key of ['blockingOperations', 'diagnostics'])
+        if (Array.isArray(mapped[key]))
+          mapped[key] = mapped[key].map(remapReferences);
+    }
+    details = { ...details, value };
+  }
+  return {
+    ...error,
+    ...(details ? { details } : {}),
+    ...(error.cause ? { cause: remapError(error.cause, id) } : {}),
+    ...(error.errors
+      ? { errors: error.errors.map((item) => remapError(item, id)) }
+      : {}),
+  };
+}
 
 export interface MergeTestRunReportSource {
   reportId: string;
@@ -17,7 +75,12 @@ export interface MergeTestRunReportSource {
 function agentReportAsTestRun(
   source: MergeTestRunReportSource,
 ): Pick<TestRunReportDump, 'status' | 'summary' | 'projects'> &
-  Partial<Pick<TestRunReportDump, 'startedAt' | 'endedAt' | 'diagnostics'>> {
+  Partial<
+    Pick<
+      TestRunReportDump,
+      'startedAt' | 'endedAt' | 'diagnostics' | 'operationLogs'
+    >
+  > {
   const { attributes, reportId } = source;
   const status =
     attributes.testStatus === 'skipped'
@@ -176,6 +239,7 @@ export function mergeTestRunReportDumps(
   sources: readonly MergeTestRunReportSource[],
   metrics: TestRunReportMetrics,
   runId: string,
+  rawExecutionMetrics?: Record<string, TestRunReportMetrics>,
 ): TestRunReportDump {
   const dumps = sources.map((source) => {
     if (
@@ -189,26 +253,106 @@ export function mergeTestRunReportDumps(
       );
     const dump = retainHostFailure(source) ?? agentReportAsTestRun(source);
     const id = (value: string) => `${source.reportId}:${value}`;
-    const scopeReports = (reportIds: string[] | undefined) =>
-      reportIds?.length ? [source.reportId] : reportIds;
-    const step = (value: TestRunReportStep): TestRunReportStep => ({
+    const error = (value: TestRunReportError) => remapError(value, id);
+    const scopeErrors = <
+      T extends {
+        setupError?: TestRunReportError;
+        teardownErrors?: TestRunReportError[];
+        hostErrors?: TestRunReportHostError[];
+      },
+    >(
+      value: T,
+    ): T => ({
       ...value,
-      id: id(value.id),
-      ...(value.agentDetails
+      ...(value.setupError ? { setupError: error(value.setupError) } : {}),
+      ...(value.teardownErrors
+        ? { teardownErrors: value.teardownErrors.map(error) }
+        : {}),
+      ...(value.hostErrors
         ? {
-            agentDetails: value.agentDetails.map((detail) => ({
-              ...detail,
-              reportId: source.reportId,
+            hostErrors: value.hostErrors.map((host) => ({
+              ...host,
+              error: error(host.error),
             })),
           }
         : {}),
     });
+    const reference = (
+      value: TestRunReportOperationReference,
+    ): TestRunReportOperationReference => ({
+      ...value,
+      ...(value.stepId ? { stepId: id(value.stepId) } : {}),
+      ...(value.scopeId ? { scopeId: id(value.scopeId) } : {}),
+    });
+    const cleanup = (value: TestRunReportCleanup | undefined) =>
+      value
+        ? {
+            ...value,
+            ...(value.error ? { error: error(value.error) } : {}),
+            ...(value.blockingOperations
+              ? { blockingOperations: value.blockingOperations.map(reference) }
+              : {}),
+          }
+        : undefined;
+    const scopeReports = (reportIds: string[] | undefined) =>
+      reportIds?.length ? [source.reportId] : reportIds;
+    const step = (value: TestRunReportStep): TestRunReportStep => {
+      const result: TestRunReportStep = {
+        ...value,
+        id: id(value.id),
+        ...(value.error ? { error: error(value.error) } : {}),
+        ...(value.evidenceCollection
+          ? {
+              evidenceCollection: {
+                ...value.evidenceCollection,
+                ...(value.evidenceCollection.errors
+                  ? { errors: value.evidenceCollection.errors.map(error) }
+                  : {}),
+              },
+            }
+          : {}),
+        ...(value.operations
+          ? {
+              operations: {
+                ...value.operations,
+                events: value.operations.events.map((event) => ({
+                  ...event,
+                  ...(event.error ? { error: error(event.error) } : {}),
+                  ...(event.stepId ? { stepId: id(event.stepId) } : {}),
+                  ...(event.scopeId ? { scopeId: id(event.scopeId) } : {}),
+                  ...(event.blockingOperations
+                    ? {
+                        blockingOperations:
+                          event.blockingOperations.map(reference),
+                      }
+                    : {}),
+                })),
+              },
+            }
+          : {}),
+        ...(value.agentDetails
+          ? {
+              agentDetails: value.agentDetails.map((detail) => ({
+                ...detail,
+                reportId: source.reportId,
+              })),
+            }
+          : {}),
+      };
+      if (result.status === 'not-run' && result.blockedBy)
+        result.blockedBy = id(result.blockedBy);
+      return result;
+    };
     const documentScope = <
       T extends Omit<TestRunReportDocument, 'cases' | 'attempts'>,
     >(
       value: T,
     ): T => ({
-      ...value,
+      ...scopeErrors(value),
+      ...(value.cleanup ? { cleanup: cleanup(value.cleanup) } : {}),
+      ...(value.pendingOperations
+        ? { pendingOperations: value.pendingOperations.map(reference) }
+        : {}),
       documentId: id(value.documentId),
       ...(value.logicalDocumentId
         ? { logicalDocumentId: id(value.logicalDocumentId) }
@@ -227,6 +371,26 @@ export function mergeTestRunReportDumps(
       projects: dump.projects.map((project) => ({
         ...project,
         projectId: id(project.projectId),
+        collectionErrors: project.collectionErrors.map((item) => ({
+          ...item,
+          error: error(item.error),
+        })),
+        ...(project.lifecycle
+          ? {
+              lifecycle: {
+                ...scopeErrors(project.lifecycle),
+                ...(project.lifecycle.cleanup
+                  ? { cleanup: cleanup(project.lifecycle.cleanup) }
+                  : {}),
+                ...(project.lifecycle.pendingOperations
+                  ? {
+                      pendingOperations:
+                        project.lifecycle.pendingOperations.map(reference),
+                    }
+                  : {}),
+              },
+            }
+          : {}),
         documents: project.documents.map((document) => ({
           ...documentScope(document),
           ...(document.attempts
@@ -236,8 +400,14 @@ export function mergeTestRunReportDumps(
             ...testCase,
             caseId: id(testCase.caseId),
             attempts: testCase.attempts.map((attempt) => ({
-              ...attempt,
+              ...scopeErrors(attempt),
               attemptId: id(attempt.attemptId),
+              ...(attempt.cleanup ? { cleanup: cleanup(attempt.cleanup) } : {}),
+              ...(attempt.pendingOperations
+                ? {
+                    pendingOperations: attempt.pendingOperations.map(reference),
+                  }
+                : {}),
               beforeEach: attempt.beforeEach.map(step),
               steps: attempt.steps.map(step),
               afterEach: attempt.afterEach.map(step),
@@ -248,7 +418,9 @@ export function mergeTestRunReportDumps(
       })),
       diagnostics: dump.diagnostics?.map((diagnostic) => ({
         ...diagnostic,
+        ...(diagnostic.error ? { error: error(diagnostic.error) } : {}),
         ...(diagnostic.scopeId ? { scopeId: id(diagnostic.scopeId) } : {}),
+        ...(diagnostic.stepId ? { stepId: id(diagnostic.stepId) } : {}),
       })),
     };
   });
@@ -284,6 +456,85 @@ export function mergeTestRunReportDumps(
       summary[key] += dump.summary[key];
   }
   const diagnostics = dumps.flatMap((dump) => dump.diagnostics ?? []);
+  const executionMetrics: Record<string, TestRunReportMetrics> = Object.assign(
+    {},
+    rawExecutionMetrics,
+    ...sources.map((source) => source.dump?.executionMetrics),
+  );
+  if (rawExecutionMetrics)
+    metrics = sumTestRunReportMetrics([
+      metrics,
+      ...Object.entries(executionMetrics)
+        .filter(([id]) => !rawExecutionMetrics[id])
+        .map(([, value]) => value),
+    ]);
+  else if (sources.every((source) => source.dump?.executionMetrics))
+    metrics = sumTestRunReportMetrics(Object.values(executionMetrics));
+  const collections = sources.flatMap((source) =>
+    source.dump ? [source.dump.metrics.collection] : [],
+  );
+  const incomplete =
+    metrics.collection?.status === 'partial' ||
+    metrics.collection?.status === 'unknown' ||
+    collections.some((collection) => collection?.status !== 'complete');
+  const collection = {
+    status: (incomplete
+      ? metrics.modelCallCount > 0 ||
+        collections.some(
+          (value) =>
+            value?.status === 'complete' || value?.status === 'partial',
+        )
+        ? 'partial'
+        : 'unknown'
+      : 'complete') as 'complete' | 'partial' | 'unknown',
+    expectedExecutionCount: collections.reduce(
+      (count, value) => count + (value?.expectedExecutionCount ?? 0),
+      0,
+    ),
+    capturedExecutionCount: collections.reduce(
+      (count, value) => count + (value?.capturedExecutionCount ?? 0),
+      0,
+    ),
+    reasons: [
+      ...(metrics.collection?.reasons ?? []),
+      ...new Set(
+        collections.flatMap(
+          (value) =>
+            value?.reasons ?? [
+              'Model metric collection status is unavailable in a source report.',
+            ],
+        ),
+      ),
+    ],
+    fields: Object.fromEntries(
+      (
+        [
+          'modelCallCount',
+          'modelTimeMs',
+          'totalTokens',
+          'promptTokens',
+          'completionTokens',
+        ] as const
+      ).map((field) => {
+        const states = [
+          ...collections.map(
+            (value) => value?.fields?.[field] ?? value?.status ?? 'unknown',
+          ),
+          ...(metrics.collection?.fields
+            ? [metrics.collection.fields[field]]
+            : []),
+        ];
+        return [
+          field,
+          states.every((state) => state === 'complete')
+            ? 'complete'
+            : states.every((state) => state === 'unknown')
+              ? 'unknown'
+              : 'partial',
+        ];
+      }),
+    ) as NonNullable<NonNullable<TestRunReportMetrics['collection']>['fields']>,
+  };
   return {
     schemaVersion: 1,
     kind: 'test-runner',
@@ -295,8 +546,12 @@ export function mergeTestRunReportDumps(
     endedAt,
     durationMs: Math.max(0, Date.parse(endedAt) - Date.parse(startedAt)),
     summary,
-    metrics,
+    metrics: { ...metrics, collection },
+    ...(Object.keys(executionMetrics).length ? { executionMetrics } : {}),
     projects: dumps.flatMap((dump) => dump.projects),
+    ...(dumps.some((dump) => dump.operationLogs?.length)
+      ? { operationLogs: dumps.flatMap((dump) => dump.operationLogs ?? []) }
+      : {}),
     ...(diagnostics.length ? { diagnostics } : {}),
   };
 }

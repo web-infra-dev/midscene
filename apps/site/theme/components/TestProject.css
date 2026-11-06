@@ -1,0 +1,123 @@
+.home-project__header .home-feature__heading-block h2 {
+  white-space: normal;
+}
+
+.home-project__lead {
+  max-width: 720px;
+  margin: 16px 0 0;
+  color: var(--framework-muted);
+  font-size: 16px;
+  line-height: 26px;
+}
+
+.home-project__flow {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 56px;
+  align-items: start;
+  list-style: none;
+}
+
+.home-project__card:first-child {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+
+.home-project__card:not(:first-child) {
+  grid-column: 2;
+}
+
+.home-project__card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+}
+
+.home-project__card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.home-project__role {
+  color: var(--framework-strong);
+  font-family: "Chivo Mono", var(--rp-font-family-mono, monospace);
+  font-size: 12px;
+  line-height: 20px;
+  text-transform: uppercase;
+}
+
+.home-project__card-head p {
+  margin: 0;
+  color: var(--framework-muted);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.home-project__card-code {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--framework-border);
+  border-radius: 8px;
+  background: var(--rp-code-block-bg);
+}
+
+.home-project__card-code .rp-codeblock {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.home-project__card-code pre {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 12px;
+  line-height: 1.75;
+}
+
+.home-project__card-code pre code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.home-project .home-project__link {
+  margin: 0;
+  align-self: flex-start;
+}
+
+@media (max-width: 640px) {
+  .home-project__flow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-project__card:first-child,
+  .home-project__card:not(:first-child) {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+
+.home-project__arrow {
+  position: absolute;
+  left: -42px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--framework-muted);
+}
+
+@media (max-width: 640px) {
+  .home-project__arrow {
+    display: none;
+  }
+}

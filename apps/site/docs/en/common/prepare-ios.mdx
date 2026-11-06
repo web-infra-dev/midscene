@@ -1,37 +1,39 @@
-#### Install Node.js
-
-Install [Node.js 18 or higher](https://nodejs.org/en/download/).
-
 #### Set up WebDriverAgent
 
-Before getting started, you need to set up the iOS development environment:
+Before you begin, make sure you have the following iOS development environment ready:
 
-- macOS (required for iOS development)
-- Xcode and Xcode command line tools
-- iOS Simulator or real device
+- macOS (required for iOS development and device debugging)
+- Xcode and Xcode Command Line Tools
+- An iOS Simulator or physical iOS device
 
-**Configure WebDriverAgent**
+:::info Version requirement
 
-Before using Midscene iOS, you need to prepare the WebDriverAgent service.
-
-:::note Version Requirement
-
-WebDriverAgent version must be **>= 7.0.0**
+WebDriverAgent version must be **>= 7.0.0**.
 
 :::
 
-Please refer to the official documentation for setup:
+Follow the official Appium documentation to build and configure WebDriverAgent (WDA):
 
-- **Simulator Configuration**: [Run Prebuilt WDA](https://appium.github.io/appium-xcuitest-driver/latest/guides/run-prebuilt-wda/)
-- **Real Device Configuration**: [Real Device Configuration](https://appium.github.io/appium-xcuitest-driver/latest/getting-started/device-setup/)
+- **Simulator setup**: [Run Prebuilt WDA](https://appium.github.io/appium-xcuitest-driver/latest/guides/run-prebuilt-wda/)
+- **Real device setup**: [Real Device Configuration](https://appium.github.io/appium-xcuitest-driver/latest/getting-started/device-setup/)
 
-**Verify WebDriverAgent**
+**Real-device connection and port forwarding**
 
-After completing the configuration, you can verify whether the service is working properly by accessing WebDriverAgent's status endpoint:
+When using a physical device, connect it to your Mac over USB, tap **Trust This Computer** on the device, and enable both **Developer Mode** and **UI Automation** in Settings. After completing code signing and starting WDA on the device per the guide above, use `iproxy` (installable via `brew install libimobiledevice`) to forward port `8100` from the device to your Mac:
 
-**Access URL**: `http://localhost:8100/status`
+```bash
+iproxy 8100 8100 YOUR_DEVICE_ID
+```
 
-**Correct Response Example**:
+Replace `YOUR_DEVICE_ID` with your device's UDID, and keep both WDA and `iproxy` running (iOS Simulators do not require `iproxy`). When connecting multiple devices or using custom ports, forward each device to a distinct local port and enter that port in Playground's connection panel.
+
+**Verify WebDriverAgent status**
+
+Once WDA is running, open its `/status` endpoint in your browser or terminal to verify that the service is ready:
+
+- **URL**: `http://localhost:8100/status`
+- **Expected JSON response**:
+
 ```json
 {
   "value": {
@@ -58,4 +60,4 @@ After completing the configuration, you can verify whether the service is workin
 }
 ```
 
-If you can successfully access this endpoint and receive a similar JSON response as shown above, it indicates that WebDriverAgent is properly configured and running.
+Receiving a JSON response like the one above (with `"ready": true`) confirms that WebDriverAgent is properly configured and ready to accept commands.

@@ -1,238 +1,42 @@
-target:
-  serve: ./dist
-  url: demo-agent.html
-tasks:
-  - name: sidebar task list is rendered
-    flow:
-      - sleep: 3000
-      - javascript: |
-          (function () {
-            const rows = document.querySelectorAll('.tasks-table .task-row');
-            if (rows.length < 2) {
-              throw new Error(
-                'Expected at least two sidebar task rows, found ' + rows.length,
-              );
-            }
-            return { taskRows: rows.length };
-          })()
-        name: assertSidebarRows
+# Keep these checks in one Case: later sections use the page state left by earlier ones.
+beforeAll:
+  - report.open:
+      path: demo-agent.html
+      deviceScaleFactor: 1
 
-  - name: click a task row to view details
-    flow:
-      - javascript: |
-          (function () {
-            const firstRow = document.querySelector('.tasks-table .task-row');
-            if (!(firstRow instanceof HTMLElement)) {
-              throw new Error('First sidebar task row not found');
-            }
-            firstRow.click();
-            return { clickedTaskId: firstRow.getAttribute('data-task-id') };
-          })()
-        name: clickFirstTaskRow
-      - sleep: 1000
-      - javascript: |
-          (function () {
-            const labels = Array.from(
-              document.querySelectorAll('.detail-side .summary-text'),
-            ).map((element) => element.textContent?.trim());
-            const hasParam = labels.includes('Param');
-            const hasOutput = labels.includes('Output') || labels.includes('Element');
-            const hasMeta = labels.includes('Meta');
-            if (!hasParam || !hasOutput || !hasMeta) {
-              throw new Error(
-                'Expected detail side sections Param, Output/Element, and Meta; found ' +
-                  labels.join(', '),
-              );
-            }
-            return { labels };
-          })()
-        name: assertDetailSideSections
+cases:
+  - name: Agent task navigation and model call details
+    steps:
+      # task selection and URL navigation stay in sync
+      - aiTap:
+          prompt: the first Plan task row in the left Execution list, below the Act group heading
+          options:
+            deepLocate: true
+      # URL synchronization is DOM plumbing. Visual task navigation stays on AI.
+      # navigateViaTaskHash
+      - javascript:
+          script: |
+            (() => {
+              const selected = document.querySelector('.tasks-table .task-row.selected');
+              if (!selected?.id || location.hash !== '#' + selected.id) throw new Error('Selected task is not reflected in the URL');
+              const next = [...document.querySelectorAll('.tasks-table .task-row')].find(row => row.id && row !== selected);
+              if (!next) throw new Error('A second task is required');
+              location.hash = next.id;
+            })();
+      - wait:
+          duration: 500
+          unit: ms
+      # verifyHashSelection
+      - javascript:
+          script: |
+            (() => {
+              const selected = document.querySelector('.tasks-table .task-row.selected');
+              if (!selected?.id || location.hash !== '#' + selected.id) throw new Error('URL navigation did not select the matching task');
+            })();
+      - aiAssert: A task is selected and its information is available.
 
-  - name: navigate between tasks
-    flow:
-      - javascript: |
-          (function () {
-            const rows = Array.from(
-              document.querySelectorAll('.tasks-table .task-row'),
-            );
-            const secondRow = rows[1];
-            if (!(secondRow instanceof HTMLElement)) {
-              throw new Error('Second sidebar task row not found');
-            }
-            secondRow.click();
-            return { clickedTaskId: secondRow.getAttribute('data-task-id') };
-          })()
-        name: clickSecondTaskRow
-      - sleep: 1000
-      - javascript: |
-          (function () {
-            const selectedRow = document.querySelector('.tasks-table .task-row.selected');
-            if (!(selectedRow instanceof HTMLElement)) {
-              throw new Error('No selected sidebar task row after navigation');
-            }
-            const labels = Array.from(
-              document.querySelectorAll('.detail-side .summary-text'),
-            ).map((element) => element.textContent?.trim());
-            if (!labels.includes('Param') || !labels.includes('Meta')) {
-              throw new Error(
-                'Expected detail side to stay visible after task navigation; found ' +
-                  labels.join(', '),
-              );
-            }
-            return {
-              selectedTaskId: selectedRow.getAttribute('data-task-id'),
-              labels,
-            };
-          })()
-        name: assertSecondTaskSelected
-
-  - name: selected task row maps to a url hash anchor
-    flow:
-      - javascript: |
-          (function () {
-            const rows = Array.from(
-              document.querySelectorAll('.tasks-table .task-row'),
-            );
-            const firstRow = rows[0];
-            if (!(firstRow instanceof HTMLElement)) {
-              throw new Error('First sidebar task row not found');
-            }
-            if (!firstRow.id) {
-              throw new Error('Task row is missing an anchor id');
-            }
-            firstRow.click();
-            return { anchorId: firstRow.id };
-          })()
-        name: clickRowForHash
-      - sleep: 500
-      - javascript: |
-          (function () {
-            const selectedRow = document.querySelector(
-              '.tasks-table .task-row.selected',
-            );
-            if (!(selectedRow instanceof HTMLElement)) {
-              throw new Error('No selected task row after click');
-            }
-            const expectedHash = '#' + selectedRow.id;
-            if (window.location.hash !== expectedHash) {
-              throw new Error(
-                'Expected url hash ' +
-                  expectedHash +
-                  ', found ' +
-                  window.location.hash,
-              );
-            }
-            return { hash: window.location.hash };
-          })()
-        name: assertHashMatchesSelectedRow
-      - javascript: |
-          (function () {
-            const rows = Array.from(
-              document.querySelectorAll('.tasks-table .task-row'),
-            );
-            const targetRow = rows[1];
-            if (!(targetRow instanceof HTMLElement) || !targetRow.id) {
-              throw new Error('Second sidebar task row with id not found');
-            }
-            // Drive selection purely through the url hash.
-            window.location.hash = targetRow.id;
-            return { navigatedTo: targetRow.id };
-          })()
-        name: navigateViaHash
-      - sleep: 1000
-      - javascript: |
-          (function () {
-            const selectedRow = document.querySelector(
-              '.tasks-table .task-row.selected',
-            );
-            if (!(selectedRow instanceof HTMLElement)) {
-              throw new Error('No selected task row after hash navigation');
-            }
-            if ('#' + selectedRow.id !== window.location.hash) {
-              throw new Error(
-                'Hash navigation did not select the matching row; selected ' +
-                  selectedRow.id +
-                  ', hash ' +
-                  window.location.hash,
-              );
-            }
-            return { selectedTaskId: selectedRow.getAttribute('data-task-id') };
-          })()
-        name: assertHashSelectsRow
-
-  - name: toggle model call details
-    flow:
-      - javascript: |
-          (function () {
-            const checkbox = document.querySelector(
-              '.token-usage-checkbox input[type="checkbox"]',
-            );
-            if (!(checkbox instanceof HTMLElement)) {
-              throw new Error('Model Call Details checkbox not found in DOM');
-            }
-            checkbox.click();
-            return { clicked: true };
-          })()
-        name: clickProModeOn
-      - sleep: 1000
-      - javascript: |
-          (function () {
-            const checkbox = document.querySelector(
-              '.token-usage-checkbox input[type="checkbox"]',
-            );
-            if (!checkbox) {
-              throw new Error('Model Call Details checkbox not found in DOM');
-            }
-            if (!checkbox.checked) {
-              throw new Error(
-                'Model Call Details checkbox is not checked after the click action',
-              );
-            }
-            const intentHeader = document.querySelector(
-              '.tasks-table .table-header .header-cell.column-intent',
-            );
-            if (!intentHeader) {
-              throw new Error(
-                'Intent column header should be rendered when Model Call Details is enabled',
-              );
-            }
-            return { proModeEnabled: true, intentHeaderRendered: true };
-          })()
-        name: assertProModeOn
-      - javascript: |
-          (function () {
-            const checkbox = document.querySelector(
-              '.token-usage-checkbox input[type="checkbox"]',
-            );
-            if (!(checkbox instanceof HTMLElement)) {
-              throw new Error('Model Call Details checkbox not found in DOM');
-            }
-            checkbox.click();
-            return { clicked: true };
-          })()
-        name: clickProModeOff
-      - sleep: 1000
-      - javascript: |
-          (function () {
-            const checkbox = document.querySelector(
-              '.token-usage-checkbox input[type="checkbox"]',
-            );
-            if (!checkbox) {
-              throw new Error('Model Call Details checkbox not found in DOM');
-            }
-            if (checkbox.checked) {
-              throw new Error(
-                'Model Call Details checkbox should be unchecked after the second click',
-              );
-            }
-            const intentHeader = document.querySelector(
-              '.tasks-table .table-header .header-cell.column-intent',
-            );
-            if (intentHeader) {
-              throw new Error(
-                'Intent column header should be hidden when Model Call Details is disabled',
-              );
-            }
-            return { proModeEnabled: false };
-          })()
-        name: assertProModeOff
+      # toggle model call details
+      - aiTap: Model Call Details
+      - aiAssert: Model Call Details is enabled and an Intent column is shown in the task list.
+      - aiTap: Model Call Details
+      - aiAssert: Model Call Details is disabled and the task list returns to its normal columns.

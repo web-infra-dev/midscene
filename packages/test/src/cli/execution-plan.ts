@@ -3,6 +3,7 @@ import type {
   RunWorkflowDocumentOptions,
   WorkflowDocumentSource,
 } from '@midscene/core/internal/test-runner';
+import type { TestReporterEvent } from './reporter-events';
 import type {
   LoadedExecutionProject,
   LoadedTestProject,
@@ -17,10 +18,12 @@ export interface TestProjectRunOptions {
   resultDir?: string;
   projectNames?: readonly string[];
   onProgress?(message: string): void;
+  onEvent?(event: TestReporterEvent): void;
 }
 
 /** Private, syntax-independent contract between preparation and execution. */
 export interface PreparedDocumentInvocation {
+  plan?: import('@midscene/core').TestRunReportDocumentPlan;
   document: CollectedWorkflowDocument;
   retry: { scope: 'case' | 'document'; count: number };
   defaultTimeoutMs?: number;
@@ -36,6 +39,7 @@ export interface PreparedDocumentInvocation {
 
 export interface ProjectPreparationOptions {
   files?: readonly string[];
+  excludedDirectories?: readonly string[];
   prerequisiteFile?: string;
   documentConcurrency?: number;
   platform?: string;
@@ -59,6 +63,7 @@ export interface PreparedExecutionProject {
   fileSelection: TestFileSelection;
   sources: readonly WorkflowDocumentSource[];
   documents: readonly CollectedWorkflowDocument[];
+  plans?: readonly import('@midscene/core').TestRunReportDocumentPlan[];
   invocations: readonly PreparedDocumentInvocation[];
   collectionErrors: readonly TestProjectCollectionError[];
   selectedCaseCount: number;
@@ -83,6 +88,7 @@ export interface PreparedTestRunPlan {
   startedAt: Date;
   runId: string;
   projectRoot: string;
+  artifactDir: string;
   configPath?: string;
   resultDir: string;
   runDir: string;
@@ -94,4 +100,5 @@ export interface PreparedTestRunPlan {
   reportEnabled: boolean;
   publications: readonly PreparedRunPublication[];
   onProgress(message: string): void;
+  onEvent?(event: TestReporterEvent): void;
 }

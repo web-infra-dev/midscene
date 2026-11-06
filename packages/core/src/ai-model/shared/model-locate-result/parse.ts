@@ -43,9 +43,18 @@ export function parseCoordinateList(input: unknown, label: string): number[] {
     throw new Error(`invalid ${label} data: ${JSON.stringify(input)} `);
   }
 
-  const numericValues = values.map((value) =>
-    typeof value === 'number' ? value : Number(value),
-  );
+  const numericValues = values.map((value) => {
+    if (typeof value === 'number') {
+      return value;
+    }
+    if (
+      typeof value !== 'string' ||
+      !/^[+-]?(?:\d+\.?\d*|\.\d+)$/.test(value.trim())
+    ) {
+      return Number.NaN;
+    }
+    return Number(value);
+  });
 
   if (!numericValues.every((value) => Number.isFinite(value))) {
     throw new Error(`invalid ${label} data: ${JSON.stringify(input)} `);
@@ -90,7 +99,7 @@ export function parseNumericLocateResult(
 ): LocateResultValue {
   if (resolvedCoordinates.shape === 'point') {
     const point = parseCoordinateList(input, 'point');
-    if (point.length < 2) {
+    if (point.length !== 2) {
       throw new Error(`invalid point data: ${JSON.stringify(input)} `);
     }
     return createLocateResultValue(resolvedCoordinates, point);

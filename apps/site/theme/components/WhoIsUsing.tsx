@@ -18,7 +18,7 @@ type IconText = {
 
 type Company = LogoOnly | IconText;
 
-export function WhoIsUsing() {
+export function WhoIsUsing({ hideHeading = false }: { hideHeading?: boolean }) {
   const t = useI18n();
 
   const companyList: Company[] = [
@@ -139,13 +139,15 @@ export function WhoIsUsing() {
   return (
     <section id="who-is-using" className="home-users">
       <div className="home-users__inner">
-        <header className="home-users__header">
-          <span className="home-users__eyebrow">
-            <span aria-hidden="true">{'//'}</span>
-            <span>{t('whoIsUsingEyebrow')}</span>
-          </span>
-          <h2>{t('whoIsUsingTitle')}</h2>
-        </header>
+        {!hideHeading && (
+          <header className="home-users__header">
+            <span className="home-users__eyebrow">
+              <span aria-hidden="true">{'//'}</span>
+              <span>{t('whoIsUsingEyebrow')}</span>
+            </span>
+            <h2>{t('whoIsUsingTitle')}</h2>
+          </header>
+        )}
 
         <div className="home-users__list">
           {companyList.map((company) => (

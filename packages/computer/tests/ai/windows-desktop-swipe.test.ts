@@ -71,7 +71,7 @@ describe.skipIf(!RUN_LIVE_SWIPE)('Windows desktop Swipe AI E2E', () => {
       });
 
       await agent.aiAct(
-        'Drag the slider labeled "DRAG SLIDER TO THE RIGHT" all the way to the right.',
+        'Move the thumb of the slider labeled "DRAG SLIDER TO THE RIGHT" all the way to the right using exactly one Swipe action. Start on the thumb and end at the right end of the track. Do not use DragAndDrop or Tap.',
       );
       const swipedState = await waitForWindowsFixtureState(
         fixture,
