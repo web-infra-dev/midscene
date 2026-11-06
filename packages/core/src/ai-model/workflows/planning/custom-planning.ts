@@ -16,6 +16,7 @@ import {
   preparedReferenceImagesToMessages,
 } from '../../shared/multimodal-prompt';
 import { normalizePlanningActionLocateFields } from './locate-normalization';
+import { normalizePlanningSwipeDistances } from './swipe-distance';
 import type { PlanOptions } from './types';
 
 function appendActionContext(
@@ -143,6 +144,7 @@ export async function runCustomPlanning<TParsed>(
         contentSize: preparedImage.contentSize,
       },
     });
+    normalizePlanningSwipeDistances(actions, context.shrunkShotToLogicalRatio);
     shouldContinuePlanning = config.shouldContinuePlanning(parsed, actions);
   } catch (parseError) {
     const errorMessage = `Parse error: ${
