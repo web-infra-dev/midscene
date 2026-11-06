@@ -1,3 +1,5 @@
+import SdkDeviceTests from '../../../theme/components/sdk-device-tests/en/sdk-device-tests.mdx';
+import SdkDeviceLifecycle from '../../../theme/components/sdk-device-tests/en/sdk-device-lifecycle.mdx';
 import SdkCommonMethods from '../common/sdk-common-methods.mdx';
 import { SdkPrerequisites, SdkPlatformProvider, SdkPlatformSelector, SdkPlatformContent } from '@theme';
 
@@ -73,145 +75,7 @@ Model calls and device connections can take longer than unit tests, so adjust `t
 
 ## 3. Write a test
 
-Create `e2e/settings.test.ts`, initializing a new Agent for each test in `beforeEach` and destroying it in `afterEach`:
-
-<SdkPlatformContent platform="android">
-
-```typescript title="e2e/settings.test.ts"
-import 'dotenv/config';
-import { afterEach, beforeEach, test } from '@rstest/core';
-import { agentFromAdbDevice } from '@midscene/android';
-
-let agent: Awaited<ReturnType<typeof agentFromAdbDevice>> | undefined;
-
-beforeEach(async () => {
-  agent = await agentFromAdbDevice();
-});
-
-afterEach(async () => {
-  const currentAgent = agent;
-  agent = undefined;
-  await currentAgent?.destroy();
-});
-
-test('scroll through settings', async () => {
-  if (!agent) throw new Error('Agent was not initialized');
-
-  await agent.launch('com.android.settings');
-  await agent.aiWaitFor('The Settings app is visible');
-  await agent.aiAct('Scroll down one screen');
-  await agent.aiAssert('The Settings app is still visible');
-});
-```
-
-If multiple devices are connected, pass a device ID to `agentFromAdbDevice(deviceId)`. See the [Android SDK guide](./android) for connection options.
-
-</SdkPlatformContent>
-
-<SdkPlatformContent platform="ios">
-
-```typescript title="e2e/settings.test.ts"
-import 'dotenv/config';
-import { afterEach, beforeEach, test } from '@rstest/core';
-import { agentFromWebDriverAgent } from '@midscene/ios';
-
-let agent: Awaited<ReturnType<typeof agentFromWebDriverAgent>> | undefined;
-
-beforeEach(async () => {
-  agent = await agentFromWebDriverAgent({
-    wdaHost: 'localhost',
-    wdaPort: 8100,
-  });
-});
-
-afterEach(async () => {
-  const currentAgent = agent;
-  agent = undefined;
-  await currentAgent?.destroy();
-});
-
-test('scroll through settings', async () => {
-  if (!agent) throw new Error('Agent was not initialized');
-
-  await agent.launch('com.apple.Preferences');
-  await agent.aiWaitFor('The Settings app is visible');
-  await agent.aiAct('Scroll down one screen');
-  await agent.aiAssert('The Settings app is still visible');
-});
-```
-
-Replace `wdaHost` and `wdaPort` with your verified WebDriverAgent service endpoint. See the [iOS SDK guide](./ios) for connection options.
-
-</SdkPlatformContent>
-
-<SdkPlatformContent platform="harmonyos">
-
-```typescript title="e2e/settings.test.ts"
-import 'dotenv/config';
-import { afterEach, beforeEach, test } from '@rstest/core';
-import { agentFromHdcDevice } from '@midscene/harmony';
-
-let agent: Awaited<ReturnType<typeof agentFromHdcDevice>> | undefined;
-
-beforeEach(async () => {
-  agent = await agentFromHdcDevice();
-});
-
-afterEach(async () => {
-  const currentAgent = agent;
-  agent = undefined;
-  await currentAgent?.destroy();
-});
-
-test('scroll through settings', async () => {
-  if (!agent) throw new Error('Agent was not initialized');
-
-  await agent.launch('com.huawei.hmos.settings');
-  await agent.aiWaitFor('The Settings app is visible');
-  await agent.aiAct('Scroll down one screen');
-  await agent.aiAssert('The Settings app is still visible');
-});
-```
-
-If multiple devices are connected, pass a device ID to `agentFromHdcDevice(deviceId)`. See the [HarmonyOS SDK guide](./harmonyos) for connection options.
-
-</SdkPlatformContent>
-
-<SdkPlatformContent platform="desktop">
-
-```typescript title="e2e/settings.test.ts"
-import 'dotenv/config';
-import { afterEach, beforeEach, test } from '@rstest/core';
-import { agentForComputer } from '@midscene/computer';
-
-let agent: Awaited<ReturnType<typeof agentForComputer>> | undefined;
-
-beforeEach(async () => {
-  agent = await agentForComputer();
-});
-
-afterEach(async () => {
-  const currentAgent = agent;
-  agent = undefined;
-  await currentAgent?.destroy();
-});
-
-test('scroll through settings', async () => {
-  if (!agent) throw new Error('Agent was not initialized');
-
-  await agent.aiWaitFor('The Settings app is visible');
-  await agent.aiAct('Scroll down one screen');
-  await agent.aiAssert('The Settings app is still visible');
-});
-```
-
-Before running the test, open your system Settings app and bring a scrollable settings page to the foreground. Keep it visible during the test. See the [desktop SDK guide](./desktop) for permissions and connection options.
-
-</SdkPlatformContent>
-
-`dotenv/config` loads model settings from the project's `.env` file (settings in the Playground are not automatically shared with test runs).
-
-When an `aiAssert` check fails, it throws an error, causing Rstest to mark the test as failed before running `afterEach` to clean up the Agent. You can also extract data from the screen with methods like `aiQuery` and pass the result to Rstest's `expect`. For more interaction and extraction methods, see the [Agent API reference](../reference/index.mdx#interaction-methods).
+<SdkDeviceTests runner="rstest" />
 
 ## 4. Run the test and view the report
 
@@ -229,9 +93,7 @@ Unlike Playwright Test, Rstest integration uses the SDK's built-in report genera
 
 ## Lifecycle and exclusive device access
 
-- **Isolate Agents per test**: Create a new Agent for each test case. Each Device instance belongs to a single Agent, and `agent.destroy()` cleans up the associated Device as well—do not reuse a destroyed instance in subsequent tests.
-- **Manage application state explicitly**: Destroying an Agent does not reset app data or close the app. Each test should explicitly prepare the required initial screen and data, and clean up state as needed so tests can be retried or run individually.
-- **Avoid device contention across processes**: Rstest's sequential settings only apply to the current test runner process; other local processes, CI jobs, or manual input can still contend for the same device. To run tests in parallel, assign a dedicated device or desktop session to each worker and explicitly specify its connection target in code.
+<SdkDeviceLifecycle />
 
 
 </SdkPlatformProvider>

@@ -41,3 +41,5 @@ export {
 } from './components/SdkPlatform';
 
 export { SdkPrerequisites } from './components/SdkPrerequisites';
+
+export { SdkDeviceTestExample } from './components/SdkDeviceTestExample';
