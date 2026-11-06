@@ -1,5 +1,9 @@
+import SdkPlaywrightSetup from './common/sdk-playwright-setup.mdx';
+import SdkPlaywrightFixture from './common/sdk-playwright-fixture.mdx';
+import SdkPlaywrightWrite from './common/sdk-playwright-write.mdx';
+import SdkPlaywrightRun from './common/sdk-playwright-run.mdx';
 import SdkCommonMethods from './common/sdk-common-methods.mdx';
-import { SdkPrerequisites, PackageManagerTabs } from '@theme';
+import { SdkPrerequisites } from '@theme';
 
 # Integrate with Playwright Test
 
@@ -11,61 +15,15 @@ With `PlaywrightAiFixture`, you can use Midscene's visual interaction and assert
 
 ## 1. Install dependencies and configure the project
 
-<PackageManagerTabs command="install @midscene/web dotenv --save-dev" />
-
-Add the following configuration to your existing `playwright.config.ts`, while keeping your project's other settings and reporters:
-
-```typescript title="playwright.config.ts"
-import 'dotenv/config';
-import { defineConfig } from '@playwright/test';
-
-export default defineConfig({
-  testDir: './e2e',
-  timeout: 90_000,
-  use: { browserName: 'chromium' },
-  reporter: [
-    ['list'],
-    ['@midscene/web/playwright-reporter'],
-  ],
-});
-```
-
-`dotenv/config` loads model settings from the project's `.env` file (settings in the Chrome extension Playground are not automatically shared with test runs). Because model calls take longer than standard DOM operations, increase `timeout` as needed for your tests.
+<SdkPlaywrightSetup />
 
 ## 2. Create a fixture {#step-2-extend-the-test-instance}
 
-Create `e2e/fixture.ts` to extend Playwright's `test` with `PlaywrightAiFixture`:
-
-```typescript title="e2e/fixture.ts"
-import { test as base } from '@playwright/test';
-import {
-  PlaywrightAiFixture,
-  type PlayWrightAiFixtureType,
-} from '@midscene/web/playwright';
-
-export const test = base.extend<PlayWrightAiFixtureType>(
-  PlaywrightAiFixture(),
-);
-```
-
-In tests that use Midscene, import `test` from `./fixture` while continuing to import `expect` from `@playwright/test`.
+<SdkPlaywrightFixture />
 
 ## 3. Write a test
 
-```typescript title="e2e/todo.spec.ts"
-import { expect } from '@playwright/test';
-import { test } from './fixture';
-
-test('add a todo', async ({ page, aiAct, aiAssert }) => {
-  await page.goto('https://todomvc.com/examples/react/dist/');
-  await expect(page).toHaveTitle(/TodoMVC/);
-
-  await aiAct('Add a todo named Try Midscene');
-  await aiAssert('The todo list contains Try Midscene');
-});
-```
-
-You can combine Playwright's `page` and `expect` with Midscene's AI methods in the same test. In this example, Playwright opens the page and checks its title, while Midscene adds a todo item and asserts the result on the page. Beyond `aiAct` and `aiAssert`, the fixture also provides `aiTap`, `aiInput`, `aiQuery`, `aiWaitFor`, and more; see the [Agent API reference](./reference/index.mdx#interaction-methods).
+<SdkPlaywrightWrite />
 
 ## 4. Run the test and view the report
 
@@ -75,13 +33,7 @@ You can combine Playwright's `page` and `expect` with Midscene's AI methods in t
 pnpm dlx @midscene/test@latest model verify
 ```
 
-Run the test from the project directory:
-
-```bash
-pnpm exec playwright test e2e/todo.spec.ts
-```
-
-After the test finishes, the Midscene reporter prints the report path in the terminal (saved under `midscene_run/report/` by default). Open the generated HTML file in a browser to inspect step-by-step screenshots, AI execution details, and assertion results.
+<SdkPlaywrightRun />
 
 ## Common methods
 

@@ -1,0 +1,48 @@
+Midscene uses `hdc` on your computer to communicate with the target HarmonyOS NEXT device. If `hdc` is already installed and your device is connected, skip directly to [Verify the device connection](#verify-device-connection).
+
+### Install HDC
+
+HDC (HarmonyOS Device Connector) is the official command-line tool for communicating with HarmonyOS devices. Install it using either of the following methods:
+
+- Via [DevEco Studio](https://developer.huawei.com/consumer/en/deveco-studio/) (recommended)
+- Via the standalone [HarmonyOS Command Line Tools](https://developer.huawei.com/consumer/en/download/)
+
+Run the following command to verify the installation:
+
+```bash
+hdc version
+```
+
+A version number in the terminal output confirms a working installation.
+
+:::info Configuring the HDC path
+
+If `hdc` is not in your system `PATH`, set the `HDC_HOME` environment variable to the directory containing the `hdc` executable:
+
+```bash
+export HDC_HOME=/path/to/hdc/directory
+```
+
+:::
+
+### Enable debugging and connect the device
+
+1. On your HarmonyOS device, open **Settings > System > Developer options** and enable **USB debugging**.
+2. Connect the device to your computer using a USB cable that supports data transfer.
+3. Keep the device unlocked and accept the debugging authorization prompt on the screen.
+
+### Verify the device connection {#verify-device-connection}
+
+Run the following command to check the connection status:
+
+```bash
+hdc list targets
+```
+
+A device ID in the output confirms that the device is connected and ready:
+
+```log
+0123456789ABCDEF
+```
+
+If multiple devices are connected, note the target device ID so you can select it in Playground or your project configuration. If the output is empty or `[Empty]`, check the USB cable, USB connection mode, **USB debugging** toggle, and the authorization prompt on the device.

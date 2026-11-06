@@ -1,0 +1,23 @@
+1. Select `aiAct` in the side panel, enter the following instruction, and run it:
+
+```text
+Add a todo named "Try Midscene", then mark it as completed.
+```
+
+2. Once the completed todo item appears on the page, switch to `aiAssert`, enter the following assertion, and run it:
+
+```text
+The list contains a todo named "Try Midscene", and it is marked as completed.
+```
+
+3. Confirm that the assertion passes and inspect the step-by-step screenshots in the results panel.
+
+4. (Optional) Switch to `aiQuery`, enter the following query, and run it:
+
+```text
+Return the visible todo items as {name: string, completed: boolean}[].
+```
+
+The result contains each todo item's name and completion status. `aiQuery` extracts data from the current UI without changing the page.
+
+If execution fails, inspect the failed step and error message. For model request errors, see [Verify model connectivity](../model-config#verify-model-connectivity) and [Common configuration errors](../model-config#common-configuration-errors). For extension errors when accessing a page or Ollama, see the [Web FAQ](../platforms/web#chrome-extension-faq).

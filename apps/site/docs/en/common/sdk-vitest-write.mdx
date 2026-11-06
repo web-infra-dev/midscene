@@ -1,0 +1,141 @@
+import { SdkPlatformContent } from '@theme';
+
+Create `e2e/settings.test.ts`, initializing a new Agent for each test in `beforeEach` and destroying it in `afterEach`:
+
+<SdkPlatformContent platform="android">
+
+```typescript title="e2e/settings.test.ts"
+import 'dotenv/config';
+import { afterEach, beforeEach, test } from 'vitest';
+import { agentFromAdbDevice } from '@midscene/android';
+
+let agent: Awaited<ReturnType<typeof agentFromAdbDevice>> | undefined;
+
+beforeEach(async () => {
+  agent = await agentFromAdbDevice();
+});
+
+afterEach(async () => {
+  const currentAgent = agent;
+  agent = undefined;
+  await currentAgent?.destroy();
+});
+
+test('scroll through settings', async () => {
+  if (!agent) throw new Error('Agent was not initialized');
+
+  await agent.launch('com.android.settings');
+  await agent.aiWaitFor('The Settings app is visible');
+  await agent.aiAct('Scroll down one screen');
+  await agent.aiAssert('The Settings app is still visible');
+});
+```
+
+If multiple devices are connected, pass a device ID to `agentFromAdbDevice(deviceId)`. See the [Android SDK guide](../sdk/android) for connection options.
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="ios">
+
+```typescript title="e2e/settings.test.ts"
+import 'dotenv/config';
+import { afterEach, beforeEach, test } from 'vitest';
+import { agentFromWebDriverAgent } from '@midscene/ios';
+
+let agent: Awaited<ReturnType<typeof agentFromWebDriverAgent>> | undefined;
+
+beforeEach(async () => {
+  agent = await agentFromWebDriverAgent({
+    wdaHost: 'localhost',
+    wdaPort: 8100,
+  });
+});
+
+afterEach(async () => {
+  const currentAgent = agent;
+  agent = undefined;
+  await currentAgent?.destroy();
+});
+
+test('scroll through settings', async () => {
+  if (!agent) throw new Error('Agent was not initialized');
+
+  await agent.launch('com.apple.Preferences');
+  await agent.aiWaitFor('The Settings app is visible');
+  await agent.aiAct('Scroll down one screen');
+  await agent.aiAssert('The Settings app is still visible');
+});
+```
+
+Replace `wdaHost` and `wdaPort` with your verified WebDriverAgent service endpoint. See the [iOS SDK guide](../sdk/ios) for connection options.
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="harmonyos">
+
+```typescript title="e2e/settings.test.ts"
+import 'dotenv/config';
+import { afterEach, beforeEach, test } from 'vitest';
+import { agentFromHdcDevice } from '@midscene/harmony';
+
+let agent: Awaited<ReturnType<typeof agentFromHdcDevice>> | undefined;
+
+beforeEach(async () => {
+  agent = await agentFromHdcDevice();
+});
+
+afterEach(async () => {
+  const currentAgent = agent;
+  agent = undefined;
+  await currentAgent?.destroy();
+});
+
+test('scroll through settings', async () => {
+  if (!agent) throw new Error('Agent was not initialized');
+
+  await agent.launch('com.huawei.hmos.settings');
+  await agent.aiWaitFor('The Settings app is visible');
+  await agent.aiAct('Scroll down one screen');
+  await agent.aiAssert('The Settings app is still visible');
+});
+```
+
+If multiple devices are connected, pass a device ID to `agentFromHdcDevice(deviceId)`. See the [HarmonyOS SDK guide](../sdk/harmonyos) for connection options.
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="desktop">
+
+```typescript title="e2e/settings.test.ts"
+import 'dotenv/config';
+import { afterEach, beforeEach, test } from 'vitest';
+import { agentForComputer } from '@midscene/computer';
+
+let agent: Awaited<ReturnType<typeof agentForComputer>> | undefined;
+
+beforeEach(async () => {
+  agent = await agentForComputer();
+});
+
+afterEach(async () => {
+  const currentAgent = agent;
+  agent = undefined;
+  await currentAgent?.destroy();
+});
+
+test('scroll through settings', async () => {
+  if (!agent) throw new Error('Agent was not initialized');
+
+  await agent.aiWaitFor('The Settings app is visible');
+  await agent.aiAct('Scroll down one screen');
+  await agent.aiAssert('The Settings app is still visible');
+});
+```
+
+Before running the test, open your system Settings app and bring a scrollable settings page to the foreground. Keep it visible during the test. See the [desktop SDK guide](../sdk/desktop) for permissions and connection options.
+
+</SdkPlatformContent>
+
+`dotenv/config` loads model settings from the project's `.env` file (settings in the Playground are not automatically shared with test runs).
+
+When an `aiAssert` check fails, it throws an error, causing Vitest to mark the test as failed before running `afterEach` to clean up the Agent. You can also extract data from the screen with methods like `aiQuery` and pass the result to Vitest's `expect`. For more interaction and extraction methods, see the [Agent API reference](../reference/index.mdx#interaction-methods).
