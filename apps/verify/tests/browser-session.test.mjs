@@ -5,9 +5,19 @@ import { allowedBrowserRequestUrl } from '../src/browser-session.mjs';
 const policy = { allowedOrigins: ['https://preview.example.com'] };
 
 test('only operator-approved network and blob origins are accepted', () => {
-  assert.equal(allowedBrowserRequestUrl('https://preview.example.com/app', policy).origin, 'https://preview.example.com');
-  assert.equal(allowedBrowserRequestUrl('blob:https://preview.example.com/123', policy).origin, 'https://preview.example.com');
-  assert.equal(allowedBrowserRequestUrl('data:image/png;base64,AAAA', policy).protocol, 'data:');
+  assert.equal(
+    allowedBrowserRequestUrl('https://preview.example.com/app', policy).origin,
+    'https://preview.example.com',
+  );
+  assert.equal(
+    allowedBrowserRequestUrl('blob:https://preview.example.com/123', policy)
+      .origin,
+    'https://preview.example.com',
+  );
+  assert.equal(
+    allowedBrowserRequestUrl('data:image/png;base64,AAAA', policy).protocol,
+    'data:',
+  );
   for (const value of [
     'blob:https://evil.example/123',
     'blob:http://localhost:1234/123',
@@ -17,7 +27,11 @@ test('only operator-approved network and blob origins are accepted', () => {
     'javascript:alert(1)',
     'https://user:password@preview.example.com/',
   ]) {
-    assert.throws(() => allowedBrowserRequestUrl(value, policy), undefined, value);
+    assert.throws(
+      () => allowedBrowserRequestUrl(value, policy),
+      undefined,
+      value,
+    );
   }
 });
 
@@ -28,7 +42,9 @@ test('blocked requests are aborted; legitimate requests are continued', async ()
     async setViewport() {},
     async setBypassServiceWorker() {},
     async setRequestInterception() {},
-    on(event, callback) { callbacks.set(event, callback); },
+    on(event, callback) {
+      callbacks.set(event, callback);
+    },
   };
   await configurePage(page, policy);
   const outcomes = [];
