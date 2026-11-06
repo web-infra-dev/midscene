@@ -1,0 +1,73 @@
+.test-runner-report .runner-token-usage {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: help;
+
+  > .anticon {
+    flex: none;
+    color: var(--runner-muted);
+    font-size: 12px;
+  }
+
+  &:focus-visible {
+    outline: none;
+    text-decoration: underline dotted;
+    text-underline-offset: 4px;
+  }
+}
+
+.runner-token-tooltip {
+  max-width: min(360px, calc(100vw - 24px));
+
+  .ant-tooltip-inner {
+    max-height: min(420px, 60vh);
+    padding: 16px;
+    overflow-y: auto;
+  }
+}
+
+.runner-token-details {
+  font-size: 12px;
+  line-height: 1.6;
+
+  ul,
+  dl,
+  p {
+    margin: 12px 0 0;
+  }
+
+  ul {
+    padding: 0;
+    list-style: none;
+  }
+
+  li + li {
+    margin-top: 8px;
+  }
+
+  li strong {
+    overflow-wrap: anywhere;
+  }
+
+  dl > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  dt.is-subset {
+    padding-inline-start: 12px;
+  }
+
+  dd {
+    margin: 0;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+}

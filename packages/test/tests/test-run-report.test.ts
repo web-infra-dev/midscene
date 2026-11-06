@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { TestRunReportSourceIndex } from '@midscene/core';
+import { NodeExecutionError } from '@midscene/core/internal/test-runner';
 import { describe, expect, it } from 'vitest';
 import type { TestProjectRunResult } from '../src/cli/types';
 import type { StepRunResult } from '../src/engine/types';
@@ -167,7 +168,7 @@ describe('Midscene Test report manifest', () => {
     );
   });
 
-  it('serializes errors without stack traces', () => {
+  it('preserves the original error stack while redacting diagnostic details', () => {
     const error = Object.assign(new Error('failed'), {
       code: 'FAILED',
       details: { authorization: 'Bearer secret' },
@@ -176,12 +177,30 @@ describe('Midscene Test report manifest', () => {
       format: 'midscene-error',
       name: 'Error',
       message: 'failed',
+      stack: error.stack,
       code: 'FAILED',
       details: {
         value: { authorization: '[REDACTED]' },
         redactedPaths: ['$.authorization'],
       },
     });
+  });
+
+  it('keeps Node and original runtime stacks in the final report after a JSON round trip', () => {
+    const cause = new TypeError('Cannot read properties of null');
+    const error = new NodeExecutionError('custom.read', cause);
+    const action = {
+      ...step(),
+      status: 'failed' as const,
+      node: 'custom.read',
+      error,
+    };
+    const encoded = JSON.parse(JSON.stringify(result([action])));
+    const manifest = buildTestRunReportDump(encoded, index);
+    const reported =
+      manifest.projects[0].documents[0].cases[0].attempts[0].steps[0].error;
+    expect(reported?.stack).toBe(error.stack);
+    expect(reported?.cause?.stack).toBe(cause.stack);
   });
 
   it('maps a Step trace to exactly one Agent report and keeps safe values', () => {
@@ -228,6 +247,9 @@ describe('result.md', () => {
       reportHref: '../../../report/index.html',
     });
     expect(markdown).toContain('❌ **1 failed** · 0 passed · 0 not run');
+    expect(markdown).toContain(
+      '![Midscene Test: 0 passed, 1 failed](https://badge.midscenejs.com/e2e?pass=0&fail=1&style=large)',
+    );
     expect(markdown).toMatch(/^ {2}- ❌ submit$/m);
     expect(markdown).not.toContain('runner-step=');
     expect(markdown.match(/\]\(</g)).toHaveLength(1);
@@ -273,6 +295,9 @@ describe('result.md', () => {
       buildTestRunReportDump(result([step()]), index),
     );
     expect(markdown).toContain('✅ **1/1 passed**');
+    expect(markdown).toContain(
+      'https://badge.midscenejs.com/e2e?pass=1&fail=0&style=large',
+    );
     expect(markdown).not.toMatch(/Infrastructure|Filtered|### Cases|<details>/);
   });
 
@@ -302,6 +327,9 @@ describe('result.md', () => {
       const markdown = await readFile(output, 'utf8');
       expect(markdown).toContain('Invalid document');
       expect(markdown).toContain('No cases were reported.');
+      expect(markdown).toContain(
+        'https://badge.midscenejs.com/e2e?pass=0&fail=0&style=large',
+      );
       expect(markdown).not.toContain('Open the Midscene');
     } finally {
       await rm(root, { recursive: true, force: true });

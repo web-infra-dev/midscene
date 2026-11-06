@@ -1,8 +1,5 @@
-import type { AgentTestRunnerNodeDefinition } from '@midscene/core/agent';
-import { clearCookiesNode } from './clear-cookies';
-import { setCookiesNode } from './cookies';
-import { gotoUrlNode } from './goto-url';
-import { setViewportSizeNode } from './viewport';
+import { createWebTestRunnerNodeDefinitions } from '@/common/test-runner/nodes';
+import { playwrightTestDriverAdapter } from './driver';
 
-export const playwrightAgentTestRunnerNodeDefinitions: readonly AgentTestRunnerNodeDefinition[] =
-  [gotoUrlNode, setCookiesNode, clearCookiesNode, setViewportSizeNode];
+export const playwrightAgentTestRunnerNodeDefinitions =
+  createWebTestRunnerNodeDefinitions(playwrightTestDriverAdapter);

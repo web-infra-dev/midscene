@@ -212,7 +212,7 @@ it('creates, installs, and runs the packaged Web starter with a real browser and
       project,
     );
 
-    const resultsRoot = join(project, '.midscene/test-results');
+    const resultsRoot = join(project, 'midscene_run/test-results');
     // Execute the untouched starter, including its AI actions and assertions.
     // Allow its 10-minute case budget plus cleanup/report publication time.
     await run('test', ['test'], project, 660_000);

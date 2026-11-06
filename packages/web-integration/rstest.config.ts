@@ -29,12 +29,13 @@ const testFiles = (() => {
 })();
 
 export default defineConfig({
+  name: '@midscene/web',
   coverage: createCoverageConfig(__dirname),
   include: testFiles,
   testTimeout: 3 * 60 * 1000, // Global timeout set to 3 minutes
   retry: process.env.CI ? 1 : 0, // Retry failed tests once in CI to handle AI flakiness
   ...(aiTestType === 'web' && process.env.CI
-    ? { pool: { maxWorkers: 4 } }
+    ? { pool: { maxWorkers: 2 } }
     : {}),
   reporters: process.env.CI
     ? ['verbose', ['json', { outputPath: './test-results.json' }]]

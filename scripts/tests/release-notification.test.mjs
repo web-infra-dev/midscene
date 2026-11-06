@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { runInNewContext } from 'node:vm';
 import { afterEach, describe, expect, it } from '@rstest/core';
 import {
   buildReleaseNotification,
@@ -192,6 +193,78 @@ afterEach(async () => {
       .map((directory) => fs.rm(directory, { force: true, recursive: true })),
   );
 });
+
+describe.each(['notify_discord', 'notify_feishu'])(
+  '%s workflow gate',
+  (jobName) => {
+    it.each([
+      { description: 'Studio succeeds', expected: true },
+      { description: 'Studio fails', studioResult: 'failure', expected: true },
+      {
+        description: 'Studio is skipped',
+        studioResult: 'skipped',
+        expected: true,
+      },
+      {
+        description: 'release fails',
+        releaseResult: 'failure',
+        expected: false,
+      },
+      {
+        description: 'release is skipped',
+        releaseResult: 'skipped',
+        expected: false,
+      },
+      { description: 'prerelease', prerelease: true, expected: false },
+      { description: 'notifications disabled', notify: false, expected: false },
+      { description: 'workflow cancelled', isCancelled: true, expected: false },
+    ])(
+      '$description',
+      async ({
+        releaseResult = 'success',
+        studioResult = 'success',
+        prerelease = false,
+        notify = true,
+        isCancelled = false,
+        expected,
+      }) => {
+        const workflow = await fs.readFile(
+          path.join(repositoryRoot, '.github/workflows/release.yml'),
+          'utf8',
+        );
+        const job = workflow
+          .split(`  ${jobName}:\n`)[1]
+          ?.split(/\n {2}\w+:\n/)[0];
+        const condition = job?.match(/^ {4}if: \$\{\{ (.+) \}\}$/m)?.[1];
+        expect(condition).toBeDefined();
+
+        // These gates use the shared boolean/operator subset of Actions and JS.
+        // Model Actions' implicit success() too: merely deleting the Studio
+        // result check would still skip notifications after a failed dependency.
+        const hasStatusCheck =
+          /\b(?:always|cancelled|failure|success)\s*\(/.test(condition);
+        const expression = hasStatusCheck
+          ? condition
+          : `success() && (${condition})`;
+        expect(
+          runInNewContext(expression, {
+            cancelled: () => isCancelled,
+            success: () =>
+              releaseResult === 'success' && studioResult === 'success',
+            inputs: { notify_stable_release: notify },
+            needs: {
+              release: {
+                result: releaseResult,
+                outputs: { is_prerelease: String(prerelease) },
+              },
+              package_studio: { result: studioResult },
+            },
+          }),
+        ).toBe(expected);
+      },
+    );
+  },
+);
 
 describe.skipIf(!supportsReleaseShell)(
   'GitHub Release notes generation',

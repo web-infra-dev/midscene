@@ -1,10 +1,15 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { getTmpFile } from '@midscene/core/utils';
 import { uuid } from '@midscene/shared/utils';
 import { describe, expect, test } from '@rstest/core';
 import { execa } from 'execa';
+import {
+  cliAiBudget,
+  cliAiModelEnv,
+  runCliWithDiagnostics,
+} from './cli-process';
 
 const cliBin = require.resolve('../../bin/midscene');
 
@@ -99,7 +104,10 @@ describe.skipIf(!shouldRunAITest)('bin', () => {
   test(
     'query with domIncluded',
     async () => {
-      const output = getTmpFile('json');
+      const artifacts = resolve(__dirname, '../../midscene_run/ai-tests');
+      mkdirSync(artifacts, { recursive: true });
+      const directory = mkdtempSync(join(artifacts, 'query-dom-'));
+      const output = join(directory, 'output.json');
       const yamlString = `
     # login to sauce demo, extract the items info into a json file, and assert the price of 'Sauce Labs Fleece Jacket'
 
@@ -129,11 +137,15 @@ tasks:
         name: page-title
 
     `;
-      const path = await saveYaml(yamlString);
+      const path = join(directory, 'case.yaml');
+      writeFileSync(path, yamlString);
       const params = [path];
-      // Stop and await the CLI before Rstest's 5-minute deadline. Otherwise a
-      // timed-out attempt can resume during its retry and consume its snapshots.
-      await execa(cliBin, params, { timeout: 240_000, killSignal: 'SIGKILL' });
+      console.log(`CLI query diagnostics: ${directory}`);
+      await runCliWithDiagnostics(cliBin, params, {
+        directory,
+        timeoutMs: cliAiBudget.commandMs,
+        env: cliAiModelEnv,
+      });
       const result = JSON.parse(readFileSync(output!, 'utf-8'));
       expect(result.items.length).toBeGreaterThanOrEqual(2);
       expect(result.items[0].imageUrl).toContain('/assets/');
@@ -153,7 +165,7 @@ tasks:
       expect(result['price-assert'].thought).toBeTruthy();
       expect(result['price-assert'].pass).toBeTruthy();
     },
-    5 * 60 * 1000,
+    cliAiBudget.testMs,
   );
 
   test('yaml with image prompt', async () => {

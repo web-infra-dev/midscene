@@ -10,28 +10,18 @@
       padding: 28px 24px;
     }
 
-    .runner-breakdown-controls,
-    .runner-case-run-bar {
+    .runner-breakdown-controls {
       align-items: flex-start;
       flex-direction: column;
     }
 
-    .runner-breakdown-panel .runner-breakdown-toolbar {
-      grid-template-columns: 184px minmax(160px, 1fr) 32px;
-      width: 100%;
-    }
-
-    .runner-breakdown-toolbar > .ant-input-affix-wrapper {
-      grid-column: auto;
-    }
-
-    .runner-project-tree-columns,
-    .runner-project-tree-stats {
-      gap: 0;
-    }
-
     .runner-detail-execution-body {
       grid-template-columns: minmax(0, 1fr);
+      gap: 8px;
+    }
+
+    .runner-execution-resize-handle {
+      display: none;
     }
 
     .runner-detail-step-scroll {
@@ -53,10 +43,6 @@
 
     .runner-header-version {
       display: none;
-    }
-
-    .runner-header-title > div:not(.logo) {
-      display: flex;
     }
 
     .runner-main {
@@ -83,108 +69,9 @@
       line-height: 32px;
     }
 
-    .runner-overview-run-meta {
+    .runner-run-meta {
       padding-right: 0;
       gap: 4px 12px;
-    }
-
-    .runner-overview-counts {
-      display: grid;
-      width: 100%;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 16px 8px;
-    }
-
-    .runner-overview-counts > div + div {
-      padding-left: 8px;
-    }
-
-    .runner-overview-counts > div:nth-child(3n + 1) {
-      padding-left: 0;
-      border-left: 0;
-    }
-
-    .runner-overview-counts > div {
-      align-items: flex-start;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .runner-overview-counts span {
-      white-space: normal;
-    }
-
-    .runner-breakdown-panel .runner-breakdown-toolbar {
-      grid-template-columns: minmax(0, 1fr) 32px;
-    }
-
-    .runner-breakdown-toolbar > .runner-report-select {
-      grid-column: 1 / -1;
-    }
-
-    .runner-breakdown-toolbar > .ant-input-affix-wrapper {
-      grid-column: 1;
-    }
-
-    .runner-project-expansion-toggle {
-      grid-column: 2;
-      grid-row: 2;
-    }
-
-    .runner-project-tree-header {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      padding: 8px 12px;
-      gap: 4px 16px;
-    }
-
-    .runner-project-tree-columns {
-      display: contents;
-    }
-
-    .runner-project-tree-columns .runner-project-tree-column {
-      padding-left: 0;
-      border-left: 0;
-    }
-
-    .runner-project-tree {
-      margin-top: 0;
-      padding-inline: 12px;
-      border-radius: 0 0 16px 16px;
-    }
-
-    .runner-project-tree-root {
-      display: flex;
-      padding: 0;
-      flex-wrap: wrap;
-    }
-
-    .runner-project-tree-node.is-expanded .runner-project-tree-root {
-      background: var(--runner-surface);
-    }
-
-    .runner-project-tree-toggle {
-      min-height: 48px;
-      flex: 1 0 100%;
-    }
-
-    .runner-project-tree-stats {
-      width: 100%;
-      min-height: 40px;
-      gap: 8px;
-    }
-
-    .runner-project-tree-stats > span {
-      padding-left: 0;
-    }
-
-    .runner-project-tree-toggle .runner-status-pill {
-      display: inline-flex;
-    }
-
-    .runner-project-tree-case,
-    .runner-project-tree-case-item.is-detailed .runner-project-tree-case {
-      grid-template-columns: minmax(0, 1fr);
     }
 
     .runner-case-meta {
@@ -196,12 +83,13 @@
 
     .runner-case-step-summary {
       width: 100%;
+      margin-left: 0;
       overflow-x: auto;
     }
 
     .runner-case-step-summary > div {
       flex: 1;
-      min-width: 0;
+      min-width: max-content;
       padding: 0 10px;
     }
 
@@ -219,14 +107,14 @@
       gap: 8px;
     }
 
-    .runner-overview-run-meta > span + span,
+    .runner-run-meta > span + span,
     .runner-case-meta > span + span {
       margin-left: 0;
       padding-left: 0;
       border: 0;
     }
 
-    .runner-overview-run-meta > span + span::before,
+    .runner-run-meta > span + span::before,
     .runner-case-meta > span + span::before {
       display: none;
     }
@@ -241,6 +129,7 @@
     }
 
     .runner-detail-inline-trace .runner-detail-trace-view {
+      min-height: 680px;
       height: 680px;
     }
 

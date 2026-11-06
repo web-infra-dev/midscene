@@ -1,8 +1,64 @@
 export const EN_US = {
+  // Homepage chapters
+  chapterAgent: 'GUI AGENT',
+  chapterFramework: 'MIDSCENE TEST',
+  agentChapterHeading: 'A GUI Agent built for testing',
+  agentChapterDesc:
+    'E2E testing aims to verify complete workflows from the user’s perspective. Midscene uses vision to observe, act, and check results. Integrate through APIs or let AI coding agents use it through Skills.',
+  frameworkChapterHeading:
+    'A new E2E testing framework designed for natural language',
+  frameworkChapterDesc:
+    'Midscene Test is designed from the ground up for natural-language E2E testing. Write actions and assertions in YAML, extend test steps with TypeScript Nodes, and manage setup, cleanup, retries, and execution reports within one framework.',
+  exampleDesc:
+    'Describe what a user wants to do and what they should see. Express the same intent in YAML or in your existing JavaScript tests.',
+  agentIntegrationDesc:
+    'Use the GUI Agent directly without adopting Midscene Test. Connect it to your workflow through APIs, Playwright, Puppeteer, or Skills.',
+  executionEyebrow: 'TEST EXECUTION',
+  executionHeading: 'Test framework capabilities',
+  executionLifecycleHref: '/midscene-test/execution#project-lifecycle',
+  executionLifecycleTitle: 'Lifecycle hooks and cleanup',
+  executionLifecycleDesc:
+    'Prepare and clean up resources at the project, file, and case level with setup, fileSetup, beforeAll, beforeEach, and their counterparts. Cleanup still runs after failures, timeouts, or Ctrl+C.',
+  executionLifecycleLink: 'Project lifecycle',
+  executionScopeProject: 'Project',
+  executionInterrupted: 'Timeout or Ctrl+C',
+  executionCleanupRuns: 'Cleanup still runs',
+  executionRetryHref: '/midscene-test/execution#handling-failures',
+  executionRetryTitle: 'Retries and timeouts',
+  executionRetryDesc:
+    'Retry failed cases; each attempt reruns beforeEach, steps, and afterEach. Set step timeouts, keep going after a failed step with continue-on-error, and stop early with bail.',
+  executionRetryLink: 'Handling failures',
+  executionAttempt1: 'Attempt 1',
+  executionAttempt2: 'Attempt 2',
+  executionAttemptTimeout: 'aiAssert timed out after 120 s',
+  executionAttemptPassed: 'All steps passed',
+  executionRetryAfterCleanup: 'Retry after cleanup',
+  executionConcurrencyHref:
+    '/midscene-test/execution#concurrency-and-isolation',
+  executionConcurrencyTitle: 'Concurrency and isolation',
+  executionConcurrencyDesc:
+    'Run YAML files concurrently with maxConcurrentFiles. fileSetup gives each file its own page, Agent, or device, so concurrent files do not share state.',
+  executionConcurrencyLink: 'Concurrency and isolation',
+  executionConcurrencyRunning: 'Running',
+  executionConcurrencyEnv: 'Own page + Agent',
+  executionConcurrencyQueued: 'Queued',
+  executionReportHref: '/midscene-test/running#output-and-exit-codes',
+  executionReportTitle: 'Step-level reports',
+  executionReportDesc:
+    'The HTML report records screenshots, inputs, outputs, errors, and Agent replay for every step. A #runner-step=last-error link opens the latest failed step from CI notifications or PR comments, and summary.json and result.md are written for scripts and AI agents.',
+  executionReportLink: 'Output and reports',
+  executionReportSkipped: 'Not run',
+  executionReportScreenshot: 'Screenshot',
+  executionReportReplay: 'Agent replay',
+  executionReportError: 'Error',
+  executionReportMachine: 'For scripts and AI agents',
+
   // Banner - Title
   heroTitle: 'See interfaces like a human\nE2E testing in natural language',
   heroSubtitle:
-    'Bring AI vision to E2E testing with a newly designed test framework for web, mobile, and desktop apps.',
+    'Midscene.js provides a vision-based GUI Agent and a natural-language E2E testing framework for web, mobile, and desktop apps.',
+
+  openSource: 'Fully open source',
 
   // Banner - Stats
   githubStars: 'Github Stars',
@@ -15,7 +71,6 @@ export const EN_US = {
   completion: 'Completion',
 
   // Natural-language test example
-  exampleYamlTitle: '@midscene/test + YAML test cases',
   exampleSetupOmitted: 'Model configuration, page setup, and cleanup omitted',
   exampleEyebrow: 'WRITE A TEST',
   exampleHeading: 'Describe steps and expectations in natural language',
@@ -31,20 +86,23 @@ export const EN_US = {
   clientsTitle: 'PLATFORMS',
   clientsHeading: 'One API, across platforms',
   platformWeb: 'Web',
-  platformWebAccess: 'Playwright · Puppeteer · Desktop Chrome',
   platformDesktop: 'Desktop',
-  platformDesktopAccess: 'macOS · Windows · Linux, with remote RDP',
-  platformAndroidAccess: 'Devices / emulators · ADB',
-  platformIosAccess: 'Devices / simulators · WebDriverAgent',
-  platformHarmonyAccess: 'HarmonyOS NEXT · HDC',
+  platformsApiLabel: 'Same API',
+  platformsApiPrompt: 'Search for headphones',
+  visionStepObserve: 'Observe',
+  visionStepObserveDesc: 'Read screenshots, not the DOM',
+  visionStepAct: 'Act',
+  visionStepActDesc: 'Find the target, then tap, type, or scroll',
+  visionStepVerify: 'Verify',
+  visionStepVerifyDesc: 'Assert on what users actually see',
+  visionShowcaseLink: 'See real-world examples',
   platformCustom: 'Custom interfaces',
-  platformCustomAccess: 'Connect through screenshots and actions',
   platformCustomDoc: 'Extension guide',
   platformBridgeDoc: 'Bridge Mode',
 
   // Feature Sections - MODELS
   modelsTitle: 'VISION MODELS & STRATEGY',
-  modelsHeading: 'Vision-driven\nLow-cost testing',
+  modelsHeading: 'Understand interfaces, verify outcomes',
 
   // Model Cards
   modelVisionName: 'Locate and act from screenshots',
@@ -55,6 +113,7 @@ export const EN_US = {
   modelAssertDesc:
     'Describe expected colors, layouts, and states in natural language. Visual assertions check what the interface actually shows.',
   modelAssertMetric: 'Colors · Layouts · States',
+  modelSupportedLink: 'View model configuration',
   modelSupportedName: 'Multiple model options',
   modelSupportedDesc:
     'Choose from Doubao, DeepSeek, Qwen, GPT, Gemini, Kimi, and more to fit your tasks and budget.',
@@ -63,38 +122,58 @@ export const EN_US = {
     'In this AppControlBench run, Doubao Seed 2.1 Turbo passed 58 of 60 tasks at a total model API cost of $0.59.',
   modelCostExample: 'Benchmark example · AppControlBench',
   modelCostReport: 'View benchmark report',
-  modelCostMetric: 'Total model API cost for 60 tasks',
+  modelCostMetric: 'Total model API cost',
+  modelCostTasks: '/ 60 tasks',
 
   // Test framework
-  frameworkHeading: 'YAML for test cases\nTypeScript for extensions',
-  frameworkYamlTitle: 'Organize cases in natural language',
-  frameworkYamlDesc:
-    'Combine UI actions, assertions, and business Nodes in YAML to describe your test flows.',
-  frameworkNodeTitle: 'Make business operations reusable',
+  frameworkHeading: 'AI and business operations\nin one YAML file',
+  frameworkDesc:
+    'Each YAML step calls a Node: an AI operation, a platform operation, or a custom business operation. Compose these Nodes into test cases that people and AI agents can read, write, and review.',
+  frameworkAiTag: 'AI',
+  frameworkNodeTag: 'Business',
+  frameworkLegendLabel: 'Step types',
+  frameworkAiTitle: 'AI operations',
+  frameworkAiDesc:
+    'APIs such as aiAct and aiAssert read the screen and follow natural-language instructions.',
+  frameworkNodeTitle: 'Business operations',
   frameworkNodeDesc:
-    'Implement data setup, API calls, and cleanup in TypeScript Nodes that different cases can reuse.',
-  frameworkSpecTitle: 'Generate a Node Spec automatically',
-  frameworkSpecDesc:
-    'Export registered Nodes and input schemas as Markdown so developers and AI agents can discover project capabilities and maintain tests together.',
-  frameworkSpecOmitted:
-    'Remaining schema fields and Node descriptions omitted.',
-  frameworkSpecNote:
-    'Generated by pnpm exec midscene-test nodes. This excerpt describes user.create and matches its TypeScript definition.',
-  frameworkLink: 'Explore Midscene Test',
-  frameworkYamlTab: 'YAML cases',
-  frameworkNodeTab: 'TypeScript extensions',
-  frameworkCase: 'Find a new user',
-  frameworkAct: 'Search for the user Alice',
-  frameworkAssert: 'The search results show the user Alice',
-  frameworkNodeDescription: 'Create a test user and clean up after the case',
-  frameworkYamlNote:
-    'Example: prepare user data, then search and verify through the UI. Configure a model and Web environment first, and replace the example URL.',
-  frameworkNodeNote:
-    'user.create matches the YAML step. Implement userService with your business APIs to create and delete test users.',
+    'Custom Nodes use TypeScript to prepare test data, check APIs, and clean up resources.',
+  frameworkStartLink: 'Create a test project',
+  frameworkLink: 'Explore the framework design',
+  frameworkCaseName: 'A paid order supports a full refund',
+  frameworkCaseAct: 'Apply for a full refund and submit',
+  frameworkCaseAssert: 'The page shows that the refund was submitted',
+
+  // Test project
+  projectEyebrow: 'TEST PROJECT',
+  projectHeading: 'Customize your test project',
+  projectDesc:
+    'Extend Midscene Test with TypeScript Nodes for your business operations. Register them to make them callable from YAML, then generate a Markdown Node Spec describing all Nodes registered for the current execution project, including AI, platform, and custom business operations and their inputs. People and AI agents can use the Spec to reference these Nodes in test cases.',
+  projectNodesRole: 'Define your operations',
+  projectNodesDesc:
+    'Implement business logic and declare its inputs in TypeScript.',
+  projectSpecOperation: 'Registered Node names',
+  projectSpecInputs: 'Descriptions and input parameters',
+  projectSpecUsage: 'Reference for writing test cases',
+  projectCaseSetup: 'Reference a custom Node',
+  projectCaseAction: 'Supply its input parameters',
+  projectCaseCheck: 'Combine it with AI actions and assertions',
+  projectOutputsDesc:
+    'Generate a Markdown description of the test project’s capabilities, then reference the registered Nodes in YAML cases.',
+  projectSpecRole: 'Generated by midscene-test nodes',
+  projectSpecDesc: 'Lists every registered Node and its input schema.',
+  projectCasesRole: 'QA engineers · AI Agents',
+  projectCasesDesc:
+    'Compose cases from the Nodes in the spec, without reading the TypeScript.',
+  projectLink: 'Develop custom Nodes',
+  projectNodeDescription: 'Create a test order',
+  projectCaseName: 'Full refund',
+  projectCaseAct: 'Refund the order',
+  projectCaseAssert: 'The refund is submitted',
 
   // Testing toolkit
-  debuggingTitle: 'TESTING TOOLKIT',
-  debuggingHeading: 'A complete toolkit for AI-native testing',
+  debuggingTitle: 'AGENT TOOLKIT',
+  debuggingHeading: 'Integrate, replay, and debug',
   toolkitFrameworkTitle: 'An AI-native E2E testing framework',
   toolkitFrameworkDesc:
     'Write tests in YAML and natural language. Extend them with TypeScript Nodes to combine AI actions with business logic.',

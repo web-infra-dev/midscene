@@ -91,7 +91,11 @@ export interface LocateResultCodec {
 
 export type CoordinateRounding = 'round' | 'trunc' | 'none';
 
+export type BboxBoundsType = 'inclusive' | 'edges';
+
 export interface LocateResultCoordinates {
+  /** Bbox boundary semantics; defaults to inclusive pixel endpoints. */
+  boundsType?: BboxBoundsType;
   shape: LocateResultShape;
   /** Axis order in the raw coordinates; defaults to xy. */
   order?: 'xy' | 'yx';
@@ -111,6 +115,7 @@ export type ResolvedLocateResultCoordinates =
     }
   | {
       shape: 'bbox';
+      boundsType?: BboxBoundsType;
       order: 'xy' | 'yx';
       normalizedBy?: number;
       rounding: CoordinateRounding;

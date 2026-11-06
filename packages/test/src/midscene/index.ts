@@ -8,6 +8,8 @@ import {
   aiAssertInputSchema,
   aiAssertOptionsInputSchema,
   aiTapInputSchema,
+  aiWaitForInputSchema,
+  aiWaitForOptionsInputSchema,
   insightInputSchema,
   insightOptionsInputSchema,
   locateOptionsInputSchema,
@@ -39,7 +41,7 @@ import { defineNode } from '../node/define-node';
 import type { NodeDefinition, NodeExecutionContext } from '../node/types';
 
 export type MidsceneUIAgent = CommonAgentTestRunnerApi & {
-  _prepareForTestRunner?(): void;
+  _prepareForTestRunner?(): void | Promise<void>;
   _createReportSource?(
     scopeId: string,
     executionIds?: readonly string[],
@@ -59,7 +61,6 @@ export {
   aiPinchInputSchema,
   aiQueryInputSchema,
   aiScrollInputSchema,
-  aiWaitForInputSchema,
   javascriptInputSchema,
   runGherkinScenarioInputSchema,
   setAIContextInputSchema,
@@ -73,7 +74,6 @@ export type {
   AiPinchNodeInput,
   AiQueryNodeInput,
   AiScrollNodeInput,
-  AiWaitForNodeInput,
   JavascriptNodeInput,
   RunGherkinScenarioNodeInput,
   SetAIContextNodeInput,
@@ -84,6 +84,8 @@ export {
   aiActOptionsInputSchema,
   aiAssertInputSchema,
   aiAssertOptionsInputSchema,
+  aiWaitForInputSchema,
+  aiWaitForOptionsInputSchema,
   aiTapInputSchema,
   insightInputSchema,
   insightOptionsInputSchema,
@@ -126,12 +128,19 @@ export const waitInputSchema = z.strictObject({
 
 export type AiActNodeInput = z.infer<typeof aiActInputSchema>;
 export type AiAssertNodeInput = z.infer<typeof aiAssertInputSchema>;
+export type AiWaitForNodeInput = z.infer<typeof aiWaitForInputSchema>;
+export type AiWaitForNodeOptions = z.infer<typeof aiWaitForOptionsInputSchema>;
 export type AiTapNodeInput = z.infer<typeof aiTapInputSchema>;
 export type InsightNodeInput = z.infer<typeof insightInputSchema>;
 export type RecordToReportNodeInput = z.infer<typeof recordToReportInputSchema>;
 export type WaitNodeInput = z.infer<typeof waitInputSchema>;
 
 export interface CreateMidsceneNodesOptions<TContext> {
+  /**
+   * Prefix every returned Node name, including wait, with `${namespace}.`.
+   * Use non-empty dot-separated segments without whitespace.
+   */
+  namespace?: string;
   getAgent?(
     execution: NodeExecutionContext<unknown, TContext>,
   ): Awaitable<MidsceneUIAgent>;
@@ -328,6 +337,16 @@ export function createMidsceneNodes<TContext>(
       'createMidsceneNodes() options must be an object.',
     );
   }
+  const { namespace } = options;
+  if (
+    namespace !== undefined &&
+    (typeof namespace !== 'string' ||
+      namespace.split('.').some((part) => !part || /\s/.test(part)))
+  ) {
+    throw new NodeDefinitionError(
+      'createMidsceneNodes() namespace must be a non-empty dot-separated string without whitespace.',
+    );
+  }
   if (
     typeof options.agentProvider?.getAgent !== 'function' &&
     typeof options.getAgent !== 'function'
@@ -375,7 +394,7 @@ export function createMidsceneNodes<TContext>(
           ? await options.agentProvider.getAgent(runId, ctx)
           : await options.getAgent!(ctx);
         retainResourceForScope(agent, ctx.signal);
-        agent._prepareForTestRunner?.();
+        await agent._prepareForTestRunner?.();
         scopeAgents.add(agent);
         return agent;
       }),
@@ -384,12 +403,21 @@ export function createMidsceneNodes<TContext>(
     );
   };
 
-  const agentDefinitions = options.agentClass.getTestRunnerNodeDefinitions();
+  const nodeName = (name: string) =>
+    namespace === undefined ? name : `${namespace}.${name}`;
+  const definitions = options.agentClass.getTestRunnerNodeDefinitions();
+  const agentDefinitions =
+    namespace === undefined
+      ? definitions
+      : definitions.map((definition) => ({
+          ...definition,
+          name: nodeName(definition.name),
+        }));
 
   return [
     ...createAgentTestRunnerNodes(agentDefinitions, getAgent),
     defineNode<typeof waitInputSchema, unknown, TContext>({
-      name: 'wait',
+      name: nodeName('wait'),
       description: 'Wait for a fixed duration while honoring cancellation.',
       stringInputKey: false,
       inputSchema: waitInputSchema,

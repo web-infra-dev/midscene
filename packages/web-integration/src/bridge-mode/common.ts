@@ -41,6 +41,11 @@ export const BridgeSignalKill = 'MIDSCENE_BRIDGE_SIGNAL_KILL';
 
 export interface BridgeConnectTabOptions {
   /**
+   * Existing Chrome tab ID for connectCurrentTab. Omit to use the foreground tab.
+   * Ignored by connectNewTabWithUrl, which always creates a new tab.
+   */
+  tabId?: number;
+  /**
    * If true, the page will always track the active tab.
    * @default true
    */

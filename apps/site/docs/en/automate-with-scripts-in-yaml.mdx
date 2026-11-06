@@ -262,6 +262,40 @@ page:
     - '--window-size=1920,1080'
 ```
 
+### Chrome Bridge {#chrome-bridge}
+
+Complete [Chrome Bridge environment setup](./bridge-mode), then set `bridgeMode` in `web`:
+
+| Value | Behavior |
+| --- | --- |
+| `newTabWithUrl` | Creates and connects a new tab at `url` |
+| `currentTab` | Connects the active tab and ignores `url` |
+
+```yaml
+web:
+  url: https://example.com
+  bridgeMode: newTabWithUrl
+  closeNewTabsAfterDisconnect: true
+
+tasks:
+  - name: Check the page
+    flow:
+      - aiAssert: The page shows Example Domain
+```
+
+Run with the [YAML script runner](./yaml-script-runner) and authorize the connection in the extension. `closeNewTabsAfterDisconnect` defaults to `false`; setting it to `true` closes bridge-created tabs during cleanup, leaving pre-existing tabs open.
+
+Bridge mode cannot be combined with `cdpEndpoint` or `web.mode: browser`. It reuses desktop browser settings and ignores these fields:
+
+- `userAgent`
+- `viewportWidth` / `viewportHeight`
+- `deviceScaleFactor`
+- `waitForNetworkIdle`
+- `cookie`
+- `extraHTTPHeaders`
+- `downloadPath`
+- `chromeArgs`
+
 ### The `android` part
 
 ```yaml
@@ -284,7 +318,7 @@ android:
 
 :::info View Complete Android Configuration Options
 
-YAML scripts now support all configuration options from the `AndroidDevice` constructor. For the complete list of options, see [`AndroidDevice`](./reference/#androiddevice) in the Android API reference.
+YAML scripts now support all configuration options from the `AndroidDevice` constructor. For the complete list of options, see [`AndroidDevice`](./sdk/android#androiddevice) in the Android API reference.
 
 :::
 
@@ -406,7 +440,7 @@ Set both environment variables before running the script. Studio Recorder export
 
 :::info View Complete iOS Configuration Options
 
-YAML scripts now support all configuration options from the `IOSDevice` constructor. For the complete list of options, see [`IOSDevice`](./reference/#iosdevice) in the iOS API reference.
+YAML scripts now support all configuration options from the `IOSDevice` constructor. For the complete list of options, see [`IOSDevice`](./sdk/ios#iosdevice) in the iOS API reference.
 
 :::
 

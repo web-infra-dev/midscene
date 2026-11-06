@@ -11,6 +11,66 @@ const locateCtx = (width: number, height: number) => ({
 });
 
 describe('createLocateResultCodec', () => {
+  it.each([1, undefined])(
+    'maps edge boxes with normalization %s',
+    (normalizedBy) => {
+      const codec = createLocateResultCodec({
+        coordinates: {
+          shape: 'bbox',
+          boundsType: 'edges',
+          normalizedBy,
+          rounding: 'none',
+        },
+      });
+      expect(
+        codec.toPixelResult(
+          normalizedBy ? [0, 0, 1, 1] : [0, 0, 100, 80],
+          locateCtx(100, 80),
+        ),
+      ).toEqual({
+        center: [50, 40],
+        rect: { left: 0, top: 0, width: 100, height: 80 },
+      });
+      expect(
+        codec.toPixelResult(
+          normalizedBy ? [0.2, 0.1, 0.6, 0.5] : [20, 8, 60, 40],
+          locateCtx(100, 80),
+        ),
+      ).toEqual({
+        center: [40, 24],
+        rect: { left: 20, top: 8, width: 40, height: 32 },
+      });
+    },
+  );
+
+  it('clips edge boxes independently from their click centers', () => {
+    const codec = createLocateResultCodec({
+      coordinates: { shape: 'bbox', boundsType: 'edges', rounding: 'none' },
+    });
+    expect(
+      codec.toPixelResult([40, 20, 100, 80], {
+        preparedSize: { width: 100, height: 80 },
+        contentSize: { width: 60, height: 40 },
+      }),
+    ).toEqual({
+      center: [59, 39],
+      rect: { left: 40, top: 20, width: 20, height: 20 },
+    });
+    expect(() =>
+      codec.toPixelResult([0, 0, 101, 80], locateCtx(100, 80)),
+    ).toThrow(/exceed/);
+  });
+
+  it('preserves inclusive pixel bounds by default', () => {
+    const codec = createLocateResultCodec({ coordinates: { shape: 'bbox' } });
+    expect(
+      codec.toPixelResult([20, 8, 60, 40], locateCtx(100, 80)).rect,
+    ).toEqual({ left: 20, top: 8, width: 41, height: 33 });
+    expect(() =>
+      codec.toPixelResult([0, 0, 100, 80], locateCtx(100, 80)),
+    ).toThrow(/exceed/);
+  });
+
   it.each([undefined, 'invalid'])(
     'rejects custom parser metadata without valid rounding: %s',
     (rounding) => {
@@ -291,6 +351,35 @@ describe('createLocateResultCodec', () => {
     ).toThrow(/invalid bbox data/);
   });
 
+  it.each([null, true, false, '', '   '])(
+    'rejects coercible non-coordinate bbox value: %j',
+    (invalidValue) => {
+      const codec = createLocateResultCodec({
+        coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      });
+
+      expect(() =>
+        codec.toPixelResult(
+          [invalidValue, 100, 300, 400] as never,
+          locateCtx(640, 360),
+        ),
+      ).toThrow(/invalid bbox data/);
+    },
+  );
+
+  it('accepts decimal coordinate strings without general JavaScript coercion', () => {
+    const codec = createLocateResultCodec({
+      coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+    });
+
+    expect(
+      codec.toPixelResult(
+        ['100', '200.5', '300.25', '400'] as never,
+        locateCtx(200, 100),
+      ).rect,
+    ).toEqual({ left: 20, top: 20, width: 41, height: 21 });
+  });
+
   it('rejects invalid parsed adapter results before coordinate range checks', () => {
     const codec = createLocateResultCodec({
       coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
@@ -331,6 +420,16 @@ describe('createLocateResultCodec', () => {
     expect(() => codec.toPixelResult([500], locateCtx(640, 360)).rect).toThrow(
       /invalid point data/,
     );
+  });
+
+  it('rejects point coordinate values with more than two entries', () => {
+    const codec = createLocateResultCodec({
+      coordinates: { shape: 'point', order: 'xy', normalizedBy: 1000 },
+    });
+
+    expect(() =>
+      codec.toPixelResult([500, 500, 500], locateCtx(640, 360)),
+    ).toThrow(/invalid point data/);
   });
 
   it('rejects non-positive normalizedBy values', () => {

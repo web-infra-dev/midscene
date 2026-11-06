@@ -42,6 +42,7 @@ import type {
 import { ServiceError, aiActProgressScope } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import { resolveSystemOneEndpoint } from '../ai-model/service-caller/system-one';
 import {
   type ActionReadiness,
   isActionReadinessError,
@@ -70,6 +71,7 @@ interface ExecutionResult<OutputType = any> {
 }
 
 interface TaskExecutorHooks {
+  onExecutionCreated?: (runner: TaskRunner) => void;
   onSnapshotChange?: (
     runner: TaskRunner,
     error?: TaskExecutionError,
@@ -122,6 +124,7 @@ export class TaskExecutor {
 
   taskCache?: TaskCache;
 
+  private readonly getDefaultModelRuntime: () => ModelRuntime;
   private readonly providedActionSpace: DeviceAction[];
 
   private readonly taskBuilder: TaskBuilder;
@@ -147,6 +150,7 @@ export class TaskExecutor {
     service: Service,
     opts: {
       taskCache?: TaskCache;
+      getDefaultModelRuntime: () => ModelRuntime;
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
       replanningCycleLimit?: number;
       waitAfterAction?: number;
@@ -158,6 +162,7 @@ export class TaskExecutor {
       actionSpace: DeviceAction[];
     },
   ) {
+    this.getDefaultModelRuntime = opts.getDefaultModelRuntime;
     this.interface = interfaceInstance;
     this.service = service;
     this.taskCache = opts.taskCache;
@@ -169,6 +174,7 @@ export class TaskExecutor {
     this.getAbortSignal = opts.getAbortSignal;
     this.providedActionSpace = opts.actionSpace;
     this.taskBuilder = new TaskBuilder({
+      getDefaultModelRuntime: opts.getDefaultModelRuntime,
       interfaceInstance,
       service,
       taskCache: opts.taskCache,
@@ -193,7 +199,7 @@ export class TaskExecutor {
       onTaskEvent?: (event: TaskRunnerEvent) => Promise<void> | void;
     },
   ) {
-    return new ExecutionSession(
+    const session = new ExecutionSession(
       title,
       (signal) =>
         options?.uiContext
@@ -211,6 +217,8 @@ export class TaskExecutor {
         ...(options?.onTaskEvent ? { onTaskEvent: options.onTaskEvent } : {}),
       },
     );
+    this.hooks?.onExecutionCreated?.(session.getRunner());
+    return session;
   }
 
   private getActionSpace(): DeviceAction[] {
@@ -311,7 +319,7 @@ export class TaskExecutor {
   public async convertPlanToExecutable(
     plans: PlanningAction[],
     planningModel: ModelRuntime,
-    defaultModel: ModelRuntime,
+    locateModel: ModelRuntime,
     options?: {
       cacheable?: boolean;
       multimodalPrompt?: TMultimodalPrompt;
@@ -319,7 +327,7 @@ export class TaskExecutor {
       abortSignal?: AbortSignal;
     },
   ) {
-    return this.taskBuilder.build(plans, planningModel, defaultModel, options);
+    return this.taskBuilder.build(plans, planningModel, locateModel, options);
   }
 
   async loadYamlFlowAsPlanning(
@@ -403,7 +411,7 @@ export class TaskExecutor {
     title: string,
     plans: PlanningAction[],
     planningModel: ModelRuntime,
-    defaultModel: ModelRuntime,
+    locateModel: ModelRuntime,
     options?: { uiContext?: UIContext; abortSignal?: AbortSignal },
   ): Promise<ExecutionResult> {
     const abortSignal = options?.abortSignal ?? this.getAbortSignal?.();
@@ -413,11 +421,11 @@ export class TaskExecutor {
     });
     const runner = session.getRunner();
     const executionPlanningModel = { ...planningModel, executionId: runner.id };
-    const executionDefaultModel = { ...defaultModel, executionId: runner.id };
+    const executionLocateModel = { ...locateModel, executionId: runner.id };
     const { tasks } = await this.convertPlanToExecutable(
       plans,
       executionPlanningModel,
-      executionDefaultModel,
+      executionLocateModel,
       { abortSignal },
     );
     const result = await session.appendAndRun(tasks);
@@ -431,7 +439,7 @@ export class TaskExecutor {
   async action(
     userPrompt: TUserPrompt,
     planningModel: ModelRuntime,
-    defaultModel: ModelRuntime,
+    locateModel: ModelRuntime,
     aiActContext?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
@@ -454,7 +462,7 @@ export class TaskExecutor {
       return this.runAction(
         userPrompt,
         planningModel,
-        defaultModel,
+        locateModel,
         aiActContext,
         cacheable,
         replanningCycleLimitOverride,
@@ -503,7 +511,7 @@ export class TaskExecutor {
   private async runAction(
     userPrompt: TUserPrompt,
     planningModel: ModelRuntime,
-    defaultModel: ModelRuntime,
+    locateModel: ModelRuntime,
     aiActContext?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
@@ -545,11 +553,25 @@ export class TaskExecutor {
     );
     const runner = session.getRunner();
     planningModel = { ...planningModel, executionId: runner.id };
-    defaultModel = { ...defaultModel, executionId: runner.id };
+    locateModel = { ...locateModel, executionId: runner.id };
 
-    const noIndividualLocateModel = planningModel.config.slot === 'default';
+    const noIndividualLocateModel =
+      planningModel.config.slot === 'default' &&
+      locateModel.config.slot === 'default';
+    const planningConfig = planningModel.config;
+    const locateConfig = locateModel.config;
+    const sameSystemOneModel =
+      planningModel.adapter.modelType === 'system-one' &&
+      locateModel.adapter.modelType === 'system-one' &&
+      planningConfig.modelName === locateConfig.modelName &&
+      resolveSystemOneEndpoint(planningConfig) ===
+        resolveSystemOneEndpoint(locateConfig);
+    const bothJev =
+      planningConfig.modelFamily === 'jev' &&
+      locateConfig.modelFamily === 'jev';
     const includeLocateInPlanning =
-      effort !== 'deepThink' && noIndividualLocateModel;
+      effort !== 'deepThink' &&
+      (noIndividualLocateModel || (sameSystemOneModel && bothJev));
     const imagesIncludeCount = effort === 'deepThink' ? 2 : 1;
 
     debug('setting includeLocateInPlanning to', includeLocateInPlanning, {
@@ -608,6 +630,7 @@ export class TaskExecutor {
 
     // Main planning loop - unified plan/replan logic
     while (true) {
+      const delegation = latestPlanResult?.delegation;
       const planIndex = replanCount + 1;
       latestPlanIndex = planIndex;
 
@@ -664,9 +687,38 @@ export class TaskExecutor {
               );
             }
 
+            const modelRuntime: ModelRuntime = (() => {
+              if (!delegation) {
+                return planningModel;
+              }
+              // For delegated planning, build a default-model runtime for this cycle.
+              const base = this.getDefaultModelRuntime();
+              assert(
+                base.config.modelFamily !== 'jev',
+                'The default planner cannot use the Jev model family',
+              );
+              return {
+                ...base,
+                config: { ...base.config, intent: 'planning' },
+                executionId: planningModel.executionId,
+                onUsage: base.onUsage
+                  ? (usage) => base.onUsage?.({ ...usage, intent: 'planning' })
+                  : undefined,
+                modelFallback: {
+                  requestedModel: planningModel.config.modelName,
+                  requestedSlot: planningModel.config.slot,
+                  taskType: 'planning',
+                  reason: delegation.reason,
+                },
+              };
+            })();
+            const suggestedAction = delegation?.suggestedAction;
+            const planningAdvice = suggestedAction
+              ? `The preceding planner suggested that the next step may require action ${JSON.stringify(suggestedAction)}. This suggestion has NOT been executed and is advisory only. Independently determine the next step from the original goal, current screenshot, history and execution feedback. You may choose a different action or finish the task.`
+              : undefined;
             const planImpl =
-              planningModel.adapter.planning.kind === 'custom'
-                ? planningModel.adapter.planning.planFn
+              modelRuntime.adapter.planning.kind === 'custom'
+                ? modelRuntime.adapter.planning.planFn
                 : standardPlan;
 
             let planResult: Awaited<ReturnType<typeof planImpl>>;
@@ -678,9 +730,11 @@ export class TaskExecutor {
                 context: planningUiContext,
                 actionContext: renderAIContext(aiActContext),
                 actionSpace,
-                modelRuntime: planningModel,
+                modelRuntime,
+                planningAdvice,
+                getDefaultModelRuntime: this.getDefaultModelRuntime,
                 conversationHistory,
-                includeLocateInPlanning,
+                includeLocateInPlanning: !delegation && includeLocateInPlanning,
                 imagesIncludeCount,
                 effort,
                 abortSignal,
@@ -735,6 +789,7 @@ export class TaskExecutor {
             executorContext.task.reasoning_content = reasoning_content;
             executorContext.task.output = {
               actions: actions || [],
+              delegation: planResult.delegation,
               log,
               thought,
               memory,
@@ -795,106 +850,114 @@ export class TaskExecutor {
       const planResult = result?.output as PlanningAIResponse | undefined;
       latestPlanResult = planResult;
 
-      // Execute planned actions
-      const plans = planResult?.actions || [];
-      yamlFlow.push(...(planResult?.yamlFlow || []));
+      if (!planResult?.delegation) {
+        // Execute planned actions
+        const plans = planResult?.actions || [];
+        yamlFlow.push(...(planResult?.yamlFlow || []));
 
-      let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
-      try {
-        executables = await this.convertPlanToExecutable(
-          plans,
-          planningModel,
-          defaultModel,
-          {
-            cacheable,
-            multimodalPrompt: userPromptToMultimodalPrompt(userPrompt),
-            deepLocate,
-            abortSignal,
-          },
-        );
-      } catch (error) {
-        return appendFailedPlan(
-          `Error converting plans to executable tasks: ${errorMessageForAiAct(error)}, plans: ${JSON.stringify(
+        let executables: Awaited<
+          ReturnType<typeof this.convertPlanToExecutable>
+        >;
+        try {
+          executables = await this.convertPlanToExecutable(
             plans,
-          )}`,
+            planningModel,
+            locateModel,
+            {
+              cacheable,
+              multimodalPrompt: userPromptToMultimodalPrompt(userPrompt),
+              deepLocate,
+              abortSignal,
+            },
+          );
+        } catch (error) {
+          return appendFailedPlan(
+            `Error converting plans to executable tasks: ${errorMessageForAiAct(error)}, plans: ${JSON.stringify(
+              plans,
+            )}`,
+            planIndex,
+          );
+        }
+        if (conversationHistory.pendingFeedbackMessage) {
+          console.warn(
+            'unconsumed pending feedback message detected, this may lead to unexpected planning result:',
+            conversationHistory.pendingFeedbackMessage,
+          );
+        }
+
+        // Capture the time context for the next planning call before running.
+        const initialTimeString = await this.getTimeString();
+
+        const taskCountBeforeRun = runner.tasks.length;
+        // Scope a reporter to this replanning round so native task events from the
+        // runner are mapped to aiAct progress with the right plan context; cleared
+        // in `finally` so events fired between batches are ignored.
+        activeActionReporter = createAiActActionReporter(
           planIndex,
+          replanningCycleLimit,
+          (phase, data) => this.emitAiActProgress(phase, data),
         );
-      }
-      if (conversationHistory.pendingFeedbackMessage) {
-        console.warn(
-          'unconsumed pending feedback message detected, this may lead to unexpected planning result:',
-          conversationHistory.pendingFeedbackMessage,
-        );
-      }
+        try {
+          await session.appendAndRun(executables.tasks);
+          this.setPendingFeedbackMessage(
+            conversationHistory,
+            initialTimeString,
+            this.collectPlanningFeedback(
+              runner.tasks.slice(taskCountBeforeRun),
+            ),
+          );
+        } catch (error: any) {
+          // A completed action must not be replayed because readiness failed.
+          if (isActionReadinessError(error)) throw error;
+          // errorFlag = true;
+          errorCountInOnePlanningLoop++;
+          const timeString = await this.getTimeString();
+          this.setPendingFeedbackMessage(
+            conversationHistory,
+            timeString,
+            `Error executing running tasks: ${error?.message || String(error)}`,
+          );
+          debug(
+            'error when executing running tasks, but continue to run if it is not too many errors:',
+            error instanceof Error ? error.message : String(error),
+            'current error count in one planning loop:',
+            errorCountInOnePlanningLoop,
+          );
+        } finally {
+          activeActionReporter = undefined;
+        }
 
-      // Capture the time context for the next planning call before running.
-      const initialTimeString = await this.getTimeString();
+        if (
+          errorCountInOnePlanningLoop > maxErrorCountAllowedInOnePlanningLoop
+        ) {
+          return appendFailedPlan(
+            'Too many errors in one planning loop',
+            planIndex,
+          );
+        }
 
-      const taskCountBeforeRun = runner.tasks.length;
-      // Scope a reporter to this replanning round so native task events from the
-      // runner are mapped to aiAct progress with the right plan context; cleared
-      // in `finally` so events fired between batches are ignored.
-      activeActionReporter = createAiActActionReporter(
-        planIndex,
-        replanningCycleLimit,
-        (phase, data) => this.emitAiActProgress(phase, data),
-      );
-      try {
-        await session.appendAndRun(executables.tasks);
-        this.setPendingFeedbackMessage(
-          conversationHistory,
-          initialTimeString,
-          this.collectPlanningFeedback(runner.tasks.slice(taskCountBeforeRun)),
-        );
-      } catch (error: any) {
-        // A completed action must not be replayed because readiness failed.
-        if (isActionReadinessError(error)) throw error;
-        // errorFlag = true;
-        errorCountInOnePlanningLoop++;
-        const timeString = await this.getTimeString();
-        this.setPendingFeedbackMessage(
-          conversationHistory,
-          timeString,
-          `Error executing running tasks: ${error?.message || String(error)}`,
-        );
-        debug(
-          'error when executing running tasks, but continue to run if it is not too many errors:',
-          error instanceof Error ? error.message : String(error),
-          'current error count in one planning loop:',
-          errorCountInOnePlanningLoop,
-        );
-      } finally {
-        activeActionReporter = undefined;
+        // Check abort signal after executing actions
+        if (abortSignal?.aborted) {
+          return appendFailedPlan(
+            `Task aborted: ${abortSignal.reason || 'abort signal received'}`,
+            planIndex,
+          );
+        }
+
+        // // Check if task is complete
+        if (!planResult?.shouldContinuePlanning) {
+          break;
+        }
+
+        // We are about to replan, which means the batch we just ran did not finish
+        // the task. Any locate task in that batch that was served from cache
+        // produced an element that failed to complete the step (the action threw,
+        // or it clicked the wrong element and the goal was not reached). Mark those
+        // cache entries stale so the re-locate of the same prompt replaces them in
+        // place instead of appending a poisoning duplicate that would be matched
+        // first on the next run (#2529).
+        this.invalidateFailedCacheHitLocates(runner, taskCountBeforeRun);
       }
-
-      if (errorCountInOnePlanningLoop > maxErrorCountAllowedInOnePlanningLoop) {
-        return appendFailedPlan(
-          'Too many errors in one planning loop',
-          planIndex,
-        );
-      }
-
-      // Check abort signal after executing actions
-      if (abortSignal?.aborted) {
-        return appendFailedPlan(
-          `Task aborted: ${abortSignal.reason || 'abort signal received'}`,
-          planIndex,
-        );
-      }
-
-      // // Check if task is complete
-      if (!planResult?.shouldContinuePlanning) {
-        break;
-      }
-
-      // We are about to replan, which means the batch we just ran did not finish
-      // the task. Any locate task in that batch that was served from cache
-      // produced an element that failed to complete the step (the action threw,
-      // or it clicked the wrong element and the goal was not reached). Mark those
-      // cache entries stale so the re-locate of the same prompt replaces them in
-      // place instead of appending a poisoning duplicate that would be matched
-      // first on the next run (#2529).
-      this.invalidateFailedCacheHitLocates(runner, taskCountBeforeRun);
 
       // Increment replan count for next iteration
       ++replanCount;
@@ -904,7 +967,10 @@ export class TaskExecutor {
         return appendFailedPlan(errorMsg, planIndex);
       }
 
-      if (!conversationHistory.pendingFeedbackMessage) {
+      if (
+        !planResult?.delegation &&
+        !conversationHistory.pendingFeedbackMessage
+      ) {
         const timeString = await this.getTimeString();
         conversationHistory.pendingFeedbackMessage = `Time: ${timeString}, I have finished the action previously planned.`;
       }
@@ -1012,6 +1078,9 @@ export class TaskExecutor {
           extractResult = await this.service.extract<any>(
             demandInput,
             modelRuntime,
+            type === 'Boolean' || type === 'Assert' || type === 'WaitFor'
+              ? 'boolean'
+              : 'extract',
             opt,
             extraPageDescription,
             multimodalPrompt,
