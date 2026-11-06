@@ -314,7 +314,15 @@ describe('entry-independent report projection', () => {
         code: 'run-infrastructure-error',
       }),
     );
-    expect(JSON.stringify(dump)).not.toContain('original-tail');
+    const diagnostic = dump.diagnostics!.find(
+      (item) => item.code === 'run-infrastructure-error',
+    )!;
+    expect(diagnostic.message).not.toContain('original-tail');
+    expect(diagnostic.error?.message).not.toContain('original-tail');
+    expect(diagnostic.error?.stack).toBe(error.stack);
+    expect(
+      new TextEncoder().encode(JSON.stringify(diagnostic.error)).byteLength,
+    ).toBeLessThanOrEqual(64 * 1024);
     expect(error.message).toContain('original-tail');
     expect(dump.summary).toEqual(report.summary);
   });

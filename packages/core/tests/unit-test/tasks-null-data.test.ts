@@ -91,6 +91,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       })),
     } as any;
     const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+      getDefaultModelRuntime: () => modelRuntime,
       actionSpace: [],
     });
     const modelRuntime = getModelRuntime({
@@ -141,6 +142,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -186,6 +188,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -227,6 +230,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -264,6 +268,7 @@ describe('TaskExecutor - Null Data Handling', () => {
             'Boolean, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, whether the following statement is true: Page title is correct',
         },
         getModelRuntime(mockModelConfig),
+        'boolean',
         {},
         '',
         undefined,
@@ -299,6 +304,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -321,6 +327,7 @@ describe('TaskExecutor - Null Data Handling', () => {
             "Boolean, the user wants to do some 'wait for' operation. based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, please check whether the following statement is true: Element is visible",
         },
         getModelRuntime(mockModelConfig),
+        'boolean',
         {},
         '',
         undefined,
@@ -368,6 +375,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -432,6 +440,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         { interfaceType: 'web' } as any,
         mockService,
         {
+          getDefaultModelRuntime: () => getModelRuntime(defaultModelConfig),
           actionSpace: [],
           replanningCycleLimit: 1,
         },
@@ -493,6 +502,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -542,6 +552,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -581,6 +592,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -622,6 +634,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -668,6 +681,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -692,6 +706,7 @@ describe('TaskExecutor - Null Data Handling', () => {
             'Number, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, Extract the price',
         },
         getModelRuntime(mockModelConfig),
+        'extract',
         {},
         '',
         undefined,
@@ -728,6 +743,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -770,6 +786,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -791,6 +808,7 @@ describe('TaskExecutor - Null Data Handling', () => {
             'Number, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, Extract the price',
         },
         getModelRuntime(mockModelConfig),
+        'extract',
         {},
         '',
         undefined,
@@ -826,6 +844,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -847,6 +866,7 @@ describe('TaskExecutor - Null Data Handling', () => {
             'Boolean, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, there is a like button',
         },
         getModelRuntime(mockModelConfig),
+        'boolean',
         {},
         '',
         undefined,

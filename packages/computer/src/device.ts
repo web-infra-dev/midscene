@@ -815,6 +815,14 @@ export class ComputerDevice implements AbstractInterface {
         );
         this.inputDriver.mouseClick('right');
       },
+      middleClick: async ({ x, y }) => {
+        await this.moveDisplayPointer(
+          { x, y },
+          'Mouse did not reach the middle-click target',
+          { settleDelayMs: desktopPointerPolicy.uiSettleMs },
+        );
+        this.inputDriver.mouseClick('middle');
+      },
       hover: async ({ x, y }) => {
         await this.moveDisplayPointer(
           { x, y },
@@ -1806,6 +1814,7 @@ function createPlatformActions() {
   return {
     ListDisplays: defineAction({
       name: 'ListDisplays',
+      supportedBySystemOne: true,
       description: 'List all available displays/monitors',
       call: async () => {
         return await ComputerDevice.listDisplays();

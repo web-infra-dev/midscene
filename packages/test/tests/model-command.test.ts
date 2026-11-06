@@ -99,6 +99,8 @@ describe('model command', () => {
     ).toBe(1);
     const output = io.stdout.mock.calls.flat().join('\n');
     expect(output).toMatch(/Model role\s+Model\s+Check\s+Endpoint/);
+    expect(output).toContain('Running 4 checks');
+    expect(output).toMatch(/default\s+gpt-4o\s+Text response/);
     expect(output).toMatch(/planning\s+gpt-4o\s+Text response\s+\[1\]/);
     expect(output).toContain('[1] Base URL: https://example.com/v1');
     expect(output.match(/Base URL:/g)).toHaveLength(1);
@@ -164,6 +166,7 @@ describe('model command', () => {
     const loadDotenv = vi.fn();
     const configs: Record<TIntent, IModelConfig> = {
       default: createModelConfig({ intent: 'default', slot: 'default' }),
+      locate: createModelConfig({ intent: 'locate', slot: 'default' }),
       planning: createModelConfig({ intent: 'planning', slot: 'planning' }),
       insight: createModelConfig({ intent: 'insight', slot: 'insight' }),
     };
@@ -186,6 +189,7 @@ describe('model command', () => {
     expect(loadDotenv).toHaveBeenCalledOnce();
     expect(verifyModel).toHaveBeenCalledWith({
       defaultModelConfig: configs.default,
+      locateModelConfig: configs.locate,
       planningModelConfig: configs.planning,
       insightModelConfig: configs.insight,
     });
@@ -217,6 +221,7 @@ describe('model command', () => {
     getModelConfig.mockImplementation((intent: TIntent) => {
       const configs: Record<TIntent, IModelConfig> = {
         default: defaultConfig,
+        locate: { ...defaultConfig, intent: 'locate' },
         planning: planningConfig,
         insight: insightConfig,
       };
@@ -250,6 +255,13 @@ describe('model command', () => {
         openaiBaseURL: 'https://api.example.com/v1',
         openaiApiKey: 'sk-default',
         modelName: 'gpt-4o',
+      }),
+      locate: createModelConfig({
+        intent: 'locate',
+        slot: 'locate',
+        modelName: 'locator',
+        openaiBaseURL: 'https://locate.example/v1',
+        openaiApiKey: 'locate-key',
       }),
       planning: createModelConfig({
         intent: 'planning',
@@ -300,7 +312,8 @@ describe('model command', () => {
     expect(output).toContain('# insight');
     expect(output).toContain('sk-default');
     expect(output).toContain('ark-key');
-    expect(output.match(/curl -X POST/g)).toHaveLength(2);
+    expect(output).toContain('https://locate.example/v1/chat/completions');
+    expect(output.match(/curl -X POST/g)).toHaveLength(3);
   });
 
   it('explains when a generated curl command uses the default base URL', async () => {
@@ -310,6 +323,13 @@ describe('model command', () => {
         intent: 'default',
         slot: 'default',
         openaiBaseURL: undefined,
+      }),
+      locate: createModelConfig({
+        intent: 'locate',
+        slot: 'locate',
+        modelName: 'locator',
+        openaiBaseURL: 'https://locate.example/v1',
+        openaiApiKey: 'locate-key',
       }),
       planning: createModelConfig({
         intent: 'planning',

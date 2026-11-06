@@ -1,9 +1,11 @@
 import { Agent } from '@/agent';
 import { parseGherkinScenario } from '@/agent/run-gherkin-scenario';
 import { describe, expect, it, rs } from '@rstest/core';
+import { installAgentReportManager } from './test-helpers/agent-report-manager';
 
 const createAgentStub = () => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
+  installAgentReportManager(agent);
   (agent as any).opts = {};
   (agent as any).aiAct = rs.fn(async () => undefined);
   (agent as any).aiAssert = rs.fn(async () => undefined);

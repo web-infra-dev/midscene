@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { SiwcError } from './errors';
 
 export interface OpenAICredentials {
   ext_agent_host_id: string;
@@ -35,7 +36,9 @@ async function readCredentialsFile(
     if (error.code === 'ENOENT') {
       return undefined;
     }
-    throw new Error('Unable to read the local SIWC credentials file.');
+    throw new SiwcError('Unable to read the local SIWC credentials file.', {
+      cause: error,
+    });
   });
   if (content === undefined) {
     return undefined;
@@ -47,11 +50,13 @@ async function readCredentialsFile(
       typeof value.credentials?.ext_agent_host_id !== 'string' ||
       !value.credentials.ext_agent_host_id
     ) {
-      throw new Error('Invalid SIWC credentials record.');
+      throw new SiwcError('Invalid SIWC credentials record.');
     }
     return value;
-  } catch {
-    throw new Error('Invalid local SIWC credentials file.');
+  } catch (error) {
+    throw new SiwcError('Invalid local SIWC credentials file.', {
+      cause: error,
+    });
   }
 }
 
@@ -92,11 +97,13 @@ export async function lockCredentials(
     await mkdir(lockPath, { mode: 0o700 });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'EEXIST') {
-      throw new Error(
+      throw new SiwcError(
         `Another SIWC command holds ${lockPath}. If it was interrupted, remove this lock only after confirming that no SIWC command is running.`,
       );
     }
-    throw new Error('Unable to lock the local SIWC credentials file.');
+    throw new SiwcError('Unable to lock the local SIWC credentials file.', {
+      cause: error,
+    });
   }
   return () => rm(lockPath, { recursive: true, force: true });
 }
@@ -122,7 +129,7 @@ export function requireCredentials(
     !value.scopes.every((scope) => typeof scope === 'string') ||
     !Number.isFinite(value.expires_at)
   ) {
-    throw new Error(
+    throw new SiwcError(
       'No valid SIWC credentials. Run midscene model siwc login first.',
     );
   }

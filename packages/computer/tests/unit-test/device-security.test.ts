@@ -756,6 +756,13 @@ describe('ComputerDevice pointer input', () => {
     expect(mockState.libnut.mouseClick).toHaveBeenCalledWith('left', true);
   });
 
+  it('moves to the target before issuing a native middle click', async () => {
+    const device = await createConnectedDeviceForPlatform('win32');
+    await device.inputPrimitives.pointer!.middleClick!({ x: 400, y: 300 });
+    expect(mockState.getWindowsCursorPos()).toEqual({ x: 400, y: 300 });
+    expect(mockState.libnut.mouseClick).toHaveBeenCalledWith('middle');
+  });
+
   it('does not click when screenshot-space pointer verification fails', async () => {
     const device = await createConnectedDeviceForPlatform('win32');
     mockState.setWindowsCursorTransform(() => ({ x: 700, y: 500 }));
@@ -773,6 +780,7 @@ describe('ComputerDevice pointer input', () => {
     const guardedActions = [
       () => device.inputPrimitives.pointer!.doubleClick({ x: 400, y: 300 }),
       () => device.inputPrimitives.pointer!.rightClick({ x: 400, y: 300 }),
+      () => device.inputPrimitives.pointer!.middleClick!({ x: 400, y: 300 }),
       () =>
         device.inputPrimitives.pointer!.dragAndDrop(
           { x: 200, y: 200 },
@@ -865,6 +873,7 @@ describe('ComputerDevice pointer input', () => {
   it.each([
     ['doubleClick', 'left'],
     ['rightClick', 'right'],
+    ['middleClick', 'middle'],
   ] as const)(
     'waits for UI updates before native %s',
     async (action, button) => {

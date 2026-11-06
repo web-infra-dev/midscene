@@ -12,6 +12,7 @@ import {
   linkResourceSignal,
   setResourceOperationIdentity,
 } from './resource-operations';
+import { runSetupWithTimeout } from './setup-timeout';
 import type {
   ProjectRuntime,
   ProjectRuntimeOptions,
@@ -122,18 +123,27 @@ export const createProjectRuntime = <TProjectContext = unknown>(
       }
       if (options.setup) {
         try {
-          context = await options.setup.setup({
-            project: options.project,
-            env: Object.freeze({ ...process.env }),
-            signal: controller.signal,
-            onTeardown,
-          });
+          await runSetupWithTimeout(
+            async () => {
+              try {
+                context = await options.setup!.setup({
+                  project: options.project,
+                  env: Object.freeze({ ...process.env }),
+                  signal: controller.signal,
+                  onTeardown,
+                });
+              } finally {
+                acceptingTeardowns = false;
+              }
+            },
+            controller.signal,
+            (reason) => controller.abort(reason),
+            options.setupTimeoutMs,
+          );
         } catch (error) {
           setupError = new ProjectSetupError(error, {
             projectName: options.project.name,
           });
-        } finally {
-          acceptingTeardowns = false;
         }
       }
       return createResult(setupError ? 'failed' : 'success');
@@ -179,8 +189,13 @@ export const createProjectRuntime = <TProjectContext = unknown>(
             );
         };
         try {
-          if (teardownStack.length)
+          if (
+            teardownStack.length ||
+            (options.setupTimeoutMs !== undefined &&
+              getPendingScopeOperations(controller.signal).length)
+          )
             await cleanupScopeResources(controller.signal, cleanup, {
+              totalTimeoutMs: options.teardownTimeoutMs?.(),
               onDeferredError: (error) =>
                 getDebug('runner:cleanup', { console: true })(
                   `Deferred Project cleanup failed: ${String(error)}`,

@@ -12,7 +12,10 @@ export interface PlanOptions {
   context: UIContext;
   actionSpace: DeviceAction<any>[];
   actionContext?: string;
+  /** Advisory guidance from a previous planner, not a user instruction. */
+  planningAdvice?: string;
   modelRuntime: ModelRuntime;
+  getDefaultModelRuntime?: () => ModelRuntime;
   conversationHistory: ConversationHistory;
   includeLocateInPlanning: boolean;
   imagesIncludeCount?: number;

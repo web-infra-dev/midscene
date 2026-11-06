@@ -8,6 +8,8 @@ export interface StepMetaInput {
 }
 
 export interface NormalizedStepMeta {
+  /** Optional author location supplied by an input adapter; coordinates are one-based. */
+  sourceLocation?: { line: number; column: number };
   /** Input adapter requests the legacy raw-result view, including unnamed values. */
   captureResult?: boolean;
   timeoutMs?: number;

@@ -1,4 +1,7 @@
-import { collectReportSummary } from '../../report-stats';
+import {
+  type ReportModelUsageSummary,
+  collectReportSummary,
+} from '../../report-stats';
 import type { TestRunReportMetrics } from '../../test-run-report';
 import type { AIUsageInfo, IReportActionDump } from '../../types';
 
@@ -39,6 +42,12 @@ export function collectTestRunReportMetrics(
     reasons.push('Some model usage records do not include request duration.');
   if (knownTokens < usages.length)
     reasons.push('Some model usage records do not include token counts.');
+  if (usages.some((usage) => !number(usage.prompt_tokens)))
+    reasons.push('Some model usage records do not include input token counts.');
+  if (usages.some((usage) => !number(usage.completion_tokens)))
+    reasons.push(
+      'Some model usage records do not include output token counts.',
+    );
   const state = (
     known: number,
     missing: boolean,
@@ -50,6 +59,18 @@ export function collectTestRunReportMetrics(
       knownTimes,
       live || unrecorded || knownTimes < usages.length,
     ),
+    promptTokens: state(
+      usages.filter((usage) => number(usage.prompt_tokens)).length,
+      live ||
+        unrecorded ||
+        usages.some((usage) => !number(usage.prompt_tokens)),
+    ),
+    completionTokens: state(
+      usages.filter((usage) => number(usage.completion_tokens)).length,
+      live ||
+        unrecorded ||
+        usages.some((usage) => !number(usage.completion_tokens)),
+    ),
     totalTokens: state(
       knownTokens,
       live || unrecorded || knownTokens < usages.length,
@@ -59,6 +80,7 @@ export function collectTestRunReportMetrics(
     modelCallCount: summary.timing.modelCallCount,
     modelTimeMs: summary.timing.modelCallTimeMs,
     ...summary.tokens,
+    ...(summary.models.length ? { models: summary.models } : {}),
     collection: {
       status: reasons.length
         ? summary.timing.modelCallCount > 0
@@ -86,11 +108,43 @@ export function sumTestRunReportMetrics(
     completionTokens: 0,
     totalTokens: 0,
   };
-  for (const value of values)
-    for (const key of Object.keys(total) as (keyof typeof total)[])
-      if (key !== 'collection') total[key] += value[key];
+  const numericKeys = [
+    'modelCallCount',
+    'modelTimeMs',
+    'promptTokens',
+    'cachedInputTokens',
+    'completionTokens',
+    'totalTokens',
+  ] as const;
+  const models = new Map<string, ReportModelUsageSummary>();
+  for (const value of values) {
+    for (const key of numericKeys) total[key] += value[key];
+    for (const model of value.models ?? []) {
+      const previous = models.get(model.modelName);
+      if (!previous) models.set(model.modelName, { ...model });
+      else
+        for (const key of [
+          'callCount',
+          'modelCallTimeMs',
+          'promptTokens',
+          'cachedInputTokens',
+          'completionTokens',
+          'totalTokens',
+        ] as const)
+          previous[key] += model[key];
+    }
+  }
+  if (models.size) total.models = [...models.values()];
   const fields = Object.fromEntries(
-    (['modelCallCount', 'modelTimeMs', 'totalTokens'] as const).map((field) => {
+    (
+      [
+        'modelCallCount',
+        'modelTimeMs',
+        'totalTokens',
+        'promptTokens',
+        'completionTokens',
+      ] as const
+    ).map((field) => {
       const states = values.map(
         (value) =>
           value.collection?.fields?.[field] ??

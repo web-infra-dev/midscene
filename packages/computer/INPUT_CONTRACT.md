@@ -6,7 +6,7 @@ transports differ, but the behavior below is shared. Defaults live in
 
 | Action | Shared behavior |
 | --- | --- |
-| Tap, DoubleClick, RightClick | Finish moving to the target, then wait 100 ms before pressing. |
+| Tap, DoubleClick, RightClick, MiddleClick | Finish moving to the target, then wait 100 ms before pressing. |
 | Tap | Hold the left button for 100 ms by default. Honor the pointer primitive's `duration` override; release the button after a completed press even if the hold fails. |
 | Hover | Wait 100 ms after the final pointer move. |
 | Scroll with a target | Move to the target and wait 50 ms before scrolling there. |

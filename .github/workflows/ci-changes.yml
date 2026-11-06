@@ -1,0 +1,20 @@
+name: CI change detection
+on:
+  workflow_call:
+    outputs:
+      code:
+        description: Whether this change needs runtime checks
+        value: ${{ jobs.changes.outputs.code }}
+permissions:
+  contents: read
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.changes.outputs.code }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+      - id: changes
+        run: node scripts/ci-changes.mjs

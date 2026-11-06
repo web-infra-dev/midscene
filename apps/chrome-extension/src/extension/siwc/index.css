@@ -1,0 +1,155 @@
+html {
+  scrollbar-gutter: stable;
+}
+body {
+  margin: 0;
+  padding: 28px;
+  min-height: 100vh;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  background: #f5f7fa;
+  color: #202938;
+  font: 15px / 1.6 system-ui, sans-serif;
+}
+#root {
+  width: min(100%, 620px);
+  min-width: 0;
+}
+main {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 32px;
+  border-radius: 18px;
+  background: white;
+  box-shadow: 0 8px 32px #0000000a;
+}
+h1 {
+  font-size: 24px;
+  margin: 0;
+}
+.authorization-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.authorization-header img {
+  flex-shrink: 0;
+}
+.authorization-dots {
+  display: inline-block;
+  white-space: nowrap;
+}
+.authorization-dots span:nth-child(2) {
+  animation: authorization-second-dot 1.5s step-end infinite;
+}
+.authorization-dots span:nth-child(3) {
+  animation: authorization-third-dot 1.5s step-end infinite;
+}
+@keyframes authorization-second-dot {
+  0% {
+    visibility: hidden;
+  }
+  33.333% {
+    visibility: visible;
+  }
+}
+@keyframes authorization-third-dot {
+  0% {
+    visibility: hidden;
+  }
+  66.667% {
+    visibility: visible;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .authorization-dots span:nth-child(2),
+  .authorization-dots span:nth-child(3) {
+    animation: none;
+  }
+}
+p {
+  color: #58677a;
+}
+label {
+  display: block;
+  margin-top: 24px;
+}
+textarea {
+  width: 100%;
+  height: 132px;
+  box-sizing: border-box;
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid #ccd4e0;
+  border-radius: 8px;
+  resize: vertical;
+  font: 13px / 1.5 monospace;
+}
+button {
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: #245bd6;
+  color: white;
+  cursor: pointer;
+}
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 16px;
+  background: #fff0ed;
+  color: #a32019;
+  border-radius: 8px;
+}
+
+h2 {
+  font-size: 17px;
+  margin: 0 0 12px;
+}
+.usage-guide {
+  margin: 24px 0;
+}
+.config-heading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.config-heading h2 {
+  margin: 0;
+}
+.config-heading span {
+  color: #58677a;
+  font-size: 13px;
+}
+.config-actions {
+  text-align: right;
+}
+.config-example {
+  background: #f0f4fa;
+  color: #202938;
+}
+.token-details {
+  padding: 16px 0;
+  border-top: 1px solid #e5eaf0;
+  border-bottom: 1px solid #e5eaf0;
+}
+.token-details summary {
+  cursor: pointer;
+  color: #245bd6;
+}
+
+.credentials-json {
+  max-height: 320px;
+  overflow: auto;
+  background: #f0f4fa;
+  color: #202938;
+}
+.token-details + .token-details {
+  border-top: 0;
+}
+a {
+  color: #245bd6;
+}

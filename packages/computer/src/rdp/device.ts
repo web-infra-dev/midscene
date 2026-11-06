@@ -100,6 +100,14 @@ export class RDPDevice implements AbstractInterface {
         });
         await this.backend.mouseButton('right', 'click');
       },
+      middleClick: async ({ x, y }) => {
+        await this.movePointer(Math.round(x), Math.round(y), {
+          steps: desktopPointerPolicy.tapMoveSteps,
+          stepDelayMs: desktopPointerPolicy.tapMoveStepDelayMs,
+          settleDelayMs: desktopPointerPolicy.uiSettleMs,
+        });
+        await this.backend.mouseButton('middle', 'click');
+      },
       hover: async ({ x, y }) => {
         await this.movePointer(Math.round(x), Math.round(y), {
           steps: desktopPointerPolicy.hoverMoveSteps,
@@ -311,6 +319,7 @@ export class RDPDevice implements AbstractInterface {
       }),
       defineAction({
         name: 'ListDisplays',
+        supportedBySystemOne: true,
         description: 'List all available displays/monitors',
         call: async (): Promise<DisplayInfo[]> => {
           this.assertConnected();

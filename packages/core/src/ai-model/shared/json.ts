@@ -1,34 +1,28 @@
 import { jsonrepair } from 'jsonrepair';
 
 /**
- * Extract the JSON portion from a model response.
- *
- * This mainly handles fenced JSON like ```json { ... } ``` by removing the
- * fence. If that does not produce a JSON object, it falls back to a greedy regex
- * that extracts from the first "{" to the last "}". If that still fails, the
- * original response is returned.
- *
- * Expected model responses are JSON objects, possibly wrapped in markdown
- * fences. Natural language mixed with JSON, or arrays like
- * [{"type":"Tap"}, {"type":"Hover"}], are outside the supported contract and
- * are not reliably recoverable.
- *
- * This extractor is also used by extraction responses that can be any
- * JSON value. In those cases, arrays/strings/numbers have no object braces and
- * pass through unchanged.
+ * Preserve complete JSON values and remove optional markdown fences before
+ * parsing. Keep array boundaries intact, including when the contents need repair.
+ * For prose mixed with JSON, fall back to extracting the first through last
+ * object brace; arbitrary prose with arrays is not a supported format.
  */
 export function extractJSONFromCodeBlock(response: string) {
   try {
-    // First, try to match a JSON object directly in the response
-    const jsonMatch = response.match(/^\s*(\{[\s\S]*\})\s*$/);
+    JSON.parse(response);
+    return response.trim();
+  } catch {
+    // Invalid JSON may still be recoverable after extraction and repair.
+  }
+
+  try {
+    // Preserve complete object and array boundaries for jsonrepair.
+    const jsonMatch = response.match(/^\s*(\{[\s\S]*\}|\[[\s\S]*\])\s*$/);
     if (jsonMatch) {
       return jsonMatch[1];
     }
 
     // If no direct JSON object is found, try to extract JSON from a code block
-    const codeBlockMatch = response.match(
-      /```(?:json)?\s*(\{[\s\S]*?\})\s*```/,
-    );
+    const codeBlockMatch = response.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
     if (codeBlockMatch) {
       return codeBlockMatch[1];
     }

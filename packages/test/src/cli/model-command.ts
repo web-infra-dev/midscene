@@ -12,7 +12,7 @@ const MODEL_VERIFY_SEPARATOR = '────────────────
 const modelCommandUsage = (commandName: string) => `Usage:
   ${commandName} model verify
 
-Verify model connectivity and Midscene compatibility for default, planning, and insight models.
+Verify model connectivity and Midscene compatibility for default, locate, planning, and insight models.
 Reads .env from the current working directory, overriding shell environment variables.
 Shows endpoints, model names, request counts, and per-check results with duration.
 Returns exit code 0 on success and 1 on failure.
@@ -193,10 +193,12 @@ async function runModelVerifyCommand(
     io.stdout('');
 
     const defaultModelConfig = deps.getModelConfig('default');
+    const locateModelConfig = deps.getModelConfig('locate');
     const planningModelConfig = deps.getModelConfig('planning');
     const insightModelConfig = deps.getModelConfig('insight');
     const curlCommands = buildModelVerifyCurlCommands([
       { intent: 'default', modelConfig: defaultModelConfig },
+      { intent: 'locate', modelConfig: locateModelConfig },
       { intent: 'planning', modelConfig: planningModelConfig },
       { intent: 'insight', modelConfig: insightModelConfig },
     ]);
@@ -206,7 +208,8 @@ async function runModelVerifyCommand(
       [
         ['planning', planningModelConfig, 'Text response'],
         ['insight', insightModelConfig, 'Image understanding'],
-        ['default', defaultModelConfig, 'AI locate'],
+        ['locate', locateModelConfig, 'AI locate'],
+        ['default', defaultModelConfig, 'Text response'],
       ] as const
     ).map(([intent, config, check]) => {
       const baseURL = config.openaiExtraConfig?.baseURL ?? config.openaiBaseURL;
@@ -223,10 +226,11 @@ async function runModelVerifyCommand(
     for (const [endpoint, index] of baseURLs) {
       io.stdout(`[${index}] Base URL: ${endpoint}`);
     }
-    io.stdout('\nRunning 3 checks...\n');
+    io.stdout('\nRunning 4 checks...\n');
 
     const result = await deps.verifyModel({
       defaultModelConfig,
+      locateModelConfig,
       planningModelConfig,
       insightModelConfig,
     });

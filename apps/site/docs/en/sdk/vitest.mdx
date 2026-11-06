@@ -1,0 +1,235 @@
+import SdkCommonMethods from '../common/sdk-common-methods.mdx';
+import { SdkPrerequisites, SdkPlatformProvider, SdkPlatformSelector, SdkPlatformContent } from '@theme';
+
+# Integrate with Vitest
+
+<SdkPlatformProvider>
+
+We recommend Vitest for writing JavaScript and TypeScript tests on Android, iOS, HarmonyOS, and desktop. Vitest organizes test cases, runs lifecycle hooks, and aggregates test results, while Midscene Agents connect to devices, interact with the UI, and perform assertions.
+
+## Before you begin
+
+<SdkPrerequisites lang="en" mode="vitest" />
+
+<SdkPlatformSelector lang="en" />
+
+## 1. Install dependencies
+
+<SdkPlatformContent platform="android">
+
+```bash
+pnpm add -D vitest dotenv @midscene/android
+```
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="ios">
+
+```bash
+pnpm add -D vitest dotenv @midscene/ios
+```
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="harmonyos">
+
+```bash
+pnpm add -D vitest dotenv @midscene/harmony
+```
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="desktop">
+
+```bash
+pnpm add -D vitest dotenv @midscene/computer
+```
+
+</SdkPlatformContent>
+
+## 2. Configure Vitest
+
+Create `vitest.config.ts`. If your project already uses Vitest for unit tests, you can save this configuration separately as `vitest.device.config.ts` and pass `--config vitest.device.config.ts` when running device tests, leaving your existing test configuration untouched.
+
+```typescript title="vitest.config.ts"
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    include: ['e2e/**/*.test.ts'],
+    environment: 'node',
+    testTimeout: 90_000,
+    hookTimeout: 90_000,
+    fileParallelism: false,
+    sequence: { concurrent: false },
+  },
+});
+```
+
+Because model calls and device connections take longer than standard unit tests, adjust `testTimeout` and `hookTimeout` to fit your test cases. When running against a single shared device, disable file parallelism (`fileParallelism: false`) and run tests sequentially (`sequence.concurrent: false`), and avoid `test.concurrent` or `describe.concurrent`. For details, see the Vitest documentation on [fileParallelism](https://vitest.dev/config/fileparallelism), [testTimeout](https://vitest.dev/config/testtimeout), and [hookTimeout](https://vitest.dev/config/hooktimeout).
+
+## 3. Write a test
+
+Create `e2e/settings.test.ts`, initializing a new Agent for each test in `beforeEach` and destroying it in `afterEach`:
+
+<SdkPlatformContent platform="android">
+
+```typescript title="e2e/settings.test.ts"
+import 'dotenv/config';
+import { afterEach, beforeEach, test } from 'vitest';
+import { agentFromAdbDevice } from '@midscene/android';
+
+let agent: Awaited<ReturnType<typeof agentFromAdbDevice>> | undefined;
+
+beforeEach(async () => {
+  agent = await agentFromAdbDevice();
+});
+
+afterEach(async () => {
+  const currentAgent = agent;
+  agent = undefined;
+  await currentAgent?.destroy();
+});
+
+test('scroll through settings', async () => {
+  if (!agent) throw new Error('Agent was not initialized');
+
+  await agent.launch('com.android.settings');
+  await agent.aiWaitFor('The Settings app is visible');
+  await agent.aiAct('Scroll down one screen');
+  await agent.aiAssert('The Settings app is still visible');
+});
+```
+
+If multiple devices are connected, pass a device ID to `agentFromAdbDevice(deviceId)`. See the [Android SDK guide](./android) for connection options.
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="ios">
+
+```typescript title="e2e/settings.test.ts"
+import 'dotenv/config';
+import { afterEach, beforeEach, test } from 'vitest';
+import { agentFromWebDriverAgent } from '@midscene/ios';
+
+let agent: Awaited<ReturnType<typeof agentFromWebDriverAgent>> | undefined;
+
+beforeEach(async () => {
+  agent = await agentFromWebDriverAgent({
+    wdaHost: 'localhost',
+    wdaPort: 8100,
+  });
+});
+
+afterEach(async () => {
+  const currentAgent = agent;
+  agent = undefined;
+  await currentAgent?.destroy();
+});
+
+test('scroll through settings', async () => {
+  if (!agent) throw new Error('Agent was not initialized');
+
+  await agent.launch('com.apple.Preferences');
+  await agent.aiWaitFor('The Settings app is visible');
+  await agent.aiAct('Scroll down one screen');
+  await agent.aiAssert('The Settings app is still visible');
+});
+```
+
+Replace `wdaHost` and `wdaPort` with your verified WebDriverAgent service endpoint. See the [iOS SDK guide](./ios) for connection options.
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="harmonyos">
+
+```typescript title="e2e/settings.test.ts"
+import 'dotenv/config';
+import { afterEach, beforeEach, test } from 'vitest';
+import { agentFromHdcDevice } from '@midscene/harmony';
+
+let agent: Awaited<ReturnType<typeof agentFromHdcDevice>> | undefined;
+
+beforeEach(async () => {
+  agent = await agentFromHdcDevice();
+});
+
+afterEach(async () => {
+  const currentAgent = agent;
+  agent = undefined;
+  await currentAgent?.destroy();
+});
+
+test('scroll through settings', async () => {
+  if (!agent) throw new Error('Agent was not initialized');
+
+  await agent.launch('com.huawei.hmos.settings');
+  await agent.aiWaitFor('The Settings app is visible');
+  await agent.aiAct('Scroll down one screen');
+  await agent.aiAssert('The Settings app is still visible');
+});
+```
+
+If multiple devices are connected, pass a device ID to `agentFromHdcDevice(deviceId)`. See the [HarmonyOS SDK guide](./harmonyos) for connection options.
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="desktop">
+
+```typescript title="e2e/settings.test.ts"
+import 'dotenv/config';
+import { afterEach, beforeEach, test } from 'vitest';
+import { agentForComputer } from '@midscene/computer';
+
+let agent: Awaited<ReturnType<typeof agentForComputer>> | undefined;
+
+beforeEach(async () => {
+  agent = await agentForComputer();
+});
+
+afterEach(async () => {
+  const currentAgent = agent;
+  agent = undefined;
+  await currentAgent?.destroy();
+});
+
+test('scroll through settings', async () => {
+  if (!agent) throw new Error('Agent was not initialized');
+
+  await agent.aiWaitFor('The Settings app is visible');
+  await agent.aiAct('Scroll down one screen');
+  await agent.aiAssert('The Settings app is still visible');
+});
+```
+
+Before running the test, open your system Settings app and bring a scrollable settings page to the foreground. Keep it visible during the test. See the [desktop SDK guide](./desktop) for permissions and connection options.
+
+</SdkPlatformContent>
+
+`dotenv/config` loads model settings from the project's `.env` file (settings in the Playground are not automatically shared with test runs).
+
+When an `aiAssert` check fails, it throws an error, causing Vitest to mark the test as failed before running `afterEach` to clean up the Agent. You can also extract data from the screen with methods like `aiQuery` and pass the result to Vitest's `expect`. For more interaction and extraction methods, see the [Agent API reference](../reference/index.mdx#interaction-methods).
+
+## 4. Run the test and view the report
+
+```bash
+pnpm exec vitest run e2e/settings.test.ts
+```
+
+Vitest prints the pass or fail status of each test in the terminal, while the Midscene SDK generates an execution report for each Agent under `midscene_run/report/` by default and prints the report path. Open the generated HTML file in a browser to inspect step-by-step screenshots, AI execution details, and assertion results.
+
+Unlike Playwright Test, Vitest integration uses the SDK's built-in report generation directly and does not require a custom reporter. Vitest test results and Midscene Agent reports are generated separately; to merge or further process report files, see [Process report files](../consume-report-file).
+
+## Common methods
+
+<SdkCommonMethods />
+
+## Lifecycle and exclusive device access
+
+- **Isolate Agents per test**: Create a new Agent for each test case. Each Device instance belongs to a single Agent, and `agent.destroy()` cleans up the associated Device as well—do not reuse a destroyed instance in subsequent tests.
+- **Manage application state explicitly**: Destroying an Agent does not reset app data or close the app. Each test should explicitly prepare the required initial screen and data, and clean up state as needed so tests can be retried or run individually.
+- **Avoid device contention across processes**: Vitest's sequential settings only apply to the current test runner process; other local processes, CI jobs, or manual input can still contend for the same device. To run tests in parallel, assign a dedicated device or desktop session to each worker and explicitly specify its connection target in code.
+
+For complete working projects, see the Vitest examples for [Android](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo), [iOS](https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo), [HarmonyOS](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo), and [desktop](https://github.com/web-infra-dev/midscene-example/tree/main/computer/vitest-demo).
+
+</SdkPlatformProvider>

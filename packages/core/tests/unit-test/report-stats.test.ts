@@ -1,6 +1,9 @@
 import { describe, expect, it } from '@rstest/core';
 import { collectReportSummary } from '../../src/report-stats';
-import { collectTestRunReportMetrics } from '../../src/test-runner/reporting/metrics';
+import {
+  collectTestRunReportMetrics,
+  sumTestRunReportMetrics,
+} from '../../src/test-runner/reporting/metrics';
 import type {
   AIUsageInfo,
   ExecutionTask,
@@ -49,6 +52,35 @@ function createReport(
 }
 
 describe('collectReportSummary', () => {
+  it('retains per-model usage through metric aggregation without double-counting cached input', () => {
+    const collect = (model: string) =>
+      collectTestRunReportMetrics(
+        createReport([
+          createTask({
+            usage: createUsage({
+              model_name: model,
+              prompt_tokens: 100,
+              completion_tokens: 20,
+              cached_input: 80,
+              total_tokens: 120,
+              time_cost: 10,
+            }),
+          }),
+        ]),
+      );
+    const first = collect('planning');
+    const total = sumTestRunReportMetrics([first, first, collect('insight')]);
+    expect(total).toMatchObject({
+      totalTokens: 360,
+      cachedInputTokens: 240,
+      models: [
+        { modelName: 'planning', callCount: 2, totalTokens: 240 },
+        { modelName: 'insight', callCount: 1, totalTokens: 120 },
+      ],
+    });
+    expect(first.models?.[0].totalTokens).toBe(120);
+  });
+
   it('distinguishes missing provider fields from actual zero usage', () => {
     const missing = collectTestRunReportMetrics(
       createReport([
@@ -78,7 +110,14 @@ describe('collectReportSummary', () => {
       modelCallCount: 1,
       modelTimeMs: 0,
       totalTokens: 0,
-      collection: { status: 'complete' },
+      collection: {
+        status: 'partial',
+        fields: {
+          totalTokens: 'complete',
+          promptTokens: 'unknown',
+          completionTokens: 'unknown',
+        },
+      },
     });
     expect(
       collectTestRunReportMetrics(createReport([createTask()])).collection
