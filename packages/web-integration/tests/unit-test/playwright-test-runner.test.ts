@@ -1,3 +1,7 @@
+import {
+  gotoUrlInputSchema as puppeteerGotoUrlInputSchema,
+  setCookiesInputSchema as puppeteerSetCookiesInputSchema,
+} from '@/puppeteer/test-runner';
 import { describe, expect, it } from '@rstest/core';
 import type { Page } from 'playwright';
 import { PlaywrightBrowserAgent } from '../../src/playwright/browser-agent';
@@ -36,6 +40,27 @@ describe('Playwright test runner entry', () => {
     ).toBe('domcontentloaded');
   });
 
+  it('shares schemas and portable navigation semantics with Puppeteer', () => {
+    expect(gotoUrlInputSchema).toBe(puppeteerGotoUrlInputSchema);
+    expect(
+      playwrightAgentTestRunnerNodeDefinitions.find(
+        ({ name }) => name === 'setCookies',
+      )?.inputSchema,
+    ).toBe(puppeteerSetCookiesInputSchema);
+    expect(
+      gotoUrlInputSchema.parse({
+        url: 'https://example.com',
+        waitUntil: 'networkidle',
+      }).waitUntil,
+    ).toBe('networkidle');
+    expect(
+      gotoUrlInputSchema.parse({
+        url: 'https://example.com',
+        waitUntil: 'networkidle0',
+      }).waitUntil,
+    ).toBe('networkidle0');
+  });
+
   it('rejects agents without a Playwright page', async () => {
     await expect(
       playwrightAgentTestRunnerNodeDefinitions[0].execute(
@@ -56,5 +81,22 @@ describe('Playwright test runner entry', () => {
         { signal: controller.signal },
       ),
     ).rejects.toThrow('Run cancelled');
+  });
+
+  it('reports Puppeteer-only navigation values explicitly', async () => {
+    const page = {
+      url: () => 'about:blank',
+      context: () => ({}),
+    } as unknown as Page;
+    await expect(
+      playwrightAgentTestRunnerNodeDefinitions[0].execute(
+        { interface: { underlyingPage: page } },
+        gotoUrlInputSchema.parse({
+          url: 'https://example.com',
+          waitUntil: 'networkidle0',
+        }),
+        { signal: new AbortController().signal },
+      ),
+    ).rejects.toThrow('Playwright does not support');
   });
 });

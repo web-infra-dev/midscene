@@ -1,0 +1,251 @@
+# Author YAML cases
+
+## A typical YAML file
+
+A YAML file can contain multiple test cases, along with setup or cleanup steps.
+
+Here is a typical example of a store search workflow: it opens the home page before each Case, searches for a product, and verifies the results. Replace the URL and product name with your actual application details:
+
+```yaml filename=cases/search.yaml
+beforeEach:
+  - gotoUrl: https://your-shop.example
+
+cases:
+  - name: Search for a product
+    steps:
+      - aiAct: Enter "mug" in the search box and click the Search button
+      - aiAssert: The search results include mugs
+```
+
+In Midscene Test, we follow these terminology definitions:
+- **Workflow Document**: The entire YAML file.
+- **Case**: An individual test case listed under `cases`.
+- **Step**: A single operation within `steps` (or within lifecycle hooks), which invokes exactly one Node.
+- **Hook**: Life cycle steps (`beforeAll`, `beforeEach`, `afterEach`, `afterAll`) that run around Cases.
+
+This example uses string shorthand: text after `gotoUrl` becomes `url`, while text after `aiAct` and `aiAssert` becomes `prompt`. To supply additional parameters, use the object form shown below. Check the project Node Spec for shorthand support.
+
+## Test case design conventions {#test-case-design-conventions}
+
+Midscene Test uses sequential execution and explicit state sharing to make each Node's inputs, execution context, and dependencies clear. YAML cases follow these design choices:
+
+- **Execute in declaration order**: YAML describes a linear sequence of test steps, without DAG, branch, or loop syntax. For scenarios that require complex orchestration, we recommend building YAML script generation at a higher layer. That layer resolves the orchestration into an explicit sequence of steps for Midscene Test to execute.
+- **Each statement (step) is stateless and independent**: Each step is a fully self-contained Node invocation, without any implicit state or output propagation between steps (there is no syntax to reference previous step outputs in YAML). Each step relies solely on its declared inputs and the project-level `context`. If you need to share data explicitly across steps, implement custom Nodes that read and write to the project's shared `context`.
+
+For example, the following assertion incorrectly refers to "the icon from the previous step", relying on the previous instruction to identify its target:
+
+```yaml
+steps:
+  - aiAct: Click the favorite star on the product details page to activate it
+  # ❌ Incorrect: the assertion does not inherit the previous instruction's context, so "the icon from the previous step" does not identify its target.
+  - aiAssert: The icon from the previous step is active
+```
+
+Name the target and its expected state explicitly so the assertion expresses the complete check on its own:
+
+```yaml
+steps:
+  - aiAct: Click the favorite star on the product details page to activate it
+  - aiAssert: The favorite star on the product details page is active
+```
+
+The interface retains the effects of previous actions, but each Node's instruction should describe its target independently, without references such as "the previous step" or "that item".
+
+## Use Nodes
+
+Midscene Test calls each capability you can invoke from YAML a **Node**.
+
+Nodes can be called from Case `steps` or from [lifecycle hooks](./execution#yaml-lifecycle-hooks) such as `beforeEach` and `afterEach`, using the same syntax.
+
+Midscene Test injects capabilities from the Midscene GUI Agent: `aiAct` operates the interface from natural-language instructions, `aiAssert` checks an expected result, and `aiWaitFor` waits for an observable condition; it also includes the framework-provided `wait` to pause for a specified duration.
+
+Alongside these GUI Agent capabilities, Midscene provides platform-specific operations. For example:
+- **Web**: `gotoUrl` opens a page, `setCookies` sets cookies, and `setViewportSize` adjusts the browser viewport.
+- **Android**: `launch` starts an app, `back` goes back, `home` returns to the home screen, and `runAdbShell` executes an ADB shell command.
+
+The project scaffold explicitly registers the official Nodes for the selected platform. A handwritten `midscene.config.ts` does not register any Nodes implicitly. For the complete list of official operations across platforms and their parameters, see [Built-in Nodes across platforms](./builtin-nodes). Developers can also add custom operations, such as preparing a test order through a business API. See [Register custom business Nodes](./extend#register-custom-business-nodes).
+
+### Common Nodes
+
+Most test steps rely on `aiAct` to perform actions and `aiAssert` to check expected outcomes:
+
+| Node | Purpose | What to write |
+| --- | --- | --- |
+| `aiAct` | Perform interface operations from natural language, including multiple actions. | Describe what to do, such as "Search for mugs and add the first product to the cart". |
+| `aiAssert` | Check whether the interface matches an expectation; fail the step if it does not. | Describe an observable result, such as "The cart contains one mug". |
+
+Completing an action does not establish that the test passed. Always use `aiAssert` to check the expected result explicitly. To provide a custom assertion failure message, expand the parameters into an object:
+
+```yaml
+steps:
+  - aiAct: Search for mugs and add the first product to the cart
+  - aiAssert:
+      prompt: The cart contains one mug
+      message: The cart contents do not match the expected result
+```
+
+If you need to supply background knowledge or guidelines (such as test account rules or dialog dismissals) for subsequent AI operations, call `setAIContext` to set or clear context.
+
+### Calling other Nodes
+
+Platform operations and custom business Nodes use the same structure: **put parameters beneath the Node name**. Here are examples showing calls with multiple parameters and with no parameters. Place these inside a Case's `steps`:
+
+```yaml
+steps:
+  - setViewportSize:
+      width: 1440
+      height: 900
+  - clearCookies: {}
+```
+
+`setViewportSize` takes a parameter object; `clearCookies` takes no parameters, so use `{}`. Both Nodes are provided by Web projects. Consult your project's Node Spec for available mobile, desktop, and custom Nodes and their inputs.
+
+For example, if your team registers an `order.create` Node, you can call it as follows. This is a business extension example that must be implemented and registered in your project before use:
+
+```yaml
+steps:
+  - order.create:
+      sku: midscene-mug
+      quantity: 2
+```
+
+Parameters can also contain nested objects or arrays. When passing a reference image to `aiAct`, the text and images form one `prompt` value, while `options` is a separate field:
+
+```yaml
+steps:
+  - aiAct:
+      prompt:
+        prompt: Match the page to the reference image
+        images:
+          - name: target state
+            url: ./fixtures/target.png
+      options:
+        deepLocate: true
+```
+
+### Generate the current Project's Node Spec {#generate-the-current-projects-node-spec}
+
+The Nodes registered by different platforms, Execution Projects, and package versions can differ. Do not infer the current project's capabilities from another project's examples.
+
+`midscene-test nodes` generates Node Specs from the effective registry. The Spec lists available Nodes, their JSON Schema inputs (converted from Zod), string shorthand rules, and matching case files, serving as the source of truth for both people and AI Agents when writing YAML cases.
+
+<details>
+<summary>Show an example excerpt of a generated Node Spec</summary>
+
+````markdown filename=midscene-node-spec.md
+# Midscene Test Node Spec
+
+## Available Nodes
+
+| Node | Description |
+| --- | --- |
+| aiAct | Perform interface operations from natural language. |
+| aiAssert | Check whether the interface matches an expectation. |
+| gotoUrl | Navigate the current browser Page to an absolute HTTP(S) URL or a relative path. |
+
+## Node Details
+
+### `gotoUrl`
+
+Navigate the current browser Page to an absolute HTTP(S) URL or a path relative to testRunner.baseURL or the current page URL.
+
+**String shorthand:** Maps to `{ url: value }`.
+
+#### Input Schema
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string",
+      "description": "Navigation URL target."
+    }
+  },
+  "required": [
+    "url"
+  ]
+}
+```
+````
+
+</details>
+
+The scaffold generates the Spec after dependency installation. Regenerate it after changing `agentClass`, top-level `nodes`, `projects[].nodes`, or a Node schema, and after upgrading relevant Midscene packages:
+
+```bash
+pnpm run nodes
+```
+
+You can also run the command directly and specify a test directory, configuration file, or Execution Project:
+
+```bash
+pnpm exec midscene-test nodes ./e2e --config ../config/midscene.config.ts
+pnpm exec midscene-test nodes --project android-smoke
+```
+
+The command loads project configuration and Node definitions only. It does not run setup or cases and does not call `getAgent`, so it does not need to start a browser, connect a device, or call a model. The Spec is generated output; do not edit it manually. Regenerate it after configuration changes.
+
+## Case configuration and parameters
+
+### Configure timeouts and error handling
+
+Use `$` for Step parameters controlled by Midscene Test. Midscene Test does not include these parameters in the Node's `input`.
+
+```yaml
+steps:
+  - order.create:
+      sku: midscene-mug
+      quantity: 1
+      $:
+        timeout: 30000
+        continue-on-error: true
+```
+
+The following fields are supported:
+- `timeout`: Step timeout in milliseconds.
+- `continue-on-error`: when set to `true`, allows subsequent Steps in the current phase to run after this Step fails. The default is `false`. Unfinished operations or resource cleanup problems still stop execution.
+
+`continue-on-error` controls only whether execution continues. If any Step fails, the Case's final status is `failed`.
+
+A timeout does not mean the underlying operation has stopped. Before continuing with subsequent Steps in the same phase, the framework waits for cancelled operations to finish, for up to 30 seconds by default. If they remain unfinished, later Steps do not start. This wait is recorded separately and does not consume the next Step's timeout budget. Once the operation finishes, the Agent can be used again, but the case must still verify or reset page and business state. See [Timeouts and cancellation](./execution#timeouts-and-cancellation).
+
+### Use Project variables and environment variables
+
+Midscene Test recursively resolves Node input before execution:
+
+```yaml
+steps:
+  - launch:
+      uri: ${appUri}
+  - api.createOrder:
+      baseURL: ${{TEST_API_BASE_URL}}
+      payload:
+        count: ${orderCount}
+```
+
+- `${name}` reads a value from the current Execution Project's `variables`. When the placeholder occupies the entire scalar, it preserves the original JSON type.
+- `${{ENV_NAME}}` reads an environment variable. The result is always a string.
+- An object or array variable can be used as a complete value, but it cannot be embedded in a longer string.
+- An undefined variable fails during collection. Variables are resolved only in Node input, not in `$`.
+
+See [Test case design conventions](#test-case-design-conventions) for details on stateless and independent step execution.
+
+### Filter Cases with tags
+
+```yaml
+cases:
+  - name: Android smoke test for placing an order
+    tags: [smoke, android]
+    steps:
+      - aiAct: Complete the order
+```
+
+Framework maintainers configure `tags.include` and `tags.exclude` for each Execution Project. Exclusions always take precedence. When the include list is not empty, a Case is selected if it matches any included tag.
+
+## Next steps
+
+- [Execution lifecycle and concurrency](./execution): understand the complete execution mechanism of `beforeAll` and `beforeEach`, retry rules, and concurrency strategies.
+- [Develop custom Nodes](./extend): encapsulate reusable business operations.
+- [Run tests](./running): execute cases, inspect diagnostic output, and share reports.

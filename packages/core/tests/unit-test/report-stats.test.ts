@@ -1,5 +1,9 @@
 import { describe, expect, it } from '@rstest/core';
 import { collectReportSummary } from '../../src/report-stats';
+import {
+  collectTestRunReportMetrics,
+  sumTestRunReportMetrics,
+} from '../../src/test-runner/reporting/metrics';
 import type {
   AIUsageInfo,
   ExecutionTask,
@@ -48,6 +52,129 @@ function createReport(
 }
 
 describe('collectReportSummary', () => {
+  it('retains per-model usage through metric aggregation without double-counting cached input', () => {
+    const collect = (model: string) =>
+      collectTestRunReportMetrics(
+        createReport([
+          createTask({
+            usage: createUsage({
+              model_name: model,
+              prompt_tokens: 100,
+              completion_tokens: 20,
+              cached_input: 80,
+              total_tokens: 120,
+              time_cost: 10,
+            }),
+          }),
+        ]),
+      );
+    const first = collect('planning');
+    const total = sumTestRunReportMetrics([first, first, collect('insight')]);
+    expect(total).toMatchObject({
+      totalTokens: 360,
+      cachedInputTokens: 240,
+      models: [
+        { modelName: 'planning', callCount: 2, totalTokens: 240 },
+        { modelName: 'insight', callCount: 1, totalTokens: 120 },
+      ],
+    });
+    expect(first.models?.[0].totalTokens).toBe(120);
+  });
+
+  it('distinguishes missing provider fields from actual zero usage', () => {
+    const missing = collectTestRunReportMetrics(
+      createReport([
+        createTask({ usage: createUsage({ model_name: 'model' }) }),
+      ]),
+    );
+    expect(missing.collection).toMatchObject({
+      status: 'partial',
+      fields: {
+        modelCallCount: 'complete',
+        modelTimeMs: 'unknown',
+        totalTokens: 'unknown',
+      },
+    });
+    const zero = collectTestRunReportMetrics(
+      createReport([
+        createTask({
+          usage: createUsage({
+            model_name: 'model',
+            total_tokens: 0,
+            time_cost: 0,
+          }),
+        }),
+      ]),
+    );
+    expect(zero).toMatchObject({
+      modelCallCount: 1,
+      modelTimeMs: 0,
+      totalTokens: 0,
+      collection: {
+        status: 'partial',
+        fields: {
+          totalTokens: 'complete',
+          promptTokens: 'unknown',
+          completionTokens: 'unknown',
+        },
+      },
+    });
+    expect(
+      collectTestRunReportMetrics(createReport([createTask()])).collection
+        ?.status,
+    ).toBe('complete');
+  });
+
+  it('marks live and unrecorded model requests as incomplete without estimating usage', () => {
+    const unknown = collectTestRunReportMetrics(
+      createReport([
+        createTask({ status: 'failed', timing: { start: 1, callAiStart: 2 } }),
+      ]),
+    );
+    expect(unknown).toMatchObject({
+      modelCallCount: 0,
+      totalTokens: 0,
+      collection: { status: 'unknown' },
+    });
+    const partial = collectTestRunReportMetrics(
+      createReport([
+        createTask({
+          usage: createUsage({
+            model_name: 'model',
+            total_tokens: 7,
+            time_cost: 10,
+          }),
+        }),
+        createTask({ status: 'running', timing: { start: 0, callAiStart: 1 } }),
+      ]),
+    );
+    expect(partial).toMatchObject({
+      modelCallCount: 1,
+      totalTokens: 7,
+      collection: {
+        status: 'partial',
+        fields: {
+          modelCallCount: 'partial',
+          modelTimeMs: 'partial',
+          totalTokens: 'partial',
+        },
+      },
+    });
+  });
+  it('keeps usage complete for a pending device task with no model request', () => {
+    expect(
+      collectTestRunReportMetrics(
+        createReport([createTask({ status: 'running', type: 'Action' })]),
+      ).collection,
+    ).toMatchObject({
+      status: 'complete',
+      fields: {
+        modelCallCount: 'complete',
+        modelTimeMs: 'complete',
+        totalTokens: 'complete',
+      },
+    });
+  });
   it('aggregates elapsed time, model call time, and tokens with search-area calls attributed to their own models', () => {
     const report = createReport([
       createTask({

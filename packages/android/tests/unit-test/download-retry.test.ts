@@ -80,4 +80,36 @@ describe('download retry helper', () => {
 
     expect(download).toHaveBeenCalledTimes(1);
   });
+
+  it('preserves six default attempts, capped delays, and the original final error', async () => {
+    const error = new Error('download failed');
+    const download = rs.fn().mockRejectedValue(error);
+    const sleepImpl = rs.fn(async () => undefined);
+
+    await expect(
+      retryDownload({ download, label: 'yadb', log: rs.fn(), sleepImpl }),
+    ).rejects.toBe(error);
+
+    expect(download).toHaveBeenCalledTimes(6);
+    expect(sleepImpl.mock.calls).toEqual([
+      [2000],
+      [4000],
+      [8000],
+      [16000],
+      [30000],
+    ]);
+  });
+
+  it('retains retries for download errors without an Apple network diagnostic', async () => {
+    const download = rs
+      .fn()
+      .mockRejectedValueOnce(new Error('Response code 403 (Forbidden)'))
+      .mockResolvedValue(undefined);
+    const sleepImpl = rs.fn(async () => undefined);
+
+    await retryDownload({ download, label: 'scrcpy', log: rs.fn(), sleepImpl });
+
+    expect(download).toHaveBeenCalledTimes(2);
+    expect(sleepImpl.mock.calls).toEqual([[2000]]);
+  });
 });

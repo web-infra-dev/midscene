@@ -18,6 +18,7 @@ const include = enableAiTest
     : basicTest;
 
 export default defineConfig({
+  name: '@midscene/cli',
   coverage: createCoverageConfig(__dirname),
   include,
   testTimeout: 3 * 60 * 1000, // Global timeout set to 3 minutes
@@ -25,7 +26,7 @@ export default defineConfig({
   ...(enableCliE2eTest
     ? { pool: { maxWorkers: 1 } }
     : enableAiTest && process.env.CI
-      ? { pool: { maxWorkers: 4 } }
+      ? { pool: { maxWorkers: 2 } }
       : {}),
   resolve: {
     alias: {

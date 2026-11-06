@@ -3,7 +3,10 @@ import { assert } from '@midscene/shared/utils';
 import type { TUserPrompt } from '../../../common';
 import { userPromptToString } from '../../../common';
 import { buildElementLocateSystemPrompt } from '../../prompt/locate';
-import { AIResponseParseError, callAI } from '../../service-caller/index';
+import {
+  AIResponseParseError,
+  callGenerativeAI,
+} from '../../service-caller/index';
 import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
@@ -132,13 +135,13 @@ export async function genericLocate(
     locateImage: locateRequest.locateImage,
     imagePreprocess: adapter.imagePreprocess,
     targetDescription: targetElementDescription,
-    userMessageContentOrder: adapter.locate.userMessageContentOrder,
+    promptOrder: adapter.locate.promptOrder,
   });
 
   try {
     return await callAiAndParseWithRetry({
       callAi: (retryAttempt, previousParseError) =>
-        callAI(
+        callGenerativeAI(
           withSemanticRetryFeedback(messages, previousParseError),
           modelRuntime,
           {

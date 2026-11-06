@@ -11,19 +11,25 @@ import {
   buildInsightSystemPrompt,
   extractDataQueryPrompt,
 } from '../../prompt/insight';
-import { AIResponseParseError, callAI } from '../../service-caller/index';
+import {
+  AIResponseParseError,
+  callGenerativeAI,
+} from '../../service-caller/index';
 import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
 } from '../../service-caller/semantic-retry';
 import { multimodalPromptToMessages } from '../../shared/multimodal-prompt';
+import { extractBoolean } from './boolean';
 import { parseInsightResponse } from './insight-response-parser';
 
 type InsightAIArgs = [ConversationSystemMessage, ...ConversationUserMessage[]];
 
 const debugInsight = getDebug('ai:insight');
 
-export async function AiExtractElementInfo<T>(options: {
+export interface ExtractOptions {
+  /** Explicit task type; never infer from query keys. */
+  taskType: 'boolean' | 'extract';
   dataQuery: string | Record<string, string>;
   multimodalPrompt?: TMultimodalPrompt;
   context: UIContext;
@@ -31,7 +37,15 @@ export async function AiExtractElementInfo<T>(options: {
   extractOption?: ServiceExtractOption;
   modelRuntime: ModelRuntime;
   abortSignal?: AbortSignal;
-}) {
+}
+
+export async function AiExtractElementInfo<T>(options: ExtractOptions) {
+  if (
+    options.taskType === 'boolean' &&
+    options.modelRuntime.adapter.insight.booleanFn
+  ) {
+    return extractBoolean<T>(options);
+  }
   const { dataQuery, context, extractOption, multimodalPrompt, modelRuntime } =
     options;
   const insightProtocol = modelRuntime.adapter.insight.protocol;
@@ -102,7 +116,7 @@ export async function AiExtractElementInfo<T>(options: {
 
   return callAiAndParseWithRetry({
     callAi: (retryAttempt, previousParseError) =>
-      callAI(
+      callGenerativeAI(
         withSemanticRetryFeedback(msgs, previousParseError),
         modelRuntime,
         {

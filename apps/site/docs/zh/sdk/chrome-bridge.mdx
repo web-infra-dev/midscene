@@ -1,0 +1,124 @@
+# Chrome Bridge SDK
+
+`AgentOverChromeBridge` 通过 Midscene Chrome 插件控制桌面 Chrome 浏览器，并继承基础 `Agent` 的 [AI 方法](../reference/#interaction-methods)。使用前请先完成 [Chrome Bridge 环境配置](../bridge-mode)。
+
+## 导入与构造 {#constructor}
+
+```typescript
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
+
+const agent = new AgentOverChromeBridge({
+  closeNewTabsAfterDisconnect: false,
+});
+```
+
+实例化 `AgentOverChromeBridge` 时，会在 Node.js 进程中启动本地 Bridge Server 并等待 Chrome 插件连接。每个 Agent 实例只能绑定一个标签页；在调用 AI 方法前，必须先通过下方的连接方法绑定目标标签页。
+
+## 配置选项
+
+除[通用 Agent 配置](../reference/#agent-options)外，构造函数还支持以下选项：
+
+| 参数 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `allowRemoteAccess` | `boolean` | `false` | 设为 `true` 时监听 `0.0.0.0`；默认仅允许本机连接（`127.0.0.1`） |
+| `host` | `string` | `'127.0.0.1'` | 显式指定监听地址，优先级高于 `allowRemoteAccess` |
+| `port` | `number` | `3766` | Bridge Server 监听端口 |
+| `serverListeningTimeout` | `number \| false` | `30000` | 等待插件连接的超时时间（单位：毫秒）；设为 `false` 则不限时等待 |
+| `closeConflictServer` | `boolean` | `false` | 启动前是否尝试关闭占用同一地址和端口的已有 Bridge Server |
+| `closeNewTabsAfterDisconnect` | `boolean` | `false` | 销毁 Agent 时是否自动关闭由当前实例新建的标签页 |
+| `enableWaterFlowAnimation` | `boolean` | `true` | 操作页面时是否显示蓝色水波边框与鼠标指针动画 |
+| `keyboardTypeDelay` | `number` | `—` | 按键之间的延迟（单位：毫秒，须为有限非负数）。`'legacy'` 输入模式不应用此延迟；如需延迟输入，请将 `inputStrategy` 设为 `'sequential'` |
+| `inputStrategy` | `'legacy' \| 'sequential' \| 'bulk'` | `'legacy'` | 默认文本输入策略：`'sequential'` 逐个 Unicode 码点发送；`'bulk'` 一次性发送完整文本（要求未设置 `keyboardTypeDelay` 或将其设为 `0`） |
+
+如需跨机器连接，Server 端与插件端的双端配置请参阅[远程访问配置](../bridge-mode#remote-access-configuration)。注意：模型配置由运行脚本的 Node.js 进程读取，插件 Playground 中的模型配置不会同步到脚本中。
+
+## 连接方法
+
+### `connectCurrentTab()`
+
+```typescript
+agent.connectCurrentTab(options?: {
+  timeout?: number;
+  forceSameTabNavigation?: boolean;
+}): Promise<void>
+```
+
+连接 Chrome 当前窗口中处于激活状态的标签页。绑定成功后，即使后续手动切换到其他标签页，Agent 仍会继续操作该标签页。
+
+```typescript
+await agent.connectCurrentTab({ timeout: 60000 });
+await agent.aiAssert('The account page is visible');
+```
+
+### `connectNewTabWithUrl()`
+
+```typescript
+agent.connectNewTabWithUrl(url: string, options?: {
+  activateTab?: boolean;
+  timeout?: number;
+  forceSameTabNavigation?: boolean;
+}): Promise<void>
+```
+
+新建一个标签页打开指定的 `url` 并绑定该标签页。`activateTab` 默认为 `true`（新建后立即激活该标签页）；设为 `false` 可在后台新建标签页。
+
+```typescript
+await agent.connectNewTabWithUrl('https://example.com', {
+  activateTab: false,
+  timeout: 60000,
+});
+```
+
+### 连接行为与限制
+
+- `timeout` 控制单次连接调用的超时时间（默认 `30000` 毫秒），与构造函数中的 `serverListeningTimeout` 相互独立；连接超时会直接抛出错误。
+- `forceSameTabNavigation` 默认为 `true`，用于拦截新开标签页的跳转并在当前页面内打开。注意：当前实现中，传入 `false` 不会清除已注入的拦截逻辑，请勿依赖该参数恢复原生的打开新标签页行为。
+- 一个 Agent 实例完成标签页绑定后，若再次调用连接方法或 `setActiveTabId()` 会抛出错误。如需切换到其他标签页操作，请先调用 `agent.destroy()` 销毁当前实例，再创建新的 Agent 重新连接。
+
+## 标签页 API
+
+### `getBrowserTabList()`
+
+```typescript
+agent.getBrowserTabList(): Promise<Array<{
+  id: string;
+  title: string;
+  url: string;
+  currentActiveTab: boolean;
+}>>
+```
+
+返回 Chrome 当前窗口中的标签页列表（自动过滤掉缺少 ID、标题或 URL 的条目）。其中 `currentActiveTab` 仅表示该标签页在 Chrome 窗口中是否处于前台激活状态，不代表它是当前 Agent 绑定的标签页。
+
+### `setActiveTabId()`
+
+```typescript
+agent.setActiveTabId(tabId: string): Promise<void>
+```
+
+在 Agent 尚未绑定标签页时，根据 `getBrowserTabList()` 返回的 `id`（字符串类型）激活并绑定指定标签页。该方法仅用于初始绑定，不支持在运行过程中切换受控标签页；已绑定后再次调用会抛出错误。
+
+## 生命周期
+
+```typescript
+agent.destroy(closeNewTabsAfterDisconnect?: boolean): Promise<void>
+```
+
+执行通用 Agent 清理与报告写入，通知 Chrome 插件释放对页面的控制，并关闭本地 Bridge Server。
+
+- 默认情况下，断开连接后浏览器及所有标签页均保持打开状态。
+- 调用 `destroy(true)` 可覆盖构造时的配置，强制关闭由当前桥接实例新建的标签页；传入 `false` 则强制保留。
+- 通过 `connectCurrentTab()` 连接的存量标签页并非由桥接实例新建，因此无论该参数如何设置都不会被关闭。
+
+```typescript
+try {
+  await agent.connectNewTabWithUrl('https://example.com');
+  await agent.aiAssert('The page is visible');
+} finally {
+  await agent.destroy(true);
+}
+```
+
+## 平台限制
+
+Chrome Bridge 直接复用桌面 Chrome 浏览器的运行环境，因此不暴露 Playwright 或 Puppeteer 的 `Browser` / `Page` 对象，也不支持 `PlaywrightBrowserAgent` 的跨标签页自动切换。关于本地文件上传权限、连接授权与远程网络配置，请参阅 [Chrome Bridge 环境配置](../bridge-mode)；在 YAML 脚本中使用桥接模式的配置项，请参阅 [YAML 中的 Chrome Bridge](../automate-with-scripts-in-yaml#chrome-bridge)。

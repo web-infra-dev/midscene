@@ -1,7 +1,9 @@
+import type { TestRunReportOperationEvent } from '../../test-run-report';
 import {
   NodeExecutionError,
   NodeInputValidationError,
   StepTimeoutError,
+  WorkflowError,
   normalizeNodeExecutionError,
 } from '../errors';
 import type {
@@ -11,14 +13,24 @@ import type {
   NodeResult,
 } from '../node/types';
 import type { NormalizedStep } from '../parser/types';
-import { linkResourceSignal } from './resource-operations';
+import {
+  isResourceAdmissionError,
+  linkResourceSignal,
+  observeResourceOperations,
+  recordOperation,
+  setResourceOperationIdentity,
+  trackResourceOperation,
+} from './resource-operations';
 import type {
   NodeCaseContext,
   NodeDocumentContext,
   NodeExecutionPhase,
   NodeScopeTeardown,
   StepRunResult,
+  WorkflowReportSource,
 } from './types';
+
+export const REPORT_SNAPSHOT_TIMEOUT_MS = 5000;
 
 function validateNodeOutput<TData>(
   output: unknown,
@@ -76,12 +88,22 @@ async function executeNode<TOutputData>(
   execute: (signal: AbortSignal) => unknown,
   phase: NodeExecutionPhase,
   stepIndex: number,
-  options: { parentSignal?: AbortSignal; defaultTimeoutMs?: number },
+  options: {
+    parentSignal?: AbortSignal;
+    defaultTimeoutMs?: number;
+    identity: { scopeId: string; stepId: string; node: string };
+    onEvent(event: TestRunReportOperationEvent): void;
+  },
 ): Promise<StepRunResult<TOutputData>> {
   const startedAt = new Date();
   const abortController = new AbortController();
   const parentSignal = options.parentSignal;
   linkResourceSignal(abortController.signal, parentSignal);
+  setResourceOperationIdentity(abortController.signal, options.identity);
+  const stopObserving = observeResourceOperations(
+    abortController.signal,
+    options.onEvent,
+  );
   const abortFromParent = () => abortController.abort(parentSignal?.reason);
   if (parentSignal?.aborted) abortFromParent();
   else parentSignal?.addEventListener('abort', abortFromParent, { once: true });
@@ -92,6 +114,20 @@ async function executeNode<TOutputData>(
     abortController.signal.throwIfAborted();
     return execute(abortController.signal);
   });
+  const observation = recordOperation(
+    execution,
+    abortController.signal,
+    'node',
+  );
+  // A custom node's teardown cannot dispose what its actual execution still uses.
+  trackResourceOperation(
+    {},
+    execution,
+    abortController.signal,
+    'node',
+    observation,
+  );
+  let returnedStatus: 'success' | 'failed' | 'not-run' = 'failed';
   let settleOnAbort: (() => void) | undefined;
   const abortedExecution = new Promise<never>((_, reject) => {
     settleOnAbort = () => {
@@ -132,6 +168,7 @@ async function executeNode<TOutputData>(
       await settledExecution,
       step.node,
     );
+    returnedStatus = 'success';
     return {
       ...createStepResultBase(step, startedAt, phase, stepIndex),
       status: 'success',
@@ -139,6 +176,21 @@ async function executeNode<TOutputData>(
       ...(output === undefined ? {} : { output }),
     };
   } catch (error) {
+    if (isResourceAdmissionError(error)) {
+      returnedStatus = 'not-run';
+      return {
+        node: step.node,
+        phase,
+        stepIndex,
+        input: step.input,
+        meta: step.meta,
+        status: 'not-run',
+        notRunReason: error.message,
+        ...(error.blockedBy ? { blockedBy: error.blockedBy } : {}),
+        continuedAfterError: step.meta.continueOnError,
+        error,
+      };
+    }
     let output: NodeResult<TOutputData> | undefined;
     let failure = error;
     if (error instanceof NodeExecutionError && error.output !== undefined) {
@@ -156,6 +208,8 @@ async function executeNode<TOutputData>(
       ...(output === undefined ? {} : { output }),
     };
   } finally {
+    observation.runnerReturned(returnedStatus);
+    stopObserving();
     if (timeout !== undefined) clearTimeout(timeout);
     if (abortGraceTimeout !== undefined) clearTimeout(abortGraceTimeout);
     if (settleOnAbort !== undefined) {
@@ -171,13 +225,22 @@ type StepExecutionTarget =
 
 function createNodeReportCollector(node: string): {
   collector: NodeReportCollector;
-  close(): readonly NodeReportTrace[];
+  close(): Promise<NonNullable<StepRunResult['report']>>;
 } {
   const traces = new Map<string, NodeReportTrace>();
+  const captures: Array<Parameters<NodeReportCollector['onSnapshot']>[0]> = [];
   let accepting = true;
 
   return {
     collector: Object.freeze({
+      onSnapshot(capture: Parameters<NodeReportCollector['onSnapshot']>[0]) {
+        if (!accepting || typeof capture !== 'function')
+          throw new WorkflowError(
+            'A report snapshot callback must be registered while the Step is running.',
+            { code: 'REPORT_SNAPSHOT_REGISTRATION' },
+          );
+        captures.push(capture);
+      },
       addTrace(trace: NodeReportTrace): void {
         if (!accepting) {
           throw new NodeExecutionError(
@@ -209,13 +272,96 @@ function createNodeReportCollector(node: string): {
         const normalized = Object.freeze({
           type: 'midscene-execution' as const,
           executionId: trace.executionId,
+          ...(trace.metrics ? { metrics: structuredClone(trace.metrics) } : {}),
         });
         traces.set(`${normalized.type}:${normalized.executionId}`, normalized);
       },
     }),
-    close(): readonly NodeReportTrace[] {
+    async close(): Promise<NonNullable<StepRunResult['report']>> {
       accepting = false;
-      return Object.freeze([...traces.values()]);
+      const closedTraces = Object.freeze([...traces.values()]);
+      if (!captures.length) return Object.freeze({ traces: closedTraces });
+      const controller = new AbortController();
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const expired = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          const error = new WorkflowError(
+            'Agent report snapshot collection timed out.',
+            {
+              code: 'REPORT_SNAPSHOT_TIMEOUT',
+              details: { timeoutMs: REPORT_SNAPSHOT_TIMEOUT_MS },
+            },
+          );
+          controller.abort(error);
+          reject(error);
+        }, REPORT_SNAPSHOT_TIMEOUT_MS);
+      });
+      const outcomes = await Promise.all(
+        captures.map(async (capture) => {
+          try {
+            const source = await Promise.race([
+              Promise.resolve().then(() =>
+                capture(controller.signal, closedTraces),
+              ),
+              expired,
+            ]);
+            if (
+              !source ||
+              typeof source.sourcePath !== 'string' ||
+              !source.sourcePath.trim() ||
+              (source.dumpPath !== undefined &&
+                (typeof source.dumpPath !== 'string' ||
+                  !source.dumpPath.trim()))
+            )
+              throw new Error(
+                'Agent report capture must return sourcePath and a valid optional dumpPath.',
+              );
+            const captured = source.dumpPath
+              ? source
+              : {
+                  ...source,
+                  collection: {
+                    status: 'partial' as const,
+                    capturedAt:
+                      source.collection?.capturedAt ?? new Date().toISOString(),
+                    reason:
+                      source.collection?.reason ??
+                      'HTML report captures do not guarantee an immutable cutoff.',
+                  },
+                };
+            return {
+              source: Object.freeze({
+                ...captured,
+                ...(captured.collection
+                  ? { collection: Object.freeze({ ...captured.collection }) }
+                  : {}),
+              }),
+            };
+          } catch (error) {
+            return {
+              error:
+                error instanceof WorkflowError
+                  ? error
+                  : new WorkflowError(
+                      `Agent report snapshot collection failed: ${String(error)}`,
+                      { code: 'REPORT_SNAPSHOT_FAILED', cause: error },
+                    ),
+            };
+          }
+        }),
+      );
+      if (timer !== undefined) clearTimeout(timer);
+      const sources = outcomes.flatMap((outcome) =>
+        outcome.source ? [outcome.source] : [],
+      );
+      const errors = outcomes.flatMap((outcome) =>
+        outcome.error ? [outcome.error] : [],
+      );
+      return Object.freeze({
+        traces: closedTraces,
+        ...(sources.length ? { sources: Object.freeze(sources) } : {}),
+        ...(errors.length ? { collectionErrors: Object.freeze(errors) } : {}),
+      });
     },
   };
 }
@@ -256,6 +402,9 @@ export async function executeStep<
     target.scope === 'case' ? target.case.stepIndex : target.document.stepIndex;
 
   const reportCollector = createNodeReportCollector(step.node);
+  const events: TestRunReportOperationEvent[] = [];
+  const scopeId =
+    target.scope === 'case' ? target.case.runId : target.document.documentRunId;
   let result: StepRunResult<TOutputData> | undefined;
 
   try {
@@ -295,12 +444,31 @@ export async function executeStep<
       {
         parentSignal: execution.signal,
         defaultTimeoutMs: execution.defaultTimeoutMs,
+        identity: {
+          scopeId,
+          stepId: `${scopeId}:${phase}:${stepIndex}`,
+          node: step.node,
+        },
+        onEvent: (event) => events.push(event),
       },
     );
   } finally {
-    const traces = reportCollector.close();
-    if (traces.length > 0 && result) {
-      result = { ...result, report: { traces } };
+    const report = await reportCollector.close();
+    if (result)
+      result = {
+        ...result,
+        operations: Object.freeze({
+          capturedAt: new Date().toISOString(),
+          events: Object.freeze([...events]),
+        }),
+      };
+    if (
+      (report.traces.length ||
+        report.sources?.length ||
+        report.collectionErrors?.length) &&
+      result
+    ) {
+      result = { ...result, report };
     }
   }
 

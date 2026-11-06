@@ -253,9 +253,7 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
     this.onLogMessage(`Creating new tab: ${url}`, 'log');
     this.newlyCreatedTabIds.push(tabId);
 
-    if (options?.forceSameTabNavigation) {
-      this.forceSameTabNavigation = true;
-    }
+    this.forceSameTabNavigation = options?.forceSameTabNavigation ?? true;
 
     // chrome.tabs.create returns immediately with an about:blank target,
     // then navigates to `url`. If we attach the debugger during that
@@ -279,15 +277,16 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
       this.waterFlowAnimationEnabled = options.enableWaterFlowAnimation;
     }
 
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tabs =
+      options?.tabId !== undefined
+        ? [await chrome.tabs.get(options.tabId)]
+        : await chrome.tabs.query({ active: true, currentWindow: true });
     const tabId = tabs[0]?.id;
     assert(tabId, 'failed to get tabId');
 
     this.onLogMessage(`Connected to current tab: ${tabs[0]?.url}`, 'log');
 
-    if (options?.forceSameTabNavigation) {
-      this.forceSameTabNavigation = true;
-    }
+    this.forceSameTabNavigation = options?.forceSameTabNavigation ?? true;
 
     await this.setActiveTabId(tabId);
   }

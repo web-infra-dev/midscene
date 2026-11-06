@@ -42,7 +42,10 @@ import {
   judgeOrderSensitive,
   sanitizeXpaths,
 } from '../common/cache-helper';
-import { selectAllInputScript } from '../common/input-scripts';
+import {
+  focusedInputFrameScript,
+  selectAllInputScript,
+} from '../common/input-scripts';
 import {
   type KeyInput,
   type MouseButton,
@@ -82,6 +85,16 @@ type ScreencastFrameEvent = {
 type PageCdpSession = {
   send(method: string, params?: Record<string, unknown>): Promise<unknown>;
   detach(): Promise<void>;
+};
+
+// Narrow the different Playwright/Puppeteer generic overloads to the frame
+// operations needed for focus traversal, including cross-origin child frames.
+type FocusedInputFrame = {
+  evaluate(script: string): Promise<unknown>;
+  evaluateHandle(script: string): Promise<{
+    asElement(): { contentFrame(): Promise<FocusedInputFrame | null> } | null;
+    dispose(): Promise<void>;
+  }>;
 };
 
 type ScreencastCdpSession = PageCdpSession & {
@@ -203,7 +216,6 @@ export class Page<
   underlyingPage: InterfaceType;
   protected waitForNavigationTimeout: number;
   protected waitForNetworkIdleTimeout: number;
-  private viewportSize?: Size;
   private onBeforeInvokeAction?: AbstractInterface['beforeInvokeAction'];
   private onAfterInvokeAction?: AbstractInterface['afterInvokeAction'];
   private customActions?: DeviceAction<any>[];
@@ -449,16 +461,14 @@ export class Page<
   }
 
   async size(): Promise<Size> {
-    if (this.viewportSize) return this.viewportSize;
+    // Tabs and window sizes can change while this wrapper stays alive.
     /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
-    const sizeInfo: Size = await this.evaluate(() => {
+    return this.evaluate(() => {
       return {
         width: window.innerWidth,
         height: window.innerHeight,
       };
     });
-    this.viewportSize = sizeInfo;
-    return sizeInfo;
   }
 
   async screenshotBase64(): Promise<string> {
@@ -1125,7 +1135,23 @@ export class Page<
 
   async selectAllInput(element?: ElementInfo): Promise<void> {
     if (!element) {
-      throw new Error('Bulk replace input requires a target element');
+      let frame: FocusedInputFrame = this.underlyingPage.mainFrame();
+      while (true) {
+        const handle = await frame.evaluateHandle(focusedInputFrameScript);
+        let child: FocusedInputFrame | null | undefined;
+        try {
+          child = await handle.asElement()?.contentFrame();
+        } finally {
+          await handle.dispose();
+        }
+        if (!child) break;
+        frame = child;
+      }
+      if (!(await frame.evaluate(selectAllInputScript))) {
+        // Never issue a page-level selectAll when no editable field owns focus.
+        throw new Error('Replacing text requires a focused editable field');
+      }
+      return;
     }
     await this.mouse.click(element.center[0], element.center[1]);
     const selected = await this.evaluate<boolean>(selectAllInputScript);
@@ -1513,19 +1539,25 @@ export class Page<
         capturedError = error as Error;
       }
     };
-    session.on('Page.fileChooserOpened', this.puppeteerFileChooserHandler);
+    const listener = this.puppeteerFileChooserHandler;
+    session.on('Page.fileChooserOpened', listener);
+    let disposed = false;
     return {
       dispose: () => {
-        if (this.puppeteerFileChooserHandler) {
-          session.off(
-            'Page.fileChooserOpened',
-            this.puppeteerFileChooserHandler,
-          );
+        if (disposed) return;
+        disposed = true;
+        session.off('Page.fileChooserOpened', listener);
+        if (this.puppeteerFileChooserHandler === listener) {
+          this.puppeteerFileChooserHandler = undefined;
         }
-        void session.detach();
-        this.puppeteerFileChooserHandler = undefined;
-        if (this.puppeteerFileChooserSession === session) {
+        if (
+          this.puppeteerFileChooserSession === session &&
+          !this.puppeteerFileChooserHandler
+        ) {
           this.puppeteerFileChooserSession = undefined;
+          void session.detach().catch((error) => {
+            debugPage('failed to detach file chooser session: %s', error);
+          });
         }
       },
       getError: () => capturedError,
