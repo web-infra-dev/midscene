@@ -16,7 +16,10 @@ import {
 import { resolveChromePath } from '@midscene/shared/agent-tools/chrome-path';
 import type { ToolDefinition } from '@midscene/shared/agent-tools/types';
 import { getDebug } from '@midscene/shared/logger';
-import type { Page as PuppeteerPage } from 'puppeteer';
+import type {
+  Browser as PuppeteerBrowser,
+  Page as PuppeteerPage,
+} from 'puppeteer';
 import puppeteer from 'puppeteer-core';
 import type { Browser, Page } from 'puppeteer-core';
 import {
@@ -25,11 +28,16 @@ import {
   webAgentInitArgShape,
 } from './agent-init-args';
 import {
+  createPuppeteerTabTools,
+  getTargetId,
+  requireTargetId,
+} from './agent-tools-tabs';
+import {
   type ViewportSize,
   defaultPuppeteerWindowViewportSize,
   defaultStaticPageViewportSize,
 } from './common/viewport';
-import { PuppeteerAgent } from './puppeteer';
+import { PuppeteerBrowserAgent } from './puppeteer';
 import { StaticPage } from './static';
 
 const ENDPOINT_FILE = join(tmpdir(), 'midscene-puppeteer-endpoint');
@@ -89,10 +97,6 @@ function terminateDetachedChrome(proc: ChildProcess): void {
   try {
     proc.kill('SIGKILL');
   } catch {}
-}
-
-function getTargetId(page: Page): string | undefined {
-  return (page.target() as unknown as { _targetId?: string })._targetId;
 }
 
 export function waitForDetachedChromeEndpoint(
@@ -378,7 +382,7 @@ const defaultBrowserManager = new PuppeteerBrowserManager();
  * Uses a persistent headless Chrome browser that survives across CLI calls.
  */
 export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<
-  PuppeteerAgent,
+  PuppeteerBrowserAgent,
   WebAgentInitArgs
 > {
   private readonly viewport?: ViewportSize;
@@ -419,7 +423,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<
 
   protected async ensureAgent(
     initArgs?: WebAgentInitArgs,
-  ): Promise<PuppeteerAgent> {
+  ): Promise<PuppeteerBrowserAgent> {
     const navigateToUrl = initArgs?.url;
     const nextSignature = getAgentInitArgsSignature(initArgs);
     const shouldOpenUrl = typeof navigateToUrl === 'string';
@@ -451,7 +455,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<
     if (navigateToUrl) {
       page = await browser.newPage();
       if (this.viewport) {
-        await page.setViewport(this.viewport);
+        await this.resizePersistentViewport(page);
       }
       await page.goto(navigateToUrl, {
         timeout: 30000,
@@ -473,7 +477,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<
         await page.bringToFront();
       }
       if (this.viewport) {
-        await page.setViewport(this.viewport);
+        await this.resizePersistentViewport(page);
       }
     }
 
@@ -486,21 +490,77 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<
     await this.browserManager.saveTargetId(targetId);
 
     const reportOptions = this.readCliReportAgentOptions();
-    this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage, {
-      ...(extractAgentBehaviorInitArgs(initArgs) ?? {}),
-      ...(reportOptions ?? {}),
-    });
+    this.agent = new PuppeteerBrowserAgent(
+      browser as unknown as PuppeteerBrowser,
+      page as unknown as PuppeteerPage,
+      {
+        autoFollowNewPage: false,
+        ...(extractAgentBehaviorInitArgs(initArgs) ?? {}),
+        ...(reportOptions ?? {}),
+      },
+    );
     this.lastInitArgsSignature = nextSignature;
     return this.agent;
   }
 
+  private async resizePersistentViewport(page: Page): Promise<void> {
+    const viewport = this.viewport;
+    if (!viewport) return;
+
+    // Emulation is scoped to the CDP connection. Resize the actual content area
+    // so the requested dimensions also survive CLI disconnect and reconnect.
+    await page.setViewport(null);
+    const client = await page.createCDPSession();
+    try {
+      const { windowId, bounds } = await client.send(
+        'Browser.getWindowForTarget',
+      );
+      // Browser snippets must remain free of Node-side coverage counters.
+      const content = (await page.evaluate(
+        '({ width: window.innerWidth, height: window.innerHeight })',
+      )) as { width: number; height: number };
+      if (bounds.width === undefined || bounds.height === undefined) {
+        throw new Error('Chrome did not return window dimensions');
+      }
+      await client.send('Browser.setWindowBounds', {
+        windowId,
+        bounds: {
+          width: bounds.width + viewport.width - content.width,
+          height: bounds.height + viewport.height - content.height,
+        },
+      });
+      await page.waitForFunction(
+        `window.innerWidth === ${JSON.stringify(viewport.width)} && window.innerHeight === ${JSON.stringify(viewport.height)}`,
+        { timeout: 10_000 },
+      );
+    } finally {
+      await client.detach();
+    }
+    await page.setViewport(viewport);
+  }
+
   public async destroy(): Promise<void> {
-    await super.destroy();
-    this.browserManager.disconnect();
+    try {
+      if (this.agent && !this.agent.activePage.isClosed()) {
+        await this.browserManager.saveTargetId(
+          requireTargetId(this.agent.activePage),
+        );
+      }
+    } finally {
+      try {
+        await super.destroy();
+      } finally {
+        this.browserManager.disconnect();
+      }
+    }
   }
 
   protected preparePlatformTools(): ToolDefinition[] {
     return [
+      ...createPuppeteerTabTools(
+        () => this.ensureAgent(),
+        (id) => this.browserManager.saveTargetId(id),
+      ),
       {
         name: 'web_connect',
         description:

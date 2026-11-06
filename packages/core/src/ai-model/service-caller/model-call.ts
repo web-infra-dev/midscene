@@ -3,7 +3,7 @@ import type { AIUsageInfo } from '@/types';
 import { assert } from '@midscene/shared/utils';
 import type { ModelRuntime } from '../models';
 import { type JsonParserSource, assertJsonObject } from '../shared/json';
-import { callAI } from './call-ai';
+import { callGenerativeAI } from './call-ai';
 import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
@@ -22,7 +22,7 @@ export type AIObjectResponse<T> = {
 };
 
 export function parseAIObjectResponse<T>(
-  response: Awaited<ReturnType<typeof callAI>>,
+  response: Awaited<ReturnType<typeof callGenerativeAI>>,
   modelRuntime: ModelRuntime,
   jsonParserSource: JsonParserSource = 'generic-object',
 ): AIObjectResponse<T> {
@@ -54,7 +54,7 @@ export async function callAIWithObjectResponse<T>(
   const { config: modelConfig } = modelRuntime;
   return callAiAndParseWithRetry({
     callAi: (retryAttempt, previousParseError) =>
-      callAI(
+      callGenerativeAI(
         withSemanticRetryFeedback(messages, previousParseError),
         modelRuntime,
         {
@@ -95,7 +95,7 @@ export async function callAIWithStringResponse(
   usage?: AIUsageInfo;
   rawAssistantOutput?: RawAssistantOutput;
 }> {
-  const { content, usage, rawAssistantOutput } = await callAI(
+  const { content, usage, rawAssistantOutput } = await callGenerativeAI(
     msgs,
     modelRuntime,
     options,

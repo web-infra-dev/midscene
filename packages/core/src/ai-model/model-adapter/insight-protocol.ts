@@ -1,4 +1,5 @@
 import type { JsonParser } from '../shared/json';
+import type { BooleanFn } from '../workflows/insight/boolean';
 
 export type InsightDataOutputProtocol = {
   /** Ordered XML tags delimiting the model-specific data output. */
@@ -27,9 +28,11 @@ export type InsightProtocolDefinition =
   | InsightProtocolFactory;
 
 export type InsightAdapter = {
+  booleanFn?: BooleanFn;
   protocol: InsightProtocol;
 };
 
 export type InsightDefinition = {
+  booleanFn?: BooleanFn;
   protocol?: InsightProtocolDefinition;
 };

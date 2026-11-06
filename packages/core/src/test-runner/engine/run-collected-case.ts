@@ -183,6 +183,7 @@ export async function runCollectedCase<TContext = undefined>(
   try {
     if (phases.afterEach.length || teardownStack.length)
       await cleanupScopeResources(scopeSignal, cleanup, {
+        totalTimeoutMs: options.teardownTimeoutMs?.(),
         beforeCleanup: async (cleanupSignal) => {
           try {
             await runPhase('afterEach', afterEach, cleanupSignal);

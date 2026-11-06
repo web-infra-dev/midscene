@@ -1,0 +1,200 @@
+# Execution lifecycle and concurrency
+
+## Project lifecycle
+
+### setup, fileSetup, and beforeAll
+
+They run in the order `setup → fileSetup → beforeAll → cases`. Unconfigured parts are skipped.
+
+| Setting | Location | Frequency | Purpose |
+| --- | --- | --- | --- |
+| `setup` | Project configuration | Once per project | Prepare shared resources, such as a Browser |
+| `fileSetup` | Project configuration | Once per file | Create an independent page and Agent; return the Node `context` |
+| `beforeAll` | YAML | Once before the file's cases | Use `context` to log in or prepare test data |
+
+In a normal run of two YAML files, `setup` runs once, while `fileSetup` and `beforeAll` each run twice. Concurrency limits do not change these counts.
+
+Configure `fileSetup` once for all files; declare `beforeAll` in each file. Custom Nodes in `beforeAll` can also create resources, but this does not make the framework create an independent file context.
+
+### YAML lifecycle hooks {#yaml-lifecycle-hooks}
+
+Lifecycle hooks prepare the environment, reset state, or clean up data around test cases. All four hooks are optional and appear at the same level as `cases`. Their steps use the same Node call syntax as case `steps`.
+
+| Hook | When it runs | Common uses |
+| --- | --- | --- |
+| `beforeAll` | Once before all cases in the current YAML file | Prepare data shared by the file's cases |
+| `beforeEach` | Before every execution of a case, including retries | Open a page or reset case state |
+| `afterEach` | After every execution of a case, including failures and retries | Clean up data created during that execution |
+| `afterAll` | Once after all cases in the current YAML file | Clean up data shared by the file's cases |
+
+This Web example opens the store home page before each case and clears cookies afterward. `data.prepare` and `data.cleanup` are custom Nodes your project must implement and register to prepare and remove test products. `gotoUrl`, `clearCookies`, `aiAct`, and `aiAssert` are official Nodes registered by the Web scaffold:
+
+```yaml filename=cases/search.yaml
+beforeAll:
+  - data.prepare: Prepare mug and kettle test products
+
+beforeEach:
+  - gotoUrl: https://your-shop.example
+
+cases:
+  - name: Search for mugs
+    steps:
+      - aiAct: Search for mugs
+      - aiAssert: The search results include mugs
+
+  - name: Search for kettles
+    steps:
+      - aiAct: Search for kettles
+      - aiAssert: The search results include kettles
+
+afterEach:
+  - clearCookies: {}
+
+afterAll:
+  - data.cleanup: Delete the test products prepared for this file
+```
+
+### Project, file, and case lifecycle
+
+When running tests through the CLI or `runTestProject()`, each execution project has its own lifecycle. The following shows normal sequential execution for a project with two YAML files. YAML hooks that are not declared are skipped:
+
+```text
+Execution project starts
+├─ setup → returns the shared project context
+├─ File A
+│  ├─ fileSetup (when configured) → returns the file context
+│  ├─ beforeAll
+│  ├─ Case 1: beforeEach → steps → afterEach → Node cleanup for this attempt
+│  ├─ Case 2: beforeEach → steps → afterEach → Node cleanup for this attempt
+│  ├─ afterAll
+│  └─ File-scoped Node cleanup → cleanup registered in fileSetup
+├─ File B
+│  └─ Runs its own hooks, cases, and cleanup in the same order
+└─ Project cleanup: onTeardown() callbacks registered in setup
+```
+
+`beforeAll` and `afterAll` each run once per YAML file; `beforeEach` and `afterEach` surround every case attempt. With file concurrency enabled, files can advance together, while each file follows the order shown above.
+
+Case retries reuse the file environment and repeat only `beforeEach → steps → afterEach → Node cleanup for this attempt`. Project `setup`, `fileSetup`, and `beforeAll` do not rerun. See [Handling failures](./execution#handling-failures) for retry conditions and skip rules.
+
+The scope of `onTeardown()` depends on where it is registered:
+
+| Registration location | Cleanup timing |
+| --- | --- |
+| Project `setup` | At project completion, after cleanup of all files that ran |
+| `fileSetup` | After the current file's `afterAll` and file-scoped Node cleanup |
+| Nodes in `beforeAll` or `afterAll` | After the current file's `afterAll` |
+| Nodes in `beforeEach`, `steps`, or `afterEach` | After the current attempt's `afterEach`, with separate cleanup for each retry |
+
+Within each scope, callbacks run in reverse registration order. If one throws, remaining callbacks are still attempted; if it has not finished, later cleanup waits for it. See [Resource lifecycle and cleanup](./extend#resource-lifecycle-and-cleanup) for implementing Node cleanup.
+
+### Context sharing scope
+
+The configuration determines which `context` Nodes receive:
+
+| Configuration | Source of `context` | Shared by |
+| --- | --- | --- |
+| Project `setup` only | The return value of `setup` | All files in the current project |
+| With `fileSetup` | The return value of that file's `fileSetup` invocation | Hooks and cases in the current file, including case retries |
+
+Nodes within the same sharing scope receive the same object. A value written to `context.orderId` can remain visible to later cases. The framework does not reset the context, page, or login state between cases or retries; restore the required initial state in `beforeEach`.
+
+Create resources and the returned object inside the `setup()` function. Projects or files invoke the function separately even when they reference the same definition; returning a mutable object from module scope would still share state. See [Share context across Nodes](./extend#share-context-across-nodes) for a data-passing example.
+
+### Handling failures
+
+| Failure location | What happens next |
+| --- | --- |
+| Project `setup` | Skip the project's files and attempt registered project cleanup |
+| `fileSetup` | Skip the current file's hooks and cases, and attempt registered file cleanup |
+| `beforeAll` | Mark the file's cases as `not-run`, but still run `afterAll` |
+| `beforeEach` or case `steps` | Skip the current case's remaining body steps, but still run `afterEach` |
+| `afterEach` or `afterAll` | Record a failure; cleanup-step errors are not ignored |
+
+A failed step skips the remaining steps in its phase by default. Set [`continue-on-error`](./writing#configure-timeouts-and-error-handling) to continue, while keeping the failed result. Cleanup Nodes should handle partially completed preparation.
+
+A failed case does not prevent the next case from running by default. Set `test.bail` to skip later cases and retries after a failed-case threshold; the current attempt finishes before cleanup. Cancelling the run instead requests that running operations stop. Keep dependent business steps in the same case.
+
+Resource failures or failed or unfinished registered cleanup stop retries and later cases in the current file. Whether other files continue depends on the sharing scope:
+
+| Situation | Affected scope |
+| --- | --- |
+| A file's exclusive device fails, and operations and cleanup have finished | With `fileSetup`, other independent files can continue, subject to `bail` |
+| An explicitly reported shared project resource failure | Stop other files in that project; without `fileSetup`, resource failures or cleanup problems also stop the project |
+| Operations or cleanup remain unfinished | Stop starting all new files |
+
+An ordinary `afterEach` step failure remains a case failure and can be retried after operations and registered cleanup finish. Run infrastructure errors, such as result publication failures, cancel the entire run.
+
+See [Create and clean up shared resources with setup](./configuration#create-and-clean-up-shared-resources-with-setup) for resource configuration, and [Resource lifecycle and cleanup](./extend#resource-lifecycle-and-cleanup) for cleanup inside Nodes.
+
+
+## Concurrency and isolation
+
+Two limits apply together: `maxConcurrentFiles` limits files across the whole run, and `maxConcurrentProjects` limits projects whose preparation has started but whose cleanup has not finished. Each defaults to `1` independently. Set either to `null` to remove that limit; numeric values must be positive integers.
+
+| `test` configuration | Behavior |
+| --- | --- |
+| Omitted | Finish one project at a time, running its files sequentially |
+| `{ maxConcurrentFiles: 4 }` | One project at a time, with up to 4 files running together |
+| `{ maxConcurrentProjects: 2 }` | Files remain globally sequential; up to 2 project environments may stay open |
+| `{ maxConcurrentFiles: null, maxConcurrentProjects: 1 }` | Finish one project at a time, without a global file limit |
+| `{ maxConcurrentFiles: null, maxConcurrentProjects: null }` | Remove both global limits; local file limits and available resources still apply |
+
+Execution is asynchronous within one Node.js process. Raising only the project limit does not raise file concurrency. Removing limits does not guarantee a faster run: browser capacity, devices, and model service quotas still matter.
+
+### File concurrency with maxConcurrentFiles
+
+| Configuration | Meaning |
+| --- | --- |
+| `test.maxConcurrentFiles` | Total active files across all projects; default `1`, `null` for unlimited |
+| `test.maxConcurrentProjects` | Projects from the start of preparation through completed cleanup; default `1`, `null` for unlimited |
+| `projects[].maxConcurrentFiles` | Positive integer file limit for this project; inherits the global file limit when omitted and cannot raise it |
+| `projects[].fileSetup` | Prepares an independent environment for each file; required when the effective project file limit exceeds `1`, including unlimited, even if only one file is selected |
+
+For example, with `test: { maxConcurrentFiles: 3, maxConcurrentProjects: 2 }` and Web and Android file limits of `2` each, two Web files and one Android file can run together, or one Web file and two Android files. The project count does not multiply the global file limit.
+
+A file occupies a slot from preparation through completed cleanup, including device waits and case retries. Starting a new project claims both a project slot and its first file slot before `setup`; other files in that project wait for initialization without taking additional slots. Eligible projects take turns admitting files.
+
+A project keeps its slot between files, even when none is currently running. Its last file retains a file slot through project cleanup; the project slot is released only when cleanup actually finishes. With `maxConcurrentProjects: 1`, the next project starts after the previous one is fully cleaned up. Setting only `maxConcurrentFiles: 1` allows files from different projects to interleave if the project limit permits it.
+
+After cancellation or `bail`, cleanup for initialized projects with no active files is also scheduled within the global file limit. See [Timeouts and cancellation](#timeouts-and-cancellation).
+
+### Existing configurations
+
+`test.maxConcurrency` has been removed; loading an old configuration reports an error with a migration example. It controlled project concurrency, so simply renaming it to `maxConcurrentFiles` changes behavior. To preserve an old limit of `2`, set `test: { maxConcurrentProjects: 2, maxConcurrentFiles: 2 }` and each project's `maxConcurrentFiles` to `1`. Without explicit `projects`, keep the global file limit at `1`.
+
+`fileSetup`, project file limits, and preparation/cleanup timeouts can be configured without explicitly setting either global limit. When a project's effective file limit is `1`, `fileSetup` is optional and its files can share the `setup` return value.
+
+Cases are not automatically divided between projects. If two projects select the same YAML file, each runs it once. Use non-overlapping `files` or `tags` rules to split the work.
+
+Legacy `tasks/flow` YAML still runs through `midscene`. Its `concurrent` / `--concurrent`, setup-file behavior, and browser reuse remain unchanged; those settings are handled separately from native Test's `setup` and `fileSetup`. See [Migrate to Midscene Test](../migrate-to-midscene-test).
+
+## Timeouts and cancellation
+
+### Timeout settings
+
+| Configuration | Scope | Default |
+| --- | --- | --- |
+| `test.testTimeout` | One step; overridden by the step's `$` settings | `120000` ms |
+| `test.setupTimeout` | Each project `setup` or `fileSetup`, including device waits | `120000` ms |
+| `test.teardownTimeout` | Each cleanup scope, including hooks, waiting for operations, and cleanup callbacks | `30000` ms |
+
+Preparation and cleanup limits also apply when concurrency settings are omitted. After cancellation or `bail`, cleanup scopes share a shutdown deadline based on `teardownTimeout`.
+
+### Cancellation and cleanup
+
+A step timeout aborts that step's `signal`. The CLI cancels the run on `SIGINT` (such as Ctrl+C) or `SIGTERM`. Nodes must pass `signal` to APIs that support cancellation or check its state; asynchronous operations do not stop automatically. See [Asynchronous operations, errors, and cancellation](./extend#asynchronous-operations-errors-and-cancellation).
+
+After interruption, the framework still attempts cleanup. Nodes in `afterEach` and `afterAll` use a cleanup signal that has not been aborted. Step timeouts still apply, and cleanup cannot overlap an unfinished operation on the same Agent. Cleanup Nodes should handle partially completed preparation.
+
+Callbacks registered with `onTeardown()` do not receive a new signal. Avoid reusing the original step's signal, which may already be aborted.
+
+Timeouts bound the wait for results. If operations or cleanup remain unfinished, the framework records `cleanup pending`, keeps tracking resources, and releases them after operations actually finish. No new files start in this state. See [Handling failures](./execution#handling-failures) for the full rules.
+
+## Usage notes
+
+- **Configure what you need.** Use only `fileSetup` when there are no shared resources. With an effective file limit of `1`, omit it to share the `setup` result across files.
+- **Concurrent files need isolation.** An effective file limit above `1`, including unlimited, requires `fileSetup`, even if only one file is selected. Use separate pages, Agents, and devices; isolate backend accounts and data separately.
+- **Retries do not repeat preparation.** `setup`, `fileSetup`, and `beforeAll` do not rerun. Reset state needed for each attempt in `beforeEach`.
+- **Register cleanup immediately.** Call `onTeardown()` after creating each resource. File cleanup precedes shared project cleanup; cleanup code must tolerate partial preparation.
+

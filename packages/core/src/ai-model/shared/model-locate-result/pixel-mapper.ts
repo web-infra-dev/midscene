@@ -1,6 +1,7 @@
 import type { Rect } from '@/types';
 import { isBboxLocateResultValue } from './types';
 import type {
+  BboxBoundsType,
   BboxLocateResultValue,
   CoordinateRounding,
   LocateResultPoint,
@@ -50,20 +51,32 @@ export function clampPixelPointToSize(
 export function clampPixelBboxToSize(
   pixelBbox: PixelBbox,
   size: { width: number; height: number },
+  boundsType: BboxBoundsType = 'inclusive',
 ): PixelBbox {
   const [left, top, right, bottom] = pixelBbox;
+  if (boundsType === 'edges') {
+    return [
+      clamp(left, 0, size.width),
+      clamp(top, 0, size.height),
+      clamp(right, 0, size.width),
+      clamp(bottom, 0, size.height),
+    ];
+  }
   return [
     ...clampPixelPointToSize([left, top], size),
     ...clampPixelPointToSize([right, bottom], size),
   ];
 }
 
-export function pixelBboxToRect([left, top, right, bottom]: PixelBbox): Rect {
+export function pixelBboxToRect(
+  [left, top, right, bottom]: PixelBbox,
+  boundsType: BboxBoundsType = 'inclusive',
+): Rect {
   return {
     left,
     top,
-    width: right - left + 1,
-    height: bottom - top + 1,
+    width: right - left + (boundsType === 'inclusive' ? 1 : 0),
+    height: bottom - top + (boundsType === 'inclusive' ? 1 : 0),
   };
 }
 

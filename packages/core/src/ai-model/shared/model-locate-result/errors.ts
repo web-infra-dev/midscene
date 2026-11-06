@@ -1,6 +1,14 @@
-const modelConfigDocUrl = 'https://midscenejs.com/model-config';
+const modelConfigDocUrl =
+  'https://midscenejs.com/model-config#common-configuration-errors';
 
-export const defaultModelFamilyRequiredForLocateMessage = `Default model family is required for locate. Configure MIDSCENE_MODEL_FAMILY so Midscene can parse locate coordinates correctly. ${modelConfigDocUrl}`;
+export function modelFamilyRequiredForLocateMessage(slot?: string) {
+  const role = slot === 'locate' ? 'Locate' : 'Default';
+  const configKey =
+    slot === 'locate'
+      ? 'MIDSCENE_LOCATE_MODEL_FAMILY'
+      : 'MIDSCENE_MODEL_FAMILY';
+  return `${role} model family is required for locate. Configure ${configKey} so Midscene can parse locate coordinates correctly. ${modelConfigDocUrl}`;
+}
 
 export function planningModelFamilyRequiredForLocateMessage(slot?: string) {
   if (slot === 'planning') {

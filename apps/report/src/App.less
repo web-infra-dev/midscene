@@ -10,11 +10,6 @@ body {
   background: #f2f4f7;
 }
 
-// Dark mode for body
-[data-theme='dark'] {
-  background: #141414;
-}
-
 .rspress-nav {
   transition: 0.2s;
 }
@@ -58,6 +53,8 @@ footer.mt-8 {
 // ----------
 
 .page-container {
+  --report-surface: var(--runner-surface, #fff);
+
   blockquote,
   dl,
   dd,
@@ -155,13 +152,6 @@ footer.mt-8 {
       padding-left: 4px;
       font-size: 16px;
       font-weight: 600;
-
-      .page-nav-title-hint {
-        margin-left: 9px;
-        font-weight: normal;
-        color: #808080;
-        font-size: 12px;
-      }
     }
   }
 
@@ -233,7 +223,7 @@ footer.mt-8 {
   height: calc(100% - 8px);
   box-sizing: border-box;
   border-radius: 16px;
-  background: #fff;
+  background: var(--report-surface);
   margin-bottom: 8px;
   min-width: 0;
   overflow: hidden;
@@ -303,32 +293,14 @@ footer.mt-8 {
     flex-direction: row;
     flex-grow: 1;
     overflow: hidden;
-    background: #fff;
+    background: inherit;
     border-radius: 16px;
-  }
-
-  &.uploader-wrapper {
-    box-sizing: border-box;
-    margin: auto;
-    max-width: 800px;
-    flex-direction: column;
-    justify-content: center;
-
-    .uploader {
-      width: 100%;
-    }
-
-    .demo-loader {
-      width: 100%;
-      text-align: center;
-      margin-top: 10px;
-    }
   }
 
   .main-content-container {
     flex-grow: 1;
     height: 100%;
-    background: #ffffff;
+    background: inherit;
     overflow: hidden;
     border-right: 1px solid rgba(0, 0, 0, 0.06);
   }
@@ -350,6 +322,8 @@ footer.mt-8 {
   background: #141414;
 
   .page-container {
+    --report-surface: var(--runner-surface, #191c20);
+
     color: #f8fafd;
     border-top-color: rgba(255, 255, 255, 0.12);
     border-bottom-color: rgba(255, 255, 255, 0.12);
@@ -381,24 +355,11 @@ footer.mt-8 {
     }
   }
 
-  .page-nav-title-hint {
-    color: rgba(255, 255, 255, 0.45) !important;
-  }
-
-  .main-right {
-    background: #1f1f1f;
-
-    .main-right-header {
-      color: #f8fafd;
-    }
-  }
-
-  .main-content {
-    background: #1f1f1f;
+  .main-right .main-right-header {
+    color: #f8fafd;
   }
 
   .main-content-container {
-    background: #1f1f1f;
     border-right: 1px solid rgba(255, 255, 255, 0.12);
   }
 
@@ -553,7 +514,7 @@ footer.mt-8 {
     padding: 0;
     border: 0;
     overflow: hidden;
-    background: #fff;
+    background: var(--report-surface);
     visibility: hidden;
     pointer-events: none;
     transform: translateX(100%);
@@ -588,10 +549,6 @@ footer.mt-8 {
       &:active {
         background: rgba(255, 255, 255, 0.08);
       }
-    }
-
-    .mobile-detail-drawer {
-      background: #1f1f1f;
     }
   }
 }

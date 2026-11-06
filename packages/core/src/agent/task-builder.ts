@@ -1,7 +1,10 @@
 import { findAllMidsceneLocatorField, parseActionParam } from '@/ai-model';
 import type { ModelRuntime } from '@/ai-model/models';
 import {
+  type TMultimodalPrompt,
   findActionInActionSpaceOrThrow,
+  userPromptToMultimodalPrompt,
+  userPromptToString,
   validateRequiredLocateFields,
 } from '@/common';
 import { type AbstractInterface, defineActionSleep } from '@/device';
@@ -90,6 +93,7 @@ export function locatePlanForLocate(param: string | DetailedLocateParam) {
 }
 
 interface TaskBuilderDeps {
+  getDefaultModelRuntime: () => ModelRuntime;
   interfaceInstance: AbstractInterface;
   service: Service;
   taskCache?: TaskCache;
@@ -101,6 +105,7 @@ interface TaskBuilderDeps {
 
 interface BuildOptions {
   cacheable?: boolean;
+  multimodalPrompt?: TMultimodalPrompt;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
 }
@@ -108,8 +113,9 @@ interface BuildOptions {
 interface PlanBuildContext {
   tasks: ExecutionTaskApply[];
   planningModel: ModelRuntime;
-  defaultModel: ModelRuntime;
+  locateModel: ModelRuntime;
   cacheable?: boolean;
+  multimodalPrompt?: TMultimodalPrompt;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
 }
@@ -118,6 +124,7 @@ export class TaskBuilder {
   private readonly interface: AbstractInterface;
 
   private readonly service: Service;
+  private readonly getDefaultModelRuntime: () => ModelRuntime;
 
   private readonly taskCache?: TaskCache;
 
@@ -128,6 +135,7 @@ export class TaskBuilder {
   private readonly operationResource: object;
 
   constructor({
+    getDefaultModelRuntime,
     interfaceInstance,
     service,
     taskCache,
@@ -136,6 +144,7 @@ export class TaskBuilder {
     actionReadiness,
     operationResource,
   }: TaskBuilderDeps) {
+    this.getDefaultModelRuntime = getDefaultModelRuntime;
     this.interface = interfaceInstance;
     this.service = service;
     this.taskCache = taskCache;
@@ -148,7 +157,7 @@ export class TaskBuilder {
   public async build(
     plans: PlanningAction[],
     planningModel: ModelRuntime,
-    defaultModel: ModelRuntime,
+    locateModel: ModelRuntime,
     options?: BuildOptions,
   ): Promise<{ tasks: ExecutionTaskApply[] }> {
     const tasks: ExecutionTaskApply[] = [];
@@ -157,8 +166,9 @@ export class TaskBuilder {
     const context: PlanBuildContext = {
       tasks,
       planningModel,
-      defaultModel,
+      locateModel,
       cacheable,
+      multimodalPrompt: options?.multimodalPrompt,
       deepLocate: options?.deepLocate,
       abortSignal: options?.abortSignal,
     };
@@ -406,9 +416,25 @@ export class TaskBuilder {
     context: PlanBuildContext,
     onResult?: (result: LocateResultElement) => void,
   ): ExecutionTaskPlanningLocateApply {
-    const { cacheable, defaultModel, deepLocate } = context;
+    const { cacheable, locateModel, deepLocate } = context;
 
     let locateParam = normalizeLocateParam(detailedLocateParam);
+
+    // Planning produces text locators; carry the user's reference images into
+    // independent grounding calls while preserving explicit locator images.
+    if (
+      context.multimodalPrompt?.images?.length &&
+      locateParam.prompt &&
+      !userPromptToMultimodalPrompt(locateParam.prompt)?.images?.length
+    ) {
+      locateParam = {
+        ...locateParam,
+        prompt: {
+          ...context.multimodalPrompt,
+          prompt: userPromptToString(locateParam.prompt),
+        },
+      };
+    }
 
     if (cacheable !== undefined) {
       locateParam = {
@@ -477,14 +503,14 @@ export class TaskBuilder {
             searchAreaRawChoiceMessage:
               dump.taskInfo?.searchAreaRawChoiceMessage,
           };
-          task.usage = withUsageIntent(dump.taskInfo?.usage, 'default');
+          task.usage = withUsageIntent(dump.taskInfo?.usage, 'locate');
           task.searchArea = dump.taskInfo?.searchArea;
           if (dump.taskInfo?.searchAreaUsage) {
             // The deepLocate search-area call belongs to the same locate task,
             // so it shares the companion usage intent.
             task.searchAreaUsage = withUsageIntent(
               dump.taskInfo.searchAreaUsage,
-              'default',
+              'locate',
             );
           }
           if (dump.taskInfo?.reasoning_content) {
@@ -496,7 +522,9 @@ export class TaskBuilder {
           ? matchElementFromPlan(paramWithLocatedPixelResult)
           : undefined;
 
-        // from locatedPixelResult (direct plan hit)
+        // Separate planning normally returns target descriptions, but may still
+        // return coordinates. Reuse them even with a dedicated Locate model,
+        // preserving the existing direct-plan-hit behavior.
         // when deepLocate is enabled, locatedPixelResult should be used as search
         // area hint, not as a final direct hit
         const elementFromPlan = locateParam.deepLocate
@@ -577,7 +605,7 @@ export class TaskBuilder {
                 context: uiContext,
                 planLocatedElement,
               },
-              defaultModel,
+              locateModel,
               abortSignal,
             );
             applyDump(locateResult.dump);
@@ -636,6 +664,7 @@ export class TaskBuilder {
                 Math.round(element.center[1] / shrunkShotToLogicalRatio),
               ];
 
+              const defaultModel = this.getDefaultModelRuntime();
               const feature = await this.interface.cacheFeatureForPoint(
                 pointForCache,
                 {
@@ -643,7 +672,10 @@ export class TaskBuilder {
                     typeof locateParam.prompt === 'string'
                       ? locateParam.prompt
                       : locateParam.prompt?.prompt,
-                  modelRuntime: defaultModel,
+                  modelRuntime: {
+                    ...defaultModel,
+                    executionId: locateModel.executionId,
+                  },
                 },
               );
               if (hasNonEmptyCache(feature)) {

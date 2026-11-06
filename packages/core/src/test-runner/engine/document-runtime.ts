@@ -23,6 +23,7 @@ import {
 } from './resource-operations';
 import { phaseResult } from './result-metadata';
 import { reportPathsFromTeardown } from './scope-teardown';
+import { runSetupWithTimeout } from './setup-timeout';
 import type {
   CreateDocumentRuntimeOptions,
   DocumentNodePhase,
@@ -250,34 +251,46 @@ export function createDocumentRuntime<TContext = undefined>(
       if (!signal.aborted && options.documentSetup) {
         acceptingSetupTeardowns = true;
         try {
-          context = await options.documentSetup.setup({
-            project,
-            projectContext: options.projectContext,
-            document: {
-              documentId: document.documentId,
-              documentRunId,
-              sourcePath: document.sourcePath,
-              attemptIndex: options.documentAttemptIndex ?? 0,
+          await runSetupWithTimeout(
+            async () => {
+              try {
+                context = await options.documentSetup!.setup({
+                  project,
+                  projectContext: options.projectContext,
+                  document: {
+                    documentId: document.documentId,
+                    documentRunId,
+                    sourcePath: document.sourcePath,
+                    attemptIndex: options.documentAttemptIndex ?? 0,
+                  },
+                  signal,
+                  onTeardown(teardown) {
+                    if (
+                      !acceptingSetupTeardowns ||
+                      typeof teardown !== 'function'
+                    )
+                      throw new WorkflowLifecycleError(
+                        'Document setup onTeardown() requires a function registered during setup.',
+                        { documentId: document.documentId, documentRunId },
+                      );
+                    nodeTeardownStack.push({
+                      registrationIndex: nodeTeardownStack.length,
+                      node: options.documentSetup!.name,
+                      teardown,
+                      host: true,
+                    });
+                  },
+                });
+              } finally {
+                acceptingSetupTeardowns = false;
+              }
             },
             signal,
-            onTeardown(teardown) {
-              if (!acceptingSetupTeardowns || typeof teardown !== 'function')
-                throw new WorkflowLifecycleError(
-                  'Document setup onTeardown() requires a function registered during setup.',
-                  { documentId: document.documentId, documentRunId },
-                );
-              nodeTeardownStack.push({
-                registrationIndex: nodeTeardownStack.length,
-                node: options.documentSetup!.name,
-                teardown,
-                host: true,
-              });
-            },
-          });
+            resourceScope.abort,
+            options.setupTimeoutMs,
+          );
         } catch (error) {
           hostErrors.push({ phase: 'setup', error: asExecutionError(error) });
-        } finally {
-          acceptingSetupTeardowns = false;
         }
       }
       try {
@@ -349,8 +362,14 @@ export function createDocumentRuntime<TContext = undefined>(
           }
         };
         try {
-          if (document.lifecycle.afterAll.length || nodeTeardownStack.length)
+          if (
+            document.lifecycle.afterAll.length ||
+            nodeTeardownStack.length ||
+            (options.setupTimeoutMs !== undefined &&
+              getPendingScopeOperations(signal).length)
+          )
             await cleanupScopeResources(signal, cleanup, {
+              totalTimeoutMs: options.teardownTimeoutMs?.(),
               beforeCleanup: async (cleanupSignal) => {
                 try {
                   if (!hostErrors.some((error) => error.phase === 'setup'))

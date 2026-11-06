@@ -1,8 +1,8 @@
 import { getModelRuntime } from '@/ai-model/models';
 import {
   AIResponseParseError,
-  callAI,
   callAIWithObjectResponse,
+  callGenerativeAI,
 } from '@/ai-model/service-caller';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
@@ -64,7 +64,7 @@ describe('service-caller reasoning fallback', () => {
     });
 
     await expect(
-      callAI(
+      callGenerativeAI(
         [{ role: 'user', content: 'next action' }],
         getModelRuntime({
           ...baseModelConfig,
@@ -94,7 +94,7 @@ describe('service-caller reasoning fallback', () => {
       },
     });
 
-    const response = await callAI(
+    const response = await callGenerativeAI(
       [{ role: 'user', content: 'next action' }],
       getModelRuntime({
         ...baseModelConfig,
@@ -123,7 +123,7 @@ describe('service-caller reasoning fallback', () => {
       },
     });
 
-    const response = await callAI(
+    const response = await callGenerativeAI(
       [{ role: 'user', content: 'hello' }],
       getModelRuntime({
         ...baseModelConfig,
@@ -226,7 +226,7 @@ describe('service-caller reasoning fallback', () => {
     }
   });
 
-  it('uses modelConfig reasoningEnabled by default in callAI', async () => {
+  it('uses modelConfig reasoningEnabled by default in callGenerativeAI', async () => {
     mockCreate.mockResolvedValue({
       choices: [
         {
@@ -237,7 +237,7 @@ describe('service-caller reasoning fallback', () => {
       ],
     });
 
-    await callAI(
+    await callGenerativeAI(
       [{ role: 'user', content: 'hello' }],
       getModelRuntime({
         ...baseModelConfig,
@@ -272,7 +272,7 @@ describe('service-caller reasoning fallback', () => {
       modelFamily: 'doubao-seed',
     });
 
-    await callAI([{ role: 'user', content: 'hello' }], modelRuntime);
+    await callGenerativeAI([{ role: 'user', content: 'hello' }], modelRuntime);
     expect(mockCreate).toHaveBeenLastCalledWith(
       expect.not.objectContaining({
         response_format: expect.anything(),
@@ -459,7 +459,7 @@ describe('service-caller reasoning fallback', () => {
       ],
     });
 
-    await callAI(
+    await callGenerativeAI(
       [{ role: 'user', content: 'hello' }],
       getModelRuntime({
         ...baseModelConfig,
@@ -488,7 +488,7 @@ describe('service-caller reasoning fallback', () => {
       ],
     });
 
-    await callAI(
+    await callGenerativeAI(
       [{ role: 'user', content: 'hello' }],
       getModelRuntime({
         ...baseModelConfig,

@@ -31,6 +31,7 @@ export async function runConnectivityTest(
 
   return runCoreConnectivityTest({
     defaultModelConfig: modelConfigManager.getModelConfig('default'),
+    locateModelConfig: modelConfigManager.getModelConfig('locate'),
     planningModelConfig: modelConfigManager.getModelConfig('planning'),
     insightModelConfig: modelConfigManager.getModelConfig('insight'),
   });

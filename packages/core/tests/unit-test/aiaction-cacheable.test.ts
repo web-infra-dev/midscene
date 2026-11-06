@@ -99,6 +99,13 @@ describe('aiAction cacheable option propagation', () => {
 
     // Create task executor with replanningCycleLimit
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: () =>
+        getModelRuntime({
+          modelName: 'test-model',
+          modelDescription: 'test',
+          intent: 'default',
+          slot: 'default',
+        }),
       taskCache,
       replanningCycleLimit: 3,
       actionSpace: mockInterface.actionSpace(),

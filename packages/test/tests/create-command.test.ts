@@ -455,9 +455,7 @@ describe('create project', () => {
     expect(config).not.toContain('@midscene/test/playwright');
     expect(existsSync(join(root, '.env'))).toBe(false);
     const exampleEnv = readFileSync(join(root, '.env.example'), 'utf8');
-    expect(exampleEnv).toContain(
-      'https://midscenejs.com/model-common-config.html',
-    );
+    expect(exampleEnv).toContain('https://midscenejs.com/model-api-setup.html');
     expect(exampleEnv).toContain('https://midscenejs.com/model-config.html');
     expect(exampleEnv).toContain('MIDSCENE_MODEL_BASE_URL=');
     expect(exampleEnv).toContain('MIDSCENE_MODEL_API_KEY=');
@@ -472,7 +470,7 @@ describe('create project', () => {
     expect(readme).toContain(
       'inject the model configuration as environment variables in CI',
     );
-    expect(existsSync(join(root, 'README.zh.md'))).toBe(false);
+    expect(existsSync(join(root, 'README.zh.md'))).toBe(true);
   });
 
   it('prompts for a directory and selects a platform', async () => {
@@ -537,7 +535,7 @@ describe('create project', () => {
     'package-lock.json',
     'npm-shrinkwrap.json',
     '.gitignore',
-    'cases/example.yaml',
+    'cases/todo.yaml',
   ])('checks every conflict before writing any files: %s', async (filename) => {
     const cwd = temp();
     mkdirSync(join(cwd, 'cases'));
@@ -681,7 +679,7 @@ describe('create package manager selection', () => {
       );
       expect(readme).toContain(chromium);
       expect(readme).toContain(`${packageManager} test`);
-      expect(readme).toContain('A Midscene Test project for web.');
+      expect(readme).toContain('A Midscene Test project for Web');
       expect(readme).toContain(`${packageManager} run nodes`);
       expect(output.log).toHaveBeenCalledWith(
         `Installing dependencies with ${packageManager}...`,

@@ -69,7 +69,6 @@ export type ModelCallResult = Omit<AICallResult, 'usage'> & {
 export type ModelCallContext = {
   requestSignal: AbortSignal;
   effectiveTimeoutMs: number | null;
-  messages: ModelCallMessages;
   modelRuntime: ModelRuntime;
   options?: CallAIOptions;
   executionId: string;
