@@ -80,8 +80,9 @@ const copy = {
     sdkWeb: 'Add visual actions and assertions to Playwright Test.',
     sdkDevice: 'Add visual actions and assertions to Vitest.',
     choose: 'Choose one',
-    pending:
-      'Answer the questions above to open your setup steps, or pick a path from the list below.',
+    pending: 'Choose an option above to see your setup steps',
+    pendingLeft: (left: number) =>
+      `${left} ${left === 1 ? 'question' : 'questions'} left · or pick a path from the list below.`,
     step: (index: number) => `Step ${index}`,
     llm: 'Which model do you want to use?',
     otherModels: (current: string) =>
@@ -135,8 +136,9 @@ const copy = {
     sdkWeb: '在 Playwright Test 中加入视觉操作与断言。',
     sdkDevice: '在 Vitest 中加入视觉操作与断言。',
     choose: '请选择',
-    pending:
-      '回答上面的问题即可打开对应的配置步骤，也可以直接从下方列表中选择。',
+    pending: '请先完成上方的选择，即可查看配置步骤',
+    pendingLeft: (left: number) =>
+      `还剩 ${left} 个问题 · 也可以直接从下方列表中选择。`,
     step: (index: number) => `第 ${index} 步`,
     llm: '使用哪个模型？',
     otherModels: (current: string) =>
@@ -363,7 +365,37 @@ export function GetStarted({
               />
             ) : null}
             {active ? null : (
-              <p className="get-started-status">{text.pending}</p>
+              // Points back up at the unanswered question until all are set.
+              <output className="get-started-status">
+                <svg
+                  className="get-started-status-arrow"
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M12 19V5M5 12l7-7 7 7"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span className="get-started-status-text">
+                  <strong>{text.pending}</strong>
+                  <span>
+                    {text.pendingLeft(
+                      [
+                        selection.platform,
+                        selection.scene,
+                        selection.model,
+                      ].filter((answer) => answer === undefined).length,
+                    )}
+                  </span>
+                </span>
+              </output>
             )}
           </>
         )}

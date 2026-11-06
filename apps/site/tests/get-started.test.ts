@@ -20,6 +20,7 @@ import {
 import { SdkPlatformContent } from '../theme/components/SdkPlatform';
 import {
   type CompleteSelection,
+  type Selection,
   allPaths,
   defaultLlm,
   getStartedRoute,
@@ -417,6 +418,17 @@ describe('get started component', () => {
     );
     expect(html).not.toContain('step:');
     expect(html).toContain('get-started-status');
+  });
+
+  it('tells how many questions are left on the entry page', () => {
+    const render = (initialSelection: Selection) =>
+      renderToStaticMarkup(
+        createElement(GetStarted, { lang: 'en', initialSelection }, steps),
+      );
+    expect(render({ platform: 'desktop' })).toContain('2 questions left');
+    expect(render({ platform: 'web', scene: 'test' })).toContain(
+      '1 question left',
+    );
   });
 
   it('links every setup path from the entry page index', () => {
