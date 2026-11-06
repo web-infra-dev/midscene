@@ -256,6 +256,17 @@
   margin-top: 16px;
 }
 
+/* Model names are long and full of hyphens, such as "Doubao-Seed-2.1 Turbo".
+   Give each card room for the name on one line, and do not balance the lines:
+   balancing splits the name at every hyphen. */
+.get-started-llm-picker .get-started-options {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+}
+
+.get-started-llm-picker .get-started-options strong {
+  text-wrap: pretty;
+}
+
 .get-started-path-index p {
   margin-bottom: 4px;
 }

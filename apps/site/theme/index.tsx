@@ -56,3 +56,4 @@ export { GetStarted } from './components/GetStartedRoute';
 // Overrides the Rspress Sidebar from the export * above.
 export { Sidebar } from './components/Sidebar';
 export { GetStartedCreateCommand } from './components/GetStartedCommand';
+export { EditLink } from './components/EditLink';
