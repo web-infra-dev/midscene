@@ -330,6 +330,7 @@ export default class Service {
   async extract<T>(
     dataDemand: ServiceExtractParam,
     modelRuntime: ModelRuntime,
+    taskType: 'boolean' | 'extract',
     opt?: ServiceExtractOption,
     pageDescription?: string,
     multimodalPrompt?: TMultimodalPrompt,
@@ -358,6 +359,7 @@ export default class Service {
       const result = await AiExtractElementInfo<T>({
         context,
         dataQuery: dataDemand,
+        taskType,
         multimodalPrompt,
         extractOption: opt,
         modelRuntime,
@@ -551,7 +553,7 @@ export default class Service {
       imageContent = [
         {
           type: 'text' as const,
-          text: 'Use these images together to describe the real UI target marked by the temporary callout. Do not describe the marker itself.',
+          text: 'Use these images together to describe the real UI target marked by the temporary target marker. Do not describe the marker itself.',
         },
         {
           type: 'text' as const,
@@ -567,7 +569,7 @@ export default class Service {
       imageContent = [
         {
           type: 'text' as const,
-          text: 'Full screenshot with a temporary callout marking the target:',
+          text: 'Full screenshot with a temporary target marker (a ring with a crosshair) marking the target:',
         },
         {
           type: 'image' as const,

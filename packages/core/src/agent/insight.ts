@@ -1,5 +1,5 @@
 import type { TUserPrompt } from '@/ai-model/index';
-import type { ModelTask } from '@/ai-model/model-adapter/types';
+import type { ModelTaskType } from '@/ai-model/model-adapter/types';
 import type { ModelRuntime } from '@/ai-model/models';
 import type {
   AgentAssertResult,
@@ -26,7 +26,9 @@ type InsightContextOptions = { context?: string };
 export class Insight implements InsightAPI {
   constructor(
     private readonly taskExecutor: InsightTaskExecutor,
-    private readonly resolveModelRuntime: (task?: ModelTask) => ModelRuntime,
+    private readonly resolveModelRuntime: (
+      taskType: ModelTaskType,
+    ) => ModelRuntime,
     private readonly resolveAgentContext: (
       apiName: AiApiName,
       callContext?: string,

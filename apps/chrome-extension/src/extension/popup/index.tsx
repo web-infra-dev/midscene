@@ -19,6 +19,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BrowserExtensionPlayground } from '../../components/playground';
 import Bridge from '../bridge';
 import Recorder from '../recorder';
+import { SiwcLoginButton } from '../siwc/button';
 import './index.less';
 import { MIDSCENE_MODEL_API_KEY } from '@midscene/shared/env';
 import { safeOverrideAIConfig } from '@midscene/visualizer';
@@ -282,6 +283,7 @@ export function PlaygroundPopup() {
             </div>
             <div className="nav-right">
               <NavActions
+                modelConfigActions={<SiwcLoginButton />}
                 showTooltipWhenEmpty={false}
                 showModelName={false}
                 playgroundSDK={playgroundSDK}

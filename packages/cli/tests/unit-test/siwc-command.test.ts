@@ -1,6 +1,10 @@
 import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import * as actualAiModel from '@midscene/core/ai-model' with {
+  rstest: 'importActual',
+};
+import { refreshSiwcCredentials } from '@midscene/core/ai-model';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import chalk from 'chalk';
 import {
@@ -8,13 +12,14 @@ import {
   readRegistration,
   saveRegistration,
 } from '../../src/openai/credentials';
+import { SiwcError } from '../../src/openai/errors';
 import { loginWithOpenAI } from '../../src/openai/login';
-import { refreshOpenAICredentials } from '../../src/openai/refresh';
 import { runSiwcCommand } from '../../src/siwc-command';
 
 rs.mock('../../src/openai/login', () => ({ loginWithOpenAI: rs.fn() }));
-rs.mock('../../src/openai/refresh', () => ({
-  refreshOpenAICredentials: rs.fn(),
+rs.mock('@midscene/core/ai-model', () => ({
+  ...actualAiModel,
+  refreshSiwcCredentials: rs.fn(),
 }));
 
 let directory: string;
@@ -105,7 +110,7 @@ describe('model siwc command', () => {
       refresh_token: 'new-refresh',
       expires_at: Date.now() + 60 * 60_000,
     };
-    rs.mocked(refreshOpenAICredentials).mockResolvedValue(replacement);
+    rs.mocked(refreshSiwcCredentials).mockResolvedValue(replacement);
     expect(await runSiwcCommand(['refresh'], io, path)).toBe(0);
     expect(await readRegistration(path)).toEqual(replacement);
     const saved = JSON.parse(await readFile(path, 'utf8'));
@@ -121,17 +126,32 @@ describe('model siwc command', () => {
     expect(loginWithOpenAI).not.toHaveBeenCalled();
   });
 
-  it('keeps old credentials and redacts failure details', async () => {
+  it('prints login diagnostics and releases the lock', async () => {
+    rs.mocked(loginWithOpenAI).mockRejectedValue(
+      new SiwcError(
+        'Stage: Token exchange\nHTTP status: 400\nError: invalid_grant',
+      ),
+    );
+    expect(await runSiwcCommand(['login', '--no-open'], io, path)).toBe(1);
+    const output = io.stderr.mock.calls.flat().join('\n');
+    expect(output).toContain('Stage: Token exchange');
+    expect(output).toContain('HTTP status: 400');
+    expect(output).toContain('Error: invalid_grant');
+    expect(io.stdout).not.toHaveBeenCalled();
+    await expect(stat(`${path}.lock`)).rejects.toThrow();
+  });
+
+  it('keeps old credentials and prints original failure details', async () => {
     await saveRegistration(path, credentials);
     const original = await readFile(path, 'utf8');
-    rs.mocked(refreshOpenAICredentials).mockRejectedValue(
+    rs.mocked(refreshSiwcCredentials).mockRejectedValue(
       new Error('refresh_token=secret'),
     );
     expect(await runSiwcCommand(['refresh'], io, path)).toBe(1);
     expect(await readRegistration(path)).toEqual(credentials);
     expect(await readFile(path, 'utf8')).toBe(original);
     expect(io.stdout).not.toHaveBeenCalled();
-    expect(io.stderr.mock.calls.flat().join('\n')).not.toContain(
+    expect(io.stderr.mock.calls.flat().join('\n')).toContain(
       'refresh_token=secret',
     );
   });
@@ -150,7 +170,7 @@ describe('model siwc command', () => {
     const unlock = await lockCredentials(path);
     try {
       expect(await runSiwcCommand(['refresh'], io, path)).toBe(1);
-      expect(refreshOpenAICredentials).not.toHaveBeenCalled();
+      expect(refreshSiwcCredentials).not.toHaveBeenCalled();
     } finally {
       await unlock();
     }
@@ -158,7 +178,7 @@ describe('model siwc command', () => {
 
   it('requires saved credentials for refresh', async () => {
     expect(await runSiwcCommand(['refresh'], io, path)).toBe(1);
-    expect(refreshOpenAICredentials).not.toHaveBeenCalled();
+    expect(refreshSiwcCredentials).not.toHaveBeenCalled();
   });
 
   it('rejects the old flat credentials format', async () => {

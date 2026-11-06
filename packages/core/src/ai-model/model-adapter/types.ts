@@ -24,6 +24,7 @@ import type { PlanFn } from '../workflows/planning/types';
 import type { CustomPlanningDefinition } from './custom-planning-types';
 import type { ImagePreprocessPolicy } from './image-preprocess';
 import type { InsightAdapter, InsightDefinition } from './insight-protocol';
+import type { LocatePromptOrder } from './locate-prompt-order';
 import type {
   StandardLocateProtocol,
   StandardLocateProtocolDefinition,
@@ -252,11 +253,9 @@ export type PlanningDefinition =
           }
       ));
 
-export type LocateUserMessageContentOrder = 'image-first' | 'prompt-first';
-
 type StandardLocateAdapter = {
   kind: 'standard';
-  userMessageContentOrder: LocateUserMessageContentOrder;
+  promptOrder: LocatePromptOrder;
   element: LocateOperation;
   searchArea?: LocateOperation;
 };
@@ -275,7 +274,13 @@ export type LocateAdapter = StandardLocateAdapter | CustomLocateAdapter;
 
 type StandardLocateDefinition = {
   kind?: 'standard';
-  userMessageContentOrder?: LocateUserMessageContentOrder;
+  /**
+   * Shared layout for element and search-area requests, in message order.
+   * system(...) accepts instructions and task; userTogether(...) and
+   * userEach(...) also accept screenshot and references. Each part occurs once.
+   * Text parts within one system group are joined with a blank line.
+   */
+  promptOrder?: string;
   element?: LocateOperationDefinition;
   searchArea?: LocateOperationDefinition | false;
 };
@@ -309,10 +314,17 @@ export type LocateDefinition =
   | StandardLocateDefinition
   | CustomLocateDefinition;
 
-export type ModelTask = 'locate' | 'boolean' | 'extract' | 'planning' | 'text';
+export type ModelTaskType =
+  | 'locate'
+  | 'boolean'
+  | 'extract'
+  | 'planning'
+  | 'general';
 
 export interface ModelAdapter {
-  supportedTasks?: readonly ModelTask[];
+  modelType: 'generative' | 'system-one';
+  /** Task allowlist; when omitted, task types are unrestricted. */
+  allowedTaskTypes?: readonly ModelTaskType[];
   supportedProtocols: TModelProtocol[];
   jsonParser: JsonParser;
   chatCompletion: ChatCompletionAdapter;
@@ -333,10 +345,10 @@ export interface ModelRuntime {
    * per-execution runtime copy so concurrent Agent operations never share it.
    */
   executionId?: string;
-  modelRouting?: {
+  modelFallback?: {
     requestedModel: string;
     requestedSlot: IModelConfig['slot'];
-    task: ModelTask;
+    taskType: ModelTaskType;
     reason: string;
   };
   /**
@@ -351,7 +363,10 @@ export interface ModelRuntime {
 }
 
 export interface ModelAdapterDefinition {
-  supportedTasks?: readonly ModelTask[];
+  /** Model category; defaults to generative. */
+  modelType?: ModelAdapter['modelType'];
+  /** Task allowlist; when omitted, task types are unrestricted. */
+  allowedTaskTypes?: readonly ModelTaskType[];
   /** API protocols adapted for this model. Defaults to Chat Completions only. */
   supportedProtocols?: TModelProtocol[];
   jsonParser?: JsonParserPreset | JsonParser;

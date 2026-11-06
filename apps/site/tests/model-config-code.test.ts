@@ -1,5 +1,12 @@
 import { describe, expect, it } from '@rstest/core';
-import { buildModelConfigCode } from '../theme/components/model-config-code';
+import {
+  type ModelConfigCardProps,
+  OPENROUTER_BASE_URL,
+  buildCombinedModelConfigCode,
+  buildModelConfigCode,
+  getModelProviders,
+  resolveModelConfig,
+} from '../theme/components/model-config-code';
 
 const config = {
   baseUrl: { value: 'https://example.com/v1', comment: '模型地址' },
@@ -8,6 +15,44 @@ const config = {
 };
 
 describe('model configuration examples', () => {
+  it('combines all requested roles in order without adding a default model', () => {
+    const code = buildCombinedModelConfigCode(
+      config,
+      ['planning', 'locate', 'insight'],
+      'openai-chat',
+    );
+    expect(code.match(/^# .+$/gm)).toEqual([
+      '# Planning',
+      '# Locate',
+      '# Insight',
+    ]);
+    for (const role of ['PLANNING', 'LOCATE', 'INSIGHT']) {
+      for (const field of ['BASE_URL', 'API_KEY', 'NAME', 'FAMILY']) {
+        expect(code).toContain(`MIDSCENE_${role}_MODEL_${field}=`);
+      }
+    }
+    expect(code).not.toContain('MIDSCENE_MODEL_');
+  });
+
+  it('applies the selected protocol to every combined role', () => {
+    const code = buildCombinedModelConfigCode(
+      {
+        ...config,
+        responses: { baseUrl: 'https://example.com/responses-api' },
+      },
+      ['planning', 'locate'],
+      'openai-responses',
+    );
+    for (const role of ['PLANNING', 'LOCATE']) {
+      expect(code).toContain(
+        `MIDSCENE_${role}_MODEL_BASE_URL="https://example.com/responses-api"`,
+      );
+      expect(code).toContain(
+        `MIDSCENE_${role}_MODEL_PROTOCOL="openai-responses"`,
+      );
+    }
+  });
+
   it.each([
     ['default', 'MIDSCENE_MODEL'],
     ['locate', 'MIDSCENE_LOCATE_MODEL'],
@@ -102,5 +147,62 @@ describe('model configuration examples', () => {
         'openai-chat',
       ),
     ).toContain('MIDSCENE_MODEL_NAME="model\\"\\$name\\`command\\`\\\\path"');
+  });
+
+  describe('providers', () => {
+    const card: ModelConfigCardProps = {
+      providers: [
+        {
+          name: 'Example Cloud',
+          href: 'https://example.com/keys',
+          baseUrl: 'https://example.com/v1',
+          modelName: 'example-model',
+          responses: true,
+        },
+      ],
+      modelFamily: 'example-family',
+      apiKey: '<key>',
+    };
+
+    it('appends OpenRouter after the native providers', () => {
+      const providers = getModelProviders({
+        ...card,
+        openRouterModel: 'example/example-model',
+      });
+      expect(providers.map((provider) => provider.name)).toEqual([
+        'Example Cloud',
+        'OpenRouter',
+      ]);
+      expect(providers[1]).toMatchObject({
+        baseUrl: OPENROUTER_BASE_URL,
+        modelName: 'example/example-model',
+      });
+      expect(providers[1].responses).toBeUndefined();
+    });
+
+    it('omits OpenRouter when no model ID is given', () => {
+      expect(getModelProviders(card)).toEqual(card.providers);
+    });
+
+    it('uses provider-specific endpoint and model with shared settings', () => {
+      const [, openRouter] = getModelProviders({
+        ...card,
+        openRouterModel: 'example/example-model',
+      });
+      expect(
+        buildModelConfigCode(
+          resolveModelConfig(card, openRouter),
+          'locate',
+          'openai-chat',
+        ),
+      ).toBe(
+        [
+          `MIDSCENE_LOCATE_MODEL_BASE_URL="${OPENROUTER_BASE_URL}"`,
+          'MIDSCENE_LOCATE_MODEL_API_KEY="<key>"',
+          'MIDSCENE_LOCATE_MODEL_NAME="example/example-model"',
+          'MIDSCENE_LOCATE_MODEL_FAMILY="example-family"',
+        ].join('\n'),
+      );
+    });
   });
 });

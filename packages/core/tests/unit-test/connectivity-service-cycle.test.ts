@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import ts from 'typescript';
 
 const mocks = rs.hoisted(() => ({
-  callAI: rs.fn(),
+  callGenerativeAI: rs.fn(),
   callAIWithObjectResponse: rs.fn(),
   AiExtractElementInfo: rs.fn(),
   AiLocateElement: rs.fn(),
@@ -15,13 +15,13 @@ const mocks = rs.hoisted(() => ({
 
 rs.mock('@/ai-model/service-caller', () => ({
   AIResponseParseError: class AIResponseParseError extends Error {},
-  callAI: mocks.callAI,
+  callGenerativeAI: mocks.callGenerativeAI,
   callAIWithObjectResponse: mocks.callAIWithObjectResponse,
 }));
 
 rs.mock('@/ai-model/service-caller/index', () => ({
   AIResponseParseError: class AIResponseParseError extends Error {},
-  callAI: mocks.callAI,
+  callGenerativeAI: mocks.callGenerativeAI,
   callAIWithObjectResponse: mocks.callAIWithObjectResponse,
 }));
 
@@ -93,7 +93,7 @@ describe('runConnectivityTest service load order', () => {
   });
 
   it('runs the default locate check through the real Service constructor', async () => {
-    mocks.callAI
+    mocks.callGenerativeAI
       .mockResolvedValueOnce({ content: 'CONNECTIVITY_OK' })
       .mockResolvedValueOnce({ content: 'What needs to be done?' })
       .mockResolvedValueOnce({ content: 'CONNECTIVITY_OK' });

@@ -3,6 +3,7 @@ import { defineConfig } from '@rstest/core';
 import { createCoverageConfig } from '../../scripts/rstest-coverage';
 
 export default defineConfig({
+  name: '@midscene/report',
   root: __dirname,
   resolve: {
     alias: {

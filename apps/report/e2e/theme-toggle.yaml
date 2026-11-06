@@ -1,9 +1,10 @@
-target:
-  serve: ./dist
-  url: demo-agent.html
-tasks:
+beforeAll:
+  - report.open:
+      path: demo-agent.html
+
+cases:
   - name: switch between light and dark themes
-    flow:
+    steps:
       - aiTap: the theme toggle in the report header
       - aiAssert: The report is in dark theme and its task list remains readable.
       - aiTap: the theme toggle in the report header

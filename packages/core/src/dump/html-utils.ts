@@ -1,6 +1,16 @@
-import { closeSync, openSync, readSync, statSync } from 'node:fs';
+import {
+  closeSync,
+  createReadStream,
+  openSync,
+  readSync,
+  statSync,
+} from 'node:fs';
 import { open as openAsync } from 'node:fs/promises';
 import { StringDecoder } from 'node:string_decoder';
+import {
+  REPORT_ARTIFACT_SCRIPT_TYPE,
+  assertReportArtifactPath,
+} from '@midscene/shared/report-artifact';
 import { antiEscapeScriptTag, escapeScriptTag } from '@midscene/shared/utils';
 import {
   TEST_RUN_REPORT_SCRIPT_TYPE,
@@ -103,6 +113,95 @@ export function generateAgentReportComment(report: IReportActionDump): string {
 function htmlScriptCloseTag(): string {
   // biome-ignore lint/style/useTemplate: keep this token runtime-built for inline report bundles
   return String.fromCharCode(60) + '/script>';
+}
+
+/** Directory reports declare their data entry separately from the Viewer. */
+export function generateReportArtifactScriptTag(path: string): string {
+  assertReportArtifactPath(path);
+  return [
+    String.fromCharCode(60),
+    'script type="',
+    REPORT_ARTIFACT_SCRIPT_TYPE,
+    '">',
+    JSON.stringify(path),
+    htmlScriptCloseTag(),
+  ].join('');
+}
+
+function reportArtifactPathExtractor(filePath: string) {
+  let result: string | undefined;
+  return {
+    get path() {
+      return result;
+    },
+    visit: (content: string) => {
+      const tagEnd = content.indexOf('>');
+      const type = content
+        .slice(0, tagEnd)
+        .match(/(?:^|\s)type\s*=\s*["']([^"']+)["']/i)?.[1];
+      if (type !== REPORT_ARTIFACT_SCRIPT_TYPE) return false;
+      if (result !== undefined)
+        throw new Error(
+          `Report contains multiple artifact entries: ${filePath}`,
+        );
+      const path: unknown = JSON.parse(
+        unescapeContent(content.slice(tagEnd + 1)),
+      );
+      assertReportArtifactPath(path);
+      result = path;
+      return false;
+    },
+  };
+}
+
+export function extractReportArtifactPathSync(
+  filePath: string,
+): string | undefined {
+  const extractor = reportArtifactPathExtractor(filePath);
+  streamScanTags(
+    filePath,
+    `${String.fromCharCode(60)}script`,
+    htmlScriptCloseTag(),
+    extractor.visit,
+  );
+  return extractor.path;
+}
+
+export async function extractReportArtifactPathAsync(
+  filePath: string,
+): Promise<string | undefined> {
+  const extractor = reportArtifactPathExtractor(filePath);
+  await streamScanTagsAsync(
+    filePath,
+    `${String.fromCharCode(60)}script`,
+    htmlScriptCloseTag(),
+    extractor.visit,
+  );
+  return extractor.path;
+}
+
+/** Consume complete elements so dump-tag strings in the Viewer are never payloads. */
+export async function streamDumpScriptsAsync(
+  filePath: string,
+  visitor: (dump: { openTag: string; content: string }) => boolean,
+): Promise<void> {
+  await streamScanTagsAsync(
+    filePath,
+    `${String.fromCharCode(60)}script`,
+    htmlScriptCloseTag(),
+    (content) => {
+      const tagEnd = content.indexOf('>');
+      const type = content
+        .slice(0, tagEnd)
+        .match(/(?:^|\s)type\s*=\s*["']([^"']+)["']/i)?.[1];
+      return type === 'midscene_web_dump'
+        ? visitor({
+            openTag: `${String.fromCharCode(60)}script${content.slice(0, tagEnd + 1)}`,
+            content: content.slice(tagEnd + 1),
+          })
+        : false;
+    },
+  );
 }
 
 /** Avoid raw close tokens: this writer itself is bundled into report HTML. */
@@ -466,86 +565,85 @@ export function extractAllDumpScriptsSync(
  */
 export function streamDumpScriptsSync(
   filePath: string,
-  onMatch: (dumpScript: { openTag: string; content: string }) => boolean,
+  visitor: (dump: { openTag: string; content: string }) => boolean,
 ): void {
-  const openTagPrefix = '<script type="midscene_web_dump"';
-  const closeTag = htmlScriptCloseTag();
+  streamScanTags(
+    filePath,
+    `${String.fromCharCode(60)}script`,
+    htmlScriptCloseTag(),
+    (content) => {
+      const end = content.indexOf('>');
+      const type = content
+        .slice(0, end)
+        .match(/(?:^|\s)type\s*=\s*["']([^"']+)["']/i)?.[1];
+      return type === 'midscene_web_dump'
+        ? visitor({
+            openTag: `${String.fromCharCode(60)}script${content.slice(0, end + 1)}`,
+            content: content.slice(end + 1),
+          })
+        : false;
+    },
+  );
+}
 
-  const fd = openSync(filePath, 'r');
-  const fileSize = statSync(filePath).size;
-  const buffer = Buffer.alloc(STREAMING_CHUNK_SIZE);
+/** Visit one inline image at a time; never retain all image bytes from a report. */
+function inlineImageElement(
+  content: string,
+): { id: string; data: string } | undefined {
+  const end = content.indexOf('>');
+  const attributes = content.slice(0, end);
+  const type = attributes.match(/(?:^|\s)type\s*=\s*["']([^"']+)["']/i)?.[1];
+  const id = attributes.match(/(?:^|\s)data-id="([a-z0-9_-]{1,128})"/i)?.[1];
+  return type === 'midscene-image' && id
+    ? { id, data: unescapeContent(content.slice(end + 1)) }
+    : undefined;
+}
 
-  let position = 0;
-  let leftover = '';
+export function streamInlineReportImages(
+  filePath: string,
+  visit: (id: string, data: string) => boolean,
+): void {
+  streamScanTags(
+    filePath,
+    `${String.fromCharCode(60)}script`,
+    htmlScriptCloseTag(),
+    (content) => {
+      const image = inlineImageElement(content);
+      return image ? visit(image.id, image.data) : false;
+    },
+  );
+}
+
+/** Async backpressure keeps report import memory bounded to one image or Viewer script. */
+export async function* streamInlineReportImagesAsync(
+  filePath: string,
+): AsyncGenerator<{ id: string; data: string }> {
+  const open = `${String.fromCharCode(60)}script`;
+  const close = htmlScriptCloseTag();
+  let pending = '';
   let capturing = false;
-  let currentContent = '';
-  let currentOpenTag = '';
-
-  try {
-    while (position < fileSize) {
-      const bytesRead = readSync(fd, buffer, 0, STREAMING_CHUNK_SIZE, position);
-      const chunk = leftover + buffer.toString('utf-8', 0, bytesRead);
-      position += bytesRead;
-
-      let searchStart = 0;
-
-      while (searchStart < chunk.length) {
-        if (!capturing) {
-          const startIdx = chunk.indexOf(openTagPrefix, searchStart);
-          if (startIdx !== -1) {
-            const tagEndIdx = chunk.indexOf('>', startIdx);
-            if (tagEndIdx !== -1) {
-              capturing = true;
-              currentOpenTag = chunk.slice(startIdx, tagEndIdx + 1);
-              currentContent = chunk.slice(tagEndIdx + 1);
-              const endIdx = currentContent.indexOf(closeTag);
-              if (endIdx !== -1) {
-                const shouldStop = onMatch({
-                  openTag: currentOpenTag,
-                  content: currentContent.slice(0, endIdx).trim(),
-                });
-                if (shouldStop) return;
-                capturing = false;
-                currentContent = '';
-                currentOpenTag = '';
-                searchStart = tagEndIdx + 1 + endIdx + closeTag.length;
-              } else {
-                leftover = currentContent.slice(-closeTag.length);
-                currentContent = currentContent.slice(0, -closeTag.length);
-                break;
-              }
-            } else {
-              leftover = chunk.slice(startIdx);
-              break;
-            }
-          } else {
-            leftover = chunk.slice(-openTagPrefix.length);
-            break;
-          }
-        } else {
-          const endIdx = chunk.indexOf(closeTag, searchStart);
-          if (endIdx !== -1) {
-            currentContent += chunk.slice(searchStart, endIdx);
-            const shouldStop = onMatch({
-              openTag: currentOpenTag,
-              content: currentContent.trim(),
-            });
-            if (shouldStop) return;
-            capturing = false;
-            currentContent = '';
-            currentOpenTag = '';
-            searchStart = endIdx + closeTag.length;
-          } else {
-            currentContent += chunk.slice(searchStart, -closeTag.length);
-            leftover = chunk.slice(-closeTag.length);
-            break;
-          }
+  for await (const chunk of createReadStream(filePath, { encoding: 'utf8' })) {
+    pending += chunk;
+    while (true) {
+      if (!capturing) {
+        const start = pending.indexOf(open);
+        if (start < 0) {
+          pending = pending.slice(-(open.length - 1));
+          break;
         }
+        pending = pending.slice(start + open.length);
+        capturing = true;
       }
+      const end = pending.indexOf(close);
+      if (end < 0) break;
+      const content = pending.slice(0, end);
+      pending = pending.slice(end + close.length);
+      capturing = false;
+      const image = inlineImageElement(content);
+      if (image) yield image;
     }
-  } finally {
-    closeSync(fd);
   }
+  if (capturing) throw new Error(`Unterminated report script in ${filePath}`);
 }
 
 export function parseImageScripts(html: string): Record<string, string> {

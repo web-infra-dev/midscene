@@ -1,8 +1,10 @@
+# fileSetup has prepared this file's page; getAgent creates its Agent on first use.
 beforeAll:
   - setViewportSize:
       width: 1280
       height: 720
 
+# Reset business state for every case attempt, including retries.
 beforeEach:
   - todo.setup: {}
   - todo.seed:

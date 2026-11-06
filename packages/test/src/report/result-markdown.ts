@@ -6,6 +6,7 @@ import type {
   TestRunReportStep,
 } from '@midscene/core';
 import type { TestProjectRunResult } from '../cli/types';
+import { renderTestBadge } from './badge';
 import { buildTestRunReportDump } from './test-run-report';
 
 const text = (value: string): string =>
@@ -49,6 +50,8 @@ export function renderTestResultMarkdown(
       : `❌ **${summary.failed} failed** · ${summary.passed} passed · ${summary.notRun} not run`;
   const lines = [
     '## Midscene Test',
+    '',
+    renderTestBadge(summary),
     '',
     `${outcome} · ${duration(dump.durationMs)}`,
     '',

@@ -56,8 +56,8 @@ export async function publishLegacyYamlReport(
       modelBriefs: [],
     },
   );
-  await generator.finalize();
   const source = await generator.createSourceSnapshot?.(runId);
+  await generator.finalize();
   if (source) record = Object.freeze({ ...record, reportSources: [source] });
   return { record, reportFile };
 }

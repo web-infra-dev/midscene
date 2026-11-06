@@ -1329,6 +1329,7 @@ const createPlatformActions = (device: IOSDevice) => {
     }),
     IOSHomeButton: defineAction({
       name: 'IOSHomeButton',
+      supportedBySystemOne: true,
       description: 'Trigger the system "home" operation on iOS devices',
       call: async () => {
         await device.home();
@@ -1336,6 +1337,7 @@ const createPlatformActions = (device: IOSDevice) => {
     }),
     IOSAppSwitcher: defineAction({
       name: 'IOSAppSwitcher',
+      supportedBySystemOne: true,
       description: 'Trigger the system "app switcher" operation on iOS devices',
       call: async () => {
         await device.appSwitcher();

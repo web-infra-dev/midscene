@@ -6,7 +6,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from '@rstest/core';
 import { generateDumpScriptTag, generateImageScriptTag } from '../../src/dump';
 import type {
@@ -193,9 +193,8 @@ describe('splitReportHtmlByExecution', () => {
     });
 
     expect(result.executionJsonFiles).toHaveLength(1);
-    expect(result.screenshotFiles).toEqual([
-      join(outputDir, 'screenshots', `${imageRef.id}.webp`),
-    ]);
+    expect(result.screenshotFiles).toHaveLength(1);
+    expect(result.screenshotFiles[0]).toMatch(/\.webp$/);
     expect(readFileSync(result.screenshotFiles[0])).toEqual(
       Buffer.from('ABCD'),
     );
@@ -206,8 +205,9 @@ describe('splitReportHtmlByExecution', () => {
       outputDump.executions[0].tasks[0].param.userInstruction.images[0].url,
     ).toMatchObject({
       type: 'midscene_image_url_ref',
+      id: imageRef.id,
       storage: 'file',
-      path: `./screenshots/${imageRef.id}.webp`,
+      path: `./screenshots/${basename(result.screenshotFiles[0])}`,
     });
   });
 
@@ -293,8 +293,9 @@ describe('splitReportHtmlByExecution', () => {
           const ref = task.param.userInstruction.images[0].url;
           return (
             ref.type === 'midscene_image_url_ref' &&
+            ref.id === imageRef.id &&
             ref.storage === 'file' &&
-            ref.path === `./screenshots/${imageRef.id}.png`
+            ref.path === `./screenshots/${basename(result.screenshotFiles[0])}`
           );
         },
       ),
@@ -382,7 +383,10 @@ describe('splitReportHtmlByExecution', () => {
       readFileSync(result.executionJsonFiles[0], 'utf-8'),
     );
     const latestRef = latestDump.executions[0].tasks[0].uiContext.screenshot;
-    expect(latestRef.path).toContain(newScreenshot.id);
+    expect(latestRef.id).toBe(newScreenshot.id);
+    expect(readFileSync(join(outputDir, latestRef.path))).toEqual(
+      Buffer.from(newScreenshot.rawBase64, 'base64'),
+    );
   });
 
   it('should reuse absolute file screenshot paths without creating nested absolute path directories', () => {
@@ -424,9 +428,9 @@ describe('splitReportHtmlByExecution', () => {
 
     expect(result.executionJsonFiles).toHaveLength(1);
     expect(result.screenshotFiles).toHaveLength(1);
-    expect(
-      existsSync(join(outputDir, 'screenshots', 'absolute-shot.png')),
-    ).toBe(true);
+    expect(readFileSync(result.screenshotFiles[0])).toEqual(
+      readFileSync(absoluteScreenshotPath),
+    );
     expect(existsSync(join(outputDir, 'Users'))).toBe(false);
   });
 
@@ -470,8 +474,8 @@ describe('splitReportHtmlByExecution', () => {
 
     expect(result.executionJsonFiles).toHaveLength(1);
     expect(result.screenshotFiles).toHaveLength(1);
-    expect(
-      existsSync(join(outputDir, 'screenshots', 'fallback-shot.png')),
-    ).toBe(true);
+    expect(readFileSync(result.screenshotFiles[0])).toEqual(
+      Buffer.from('png-binary'),
+    );
   });
 });
