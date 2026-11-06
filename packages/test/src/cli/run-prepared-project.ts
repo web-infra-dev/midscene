@@ -515,17 +515,19 @@ async function runWithReportSession(
       completedResult = { ...completedResult, markdownPath };
     },
   );
-  await publish(
-    'write-result',
-    join(dirname(summaryPath), 'junit.xml'),
-    async () => {
-      const junitPath = await writeTestResultJUnit(
-        completedResult,
-        reportIndex,
-      );
-      completedResult = { ...completedResult, junitPath };
-    },
-  );
+  if (plan.junitEnabled) {
+    await publish(
+      'write-result',
+      join(dirname(summaryPath), 'junit.xml'),
+      async () => {
+        const junitPath = await writeTestResultJUnit(
+          completedResult,
+          reportIndex,
+        );
+        completedResult = { ...completedResult, junitPath };
+      },
+    );
+  }
   if (completedResult.reportPath && !hasInfrastructureError)
     await publish('write-result', reports.directory, () => reports.prune());
   await writeSummary();

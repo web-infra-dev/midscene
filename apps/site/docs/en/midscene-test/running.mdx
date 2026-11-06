@@ -73,7 +73,13 @@ Keep the complete results directory for programmatic analysis; the final report 
 
 ### JUnit XML
 
-Every run also writes `junit.xml` beside `summary.json`, including failed runs that reach result publication. This output is enabled by default. The SDK returns its path as `junitPath`; the verbose reporter prints it as `JUnit:`.
+JUnit XML output is disabled by default. Enable it when your CI needs this format:
+
+```bash
+pnpm exec midscene-test --junit
+```
+
+With the Node SDK, pass `junit: true` to `runTestProject()`. When enabled, `junit.xml` is written beside `summary.json`, including failed runs that reach result publication. The SDK returns its path as `junitPath`; the verbose reporter prints it as `JUnit:`. Without this option, no JUnit file or result-path field is generated. The option can be combined with `--reporter verbose`.
 
 Configure your CI test-results collector to read `.midscene/test-results/*/junit.xml`, or the corresponding path under `--result-dir`. Run collection even when the test command fails, and keep the command's exit code as the job result: a publication failure can prevent an artifact from being written.
 

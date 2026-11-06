@@ -298,77 +298,99 @@ describe('test project main-process runner', () => {
     ).toEqual(['flows/a.yaml', 'flows/nested/b.yml']);
   });
 
-  it('reports an empty final file selection as a preflight failure', async () => {
-    const cwd = createProject();
-    writeFileSync(
-      join(cwd, 'midscene.config.ts'),
-      `export default {
+  it('parses the opt-in JUnit flag independently of the terminal reporter', () => {
+    expect(parseTestCliArgs([])).not.toHaveProperty('junit');
+    expect(parseTestCliArgs(['--junit', '--reporter=verbose'])).toMatchObject({
+      junit: true,
+      reporter: 'verbose',
+    });
+    expect(() => parseTestCliArgs(['--junit=false'])).toThrow(
+      '--junit does not accept a value.',
+    );
+    expect(() => parseTestCliArgs(['nodes', '--junit'])).toThrow(
+      '--junit is not supported by nodes.',
+    );
+  });
+
+  it.each([undefined, false, true])(
+    'reports a preflight failure with junit=%s',
+    async (junit) => {
+      const cwd = createProject();
+      writeFileSync(
+        join(cwd, 'midscene.config.ts'),
+        `export default {
         projects: [{
           name: 'default',
           files: { include: ['missing/**/*.yaml'] },
         }],
         nodes: [],
       };`,
-    );
+      );
 
-    const result = await runTestProject({ cwd });
+      const result = await runTestProject({ cwd, junit });
 
-    expect(result.projects[0]).not.toHaveProperty('platform');
+      expect(result.projects[0]).not.toHaveProperty('platform');
 
-    expect(result).toMatchObject({
-      status: 'failed',
-      exitCode: 1,
-      summary: { collectionErrors: 1, projectFailures: 1 },
-      projects: [
-        {
-          name: 'default',
-          status: 'failed',
-          collectionErrors: [
-            {
-              sourcePath: '<project>',
-              error: {
-                message: expect.stringContaining(
-                  'No workflow YAML files found for project "default"',
-                ),
+      expect(result).toMatchObject({
+        status: 'failed',
+        exitCode: 1,
+        summary: { collectionErrors: 1, projectFailures: 1 },
+        projects: [
+          {
+            name: 'default',
+            status: 'failed',
+            collectionErrors: [
+              {
+                sourcePath: '<project>',
+                error: {
+                  message: expect.stringContaining(
+                    'No workflow YAML files found for project "default"',
+                  ),
+                },
               },
-            },
-          ],
-        },
-      ],
-    });
-    const summary = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
-    expect(result.markdownPath).toBe(
-      join(dirname(result.summaryPath), 'result.md'),
-    );
-    expect(summary.markdown).toBe('result.md');
-    expect(readFileSync(result.markdownPath!, 'utf8')).toContain(
-      '## Midscene Test',
-    );
-    expect(result.junitPath).toBe(
-      join(dirname(result.summaryPath), 'junit.xml'),
-    );
-    expect(summary.junit).toBe('junit.xml');
-    expect(readFileSync(result.junitPath!, 'utf8')).toContain(
-      '<testcase name="(collection)" classname="&lt;project&gt;"',
-    );
-    expect(summary.projects[0]).toMatchObject({
-      projectId: 'project-0',
-      collectionErrors: [
-        {
-          errorFile: expect.stringMatching(/^project-0\/collection-errors\//),
-        },
-      ],
-    });
-    expect(
-      existsSync(
-        resolve(
-          dirname(result.summaryPath),
-          summary.projects[0].collectionErrors[0].errorFile,
+            ],
+          },
+        ],
+      });
+      const summary = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
+      expect(result.markdownPath).toBe(
+        join(dirname(result.summaryPath), 'result.md'),
+      );
+      expect(summary.markdown).toBe('result.md');
+      expect(readFileSync(result.markdownPath!, 'utf8')).toContain(
+        '## Midscene Test',
+      );
+      const junitPath = join(dirname(result.summaryPath), 'junit.xml');
+      if (junit) {
+        expect(result.junitPath).toBe(junitPath);
+        expect(summary.junit).toBe('junit.xml');
+        expect(readFileSync(junitPath, 'utf8')).toContain(
+          '<testcase name="(collection)" classname="&lt;project&gt;"',
+        );
+      } else {
+        expect(result).not.toHaveProperty('junitPath');
+        expect(summary).not.toHaveProperty('junit');
+        expect(existsSync(junitPath)).toBe(false);
+      }
+      expect(summary.projects[0]).toMatchObject({
+        projectId: 'project-0',
+        collectionErrors: [
+          {
+            errorFile: expect.stringMatching(/^project-0\/collection-errors\//),
+          },
+        ],
+      });
+      expect(
+        existsSync(
+          resolve(
+            dirname(result.summaryPath),
+            summary.projects[0].collectionErrors[0].errorFile,
+          ),
         ),
-      ),
-    ).toBe(true);
-    expect(existsSync(result.summaryPath)).toBe(true);
-  });
+      ).toBe(true);
+      expect(existsSync(result.summaryPath)).toBe(true);
+    },
+  );
 
   it('uses the test results directory by default', async () => {
     const root = createProject();

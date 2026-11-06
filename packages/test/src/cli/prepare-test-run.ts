@@ -123,6 +123,7 @@ export async function prepareTestRun(
     // native collection failures retain the existing per-Project isolation.
     preflightScope: hasFormatMismatch ? 'run' : 'project',
     reportEnabled: true,
+    junitEnabled: options.junit ?? false,
     publications: [],
     onProgress: options.onProgress ?? (() => {}),
     onEvent: options.onEvent,

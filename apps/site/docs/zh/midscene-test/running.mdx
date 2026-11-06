@@ -73,7 +73,13 @@ pnpm exec midscene-test --help
 
 ### JUnit XML
 
-每次运行还会在 `summary.json` 旁生成 `junit.xml`，包括执行到结果写入阶段的失败运行。此输出默认开启。SDK 通过 `junitPath` 返回路径，verbose reporter 会打印 `JUnit:`。
+JUnit XML 输出默认关闭。需要接入 CI 的测试结果面板时，可显式开启：
+
+```bash
+pnpm exec midscene-test --junit
+```
+
+使用 Node SDK 时，向 `runTestProject()` 传入 `junit: true`。开启后，会在 `summary.json` 旁生成 `junit.xml`，包括执行到结果写入阶段的失败运行。SDK 通过 `junitPath` 返回路径，verbose reporter 会打印 `JUnit:`。未开启时，不生成 JUnit 文件，也不返回对应的路径字段。此选项可与 `--reporter verbose` 同时使用。
 
 将 CI 的测试结果收集路径设为 `.midscene/test-results/*/junit.xml`；使用 `--result-dir` 时，改为对应目录下的路径。测试命令失败后也应执行收集，同时保留命令的退出码作为作业结果：产物写入失败时，文件可能无法生成。
 
