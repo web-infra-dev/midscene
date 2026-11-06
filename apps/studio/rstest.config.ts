@@ -30,23 +30,33 @@ const sharedConfig = defineConfig({
   include: ['tests/**/*.test.{mjs,ts,tsx}'],
 });
 
+// CI installs dependencies with --ignore-scripts, so Electron has no binary.
+// These tests mock Electron; bundle it so Rstest does not evaluate the external
+// package (and require its binary) before applying those mocks.
+const electronMockTests = [
+  'tests/platform-sidecar-process.test.ts',
+  'tests/preload-bridge.test.ts',
+  'tests/scrcpy-sidecar-process.test.ts',
+  'tests/updater-handlers.test.ts',
+];
+
 export default defineConfig({
   coverage: createCoverageConfig(__dirname),
   projects: [
     {
       ...sharedConfig,
       name: 'studio',
-      exclude: ['tests/updater-handlers.test.ts'],
+      exclude: electronMockTests,
     },
     {
       ...sharedConfig,
-      name: 'updater-handlers',
-      include: ['tests/updater-handlers.test.ts'],
-      // Keep its CJS export getters inside the mock graph without changing
+      name: 'electron-mocks',
+      include: electronMockTests,
+      // Keep CJS initialization inside the mock graph without changing
       // Rstest's default dependency bundling for jsdom tests.
       output: {
         externals: photonExternal,
-        bundleDependencies: ['electron-updater'],
+        bundleDependencies: ['electron', 'electron-updater'],
       },
     },
   ],
