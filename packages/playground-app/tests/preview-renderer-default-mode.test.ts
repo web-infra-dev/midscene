@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it, rs } from '@rstest/core';
-/** @vitest-environment jsdom */
+/** @rstest-environment jsdom */
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 

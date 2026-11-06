@@ -217,7 +217,7 @@ jobs:
       run: pnpm run test:scripts
 
     - name: Test generated Midscene Test projects with the built CLI
-      run: pnpm --filter @midscene/test exec vitest --run --config vitest.e2e.config.ts tests/e2e/create-cli.test.ts
+      run: pnpm --filter @midscene/test exec rstest run --config rstest.e2e.config.ts tests/e2e/create-cli.test.ts
 
     # Browser integration has its own runner, isolated from unit-test workers.
     - name: Run CLI shared-browser YAML e2e

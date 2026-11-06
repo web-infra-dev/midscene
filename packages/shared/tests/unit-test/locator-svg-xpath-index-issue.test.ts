@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @rstest-environment jsdom
  */
 import { beforeEach, describe, expect, it } from '@rstest/core';
 import { getXpathsByPoint } from '../../src/extractor/locator';

@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { rs } from '@rstest/core';
 import type { CollectedCase } from '../src/parser/types';
 
 export const collected = (
@@ -19,24 +19,24 @@ export const step = (node: string, input: Record<string, unknown>) => ({
 
 export const createPage = () => {
   const browserContext = {
-    cookies: vi.fn(async () => [
+    cookies: rs.fn(async () => [
       { name: 'session', value: 'secret', domain: 'example.com', path: '/' },
     ]),
-    deleteCookie: vi.fn(async () => undefined),
+    deleteCookie: rs.fn(async () => undefined),
   };
   let viewport = { width: 800, height: 600 };
   const page = {
     browserContext: () => browserContext,
-    setCookie: vi.fn(async () => undefined),
-    goto: vi.fn(
+    setCookie: rs.fn(async () => undefined),
+    goto: rs.fn(
       async (): Promise<{ status(): number }> => ({ status: () => 200 }),
     ),
-    url: vi.fn(() => 'https://example.com/final'),
-    title: vi.fn(async () => 'Example'),
-    setViewport: vi.fn(async (size: typeof viewport) => {
+    url: rs.fn(() => 'https://example.com/final'),
+    title: rs.fn(async () => 'Example'),
+    setViewport: rs.fn(async (size: typeof viewport) => {
       viewport = size;
     }),
-    viewport: vi.fn(() => viewport),
+    viewport: rs.fn(() => viewport),
   };
   return {
     browserContext,

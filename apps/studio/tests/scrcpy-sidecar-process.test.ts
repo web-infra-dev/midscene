@@ -1,10 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const { forkMock, child } = vi.hoisted(() => {
+const { forkMock, child } = rs.hoisted(() => {
   const listeners = new Map<string, Array<(...args: any[]) => void>>();
   const childProcess = {
-    kill: vi.fn(),
-    postMessage: vi.fn(),
+    kill: rs.fn(),
+    postMessage: rs.fn(),
     on(event: string, listener: (...args: any[]) => void) {
       listeners.set(event, [...(listeners.get(event) || []), listener]);
       return this;
@@ -25,11 +25,11 @@ const { forkMock, child } = vi.hoisted(() => {
   };
   return {
     child: childProcess,
-    forkMock: vi.fn(() => childProcess),
+    forkMock: rs.fn(() => childProcess),
   };
 });
 
-vi.mock('electron', () => ({
+rs.mock('electron', () => ({
   utilityProcess: { fork: forkMock },
 }));
 
@@ -52,12 +52,12 @@ describe('StudioScrcpySidecarProcess', () => {
   });
 
   it('starts scrcpy in a utility process and forwards device state', async () => {
-    const unsubscribe = vi.fn();
+    const unsubscribe = rs.fn();
     const source = {
-      getDevices: vi.fn(async () => [
+      getDevices: rs.fn(async () => [
         { id: 'device-1', name: 'Pixel', status: 'device' },
       ]),
-      subscribe: vi.fn(() => unsubscribe),
+      subscribe: rs.fn(() => unsubscribe),
     };
     const sidecar = new StudioScrcpySidecarProcess(source);
     sidecar.currentDeviceId = 'device-1';

@@ -1,6 +1,6 @@
 import type { TestRunReportMetrics } from '@midscene/core';
 import { sumTestRunReportMetrics } from '@midscene/core/internal/test-runner';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import {
   CliModelUsage,
   configuredModelNames,
@@ -49,7 +49,9 @@ const result = (id: string, value?: TestRunReportMetrics): StepRunResult => ({
     ],
   },
 });
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  rs.unstubAllEnvs();
+});
 
 describe('CLI model usage', () => {
   it('replaces execution snapshots and includes separate failed, retry and hook executions', () => {
@@ -95,15 +97,15 @@ describe('CLI model usage', () => {
     expect(formatTokenUsage(undefined)).toBe('—');
   });
   it('groups environment model names by role without requiring API credentials', () => {
-    vi.stubEnv('MIDSCENE_MODEL_NAME', 'default-model');
-    vi.stubEnv('MIDSCENE_PLANNING_MODEL_NAME', 'planning-model');
-    vi.stubEnv('MIDSCENE_INSIGHT_MODEL_NAME', '');
+    rs.stubEnv('MIDSCENE_MODEL_NAME', 'default-model');
+    rs.stubEnv('MIDSCENE_PLANNING_MODEL_NAME', 'planning-model');
+    rs.stubEnv('MIDSCENE_INSIGHT_MODEL_NAME', '');
     expect(configuredModelNames()).toEqual([
       { name: 'default-model', intents: ['default', 'insight'] },
       { name: 'planning-model', intents: ['planning'] },
     ]);
-    vi.stubEnv('MIDSCENE_MODEL_NAME', '');
-    vi.stubEnv('MIDSCENE_PLANNING_MODEL_NAME', '');
+    rs.stubEnv('MIDSCENE_MODEL_NAME', '');
+    rs.stubEnv('MIDSCENE_PLANNING_MODEL_NAME', '');
     expect(configuredModelNames()).toEqual([]);
   });
   it('keeps each model with its own token breakdown and collection state', () => {

@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const shouldRunWebPreviewE2E =
   process.env.MIDSCENE_STUDIO_RUN_WEB_PREVIEW_E2E === '1';
