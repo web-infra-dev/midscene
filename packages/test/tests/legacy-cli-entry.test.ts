@@ -13,16 +13,18 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { TestRunReportDump } from '@midscene/core';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
-import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, describe, expect, it, rs } from '@rstest/core';
 
 const require = createRequire(import.meta.url);
 const here = dirname(fileURLToPath(import.meta.url));
 const oldCli = resolve(here, '../../cli/bin/midscene');
 const cliAcceptanceTimeout = 30_000;
-vi.setConfig({ testTimeout: cliAcceptanceTimeout });
+rs.setConfig({ testTimeout: cliAcceptanceTimeout });
 const roots: string[] = [];
 
-afterAll(() => vi.resetConfig());
+afterAll(() => {
+  rs.resetConfig();
+});
 
 afterEach(() => {
   for (const root of roots.splice(0))

@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { TestRunReportSourceIndex } from '@midscene/core';
 import { NodeExecutionError } from '@midscene/core/internal/test-runner';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import type { TestProjectRunResult } from '../src/cli/types';
 import type { StepRunResult } from '../src/engine/types';
 import { WorkflowError } from '../src/errors';

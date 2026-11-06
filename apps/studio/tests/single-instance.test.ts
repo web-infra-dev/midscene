@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import {
   acquireStudioSingleInstanceLock,
   restoreAndFocusStudioWindow,
@@ -13,8 +13,8 @@ function createApplication({
 } = {}) {
   return {
     isPackaged,
-    quit: vi.fn(),
-    requestSingleInstanceLock: vi.fn(() => acquired),
+    quit: rs.fn(),
+    requestSingleInstanceLock: rs.fn(() => acquired),
   };
 }
 

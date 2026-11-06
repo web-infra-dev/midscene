@@ -1,5 +1,5 @@
+import { describe, expect, it } from '@rstest/core';
 import { load } from 'js-yaml';
-import { describe, expect, it } from 'vitest';
 import { parseWorkflowSource } from '../src/parser/source';
 
 describe('workflow YAML source snapshot', () => {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { formatCliError } from '../src/cli/error-format';
 
 describe('CLI error diagnostics', () => {

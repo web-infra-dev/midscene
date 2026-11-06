@@ -1,0 +1,237 @@
+import SdkCommonMethods from '../common/sdk-common-methods.mdx';
+import { SdkPrerequisites, SdkPlatformProvider, SdkPlatformSelector, SdkPlatformContent } from '@theme';
+
+# 接入 Rstest
+
+<SdkPlatformProvider>
+
+编写 Android、iOS、HarmonyOS 和桌面端的 JavaScript / TypeScript 测试时，可以使用 Rstest。Rstest 负责组织用例、执行生命周期钩子并汇总测试结果；Midscene Agent 负责连接设备、操作界面并执行断言。
+
+## 使用前准备
+
+<SdkPrerequisites lang="zh" mode="rstest" />
+
+<SdkPlatformSelector lang="zh" />
+
+## 1. 安装依赖
+
+<SdkPlatformContent platform="android">
+
+```bash
+pnpm add -D @rstest/core dotenv @midscene/android
+```
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="ios">
+
+```bash
+pnpm add -D @rstest/core dotenv @midscene/ios
+```
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="harmonyos">
+
+```bash
+pnpm add -D @rstest/core dotenv @midscene/harmony
+```
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="desktop">
+
+```bash
+pnpm add -D @rstest/core dotenv @midscene/computer
+```
+
+</SdkPlatformContent>
+
+## 2. 配置测试
+
+新建 `rstest.config.ts`。如果项目已在使用 Rstest，可以将设备测试配置单独保存为 `rstest.device.config.ts`，运行时通过 `--config rstest.device.config.ts` 指定，以免影响现有的单元测试配置。
+
+```typescript title="rstest.config.ts"
+import { defineConfig } from '@rstest/core';
+
+export default defineConfig({
+  include: ['e2e/**/*.test.ts'],
+  testEnvironment: 'node',
+  testTimeout: 90_000,
+  hookTimeout: 90_000,
+  pool: { maxWorkers: 1 },
+  maxConcurrency: 1,
+  output: {
+    externals: {
+      '@silvia-odwyer/photon': 'commonjs @silvia-odwyer/photon',
+    },
+  },
+});
+```
+
+模型调用和设备连接可能耗时较长，请按实际用例调整 `testTimeout` 和 `hookTimeout`。共享一台设备时，使用单个 worker（`pool.maxWorkers: 1`）和 `maxConcurrency: 1`，并避免调用 `test.concurrent` 或 `describe.concurrent`。配置中的 external 声明让 Photon 原生模块不参与测试打包。详见 [Rstest 配置参考](https://rstest.rs/config/)。
+
+## 3. 编写测试
+
+新建 `e2e/settings.test.ts`，在 `beforeEach` 中为每个用例创建新的 Agent，并在 `afterEach` 中销毁：
+
+<SdkPlatformContent platform="android">
+
+```typescript title="e2e/settings.test.ts"
+import 'dotenv/config';
+import { afterEach, beforeEach, test } from '@rstest/core';
+import { agentFromAdbDevice } from '@midscene/android';
+
+let agent: Awaited<ReturnType<typeof agentFromAdbDevice>> | undefined;
+
+beforeEach(async () => {
+  agent = await agentFromAdbDevice();
+});
+
+afterEach(async () => {
+  const currentAgent = agent;
+  agent = undefined;
+  await currentAgent?.destroy();
+});
+
+test('scroll through settings', async () => {
+  if (!agent) throw new Error('Agent was not initialized');
+
+  await agent.launch('com.android.settings');
+  await agent.aiWaitFor('The Settings app is visible');
+  await agent.aiAct('Scroll down one screen');
+  await agent.aiAssert('The Settings app is still visible');
+});
+```
+
+连接多台设备时，通过 `agentFromAdbDevice(deviceId)` 指定设备 ID。连接参数详见 [Android SDK 文档](./android)。
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="ios">
+
+```typescript title="e2e/settings.test.ts"
+import 'dotenv/config';
+import { afterEach, beforeEach, test } from '@rstest/core';
+import { agentFromWebDriverAgent } from '@midscene/ios';
+
+let agent: Awaited<ReturnType<typeof agentFromWebDriverAgent>> | undefined;
+
+beforeEach(async () => {
+  agent = await agentFromWebDriverAgent({
+    wdaHost: 'localhost',
+    wdaPort: 8100,
+  });
+});
+
+afterEach(async () => {
+  const currentAgent = agent;
+  agent = undefined;
+  await currentAgent?.destroy();
+});
+
+test('scroll through settings', async () => {
+  if (!agent) throw new Error('Agent was not initialized');
+
+  await agent.launch('com.apple.Preferences');
+  await agent.aiWaitFor('The Settings app is visible');
+  await agent.aiAct('Scroll down one screen');
+  await agent.aiAssert('The Settings app is still visible');
+});
+```
+
+将 `wdaHost` 和 `wdaPort` 替换为已验证可用的 WebDriverAgent 服务地址。连接参数详见 [iOS SDK 文档](./ios)。
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="harmonyos">
+
+```typescript title="e2e/settings.test.ts"
+import 'dotenv/config';
+import { afterEach, beforeEach, test } from '@rstest/core';
+import { agentFromHdcDevice } from '@midscene/harmony';
+
+let agent: Awaited<ReturnType<typeof agentFromHdcDevice>> | undefined;
+
+beforeEach(async () => {
+  agent = await agentFromHdcDevice();
+});
+
+afterEach(async () => {
+  const currentAgent = agent;
+  agent = undefined;
+  await currentAgent?.destroy();
+});
+
+test('scroll through settings', async () => {
+  if (!agent) throw new Error('Agent was not initialized');
+
+  await agent.launch('com.huawei.hmos.settings');
+  await agent.aiWaitFor('The Settings app is visible');
+  await agent.aiAct('Scroll down one screen');
+  await agent.aiAssert('The Settings app is still visible');
+});
+```
+
+连接多台设备时，通过 `agentFromHdcDevice(deviceId)` 指定设备 ID。连接参数详见 [HarmonyOS SDK 文档](./harmonyos)。
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="desktop">
+
+```typescript title="e2e/settings.test.ts"
+import 'dotenv/config';
+import { afterEach, beforeEach, test } from '@rstest/core';
+import { agentForComputer } from '@midscene/computer';
+
+let agent: Awaited<ReturnType<typeof agentForComputer>> | undefined;
+
+beforeEach(async () => {
+  agent = await agentForComputer();
+});
+
+afterEach(async () => {
+  const currentAgent = agent;
+  agent = undefined;
+  await currentAgent?.destroy();
+});
+
+test('scroll through settings', async () => {
+  if (!agent) throw new Error('Agent was not initialized');
+
+  await agent.aiWaitFor('The Settings app is visible');
+  await agent.aiAct('Scroll down one screen');
+  await agent.aiAssert('The Settings app is still visible');
+});
+```
+
+运行前，打开系统设置应用，将可滚动的设置页面置于前台，并在测试期间保持可见。权限和连接参数详见[桌面端 SDK 文档](./desktop)。
+
+</SdkPlatformContent>
+
+`dotenv/config` 用于从项目的 `.env` 文件加载模型配置（Playground 中的配置不会自动同步到测试进程）。
+
+当 `aiAssert` 的断言未通过时，会直接抛出错误，Rstest 随即将其所在用例标记为失败，并继续执行 `afterEach` 销毁 Agent。你也可以用 `aiQuery` 等方法提取界面数据，再交给 Rstest 的 `expect` 进行校验。更多交互与提取方法见 [Agent API 参考](../reference/index.mdx#interaction-methods)。
+
+## 4. 运行测试与查看报告
+
+```bash
+pnpm exec rstest run e2e/settings.test.ts
+```
+
+运行后，Rstest 会在终端汇总用例的通过或失败状态；Midscene SDK 则默认在 `midscene_run/report/` 下生成各 Agent 的执行报告，并在终端打印报告路径。在浏览器中打开生成的 HTML 报告，即可查看各步骤的截图、AI 执行过程和断言结果。
+
+与 Playwright Test 不同，Rstest 接入直接使用 SDK 内置的报告生成机制，无需额外部署 reporter。Rstest 的测试结果与 Midscene 的 Agent 报告相互独立；如需合并或进一步处理报告文件，请参阅[处理报告文件](../consume-report-file)。
+
+## 常用方法
+
+<SdkCommonMethods />
+
+## 生命周期与设备独占
+
+- **按用例隔离 Agent**：每个用例都应创建独立的 Agent。每个 Device 实例只能归属于一个 Agent，调用 `agent.destroy()` 时会一并清理对应的 Device，切勿在后续用例中复用已销毁的实例。
+- **显式管理应用状态**：销毁 Agent 不会重置应用数据或关闭目标应用。每个用例应自行准备好初始界面与测试数据，并在必要时清理状态，确保用例支持单独运行或失败重试。
+- **避免多进程争用设备**：Rstest 的串行配置仅约束当前测试进程，其他本地进程、CI 任务或人工操作仍可能争用同一台设备。如需并行运行测试，请为每个执行单元分配独立的设备或桌面会话，并在代码中显式指定连接目标。
+
+
+</SdkPlatformProvider>

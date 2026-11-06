@@ -304,6 +304,10 @@ export default defineConfig(async () => {
             link: '/sdk/vitest',
           },
           {
+            text: 'Integrate with Rstest',
+            link: '/sdk/rstest',
+          },
+          {
             text: 'Write standalone automation scripts',
             link: '/sdk/standalone',
           },
@@ -557,6 +561,10 @@ export default defineConfig(async () => {
           {
             text: '接入 Vitest',
             link: '/zh/sdk/vitest',
+          },
+          {
+            text: '接入 Rstest',
+            link: '/zh/sdk/rstest',
           },
           {
             text: '编写独立自动化脚本',

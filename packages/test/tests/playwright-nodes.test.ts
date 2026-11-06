@@ -10,7 +10,7 @@ import {
   setCookiesInputSchema,
   setViewportSizeInputSchema,
 } from '@midscene/web/playwright/test';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { createPage } from './playwright-node-helpers';
 
 describe('PlaywrightAgent Nodes', () => {

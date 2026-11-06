@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { requestPlaygroundBootstrap } from '../src/main/playground/bootstrap-request';
 import type { PlaygroundRuntimeService } from '../src/main/playground/types';
 
@@ -6,16 +6,16 @@ function createRuntimeMock(
   overrides: Partial<PlaygroundRuntimeService> = {},
 ): PlaygroundRuntimeService {
   return {
-    close: vi.fn().mockResolvedValue(undefined),
-    getBootstrap: vi.fn().mockReturnValue({
+    close: rs.fn().mockResolvedValue(undefined),
+    getBootstrap: rs.fn().mockReturnValue({
       status: 'starting',
       serverUrl: null,
       port: null,
       error: null,
     }),
-    restart: vi.fn(),
-    updateAgentOptions: vi.fn().mockResolvedValue(undefined),
-    start: vi.fn().mockResolvedValue({
+    restart: rs.fn(),
+    updateAgentOptions: rs.fn().mockResolvedValue(undefined),
+    start: rs.fn().mockResolvedValue({
       status: 'ready',
       serverUrl: 'http://127.0.0.1:3000',
       port: 3000,
@@ -28,7 +28,7 @@ function createRuntimeMock(
 describe('requestPlaygroundBootstrap', () => {
   it('returns the current bootstrap immediately while starting in background', () => {
     const runtime = createRuntimeMock();
-    const onStartError = vi.fn();
+    const onStartError = rs.fn();
 
     const bootstrap = requestPlaygroundBootstrap(runtime, onStartError);
 
@@ -46,9 +46,9 @@ describe('requestPlaygroundBootstrap', () => {
   it('reports asynchronous start failures without throwing synchronously', async () => {
     const failure = new Error('runtime failed');
     const runtime = createRuntimeMock({
-      start: vi.fn().mockRejectedValue(failure),
+      start: rs.fn().mockRejectedValue(failure),
     });
-    const onStartError = vi.fn();
+    const onStartError = rs.fn();
 
     const bootstrap = requestPlaygroundBootstrap(runtime, onStartError);
     await Promise.resolve();

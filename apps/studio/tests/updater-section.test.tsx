@@ -1,7 +1,7 @@
-// @vitest-environment jsdom
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
+// @rstest-environment jsdom
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, describe, expect, it, vi } from 'vitest';
 import UpdaterSection from '../src/renderer/components/SettingsPanel/UpdaterSection';
 
 (
@@ -31,15 +31,15 @@ async function unmount(root: ReturnType<typeof createRoot>) {
 describe('UpdaterSection', () => {
   afterEach(() => {
     document.body.replaceChildren();
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('renders update availability as an inline Version row action', async () => {
-    const onDownload = vi.fn();
+    const onDownload = rs.fn();
     const { container, root } = await renderUpdaterSection({
       appVersion: '1.8.0',
       onDownload,
-      onInstall: vi.fn(),
+      onInstall: rs.fn(),
       status: { state: 'available', version: '1.8.1' },
     });
 
@@ -61,11 +61,11 @@ describe('UpdaterSection', () => {
   });
 
   it('does not count update action clicks as Version row clicks', async () => {
-    const onOpenRunDirectory = vi.fn();
+    const onOpenRunDirectory = rs.fn();
     const { container, root } = await renderUpdaterSection({
       appVersion: '1.8.0',
-      onDownload: vi.fn(),
-      onInstall: vi.fn(),
+      onDownload: rs.fn(),
+      onInstall: rs.fn(),
       onOpenRunDirectory,
       status: { state: 'available', version: '1.8.1' },
     });
@@ -82,12 +82,12 @@ describe('UpdaterSection', () => {
   });
 
   it('opens the release page for external-only update targets', async () => {
-    const onDownload = vi.fn();
-    const onOpenDownloadPage = vi.fn();
+    const onDownload = rs.fn();
+    const onOpenDownloadPage = rs.fn();
     const { container, root } = await renderUpdaterSection({
       appVersion: '1.8.0',
       onDownload,
-      onInstall: vi.fn(),
+      onInstall: rs.fn(),
       onOpenDownloadPage,
       status: {
         externalDownloadOnly: true,
@@ -107,10 +107,10 @@ describe('UpdaterSection', () => {
   });
 
   it('keeps the install action available after download completes', async () => {
-    const onInstall = vi.fn();
+    const onInstall = rs.fn();
     const { container, root } = await renderUpdaterSection({
       appVersion: '1.8.0',
-      onDownload: vi.fn(),
+      onDownload: rs.fn(),
       onInstall,
       status: { state: 'downloaded', version: '1.8.1' },
     });
@@ -126,11 +126,11 @@ describe('UpdaterSection', () => {
   });
 
   it('opens the run directory after five Version row clicks', async () => {
-    const onOpenRunDirectory = vi.fn();
+    const onOpenRunDirectory = rs.fn();
     const { container, root } = await renderUpdaterSection({
       appVersion: '1.8.0',
-      onDownload: vi.fn(),
-      onInstall: vi.fn(),
+      onDownload: rs.fn(),
+      onInstall: rs.fn(),
       onOpenRunDirectory,
       status: { state: 'idle' },
     });

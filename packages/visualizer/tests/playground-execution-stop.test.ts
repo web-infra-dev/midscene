@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+// @rstest-environment jsdom
 import type { DeviceAction } from '@midscene/core';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { act, createElement, useEffect, useRef, useState } from 'react';
