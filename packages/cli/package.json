@@ -59,7 +59,7 @@
     "execa": "9.3.0",
     "glob": "11.0.0",
     "jose": "5.9.6",
-    "js-yaml": "4.1.0",
+    "js-yaml": "4.3.2",
     "p-limit": "6.2.0",
     "restore-cursor": "5.1.0",
     "typescript": "^5.8.3",

@@ -28,7 +28,7 @@
     "@midscene/playground": "workspace:*",
     "@midscene/shared": "workspace:*",
     "cors": "^2.8.5",
-    "express": "^4.21.2",
+    "express": "^4.22.3",
     "puppeteer": "24.6.0"
   },
   "devDependencies": {
