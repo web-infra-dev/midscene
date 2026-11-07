@@ -29,7 +29,7 @@
     "@tailwindcss/postcss": "4.1.11",
     "@types/node": "^18.0.0",
     "autoprefixer": "10.4.22",
-    "postcss": "8.5.6",
+    "postcss": "8.5.32",
     "tailwindcss": "4.1.11"
   }
 }

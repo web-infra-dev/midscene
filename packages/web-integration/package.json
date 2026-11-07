@@ -109,8 +109,8 @@
     "dayjs": "^1.11.11",
     "dotenv": "^16.4.5",
     "http-server": "14.1.1",
-    "puppeteer-core": "24.6.0",
-    "semver": "7.5.2",
+    "puppeteer-core": "24.43.1",
+    "semver": "7.8.6",
     "socket.io": "^4.8.4",
     "socket.io-client": "4.8.4",
     "ws": "^8.22.1",
@@ -118,7 +118,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.45.0",
-    "@rslib/core": "^0.18.3",
+    "@rslib/core": "~0.19.6",
     "@rstest/core": "0.12.0",
     "@types/chrome": "0.0.279",
     "@types/cors": "^2.8.17",
@@ -130,8 +130,8 @@
     "devtools-protocol": "0.0.1380148",
     "js-yaml": "4.3.2",
     "playwright": "^1.45.0",
-    "puppeteer": "24.6.0",
-    "tsx": "^4.19.2",
+    "puppeteer": "24.43.1",
+    "tsx": "^4.23.15",
     "typescript": "^5.8.3"
   },
   "peerDependencies": {

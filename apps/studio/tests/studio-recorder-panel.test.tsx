@@ -184,11 +184,15 @@ async function renderReplayPanel({
 }: {
   activeSessionId?: string | null;
   activeSessionStoppable?: boolean;
-  onDeleteSession?: ReturnType<typeof vi.fn>;
-  onDownloadSession?: ReturnType<typeof vi.fn>;
-  onReplaySession?: ReturnType<typeof vi.fn>;
-  onSelectSession?: ReturnType<typeof vi.fn>;
-  onStopActiveSession?: ReturnType<typeof vi.fn>;
+  onDeleteSession?: ComponentProps<typeof StudioReplayPanel>['onDeleteSession'];
+  onDownloadSession?: ComponentProps<
+    typeof StudioReplayPanel
+  >['onDownloadSession'];
+  onReplaySession?: ComponentProps<typeof StudioReplayPanel>['onReplaySession'];
+  onSelectSession?: ComponentProps<typeof StudioReplayPanel>['onSelectSession'];
+  onStopActiveSession?: ComponentProps<
+    typeof StudioReplayPanel
+  >['onStopActiveSession'];
   selectedSessionId?: string | null;
   sessions?: any[];
 } = {}) {
