@@ -250,10 +250,9 @@ describe('ScrcpyScreenshotManager video reset', () => {
     await rs.waitFor(() => expect(resetVideo).toHaveBeenCalledTimes(1));
     finishReset?.();
 
-    await expect(Promise.all([first, second])).resolves.toEqual([
-      undefined,
-      undefined,
-    ]);
+    // Both callers share one reset, so both get its state.
+    const [firstReset, secondReset] = await Promise.all([first, second]);
+    expect(secondReset).toBe(firstReset);
     expect(resetVideo).toHaveBeenCalledTimes(1);
   });
 
@@ -284,10 +283,9 @@ describe('ScrcpyScreenshotManager video reset', () => {
     expect(resetVideo).toHaveBeenCalledTimes(1);
     finishReset?.();
 
-    await expect(Promise.all([first, second])).resolves.toEqual([
-      undefined,
-      undefined,
-    ]);
+    // Both callers share one reset, so both get its state.
+    const [firstReset, secondReset] = await Promise.all([first, second]);
+    expect(secondReset).toBe(firstReset);
     expect(resetVideo).toHaveBeenCalledTimes(1);
     expect((manager as any).videoResetState).toBeNull();
   });
@@ -389,6 +387,39 @@ describe('ScrcpyScreenshotManager video reset', () => {
 
     await capture;
     expect(disconnect).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the reset packet count after an accepted keyframe is rejected for planning', async () => {
+    rs.useFakeTimers();
+    rs.setSystemTime(new Date('2026-09-01T00:00:00Z'));
+    const resetVideo = rs.fn().mockResolvedValue(undefined);
+    const manager = createManager({} as any);
+    prepareEstablishedStaleManager(manager, resetVideo, {
+      hostWallTimeMs: Date.now(),
+    });
+    // The transport accepts the post-reset keyframe, which ends the active
+    // reset, but the planning-level age check still rejects every candidate.
+    rs.spyOn(
+      manager as any,
+      'isPlanningCandidateFreshEnough',
+    ).mockResolvedValue(false);
+    rs.spyOn(manager, 'disconnect').mockResolvedValue();
+
+    const capture = expect(manager.getScreenshotJpeg()).rejects.toMatchObject({
+      name: 'ScrcpyFreshFrameUnavailableError',
+      timeoutMs: 800,
+      message: expect.stringContaining(
+        '1 data packet was observed while reset recovery was active',
+      ),
+    });
+    await rs.advanceTimersByTimeAsync(10);
+    (manager as any).processFrame(spsPacket());
+    (manager as any).processFrame(dataPacket(0x01, 3_000_000n));
+    expect((manager as any).videoResetState).toBeNull();
+    await rs.advanceTimersByTimeAsync(800);
+
+    await capture;
+    expect(resetVideo).toHaveBeenCalledTimes(1);
   });
 
   it('reports unusable data packets observed while reset recovery is active', async () => {
