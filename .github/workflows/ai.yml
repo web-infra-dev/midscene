@@ -3,17 +3,7 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - '**/*.md'
-      - 'apps/site/**'
-      - '.changeset/**'
-      - 'docs/**'
   pull_request:
-    paths-ignore:
-      - '**/*.md'
-      - 'apps/site/**'
-      - '.changeset/**'
-      - 'docs/**'
   workflow_dispatch:
     inputs:
       branch:
@@ -26,7 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ai-playwright-e2e-${{ github.event.pull_request.number || inputs.branch || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -42,12 +32,17 @@ env:
   CI: 1
 
 jobs:
+  changes:
+    uses: ./.github/workflows/ci-changes.yml
+
   e2e-web:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
-        ref: ${{ github.event.inputs.branch || github.ref }}
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.sha }}
 
     - name: Setup Node.js and pnpm
       uses: ./.github/actions/setup-node-pnpm
@@ -150,11 +145,18 @@ jobs:
         exit 1
 
   e2e-report:
+    needs: changes
+    if: always() && (needs.changes.result != 'success' || needs.changes.outputs.code == 'true')
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     steps:
+    - name: Check change detection
+      env:
+        RESULT: ${{ needs.changes.result }}
+      run: test "$RESULT" = success
+
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
-        ref: ${{ github.event.inputs.branch || github.ref }}
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.sha }}
 
     - name: Setup Node.js and pnpm
       uses: ./.github/actions/setup-node-pnpm
@@ -173,19 +175,38 @@ jobs:
     - name: Setup Puppeteer browser
       uses: ./.github/actions/setup-puppeteer-browser
 
+    - name: Build report runtime
+      run: |
+        pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/cli"
+        node scripts/validate-core-report-template.mjs
+
+    - name: Generate shared report fixtures
+      uses: ./.github/actions/ai-ci
+      with:
+        command: node apps/report/scripts/generate-demo-report.mjs
+
     - name: Prepare AI CI
       id: ai-ci
       uses: ./.github/actions/ai-ci
 
-    - name: Run apps/report e2e tests and publish report
+    - name: Run apps/report e2e
       id: e2e-tests-app-report
-      uses: web-infra-dev/midscene-action@5ef922b20a69d69a0f34639c4c867ba2049f6ede # v1
+      uses: web-infra-dev/midscene-action@131b6a9ba6402f4b63f8ecbfa6ffb58bb20c78dc # v1 + environment roots and single HTML
       env:
         NODE_OPTIONS: ${{ steps.ai-ci.outputs.node-options }}
       with:
         working-directory: apps/report
-        command: pnpm run e2e
+        command: python3 ../../scripts/ci-measure.py "$RUNNER_TEMP/report-resources.json" node ../../packages/test/bin/midscene-test --config ./e2e/midscene.config.ts
         artifact-name: e2e-app-report-output
         publish-pages: true
         cloudflare-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         cloudflare-account-id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+
+    - name: Upload report resource measurements
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: report-resources
+        path: ${{ runner.temp }}/report-resources.json
+        retention-days: 7
+        if-no-files-found: ignore

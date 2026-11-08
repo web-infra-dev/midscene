@@ -1,9 +1,17 @@
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { Agent } from '@/agent/agent';
 import { extractTestRunReportDumpSync } from '@/dump/html-utils';
 import { readReportRunnerDump } from '@/dump/report-artifact-reader';
+import { resolveImageSource } from '@/dump/screenshot-store';
 import { mergeReportFiles } from '@/report-cli';
 import { ReportGenerator } from '@/report-generator';
 import type { TestRunReportDump } from '@/test-run-report';
@@ -11,6 +19,7 @@ import { ExecutionDump, ReportActionDump } from '@/types';
 import type { MidsceneYamlScript } from '@/types';
 import { ScriptPlayer } from '@/yaml/player';
 import { getLegacyYamlPlayerState } from '@/yaml/player-state';
+import { setMidsceneRunDir } from '@midscene/shared/common';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import {
   afterEach,
@@ -24,8 +33,10 @@ import {
 let directory: string;
 beforeEach(() => {
   directory = mkdtempSync(join(tmpdir(), 'yaml-standard-report-'));
+  setMidsceneRunDir(directory);
 });
 afterEach(() => {
+  setMidsceneRunDir(undefined);
   rs.restoreAllMocks();
   rmSync(directory, { recursive: true, force: true });
 });
@@ -125,6 +136,9 @@ describe('old YAML entries publish standard Runner reports', () => {
         expect(create).toHaveBeenCalledTimes(1);
         expect(player.reportFile).toBe(reportPath);
         expect(readDump(reportPath).status).toBe('failed');
+        expect(dirname(record.reportSources![0].dumpPath!)).toBe(
+          join(directory, 'test-results', record.runId, 'records'),
+        );
       } else {
         expect(create).not.toHaveBeenCalled();
         expect(player.reportFile).toBeUndefined();
@@ -330,16 +344,45 @@ describe('old YAML entries publish standard Runner reports', () => {
       expect(source).toHaveBeenCalledOnce();
       const record = getLegacyYamlPlayerState(player).executionRecord!;
       expect(record.reportSources).toHaveLength(1);
+      const snapshotPath = record.reportSources![0].dumpPath!;
+      const snapshotDirectory = join(
+        directory,
+        'test-results',
+        readDump(player.reportFile!).runId,
+        'records',
+      );
+      expect(dirname(snapshotPath)).toBe(snapshotDirectory);
       const snapshot = ReportActionDump.fromSerializedString(
-        readFileSync(record.reportSources![0].dumpPath!, 'utf8'),
+        readFileSync(snapshotPath, 'utf8'),
       );
       expect(snapshot.executions).toHaveLength(1);
       expect(snapshot.executions[0].name).toContain('YAML evidence');
       const screenshot = JSON.parse(snapshot.serialize()).executions[0].tasks[0]
         .recorder[0].screenshot;
       expect(
-        readFileSync(join(directory, screenshot.path)).length,
+        readFileSync(join(snapshotDirectory, screenshot.path)).length,
       ).toBeGreaterThan(0);
+      expect(
+        readdirSync(dirname(player.reportFile!)).some((name) =>
+          /\.html\..*\.json$/.test(name),
+        ),
+      ).toBe(false);
+      if (mode === 'inline')
+        expect(existsSync(join(directory, 'screenshots'))).toBe(false);
+      const relocatedRecords = join(directory, 'relocated-records');
+      cpSync(snapshotDirectory, relocatedRecords, { recursive: true });
+      const movedImage = resolveImageSource(screenshot, {
+        reportPath: join(relocatedRecords, basename(snapshotPath)),
+      });
+      expect(movedImage.type).toBe('file');
+      if (movedImage.type === 'file') {
+        expect(movedImage.filePath).toBe(
+          join(relocatedRecords, screenshot.path),
+        );
+        expect(readFileSync(movedImage.filePath)).toEqual(
+          readFileSync(join(snapshotDirectory, screenshot.path)),
+        );
+      }
       const html = readFileSync(player.reportFile!, 'utf8');
       expect(readDump(player.reportFile!).summary).toMatchObject({
         total: 1,
@@ -363,6 +406,13 @@ describe('old YAML entries publish standard Runner reports', () => {
 
   test('replaces the root snapshot across consecutive public Agent.runYaml calls', async () => {
     const agent = createAgent();
+    const source = rs.spyOn(agent, '_createReportSource');
+    rs.mocked(agent.evaluateJavaScript).mockImplementation(async () => {
+      await agent.recordToReport('same frame across YAML runs', {
+        screenshotBase64: 'data:image/png;base64,AAAA',
+      });
+      return { answer: 42 };
+    });
     const script = `config:\n  output: ${join(directory, 'output.json')}\n${yaml}`;
     await agent.runYaml(script);
     await agent.runYaml(script);
@@ -373,6 +423,33 @@ describe('old YAML entries publish standard Runner reports', () => {
     expect(
       readdirSync(directory).filter((file) => file.endsWith('.html')),
     ).toHaveLength(1);
+    const snapshots = await Promise.all(
+      source.mock.results.map((result) => result.value),
+    );
+    const recordsDirectory = join(
+      directory,
+      'test-results',
+      dump.runId,
+      'records',
+    );
+    expect(snapshots.map((snapshot) => dirname(snapshot!.dumpPath!))).toEqual([
+      recordsDirectory,
+      recordsDirectory,
+    ]);
+    expect(new Set(snapshots.map((snapshot) => snapshot!.dumpPath)).size).toBe(
+      2,
+    );
+    expect(readdirSync(join(recordsDirectory, 'screenshots'))).toHaveLength(1);
+    expect(
+      ReportActionDump.fromSerializedString(
+        readFileSync(snapshots[0]!.dumpPath!, 'utf8'),
+      ).executions,
+    ).toHaveLength(1);
+    expect(
+      ReportActionDump.fromSerializedString(
+        readFileSync(snapshots[1]!.dumpPath!, 'utf8'),
+      ).executions,
+    ).toHaveLength(2);
   });
 
   test('nested cached-style replay contributes to the parent without another report or Agent destroy', async () => {
@@ -409,7 +486,10 @@ describe('old YAML entries publish standard Runner reports', () => {
     player.output = undefined;
     await player.run();
     expect(player.reportFile).toBeUndefined();
-    expect(readdirSync(directory)).toHaveLength(0);
+    expect(
+      readdirSync(directory).filter((name) => name.endsWith('.html')),
+    ).toHaveLength(0);
+    expect(existsSync(join(directory, 'test-results'))).toBe(false);
     await agent.destroy();
   });
 
@@ -421,7 +501,10 @@ describe('old YAML entries publish standard Runner reports', () => {
     expect(dump.summary).toMatchObject({ total: 1, passed: 1 });
     expect(dump.projects[0].documents[0].cases[0].name).toBe('old task');
     expect(agent.reportFile).toBeUndefined();
-    expect(readdirSync(directory)).toHaveLength(0);
+    expect(
+      readdirSync(directory).filter((name) => name.endsWith('.html')),
+    ).toHaveLength(0);
+    expect(existsSync(join(directory, 'test-results'))).toBe(false);
     await agent.destroy();
   });
 

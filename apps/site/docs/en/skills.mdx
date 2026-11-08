@@ -100,6 +100,30 @@ The headers are applied before `connect --url` navigates, so the initial documen
 
 If Chrome is installed in a non-standard location, set `MIDSCENE_CHROME_PATH` to the Chrome executable path. `MIDSCENE_MCP_CHROME_PATH` is still accepted as a temporary migration alias.
 
+## Switch browser tabs
+
+Use `tabs` to list open tabs and `switch-tab --id <id>` to select one. Save the original tab ID before clicking a link that opens a new tab, then list tabs again to find the new tab:
+
+```bash
+npx @midscene/web tabs
+# After opening the new tab:
+npx @midscene/web tabs
+npx @midscene/web switch-tab --id <new-tab-id>
+npx @midscene/web take_screenshot
+# Return to the original tab after working in the new tab:
+npx @midscene/web switch-tab --id <original-tab-id>
+```
+
+`tabs` returns a JSON array with `id`, `title`, `url`, and `active`. `active` identifies the page controlled by Midscene. Switching selects an existing tab without navigating or reloading it, preserving page state. Missing or closed IDs produce an error. If a site opens a tab asynchronously, run `tabs` again after it appears.
+
+Keep the connection mode consistent across commands. In default Puppeteer and CDP modes, subsequent commands use the selected tab. These modes preserve newly opened tabs without switching to them automatically.
+
+In CDP mode, pass `--cdp <endpoint>` on each command, or set `MIDSCENE_CDP_ENDPOINT` and pass `--cdp`.
+
+In Bridge mode, pass `--bridge` on each command and use an updated Midscene Chrome extension. Switching activates the selected tab in the current Chrome window. Subsequent commands connect to the foreground tab, so manually switching tabs also changes which page the next command controls.
+
+`disconnect` releases the connection. In default Puppeteer mode, `close` closes the entire browser, including all tabs.
+
 ## More
 
 Please refer to the [Skills Repository](https://github.com/web-infra-dev/midscene-skills) for more details.

@@ -1,7 +1,7 @@
 {
   "name": "@midscene/cli",
   "description": "An AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language. See https://midscenejs.com/ for details.",
-  "version": "1.17.4",
+  "version": "1.17.7",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
@@ -59,7 +59,7 @@
     "execa": "9.3.0",
     "glob": "11.0.0",
     "jose": "5.9.6",
-    "js-yaml": "4.1.0",
+    "js-yaml": "4.3.2",
     "p-limit": "6.2.0",
     "restore-cursor": "5.1.0",
     "typescript": "^5.8.3",

@@ -174,7 +174,9 @@ rs.mock('node:fs', () => {
 describe('AndroidDevice', () => {
   let device: AndroidDevice;
 
-  let mockAdb: Mocked<ADB>;
+  // Mapped mock types erase generic return types such as runInImeContext<T>.
+  // Retain the real ADB signatures alongside the mock controls.
+  let mockAdb: Mocked<ADB> & ADB;
 
   beforeEach(() => {
     rs.mocked(execFile).mockClear();
@@ -183,7 +185,7 @@ describe('AndroidDevice', () => {
       mockAdbInstance = createMockAdb();
     }
     // Create a new mock instance for each test
-    mockAdb = new (ADB as any)() as Mocked<ADB>;
+    mockAdb = new ADB() as Mocked<ADB> & ADB;
     mockAdb.executable.defaultArgs = [];
     // Disable buffer size validation for tests to allow small mock buffers
     // Disable scrcpy to avoid shell calls during normalizeScrcpyConfig

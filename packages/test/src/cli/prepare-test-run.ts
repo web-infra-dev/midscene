@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import {
+  resolveMidsceneRunDir,
+  runWithMidsceneRunDir,
+} from '@midscene/shared/common';
 import { NativeWorkflowFormatError } from '../parser/collect';
 import type {
   PreparedExecutionProject,
@@ -81,50 +85,66 @@ export async function prepareTestRun(
   if (options.configPath && !existsSync(configPath!))
     throw new Error(`Midscene config does not exist: ${configPath}`);
   const definition = await loadTestProject<unknown>(configPath);
-  const resultDir = options.resultDir
-    ? resolve(input.cwd, options.resultDir)
-    : join(input.projectRoot, '.midscene', 'test-results');
-  const runDir = join(resultDir, runId);
-  const summaryPath = join(runDir, 'summary.json');
-  const reportDir = resolve(input.projectRoot, definition.output.reportDir);
-  mkdirSync(resultDir, { recursive: true });
-  mkdirSync(runDir);
-  const projects: PreparedExecutionProject[] = [];
-  for (const project of selectProjects(
-    definition.projects,
-    options.projectNames,
-  ))
-    projects.push(
-      await prepareProject(
-        project,
-        input.projectRoot,
-        runDir,
-        definition.test.testTimeout,
-        input.singleFile ? { files: [input.singleFile] } : undefined,
+  const artifactDir = resolveMidsceneRunDir(input.projectRoot);
+  return runWithMidsceneRunDir(artifactDir, async () => {
+    const resultDir = options.resultDir
+      ? resolve(input.cwd, options.resultDir)
+      : join(artifactDir, 'test-results');
+    const runDir = join(resultDir, runId);
+    const summaryPath = join(runDir, 'summary.json');
+    const reportDir = definition.output.reportDir
+      ? resolve(input.projectRoot, definition.output.reportDir)
+      : join(artifactDir, 'report');
+    mkdirSync(resultDir, { recursive: true });
+    mkdirSync(runDir);
+    const projects: PreparedExecutionProject[] = [];
+    for (const project of selectProjects(
+      definition.projects,
+      options.projectNames,
+    ))
+      projects.push(
+        await prepareProject(
+          project,
+          input.projectRoot,
+          runDir,
+          definition.test.testTimeout,
+          {
+            ...(input.singleFile ? { files: [input.singleFile] } : {}),
+            excludedDirectories: [
+              artifactDir,
+              resultDir,
+              reportDir,
+              ...['cache', 'log', 'output', 'tmp', 'dump'].map((name) =>
+                join(artifactDir, name),
+              ),
+            ],
+          },
+        ),
+      );
+    const hasFormatMismatch = projects.some((project) =>
+      project.collectionErrors.some(
+        ({ error }) => error instanceof NativeWorkflowFormatError,
       ),
     );
-  const hasFormatMismatch = projects.some((project) =>
-    project.collectionErrors.some(
-      ({ error }) => error instanceof NativeWorkflowFormatError,
-    ),
-  );
-  return {
-    startedAt,
-    runId,
-    projectRoot: input.projectRoot,
-    ...(configPath ? { configPath } : {}),
-    resultDir,
-    runDir,
-    summaryPath,
-    reportDir,
-    definition,
-    projects,
-    // A wrong-format file invalidates the complete command invocation. Other
-    // native collection failures retain the existing per-Project isolation.
-    preflightScope: hasFormatMismatch ? 'run' : 'project',
-    reportEnabled: true,
-    publications: [],
-    onProgress: options.onProgress ?? (() => {}),
-    onEvent: options.onEvent,
-  };
+    return {
+      startedAt,
+      runId,
+      projectRoot: input.projectRoot,
+      artifactDir,
+      ...(configPath ? { configPath } : {}),
+      resultDir,
+      runDir,
+      summaryPath,
+      reportDir,
+      definition,
+      projects,
+      // A wrong-format file invalidates the complete command invocation. Other
+      // native collection failures retain the existing per-Project isolation.
+      preflightScope: hasFormatMismatch ? 'run' : 'project',
+      reportEnabled: true,
+      publications: [],
+      onProgress: options.onProgress ?? (() => {}),
+      onEvent: options.onEvent,
+    };
+  });
 }

@@ -118,6 +118,8 @@ export {
   TestRunReportAssembler,
   dedupeExecutionsKeepLatest,
   splitReportHtmlByExecution,
+  exportReportArtifact,
+  type ExportReportArtifactOptions,
 } from './report';
 export type * from './test-run-report';
 export { TEST_RUN_REPORT_SCRIPT_TYPE } from './test-run-report';

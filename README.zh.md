@@ -12,6 +12,7 @@
   <a href="https://www.npmjs.com/package/@midscene/web"><img src="https://img.shields.io/npm/v/@midscene/web?style=flat-square&color=00a8f0" alt="npm version" /></a>
   <a href="https://npm-compare.com/@midscene/web/#timeRange=THREE_YEARS"><img src="https://img.shields.io/npm/dm/@midscene/web.svg?style=flat-square&color=00a8f0" alt="downloads" /></a>
   <a href="https://github.com/web-infra-dev/midscene/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" /></a>
+  <a href="https://midscenejs.com/zh/"><img src="https://badge.midscenejs.com/by-midscene" alt="E2E by Midscene.js" /></a>
   <a href="https://trendshift.io/repositories/12524"><img src="https://img.shields.io/badge/GitHub_Trending-featured-00a8f0?style=flat-square&logo=github" alt="Featured on GitHub Trending" /></a>
 </p>
 
@@ -117,6 +118,8 @@ Midscene 支持豆包 Seed、千问 Qwen、DeepSeek、Gemini、GPT、Kimi、Drex
 - **精确到步骤的报告**：每个步骤的截图、输入、输出和 Agent 回放，`#runner-step=last-error` 深度链接，以及供脚本和 AI Agent 读取的 `summary.json`。
 
 从[创建和使用测试项目](https://midscenejs.com/zh/midscene-test/use)开始，再了解如何[编写自定义 Node](https://midscenejs.com/zh/midscene-test/extend)，以及如何控制[生命周期与并发](https://midscenejs.com/zh/midscene-test/execution)。
+
+报告、Test 结果、缓存和日志保存在 `midscene_run/`。路径配置与 CI 归档方式见[产物目录](https://midscenejs.com/zh/midscene-test/running#统一产物根与迁移)。
 
 ## 🚀 开始使用
 

@@ -29,7 +29,7 @@ type ExecutionTaskWithExtraUsage = ExecutionTask & {
 export interface MarkdownAttachment {
   id: string;
   /**
-   * Stable, prefixed file name for the exported copy. The markdown image link
+   * File name for the exported copy. The markdown image link
    * always points at `${screenshotBaseDir}/${suggestedFileName}`, so consumers
    * write the screenshot under this name to keep links in sync. See #2392.
    */
@@ -49,9 +49,12 @@ export interface MarkdownAttachment {
 
 export interface ExecutionMarkdownOptions {
   screenshotBaseDir?: string;
+  /** Resolve the exported asset name without changing observation labels. */
+  resolveScreenshotFileName?: (attachment: MarkdownAttachment) => string;
 }
 
-export interface ReportMarkdownOptions {
+export interface ReportMarkdownOptions
+  extends Pick<ExecutionMarkdownOptions, 'resolveScreenshotFileName'> {
   /** Used only when the report has no recorded task timestamps. */
   wallTimeFallbackMs?: number;
 }
@@ -448,60 +451,61 @@ function screenshotAttachment(
   options?: {
     fallbackIdSuffix?: string;
     label?: string;
+    resolveScreenshotFileName?: ExecutionMarkdownOptions['resolveScreenshotFileName'];
   },
 ): { markdown: string; attachment: MarkdownAttachment } {
   const markdownLabel = options?.label || `task-${taskIndex + 1}`;
+  const result = (attachment: MarkdownAttachment) => {
+    attachment.suggestedFileName =
+      options?.resolveScreenshotFileName?.(attachment) ??
+      attachment.suggestedFileName;
+    return {
+      markdown: `\n![${markdownLabel}](${screenshotBaseDir}/${attachment.suggestedFileName})`,
+      attachment,
+    };
+  };
 
   if (ScreenshotItem.isScreenshotItem(screenshot)) {
     const ext = screenshot.extension;
     const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${screenshot.id}.${ext}`;
-    return {
-      markdown: `\n![${markdownLabel}](${screenshotBaseDir}/${suggestedFileName})`,
-      attachment: {
-        id: screenshot.id,
-        suggestedFileName,
-        mimeType: `image/${ext === 'jpeg' ? 'jpeg' : 'png'}`,
-        executionIndex,
-        taskIndex,
-        base64Data: tryExtractBase64(screenshot),
-      },
-    };
+    return result({
+      id: screenshot.id,
+      suggestedFileName,
+      mimeType: `image/${ext === 'jpeg' ? 'jpeg' : 'png'}`,
+      executionIndex,
+      taskIndex,
+      base64Data: tryExtractBase64(screenshot),
+    });
   }
 
   const ref = normalizeScreenshotRef(screenshot);
   if (ref) {
     const ext = imageRefFileExtension(ref);
     const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${ref.id}.${ext}`;
-    return {
-      markdown: `\n![${markdownLabel}](${screenshotBaseDir}/${suggestedFileName})`,
-      attachment: {
-        id: ref.id,
-        suggestedFileName,
-        sourceRef: ref,
-        mimeType: ref.mimeType,
-        executionIndex,
-        taskIndex,
-        base64Data: tryExtractBase64(screenshot),
-      },
-    };
+    return result({
+      id: ref.id,
+      suggestedFileName,
+      sourceRef: ref,
+      mimeType: ref.mimeType,
+      executionIndex,
+      taskIndex,
+      base64Data: tryExtractBase64(screenshot),
+    });
   }
 
   const sourceRef = restoredSourceRef(screenshot);
   if (sourceRef) {
     const ext = imageRefFileExtension(sourceRef);
     const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${sourceRef.id}.${ext}`;
-    return {
-      markdown: `\n![${markdownLabel}](${screenshotBaseDir}/${suggestedFileName})`,
-      attachment: {
-        id: sourceRef.id,
-        suggestedFileName,
-        sourceRef,
-        mimeType: sourceRef.mimeType,
-        executionIndex,
-        taskIndex,
-        base64Data: tryExtractBase64(screenshot),
-      },
-    };
+    return result({
+      id: sourceRef.id,
+      suggestedFileName,
+      sourceRef,
+      mimeType: sourceRef.mimeType,
+      executionIndex,
+      taskIndex,
+      base64Data: tryExtractBase64(screenshot),
+    });
   }
 
   const base64 = tryExtractBase64(screenshot);
@@ -512,17 +516,14 @@ function screenshotAttachment(
       : '';
     const id = `restored-${executionIndex + 1}-${taskIndex + 1}${idSuffix}`;
     const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${id}.${ext}`;
-    return {
-      markdown: `\n![${markdownLabel}](${screenshotBaseDir}/${suggestedFileName})`,
-      attachment: {
-        id,
-        suggestedFileName,
-        mimeType: `image/${ext}`,
-        executionIndex,
-        taskIndex,
-        base64Data: base64,
-      },
-    };
+    return result({
+      id,
+      suggestedFileName,
+      mimeType: `image/${ext}`,
+      executionIndex,
+      taskIndex,
+      base64Data: base64,
+    });
   }
 
   throw new Error(
@@ -545,6 +546,7 @@ function screenshotsMarkdownSection(
   screenshotBaseDir: string,
   executionIndex: number,
   taskIndex: number,
+  resolveScreenshotFileName?: ExecutionMarkdownOptions['resolveScreenshotFileName'],
 ): { lines: string[]; attachments: MarkdownAttachment[] } {
   const lines: string[] = ['', '### Screenshots'];
   const attachments: MarkdownAttachment[] = [];
@@ -559,12 +561,13 @@ function screenshotsMarkdownSection(
       {
         fallbackIdSuffix: 'ui-context',
         label: `task-${taskIndex + 1}-ui-context`,
+        resolveScreenshotFileName,
       },
     );
     const time = resolveTaskTiming(task);
     screenshotIndex += 1;
     lines.push(
-      `- #${screenshotIndex} type=ui-context, ts=${formatTime(time.start)}, timing=ui-context`,
+      `- #${screenshotIndex} type=ui-context, ts=${formatTime(time.start)}, timing=ui-context, id=${imageResult.attachment.id}`,
     );
     lines.push(imageResult.markdown);
     attachments.push(imageResult.attachment);
@@ -580,10 +583,6 @@ function screenshotsMarkdownSection(
       : '';
     const timing = item.timing || 'N/A';
     screenshotIndex += 1;
-    lines.push(
-      `- #${screenshotIndex} type=${item.type}, ts=${formatTime(item.ts)}, timing=${timing}${descriptionText}`,
-    );
-
     const imageResult = screenshotAttachment(
       item.screenshot,
       screenshotBaseDir,
@@ -592,9 +591,13 @@ function screenshotsMarkdownSection(
       {
         fallbackIdSuffix: `recorder-${recorderIndex + 1}`,
         label: `task-${taskIndex + 1}-${imageLabelSuffix(timing)}`,
+        resolveScreenshotFileName,
       },
     );
 
+    lines.push(
+      `- #${screenshotIndex} type=${item.type}, ts=${formatTime(item.ts)}, timing=${timing}${descriptionText}, id=${imageResult.attachment.id}`,
+    );
     lines.push(imageResult.markdown);
     attachments.push(imageResult.attachment);
   });
@@ -696,6 +699,7 @@ function renderExecution(
       screenshotBaseDir,
       executionIndex,
       taskIndex,
+      options?.resolveScreenshotFileName,
     );
     if (screenshotsSection.lines.length) {
       lines.push(...screenshotsSection.lines);
@@ -723,7 +727,7 @@ export function reportToMarkdown(
   const reportDump = toReportDump(report);
 
   const executionResults = reportDump.executions.map((execution, index) => {
-    const rendered = renderExecution(execution, index);
+    const rendered = renderExecution(execution, index, options);
     return {
       markdown: rendered.markdown,
       attachments: rendered.attachments,

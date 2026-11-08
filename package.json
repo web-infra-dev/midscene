@@ -1,7 +1,7 @@
 {
   "name": "midscene",
   "private": true,
-  "version": "1.17.4",
+  "version": "1.17.7",
   "scripts": {
     "dev": "node scripts/dev-prepare.js && nx run-many --target=build:watch --exclude=android-playground,chrome-extension,@midscene/report,doc --verbose --parallel=6",
     "build": "nx run-many --target=build --exclude=doc --verbose",
@@ -72,5 +72,18 @@
     "semver": "7.5.2",
     "rimraf": "~5.0.10",
     "typescript": "^5.8.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "engine.io@<6.6.10": "6.6.10",
+      "socket.io-parser@<4.2.7": "4.2.7",
+      "axios@>=1 <1.21.0": "1.21.0",
+      "form-data@>=4 <4.0.6": "4.0.6",
+      "follow-redirects@<1.16.2": "1.16.2",
+      "body-parser@>=1 <1.20.9": "1.20.9",
+      "qs@>=6 <6.16.2": "6.16.2",
+      "proxy-addr@<2.0.8": "2.0.8",
+      "path-to-regexp@>=0.1 <0.2": "0.1.13"
+    }
   }
 }
