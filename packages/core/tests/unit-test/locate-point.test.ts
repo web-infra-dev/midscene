@@ -95,7 +95,7 @@ describe('point-based grounding', () => {
       coordinates: { shape: 'bbox', normalizedBy: 1000 },
     });
     expect(codec.toPixelResult([1, 0, 16, 0], context)).toEqual({
-      center: [1, 1],
+      center: [1, 0],
       rect: { left: 0, top: 0, width: 3, height: 1 },
     });
   });

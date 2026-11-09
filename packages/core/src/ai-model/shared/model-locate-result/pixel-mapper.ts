@@ -112,6 +112,27 @@ function pixelIntervalLength(
   return end - start + (boundsType === 'closed' ? 1 : 0);
 }
 
+/** Keep a rounded center inside the original interval when it contains integers. */
+function pixelIntervalCenter(
+  start: number,
+  end: number,
+  boundsType: BboxBoundsType,
+  rounding: CoordinateRounding,
+) {
+  const center = roundPixelCoordinate(
+    start + pixelIntervalLength(start, end, boundsType) / 2,
+    rounding,
+  );
+  if (rounding === 'none') {
+    return center;
+  }
+
+  const min = Math.ceil(start);
+  const max = boundsType === 'closed' ? Math.floor(end) : Math.ceil(end) - 1;
+  // No integer can satisfy the interval; retain the configured approximation.
+  return min > max ? center : clamp(center, min, max);
+}
+
 /**
  * Map axis order and units to an intermediate pixel bbox without rounding or
  * clipping. normalizationBasis selects the pixel scale independently of bbox
@@ -192,14 +213,8 @@ export function mapLocateResultToPixelPoint(
     );
     const { boundsType } = result.coordinatesMeta;
     return [
-      roundPixelCoordinate(
-        left + pixelIntervalLength(left, right, boundsType) / 2,
-        rounding,
-      ),
-      roundPixelCoordinate(
-        top + pixelIntervalLength(top, bottom, boundsType) / 2,
-        rounding,
-      ),
+      pixelIntervalCenter(left, right, boundsType, rounding),
+      pixelIntervalCenter(top, bottom, boundsType, rounding),
     ];
   }
 

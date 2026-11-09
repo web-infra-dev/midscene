@@ -527,7 +527,7 @@ describe('createLocateResultCodec', () => {
       expect(
         bboxCodec.toPixelResult([half, half, half, half], context),
       ).toEqual({
-        center: [51, 41],
+        center: [50, 40],
         rect: { left: 50, top: 40, width: 1, height: 1 },
       });
     },
@@ -912,4 +912,82 @@ describe('createLocateResultCodec', () => {
       rect: { left: 10, top: 21, width: 23, height: 21 },
     });
   });
+});
+
+describe('rounded bbox center containment', () => {
+  it.each(['xy', 'yx'] as const)(
+    'clips each axis independently in %s order',
+    (order) => {
+      const cases = [
+        {
+          boundsType: 'closed' as const,
+          bbox: [50, 40, 50, 40],
+          round: [50, 40],
+          trunc: [50, 40],
+          none: [50.5, 40.5],
+        },
+        {
+          boundsType: 'left-closed-right-open' as const,
+          bbox: [50, 40, 51, 41],
+          round: [50, 40],
+          trunc: [50, 40],
+          none: [50.5, 40.5],
+        },
+        {
+          boundsType: 'left-closed-right-open' as const,
+          bbox: [50.6, 40.6, 51.2, 41.2],
+          round: [51, 41],
+          trunc: [51, 41],
+          none: [50.9, 40.9],
+        },
+        {
+          boundsType: 'closed' as const,
+          bbox: [50.6, 40.2, 51.2, 40.4],
+          round: [51, 41],
+          trunc: [51, 40],
+          none: [51.4, 40.8],
+        },
+        {
+          boundsType: 'left-closed-right-open' as const,
+          bbox: [50, 40, 50, 40],
+          round: [50, 40],
+          trunc: [50, 40],
+          none: [50, 40],
+        },
+      ];
+      for (const { boundsType, bbox, ...expected } of cases) {
+        for (const rounding of ['round', 'trunc', 'none'] as const) {
+          const codec = createLocateResultCodec({
+            coordinates: { shape: 'bbox', boundsType, order, rounding },
+          });
+          const input =
+            order === 'xy' ? bbox : [bbox[1], bbox[0], bbox[3], bbox[2]];
+          const { center } = codec.toPixelResult(input, locateCtx(100, 80));
+          expect(center[0]).toBeCloseTo(expected[rounding][0]);
+          expect(center[1]).toBeCloseTo(expected[rounding][1]);
+        }
+      }
+    },
+  );
+
+  it.each(['image-size', 'last-pixel'] as const)(
+    'clips after %s mapping using unrounded endpoints',
+    (normalizationBasis) => {
+      const codec = createLocateResultCodec({
+        coordinates: {
+          shape: 'bbox',
+          boundsType: 'left-closed-right-open',
+          normalizedBy: 1000,
+          normalizationBasis,
+          rounding: 'trunc',
+        },
+      });
+      // Both scales produce a narrow interval containing only pixel 51.
+      const result = codec.toPixelResult(
+        [506, 506, 512, 512],
+        locateCtx(101, 101),
+      );
+      expect(result.center).toEqual([51, 51]);
+    },
+  );
 });
