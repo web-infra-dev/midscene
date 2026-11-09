@@ -216,7 +216,7 @@ describe('CLI result publication boundary', () => {
 describe('Test CLI single YAML file input', () => {
   afterEach(() => vi.unstubAllEnvs());
 
-  it('annotates failures relative to the project of the nearest config', async () => {
+  it('annotates failures relative to the cwd config directory', async () => {
     const root = mkdtempSync(join(tmpdir(), 'cli-single-file-'));
     try {
       writeFileSync(join(root, 'midscene.config.ts'), 'export default {};');

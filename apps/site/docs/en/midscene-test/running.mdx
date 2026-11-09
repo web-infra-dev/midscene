@@ -12,25 +12,30 @@ pnpm exec midscene-test
 
 Projects generated from templates use `files.include` to match `.yaml` and `.yml` files under `cases/` by default. If `files` is not declared in the configuration, Midscene Test recursively searches for all YAML files under the test root directory (automatically ignoring `node_modules` and `.git`).
 
-When passing a directory or file path on the command line, be aware of how the **test root** changes and affects path resolution:
+File and directory arguments only narrow the selected cases; they do not change the project context.
 
-- **Determining the test root**: Without path arguments, the test root is the current working directory. With a directory argument, it becomes that directory. For a single file without `--config`, Midscene Test searches for the nearest config from the file's directory up to and including the working directory. The directory containing that config becomes the test root. If no config is found, or the file is outside the working directory, the file's directory remains the test root.
-- **Resolved relative to the test root**: The `--config` parameter path and `files.include` / `files.exclude` patterns. With an explicit `--config` and a single file, the test root remains the file's directory; parent config discovery is skipped.
-- **Resolved relative to the current working directory**: The `--result-dir` parameter path.
+- **Config discovery**: Look for `midscene.config.ts` or `midscene.config.mjs` in the current working directory only. No parent or child directories are searched. Resolve an explicit `--config` path relative to the working directory.
+- **Test root**: Use the config's directory, or the working directory when no config is found. Resolve `files.include`, `files.exclude`, and `output.reportDir` relative to this root.
+- **CLI paths**: Resolve the file/directory argument and `--result-dir` relative to the working directory.
+- **Selection**: Apply `--project`, configured file inclusion/exclusion, and tags. The positional path further narrows this selection; it never bypasses exclusions. If no cases match, the command fails with a selection error.
 
-When `midscene.config.ts` lives in the project root, run one nested file from that root without repeating the config path:
+From the project root, these commands share the same config, Nodes, and default output directory:
 
 ```bash
+pnpm exec midscene-test
 pnpm exec midscene-test ./cases/order.yaml
+pnpm exec midscene-test ./cases/smoke
+pnpm exec midscene-test ./cases/order.yaml --config ./midscene.config.ts
 ```
 
-To select a config explicitly, its path is still relative to the file's directory:
+From a child directory, select the project config explicitly:
 
 ```bash
-pnpm exec midscene-test ./cases/order.yaml --config ../midscene.config.ts
+cd cases
+pnpm exec midscene-test ./order.yaml --config ../midscene.config.ts
 ```
 
-When targeting a single file directly, that file is not restricted by `files.include` / `files.exclude` rules, but `tags` filtering still applies. If you want to run only a specific subdirectory (such as `cases/smoke`), it is recommended to run the command from the project root and restrict the scope by setting `files.include` to `cases/smoke/**/*.{yaml,yml}` in the configuration, avoiding changes to the test root.
+A directory argument no longer switches projects. To run another project, change into its directory or use `--config` to select its config. In the SDK, use `projectRoot` to choose the config discovery directory and `testPath` to filter files; an explicit `configPath` is relative to `cwd` and its directory becomes the root.
 
 ### Filter execution targets and configuration files
 

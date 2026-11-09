@@ -35,6 +35,7 @@ interface ParsedTestArgs {
   command?: 'nodes';
   cwd: string;
   projectRoot?: string;
+  testPath?: string;
   configPath?: string;
   resultDir?: string;
   projectNames?: string[];
@@ -47,7 +48,7 @@ export const parseTestCliArgs = (
 ): ParsedTestArgs => {
   const command = args[0] === 'nodes' ? args[0] : undefined;
   const commandOffset = command ? 1 : 0;
-  let projectRoot: string | undefined;
+  let inputPath: string | undefined;
   let configPath: string | undefined;
   let resultDir: string | undefined;
   const projectNames: string[] = [];
@@ -59,9 +60,9 @@ export const parseTestCliArgs = (
     const arg = equal < 0 ? token : token.slice(0, equal);
     const inlineValue = equal < 0 ? undefined : token.slice(equal + 1);
     if (!arg.startsWith('-')) {
-      if (projectRoot)
-        throw new Error('Only one test project directory is allowed.');
-      projectRoot = resolve(cwd, arg);
+      if (inputPath)
+        throw new Error('Only one test file or directory is allowed.');
+      inputPath = resolve(cwd, arg);
       continue;
     }
     if (
@@ -100,7 +101,7 @@ export const parseTestCliArgs = (
   return {
     ...(command ? { command } : {}),
     cwd,
-    projectRoot,
+    ...(command ? { projectRoot: inputPath } : { testPath: inputPath }),
     configPath,
     resultDir,
     ...(projectNames.length > 0 ? { projectNames } : {}),
@@ -141,6 +142,11 @@ Options:
   --reporter <default|verbose> Concise Case results or full step diagnostics
   --help, -h                  Show this help
   --version                   Show the package version
+
+Run paths only filter files; they do not change the project root.
+For test runs, config discovery checks cwd only; --config is relative to cwd.
+The selected config directory becomes the test root.
+File include/exclude and tag rules still apply to explicit paths.
 
 Legacy tasks/flow YAML and its CLI options belong to the midscene command.
 `;

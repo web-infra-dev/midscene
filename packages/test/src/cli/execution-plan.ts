@@ -13,7 +13,11 @@ import type { TestProjectCollectionError, TestProjectRunResult } from './types';
 
 export interface TestProjectRunOptions {
   cwd?: string;
+  /** SDK project directory for default config discovery; defaults to cwd. */
   projectRoot?: string;
+  /** File or directory filter, resolved relative to cwd. */
+  testPath?: string;
+  /** Config path relative to cwd; its directory becomes the project root. */
   configPath?: string;
   resultDir?: string;
   projectNames?: readonly string[];
@@ -39,6 +43,7 @@ export interface PreparedDocumentInvocation {
 
 export interface ProjectPreparationOptions {
   files?: readonly string[];
+  testPath?: string;
   excludedDirectories?: readonly string[];
   prerequisiteFile?: string;
   documentConcurrency?: number;
@@ -80,8 +85,8 @@ export interface PreparedRunPublication {
 export interface TestRunInput {
   cwd: string;
   projectRoot: string;
-  configSearchRoot: string;
-  singleFile?: string;
+  configPath?: string;
+  testPath?: string;
 }
 
 export interface PreparedTestRunPlan {

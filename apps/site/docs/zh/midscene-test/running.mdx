@@ -12,25 +12,30 @@ pnpm exec midscene-test
 
 脚手架生成的项目默认通过 `files.include` 匹配 `cases/` 目录下的 `.yaml` 和 `.yml` 文件。如果配置文件中未声明 `files`，Midscene Test 会递归查找测试根目录下的所有 YAML 文件（自动忽略 `node_modules` 和 `.git`）。
 
-在命令行中传入目录或文件路径时，请留意**测试根目录（Test Root）**的变化及其对路径解析的影响：
+文件或目录参数只缩小用例范围，不改变项目上下文。
 
-- **测试根目录的确定**：未传路径参数时，使用当前工作目录；传入目录参数时，使用该目录。传入单个文件且未指定 `--config` 时，从文件所在目录向上查找最近的配置，最多查到当前工作目录。找到配置后，以配置所在目录为测试根目录；未找到配置或文件位于当前工作目录之外时，仍使用文件所在目录。
-- **相对于测试根目录解析**：`--config` 参数路径，以及配置中的 `files.include` / `files.exclude`。同时指定单个文件和 `--config` 时，测试根目录仍为文件所在目录，不向上查找配置。
-- **相对于当前工作目录解析**：`--result-dir` 参数路径。
+- **查找配置**：默认只在当前工作目录查找 `midscene.config.ts` 或 `midscene.config.mjs`，不查找父目录或子目录。显式 `--config` 路径相对于当前工作目录解析。
+- **测试根目录**：找到配置时使用配置所在目录；无配置时使用当前工作目录。配置中的 `files.include`、`files.exclude` 和 `output.reportDir` 都相对于测试根目录解析。
+- **命令行路径**：文件/目录参数和 `--result-dir` 都相对于当前工作目录解析。
+- **筛选规则**：先应用 `--project`、配置中的文件包含/排除规则和 tags，路径参数进一步缩小范围，不会绕过排除规则。没有匹配用例时，命令会报筛选错误。
 
-当 `midscene.config.ts` 位于项目根目录时，在该目录运行嵌套文件即可，无需重复指定配置路径：
+从项目根目录运行时，以下命令使用同一份配置、Nodes 和默认输出目录：
 
 ```bash
+pnpm exec midscene-test
 pnpm exec midscene-test ./cases/order.yaml
+pnpm exec midscene-test ./cases/smoke
+pnpm exec midscene-test ./cases/order.yaml --config ./midscene.config.ts
 ```
 
-也可以显式选择配置，此时路径仍相对于文件所在目录解析：
+从子目录运行时，显式指定项目配置：
 
 ```bash
-pnpm exec midscene-test ./cases/order.yaml --config ../midscene.config.ts
+cd cases
+pnpm exec midscene-test ./order.yaml --config ../midscene.config.ts
 ```
 
-直接指定单个文件时，该文件不受 `files.include` / `files.exclude` 规则限制，但 `tags` 筛选依然生效。如果你想只运行某个子目录（如 `cases/smoke`），建议仍在项目根目录下运行命令，并通过在配置中将 `files.include` 设置为 `cases/smoke/**/*.{yaml,yml}` 来限定范围，避免因指定子目录而改变测试根目录。
+目录参数不再切换项目。运行另一个项目时，请进入该项目目录，或用 `--config` 指定它的配置。SDK 中使用 `projectRoot` 指定配置查找目录，使用 `testPath` 筛选文件；显式 `configPath` 相对于 `cwd` 解析，并以配置所在目录为测试根目录。
 
 ### 过滤执行项目与指定配置文件
 
