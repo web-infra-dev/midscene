@@ -91,10 +91,11 @@ export interface LocateResultCodec {
 
 export type CoordinateRounding = 'round' | 'trunc' | 'none';
 
-export type BboxBoundsType = 'inclusive' | 'edges';
+/** Applied to both axes: closed [min, max] or left-closed-right-open [min, max). */
+export type BboxBoundsType = 'closed' | 'left-closed-right-open';
 
 export interface LocateResultCoordinates {
-  /** Bbox boundary semantics; defaults to inclusive pixel endpoints. */
+  /** Bbox boundary semantics; defaults to closed (both pixel endpoints included). */
   boundsType?: BboxBoundsType;
   shape: LocateResultShape;
   /** Axis order in the raw coordinates; defaults to xy. */

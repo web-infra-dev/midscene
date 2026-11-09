@@ -43,7 +43,9 @@ export function assertLocateResultStructure(result: LocateResultValue): void {
   if (
     isBboxLocateResultValue(result) &&
     result.coordinatesMeta.boundsType !== undefined &&
-    !['inclusive', 'edges'].includes(result.coordinatesMeta.boundsType)
+    !['closed', 'left-closed-right-open'].includes(
+      result.coordinatesMeta.boundsType,
+    )
   ) {
     throw new Error(
       `invalid locate bbox boundsType: ${result.coordinatesMeta.boundsType}`,

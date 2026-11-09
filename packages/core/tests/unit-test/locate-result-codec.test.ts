@@ -12,12 +12,12 @@ const locateCtx = (width: number, height: number) => ({
 
 describe('createLocateResultCodec', () => {
   it.each([1, undefined])(
-    'maps edge boxes with normalization %s',
+    'maps left-closed-right-open boxes with normalization %s',
     (normalizedBy) => {
       const codec = createLocateResultCodec({
         coordinates: {
           shape: 'bbox',
-          boundsType: 'edges',
+          boundsType: 'left-closed-right-open',
           normalizedBy,
           rounding: 'none',
         },
@@ -43,9 +43,13 @@ describe('createLocateResultCodec', () => {
     },
   );
 
-  it('clips edge boxes independently from their click centers', () => {
+  it('clips left-closed-right-open boxes independently from their click centers', () => {
     const codec = createLocateResultCodec({
-      coordinates: { shape: 'bbox', boundsType: 'edges', rounding: 'none' },
+      coordinates: {
+        shape: 'bbox',
+        boundsType: 'left-closed-right-open',
+        rounding: 'none',
+      },
     });
     expect(
       codec.toPixelResult([40, 20, 100, 80], {
@@ -61,7 +65,7 @@ describe('createLocateResultCodec', () => {
     ).toThrow(/exceed/);
   });
 
-  it('preserves inclusive pixel bounds by default', () => {
+  it('preserves closed pixel bounds by default', () => {
     const codec = createLocateResultCodec({ coordinates: { shape: 'bbox' } });
     expect(
       codec.toPixelResult([20, 8, 60, 40], locateCtx(100, 80)).rect,

@@ -51,10 +51,10 @@ export function clampPixelPointToSize(
 export function clampPixelBboxToSize(
   pixelBbox: PixelBbox,
   size: { width: number; height: number },
-  boundsType: BboxBoundsType = 'inclusive',
+  boundsType: BboxBoundsType = 'closed',
 ): PixelBbox {
   const [left, top, right, bottom] = pixelBbox;
-  if (boundsType === 'edges') {
+  if (boundsType === 'left-closed-right-open') {
     return [
       clamp(left, 0, size.width),
       clamp(top, 0, size.height),
@@ -70,13 +70,13 @@ export function clampPixelBboxToSize(
 
 export function pixelBboxToRect(
   [left, top, right, bottom]: PixelBbox,
-  boundsType: BboxBoundsType = 'inclusive',
+  boundsType: BboxBoundsType = 'closed',
 ): Rect {
   return {
     left,
     top,
-    width: right - left + (boundsType === 'inclusive' ? 1 : 0),
-    height: bottom - top + (boundsType === 'inclusive' ? 1 : 0),
+    width: right - left + (boundsType === 'closed' ? 1 : 0),
+    height: bottom - top + (boundsType === 'closed' ? 1 : 0),
   };
 }
 

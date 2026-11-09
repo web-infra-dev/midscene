@@ -29,7 +29,7 @@ export function resolveLocateResultCoordinates(
   }
   return {
     ...(coordinates.shape === 'bbox'
-      ? { boundsType: coordinates.boundsType ?? 'inclusive' }
+      ? { boundsType: coordinates.boundsType ?? 'closed' }
       : {}),
     shape: coordinates.shape,
     order: coordinates.order ?? 'xy',
@@ -56,13 +56,13 @@ export function createLocateResultCodec(
       const result = parseRawLocateValue(rawResult);
       const { preparedSize, contentSize = preparedSize } = context;
       assertLocateResultStructure(result);
-      const edgeBounds =
+      const leftClosedRightOpenBounds =
         isBboxLocateResultValue(result) &&
-        result.coordinatesMeta.boundsType === 'edges';
+        result.coordinatesMeta.boundsType === 'left-closed-right-open';
       assertLocateResultCoordinateRangeAndOrder(
         result,
-        preparedSize.width - (edgeBounds ? 0 : 1),
-        preparedSize.height - (edgeBounds ? 0 : 1),
+        preparedSize.width - (leftClosedRightOpenBounds ? 0 : 1),
+        preparedSize.height - (leftClosedRightOpenBounds ? 0 : 1),
       );
       // Clamp the mapped center independently from the optional bbox so padding
       // removal cannot change the target by recomputing a clipped box's center.
