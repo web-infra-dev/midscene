@@ -5,6 +5,7 @@ import {
   deepSeekSearchAreaProtocol,
 } from '@/ai-model/models/deepseek/locate-protocol';
 import { buildElementLocateSystemPrompt } from '@/ai-model/prompt/locate';
+import { resolveLocateResultCoordinates } from '@/ai-model/shared/model-locate-result';
 import { createLocateResultPromptSpec } from '@/ai-model/shared/model-locate-result/prompt-spec';
 import { describe, expect, it } from '@rstest/core';
 
@@ -54,18 +55,22 @@ describe('deepseek model adapter', () => {
   });
 
   it('builds coordinate instructions from the result format prompt spec', () => {
-    const pointPromptSpec = createLocateResultPromptSpec({
-      shape: 'point',
-      order: 'yx',
-      normalizedBy: 2000,
-      rounding: 'round',
-    });
-    const bboxPromptSpec = createLocateResultPromptSpec({
-      shape: 'bbox',
-      order: 'yx',
-      normalizedBy: 2000,
-      rounding: 'round',
-    });
+    const pointPromptSpec = createLocateResultPromptSpec(
+      resolveLocateResultCoordinates({
+        shape: 'point',
+        order: 'yx',
+        normalizedBy: 2000,
+        rounding: 'round',
+      }),
+    );
+    const bboxPromptSpec = createLocateResultPromptSpec(
+      resolveLocateResultCoordinates({
+        shape: 'bbox',
+        order: 'yx',
+        normalizedBy: 2000,
+        rounding: 'round',
+      }),
+    );
     const elementInstructions =
       deepSeekElementLocateProtocol.buildResponseInstructions(pointPromptSpec);
     const searchAreaInstructions =
