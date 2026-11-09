@@ -1275,10 +1275,7 @@ export class ScrcpyScreenshotManager {
       );
     }
 
-    // Keep the evaluation instant stable while an ADB clock resample is in
-    // flight. Otherwise the calibration latency itself would age the frame.
-    const ageEvaluatedAtUs = this.monotonicTimeUs();
-    let age = this.estimateFrameAge(candidate.ptsUs, ageEvaluatedAtUs);
+    let age = this.estimateFrameAge(candidate.ptsUs, this.monotonicTimeUs());
     if (age === null) {
       throw new Error(
         'Scrcpy frame clock is not calibrated; cannot prove planning freshness',
@@ -1314,13 +1311,19 @@ export class ScrcpyScreenshotManager {
           );
         }
 
+        // The resample wait ages the frame. Measure again after it settles so
+        // that time is included. A cleared anchor must fail closed instead of
+        // keeping the pre-wait estimate.
         const recalibratedAge = this.estimateFrameAge(
           candidate.ptsUs,
-          ageEvaluatedAtUs,
+          this.monotonicTimeUs(),
         );
-        if (recalibratedAge) {
-          age = recalibratedAge;
+        if (!recalibratedAge) {
+          throw new Error(
+            'Scrcpy frame clock is not calibrated; cannot prove planning freshness',
+          );
         }
+        age = recalibratedAge;
         if (age.upperBoundUs <= MAX_FRAME_AGE_US) {
           debugScrcpy(
             `Planning candidate PTS ${candidate.ptsUs}µs accepted after clock recalibration (estimated=${Number(age.estimatedAgeUs) / 1_000}ms, uncertainty<=${Number(age.calibrationUncertaintyUs) / 1_000}ms)`,
