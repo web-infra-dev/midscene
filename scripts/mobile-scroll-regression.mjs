@@ -107,7 +107,7 @@ async function reset(mode) {
   }
   return poll(() => {
     const value = metrics();
-    const offset = mode === 'horizontal' ? value.x : value.y;
+    const offset = mode.startsWith('horizontal') ? value.x : value.y;
     return (
       value.mode === mode &&
       (platform !== 'android' || value.focused === true) &&
@@ -371,6 +371,14 @@ try {
     }
     for (const [mode, directions, scrollType = 'singleAction', originRatio] of [
       ...(platform === 'ios'
+        ? [
+            ['horizontal-left', ['left'], 'scrollToLeft'],
+            ['horizontal-right', ['right'], 'scrollToRight'],
+            ['horizontal-free-left', ['left'], 'scrollToLeft'],
+            ['horizontal-free-right', ['right'], 'scrollToRight'],
+          ]
+        : []),
+      ...(platform === 'ios'
         ? [0.5, 0.15, 0.85].map((ratio) => [
             'horizontal',
             ['right', 'left'],
@@ -388,7 +396,11 @@ try {
       for (const direction of directions) {
         for (
           let trial = 1;
-          trial <= (mode === 'vertical' || mode === 'horizontal' ? 3 : 1);
+          trial <=
+          (scrollType === 'singleAction' &&
+          (mode === 'vertical' || mode.startsWith('horizontal'))
+            ? 3
+            : 1);
           trial++
         ) {
           const located = originRatio !== undefined;
@@ -449,8 +461,10 @@ try {
               { task: {}, skipDefaultWait: true },
             );
             after = await settled(before);
-            const axis = mode === 'horizontal' ? 'x' : 'y';
-            const extent = mode === 'horizontal' ? before.width : before.height;
+            const axis = mode.startsWith('horizontal') ? 'x' : 'y';
+            const extent = mode.startsWith('horizontal')
+              ? before.width
+              : before.height;
             const delta = after[axis] - before[axis];
             const fraction =
               (delta / extent) * (['up', 'left'].includes(direction) ? -1 : 1);
@@ -465,18 +479,22 @@ try {
             results.push(result);
             save(`${name}.json`, { before, after, size, ...result });
             if (scrollType !== 'singleAction') {
-              const target = scrollType === 'scrollToTop' ? 0 : after.maxY;
+              const maxOffset = axis === 'x' ? after.maxX : after.maxY;
+              const target =
+                scrollType === 'scrollToTop' || scrollType === 'scrollToLeft'
+                  ? 0
+                  : maxOffset;
               assert(
                 Number.isFinite(target),
                 `${name}: missing native boundary`,
               );
               assert(
-                before.y > 0 && before.y < before.maxY,
+                before[axis] > 0 && before[axis] < maxOffset,
                 `${name}: must start inside the list`,
               );
               assert(
-                Math.abs(after.y - target) <= 1,
-                `${name}: expected boundary ${target}, got ${after.y}`,
+                Math.abs(after[axis] - target) <= 1,
+                `${name}: expected boundary ${target}, got ${after[axis]}`,
               );
             } else if (located) {
               // A valid bounded Scroll is not a promise to flip a native page.
@@ -498,7 +516,7 @@ try {
                 `${name}: invalid bounded gesture`,
               );
               assert(fraction >= -0.03, `${name}: content moved in reverse`);
-            } else if (mode === 'horizontal')
+            } else if (mode.startsWith('horizontal'))
               assert(
                 Math.abs(fraction - 1) < 0.03,
                 `${name}: expected one page, got ${fraction}`,

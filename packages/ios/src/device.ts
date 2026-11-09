@@ -911,10 +911,11 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
           start = { x: Math.round(width / 2), y: Math.round(height * 0.8) };
           break;
         case 'left':
-          start = { x: Math.round(width * 0.8), y: Math.round(height / 2) };
+          // Reveal left content by moving the finger right, with room to travel.
+          start = { x: Math.round(width * 0.2), y: Math.round(height / 2) };
           break;
         case 'right':
-          start = { x: Math.round(width * 0.2), y: Math.round(height / 2) };
+          start = { x: Math.round(width * 0.8), y: Math.round(height / 2) };
           break;
       }
     }

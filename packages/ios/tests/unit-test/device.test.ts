@@ -220,6 +220,55 @@ describe('IOSDevice', () => {
     });
   });
 
+  describe('horizontal boundary scroll origins', () => {
+    it.each([
+      ['scrollUntilLeft', 402, 80, 321],
+      ['scrollUntilRight', 402, 322, 81],
+      ['scrollUntilLeft', 874, 175, 699],
+      ['scrollUntilRight', 874, 699, 175],
+    ] as const)(
+      '%s leaves room for a full gesture on a %i-point viewport',
+      async (method, width, fromX, toX) => {
+        mockWdaClient.getWindowSize.mockResolvedValue({ width, height: 900 });
+        const failure = new Error('stop after first observed gesture');
+        mockWdaClient.swipe.mockRejectedValue(failure);
+        await expect(device[method]()).rejects.toThrow(failure);
+        expect(mockWdaClient.swipe).toHaveBeenCalledExactlyOnceWith(
+          fromX,
+          450,
+          toX,
+          450,
+          300,
+        );
+      },
+    );
+
+    it.each([
+      ['scrollUntilLeft', 300, 401],
+      ['scrollUntilRight', 100, 1],
+    ] as const)(
+      '%s preserves an explicitly selected origin',
+      async (method, fromX, toX) => {
+        mockWdaClient.getWindowSize.mockResolvedValue({
+          width: 402,
+          height: 874,
+        });
+        const failure = new Error('stop after first observed gesture');
+        mockWdaClient.swipe.mockRejectedValue(failure);
+        await expect(device[method]({ left: fromX, top: 200 })).rejects.toThrow(
+          failure,
+        );
+        expect(mockWdaClient.swipe).toHaveBeenCalledExactlyOnceWith(
+          fromX,
+          200,
+          toX,
+          200,
+          300,
+        );
+      },
+    );
+  });
+
   describe('boundary scroll failures', () => {
     it('rejects an invalid origin instead of reporting boundary success', async () => {
       await device.connect();

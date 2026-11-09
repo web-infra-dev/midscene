@@ -15,10 +15,10 @@ class Controller: UIViewController {
     mode = ProcessInfo.processInfo.arguments.last ?? "vertical"
     let w = view.bounds.width
     let h = view.bounds.height
-    let horizontal = mode == "horizontal"
+    let horizontal = mode.hasPrefix("horizontal")
     scroll.frame = view.bounds
     scroll.contentInsetAdjustmentBehavior = .never
-    scroll.isPagingEnabled = horizontal
+    scroll.isPagingEnabled = horizontal && !mode.contains("free")
     let sw = scroll.bounds.width
     let sh = scroll.bounds.height
     scroll.contentSize =
@@ -67,6 +67,7 @@ class Controller: UIViewController {
       "mode": mode, "width": view.bounds.width, "height": view.bounds.height, "initial": initial,
       "x": x, "y": y, "samples": samples,
       "maxY": max(0, scroll.contentSize.height - scroll.bounds.height),
+      "maxX": max(0, scroll.contentSize.width - scroll.bounds.width),
     ]
     do {
       let data = try JSONSerialization.data(withJSONObject: obj)
