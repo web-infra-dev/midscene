@@ -4,9 +4,9 @@
 
 The following platform-specific FAQs are maintained in their respective documentation:
 
-- [Web Browser - Playwright](./integrate-with-playwright#faq)
+- [Web Browser - Playwright](./sdk/playwright#faq)
 - [Web Browser - Puppeteer](./integrate-with-puppeteer#faq)
-- [Web Browser - Chrome Extension](./quick-start#chrome-extension-faq)
+- [Web Browser - Chrome Extension](./platforms/web#chrome-extension-faq)
 - [Web Browser - Bridge Mode](./bridge-mode#faq)
 - [Android](./platforms/android#faq)
 - [iOS](./platforms/ios#faq)
