@@ -1,0 +1,65 @@
+Midscene uses `adb` on your computer to communicate with the target Android device over either USB or wireless `adb`. If `adb` is already installed and your device is connected, skip directly to [Verify the device connection](#verify-device-connection).
+
+### Install adb
+
+- Install `adb` via [Android Studio](https://developer.android.com/studio) or the standalone [Android command-line tools](https://developer.android.com/studio#command-line-tools-only).
+- Run the following command to verify the installation:
+
+```bash
+adb --version
+```
+
+Output similar to the following confirms a working installation:
+
+```log
+Android Debug Bridge version 1.0.41
+Version 34.0.4-10411341
+Installed as /usr/local/bin/adb
+Running on Darwin 24.3.0 (arm64)
+```
+
+- Configure the `ANDROID_HOME` environment variable as described in [Android environment variables](https://developer.android.com/tools/variables), then check that it takes effect:
+
+```bash
+echo $ANDROID_HOME
+```
+
+The output should point to your local Android SDK directory, for example:
+
+```log
+/Users/your_username/Library/Android/sdk
+```
+
+### Enable debugging and connect the device
+
+The steps below use a USB connection as an example. If your device is already connected over wireless `adb`, you can keep using that connection.
+
+1. In your phone's **Developer options**, enable **USB debugging** (and **USB debugging (Security settings)** if available, so Midscene can inject touch events).
+2. Connect the phone to your computer using a USB cable that supports data transfer.
+3. Keep the phone unlocked and accept the **Allow USB debugging** prompt on the screen.
+
+<p align="center">
+  <img src="/images/android-usb-debug-en.png" alt="android usb debug" width="400"/>
+</p>
+
+### Verify the device connection {#verify-device-connection}
+
+Run the following command to check the connection status:
+
+```bash
+adb devices -l
+```
+
+When the device status shows `device`, the connection is ready:
+
+```log
+List of devices attached
+s4ey59	device usb:34603008X product:cezanne model:M2006J device:cezan transport_id:3
+```
+
+If multiple devices are connected, note the device ID in the first column (such as `s4ey59` above) so you can select the target device in Playground or your project configuration.
+
+If the target device does not appear with the `device` status, check the following:
+- **Empty list**: For USB, check the data cable (ensure it is not charge-only), USB connection mode, and **USB debugging** toggle; for wireless `adb`, check the network and `adb connect` status.
+- **`unauthorized`**: Unlock the phone screen and accept the **Allow USB debugging** prompt on the device.
+- **`offline`**: Reconnect the USB cable or wireless `adb` session, and restart `adb` if needed. Proceed only after the status shows `device`.

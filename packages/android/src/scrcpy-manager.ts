@@ -1096,16 +1096,19 @@ export class ScrcpyScreenshotManager {
    * Restart scrcpy's capture and encoder pipeline without rebuilding the video
    * stream or the underlying ADB transport. One request is shared by all
    * concurrent capture callers until a post-reset keyframe is accepted.
+   *
+   * Returns the reset's state, so the caller can still read its packet count
+   * after an accepted keyframe has ended the active reset.
    */
   private async requestVideoReset(
     deadlineAt = Date.now() + FRESH_FRAME_TIMEOUT_MS,
-  ): Promise<void> {
+  ): Promise<VideoResetState> {
     const activeReset = this.videoResetState;
     if (activeReset) {
       if (activeReset.writePromise) {
         await this.waitForVideoResetWrite(activeReset.writePromise, deadlineAt);
       }
-      return;
+      return activeReset;
     }
 
     const controller = this.scrcpyClient?.controller;
@@ -1162,6 +1165,7 @@ export class ScrcpyScreenshotManager {
     // observing it so a later rejection never becomes unhandled.
     void resetPromise.catch(() => {});
     await this.waitForVideoResetWrite(resetPromise, deadlineAt);
+    return resetState;
   }
 
   private async waitForVideoResetWrite(
@@ -1275,10 +1279,7 @@ export class ScrcpyScreenshotManager {
       );
     }
 
-    // Keep the evaluation instant stable while an ADB clock resample is in
-    // flight. Otherwise the calibration latency itself would age the frame.
-    const ageEvaluatedAtUs = this.monotonicTimeUs();
-    let age = this.estimateFrameAge(candidate.ptsUs, ageEvaluatedAtUs);
+    let age = this.estimateFrameAge(candidate.ptsUs, this.monotonicTimeUs());
     if (age === null) {
       throw new Error(
         'Scrcpy frame clock is not calibrated; cannot prove planning freshness',
@@ -1314,13 +1315,19 @@ export class ScrcpyScreenshotManager {
           );
         }
 
+        // The resample wait ages the frame. Measure again after it settles so
+        // that time is included. A cleared anchor must fail closed instead of
+        // keeping the pre-wait estimate.
         const recalibratedAge = this.estimateFrameAge(
           candidate.ptsUs,
-          ageEvaluatedAtUs,
+          this.monotonicTimeUs(),
         );
-        if (recalibratedAge) {
-          age = recalibratedAge;
+        if (!recalibratedAge) {
+          throw new Error(
+            'Scrcpy frame clock is not calibrated; cannot prove planning freshness',
+          );
         }
+        age = recalibratedAge;
         if (age.upperBoundUs <= MAX_FRAME_AGE_US) {
           debugScrcpy(
             `Planning candidate PTS ${candidate.ptsUs}µs accepted after clock recalibration (estimated=${Number(age.estimatedAgeUs) / 1_000}ms, uncertainty<=${Number(age.calibrationUncertaintyUs) / 1_000}ms)`,
@@ -1350,7 +1357,8 @@ export class ScrcpyScreenshotManager {
   private async waitForPlanningFrame(): Promise<RawKeyframe> {
     let planningBarrierArmed = false;
     let videoResetAttempted = false;
-    let videoResetWritten = false;
+    // Set once a reset control write completes; read by the timeout error.
+    let videoReset: VideoResetState | null = null;
     // A new encoder/stream gets the normal startup allowance while waiting for
     // its first data frame. The allowance never bypasses the age check below.
     // Established epochs still fail fast when they cannot cross a newly armed
@@ -1386,8 +1394,8 @@ export class ScrcpyScreenshotManager {
 
       const remainingMs = deadline - Date.now();
       if (remainingMs <= 0) {
-        if (videoResetWritten) {
-          throw this.createVideoResetFrameTimeoutError();
+        if (videoReset) {
+          throw this.createVideoResetFrameTimeoutError(videoReset);
         }
         throw new Error(
           `No scrcpy frame crossed the active freshness target within ${FRESH_FRAME_TIMEOUT_MS}ms`,
@@ -1408,16 +1416,15 @@ export class ScrcpyScreenshotManager {
         candidate = await this.waitForNextKeyframe(nextFrameWaitMs);
       } catch (error) {
         if (!shouldTryVideoReset) {
-          if (videoResetWritten) {
-            throw this.createVideoResetFrameTimeoutError();
+          if (videoReset) {
+            throw this.createVideoResetFrameTimeoutError(videoReset);
           }
           throw error;
         }
 
         videoResetAttempted = true;
         try {
-          await this.requestVideoReset(deadline);
-          videoResetWritten = true;
+          videoReset = await this.requestVideoReset(deadline);
           deadline = Date.now() + this.options.videoResetFrameTimeoutMs;
           debugScrcpy(
             `Scrcpy video reset control write completed; waiting up to ${this.options.videoResetFrameTimeoutMs}ms for a post-reset frame`,
@@ -1436,9 +1443,11 @@ export class ScrcpyScreenshotManager {
     }
   }
 
-  private createVideoResetFrameTimeoutError(): ScrcpyFrameWaitTimeoutError {
+  private createVideoResetFrameTimeoutError(
+    videoReset: VideoResetState,
+  ): ScrcpyFrameWaitTimeoutError {
     const timeoutMs = this.options.videoResetFrameTimeoutMs;
-    const dataPacketsSeen = this.videoResetState?.dataPacketsSeen ?? 0;
+    const dataPacketsSeen = videoReset.dataPacketsSeen;
     const observation =
       dataPacketsSeen === 0
         ? 'no data packets were observed while reset recovery was active'

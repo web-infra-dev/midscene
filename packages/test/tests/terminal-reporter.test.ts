@@ -5,8 +5,8 @@ import type {
   StepExecutionInfo,
 } from '@midscene/core/internal/test-runner';
 import type { ConsoleLogEntry } from '@midscene/shared/logger';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import stringWidth from 'string-width';
-import { afterEach, describe, expect, it, vi } from 'vitest';
 import { formatConciseError } from '../src/cli/error-format';
 import { TerminalReporter } from '../src/cli/terminal-reporter';
 import { parseTestCliArgs } from '../src/cli/test-command';
@@ -61,15 +61,15 @@ const fixture = (
   start = true,
 ) => {
   let resize = () => {};
-  const removeResizeListener = vi.fn();
+  const removeResizeListener = rs.fn();
   const io = {
-    log: vi.fn(),
-    error: vi.fn(),
-    write: vi.fn(),
+    log: rs.fn(),
+    error: rs.fn(),
+    write: rs.fn(),
     isTTY,
     columns: 160,
     rows: 24,
-    onResize: vi.fn((listener: () => void) => {
+    onResize: rs.fn((listener: () => void) => {
       resize = listener;
       return removeResizeListener;
     }),
@@ -189,20 +189,20 @@ const endFile = (
 };
 
 afterEach(() => {
-  vi.useRealTimers();
-  vi.unstubAllEnvs();
+  rs.useRealTimers();
+  rs.unstubAllEnvs();
 });
 
 describe('terminal reporter', () => {
   it('shows Project setup and cleanup even when no file is running', () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const { reporter, io, resize } = fixture('default', true);
     reporter.event({
       type: 'project-phase',
       projectName: 'web',
       phase: 'setup',
     });
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     expect(frame(io)).toContain('❯ web · setting up 100ms');
     expect(frame(io)).not.toContain('cases/shop.yaml');
     reporter.event({
@@ -216,7 +216,7 @@ describe('terminal reporter', () => {
       projectName: 'web',
       phase: 'teardown',
     });
-    vi.advanceTimersByTime(2100);
+    rs.advanceTimersByTime(2100);
     resize();
     expect(frame(io)).toContain('❯ web · cleaning up 2.1s');
     expect(frame(io)).toContain('0 files running · 1 completed');
@@ -225,7 +225,7 @@ describe('terminal reporter', () => {
       type: 'project-end',
       project: projectResult('web', [outcome('finished')]),
     });
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     expect(frame(io)).not.toContain('cleaning up');
     reporter.dispose();
   });
@@ -233,10 +233,10 @@ describe('terminal reporter', () => {
   it.each(['setup', 'teardown'] as const)(
     'emits noninteractive heartbeats during Project %s without active files',
     (phase) => {
-      vi.useFakeTimers();
+      rs.useFakeTimers();
       const { reporter, io } = fixture();
       reporter.event({ type: 'project-phase', projectName: 'web', phase });
-      vi.advanceTimersByTime(30_000);
+      rs.advanceTimersByTime(30_000);
       expect(text(io)).toContain(
         `Still running: [web] · ${phase === 'setup' ? 'setting up' : 'cleaning up'} (30.0s)`,
       );
@@ -245,14 +245,14 @@ describe('terminal reporter', () => {
         project: projectResult('web', []),
       });
       const outputCount = io.log.mock.calls.length;
-      vi.advanceTimersByTime(30_000);
+      rs.advanceTimersByTime(30_000);
       expect(io.log.mock.calls).toHaveLength(outputCount);
       reporter.dispose();
     },
   );
 
   it('keeps active work from every Project visible before completed summaries in a small viewport', () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const { reporter, io } = fixture('default', true, 6, false);
     io.rows = 15;
     reporter.event({ type: 'run-start', projects: 2, documents: 4, cases: 6 });
@@ -297,7 +297,7 @@ describe('terminal reporter', () => {
         },
       });
     }
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     expect(frame(io)).toContain('alpha:running');
     expect(frame(io)).toContain('beta:running');
     expect(frame(io)).toContain('1 failed');
@@ -306,7 +306,7 @@ describe('terminal reporter', () => {
   });
 
   it('retains completed results immediately, folding older results before hiding active work', () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const { reporter, io, resize } = fixture('default', true);
     io.rows = 40;
     reporter.event({
@@ -338,7 +338,7 @@ describe('terminal reporter', () => {
         sourcePath: path,
       });
     }
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     expect(frame(io)).toContain('1 file running · 2 completed');
     expect(frame(io)).toContain('× a-old.yaml:finished-0');
     expect(frame(io)).toContain('✓ b-new.yaml:finished-2');
@@ -365,7 +365,7 @@ describe('terminal reporter', () => {
   });
 
   it('retains current file-attempt Case results without counting them as final, and resets them for file retry', () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const { reporter, io } = fixture('default', true);
     const first = outcome('first');
     const second = { ...outcome('second'), caseIndex: 1 };
@@ -391,12 +391,12 @@ describe('terminal reporter', () => {
       projectName: 'web',
       info: step('second'),
     });
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     expect(frame(io)).toContain('1/2 cases');
     expect(frame(io)).toContain('✓ first 1.2s');
     expect(frame(io)).toContain('second · step');
     expect(frame(io)).toContain('Cases 0 passed (2)');
-    vi.advanceTimersByTime(2000);
+    rs.advanceTimersByTime(2000);
     expect(frame(io)).toContain('✓ first 1.2s');
     expect(frame(io).match(/first/g)).toHaveLength(1);
     reporter.event({
@@ -417,7 +417,7 @@ describe('terminal reporter', () => {
       },
       maxAttempts: 2,
     });
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     expect(frame(io)).toContain('0/2 cases');
     expect(frame(io)).not.toContain('✓ first');
     reporter.event({
@@ -425,14 +425,14 @@ describe('terminal reporter', () => {
       outcome: first,
       documentAttemptIndex: 1,
     });
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     expect(frame(io)).toContain('1/2 cases');
     expect(frame(io)).toContain('file retried 1x');
     expect(frame(io)).toContain('Cases 0 passed (2)');
     for (const item of [first, second])
       reporter.event({ type: 'case-end', outcome: item, documentRetries: 1 });
     endFile(reporter, [first, second], 'success', 1);
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     expect(frame(io)).toContain('2/2 cases');
     expect(frame(io)).toContain('Cases 2 passed (2)');
     expect(frame(io).match(/✓ first/g)).toHaveLength(1);
@@ -440,7 +440,7 @@ describe('terminal reporter', () => {
   });
 
   it('groups live Projects, files and Cases, updating counts independently of retries and completed files', () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const { reporter, io } = fixture('default', true, 10, false);
     const paths = ['cases/a.yaml', 'cases/b.yaml'];
     const fileOutcome = (projectName: string, sourcePath: string) => ({
@@ -508,7 +508,7 @@ describe('terminal reporter', () => {
         });
       }
     }
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     let current = frame(io);
     expect(current.match(/❯ alpha · 2 files running/g)).toHaveLength(1);
     expect(current.match(/❯ beta · 2 files running/g)).toHaveLength(1);
@@ -524,7 +524,7 @@ describe('terminal reporter', () => {
     const completed = fileOutcome('alpha', paths[0]);
     reporter.event({ type: 'case-end', outcome: completed });
     reporter.event({ type: 'case-end', outcome: completed });
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     current = frame(io);
     expect(alphaTree()).toContain('cases/a.yaml 1/2 cases');
     expect(current).toContain('❯ alpha · 2 files running');
@@ -533,7 +533,7 @@ describe('terminal reporter', () => {
       document: { ...document('alpha', paths[0]), status: 'failed' },
       maxAttempts: 2,
     });
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     current = frame(io);
     expect(alphaTree()).toContain('cases/a.yaml 0/2 cases');
     expect(current).toContain('❯ alpha · 2 files running');
@@ -553,7 +553,7 @@ describe('terminal reporter', () => {
         ],
         durationMs: 100,
       });
-      vi.advanceTimersByTime(100);
+      rs.advanceTimersByTime(100);
       current = frame(io);
       expect(current).toContain('❯ beta · 2 files running');
       if (sourcePath === paths[0]) {
@@ -571,7 +571,7 @@ describe('terminal reporter', () => {
         paths.map((path) => fileOutcome('alpha', path)),
       ),
     });
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     expect(frame(io)).not.toContain('❯ alpha');
     expect(frame(io)).toContain('❯ beta');
     expect(
@@ -591,7 +591,7 @@ describe('terminal reporter', () => {
   ])(
     'shows the independent global concurrency limits: $expected',
     ({ projects, files, expected }) => {
-      const io = { log: vi.fn(), error: vi.fn() };
+      const io = { log: rs.fn(), error: rs.fn() };
       const reporter = new TerminalReporter(io);
       try {
         reporter.event({
@@ -613,7 +613,7 @@ describe('terminal reporter', () => {
   );
 
   it('keeps a peer file and its request warning live while another file retries in the same Project', () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const { reporter, io } = fixture('default', true);
     const parallelStep = (
       id: string,
@@ -675,13 +675,13 @@ describe('terminal reporter', () => {
         afterAll: [],
       },
     });
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     expect(frame(io)).toContain('❯ web · 2 files running');
     expect(frame(io)).toContain('└─ second.yaml');
     expect(frame(io)).toContain('⚠ model request retry');
     expect(frame(io).match(/└─ checkout/g)).toHaveLength(1);
     reporter.event({ type: 'step-end', projectName: 'web', info: second });
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     expect(frame(io)).not.toContain('⚠ model request retry');
     reporter.dispose();
   });
@@ -736,8 +736,8 @@ describe('terminal reporter', () => {
   });
 
   it('uses a green run header and plain model names without blue accents', () => {
-    vi.stubEnv('NO_COLOR', '');
-    const io = { log: vi.fn(), error: vi.fn(), isTTY: true };
+    rs.stubEnv('NO_COLOR', '');
+    const io = { log: rs.fn(), error: rs.fn(), isTTY: true };
     const reporter = new TerminalReporter(io, 'verbose');
     reporter.event({
       type: 'run-start',
@@ -817,7 +817,7 @@ describe('terminal reporter', () => {
   );
 
   it('groups interleaved completions into one tree per Project in plan order, retaining final outcomes once', () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const { reporter, io } = fixture('default', true);
     const caseFor = (
       projectName: string,
@@ -1028,7 +1028,7 @@ describe('terminal reporter', () => {
   it.each(['success', 'failed'] as const)(
     'keeps Case retry progress on its live branch across Steps, with only the final %s result retained',
     (status) => {
-      vi.useFakeTimers();
+      rs.useFakeTimers();
       const { reporter, io } = fixture('default', true);
       const other = outcome('other Case');
       const retried = outcome('search', status);
@@ -1054,7 +1054,7 @@ describe('terminal reporter', () => {
         projectName: 'web',
         info: step('search', 1),
       });
-      vi.advanceTimersByTime(100);
+      rs.advanceTimersByTime(100);
       expect(frame(io)).toMatch(/└─ search .* · attempt 2\/2/);
       expect(
         frame(io)
@@ -1071,7 +1071,7 @@ describe('terminal reporter', () => {
         projectName: 'web',
         info: { ...step('search', 1), node: 'aiAssert' },
       });
-      vi.advanceTimersByTime(100);
+      rs.advanceTimersByTime(100);
       expect(frame(io)).toContain('attempt 2/2');
       expect(frame(io)).toContain('aiAssert');
       endFile(reporter, [other, retried], status);
@@ -1094,8 +1094,8 @@ describe('terminal reporter', () => {
   );
 
   it('coalesces rapid Step transitions while displaying parallel file trees and live counters', () => {
-    vi.useFakeTimers();
-    vi.stubEnv('NO_COLOR', undefined);
+    rs.useFakeTimers();
+    rs.stubEnv('NO_COLOR', undefined);
     const { reporter, io } = fixture('default', true, 3);
     const before = io.write.mock.calls.length;
     for (const id of ['third', 'first', 'second'])
@@ -1111,7 +1111,7 @@ describe('terminal reporter', () => {
       info: { ...step('first'), node: 'aiAssert' },
     });
     expect(io.write).toHaveBeenCalledTimes(before);
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     expect(io.write).toHaveBeenCalledTimes(before + 1);
     const output = frame(io);
     expect(output.indexOf('❯ first')).toBeLessThan(output.indexOf('❯ second'));
@@ -1128,18 +1128,18 @@ describe('terminal reporter', () => {
   });
 
   it('keeps warnings inside the live frame and still prints completed file trees', () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const { reporter, io } = fixture('default', true);
     reporter.event({
       type: 'step-start',
       projectName: 'web',
       info: step('first'),
     });
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     const before = io.write.mock.calls.length;
     reporter.console({ type: 'warning', topic: 'web', message: 'a warning' });
     expect(io.write).toHaveBeenCalledTimes(before);
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     const output = io.write.mock.calls.slice(before).flat().join('');
     expect(output.indexOf('cases/shop.yaml')).toBeLessThan(
       output.indexOf('a warning'),
@@ -1149,7 +1149,7 @@ describe('terminal reporter', () => {
     expect(output).toContain('\u001b[?2026h');
     expect(output).toContain('\u001b[?2026l');
     endFile(reporter, [outcome('first')]);
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     expect(io.write.mock.calls.flat().join('')).toContain('first');
     expect(frame(io)).not.toContain('└─ first');
     reporter.finish(runResult([projectResult('web', [outcome('first')])]));
@@ -1158,12 +1158,12 @@ describe('terminal reporter', () => {
     ).toContain('└─ ✓ first');
     reporter.dispose();
     const writes = io.write.mock.calls.length;
-    vi.advanceTimersByTime(5000);
+    rs.advanceTimersByTime(5000);
     expect(io.write).toHaveBeenCalledTimes(writes);
   });
 
   it('attaches concurrent request warnings only to their active Step and summarizes after completion', () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const { reporter, io } = fixture('default', true);
     reporter.event({
       type: 'step-start',
@@ -1175,7 +1175,7 @@ describe('terminal reporter', () => {
       projectName: 'web',
       info: step('second'),
     });
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     const before = io.write.mock.calls.length;
     reporter.console({
       type: 'warning',
@@ -1201,7 +1201,7 @@ describe('terminal reporter', () => {
       },
     });
     expect(io.write).toHaveBeenCalledTimes(before);
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     let current = frame(io);
     expect(current.indexOf('first')).toBeLessThan(
       current.indexOf('⚠ model request retry'),
@@ -1215,7 +1215,7 @@ describe('terminal reporter', () => {
       projectName: 'web',
       info: step('first'),
     });
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     current = frame(io);
     expect(current).not.toContain('⚠ model request retry');
     expect(current).toContain('Warnings 1');
@@ -1235,7 +1235,7 @@ describe('terminal reporter', () => {
   });
 
   it('adapts to terminal size with a bounded tree, and removes its resize listener', () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const { reporter, io, resize, removeResizeListener } = fixture(
       'default',
       true,
@@ -1267,7 +1267,7 @@ describe('terminal reporter', () => {
   });
 
   it('retains elapsed time when long Unicode Case names are truncated', () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const { reporter, io, resize } = fixture('default', true);
     reporter.event({
       type: 'step-start',
@@ -1275,7 +1275,7 @@ describe('terminal reporter', () => {
       info: step('超长的中文用例名称👩‍💻'.repeat(10)),
     });
     io.columns = 40;
-    vi.advanceTimersByTime(1000);
+    rs.advanceTimersByTime(1000);
     resize();
     const lines = frame(io).split('\n');
     const active = lines.find((line) => line.includes('step 2/3'))!;
@@ -1287,7 +1287,7 @@ describe('terminal reporter', () => {
   });
 
   it('shows document lifecycle hooks beside Case branches', () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const { reporter, io } = fixture('default', true);
     reporter.event({
       type: 'step-start',
@@ -1312,7 +1312,7 @@ describe('terminal reporter', () => {
         },
       },
     });
-    vi.advanceTimersByTime(100);
+    rs.advanceTimersByTime(100);
     expect(frame(io)).toContain('❯ web · 1 file running');
     expect(frame(io)).toContain('└─ cases/shop.yaml');
     expect(frame(io)).toContain('└─ checkout');
@@ -1405,16 +1405,16 @@ describe('terminal reporter', () => {
   });
 
   it('emits a low-frequency CI heartbeat for active steps and stops after disposal', () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const { reporter, io } = fixture();
     reporter.event({
       type: 'step-start',
       projectName: 'web',
       info: step('slow AI'),
     });
-    vi.advanceTimersByTime(29_999);
+    rs.advanceTimersByTime(29_999);
     const before = io.log.mock.calls.length;
-    vi.advanceTimersByTime(1);
+    rs.advanceTimersByTime(1);
     expect(io.log).toHaveBeenLastCalledWith(
       expect.stringContaining(
         'Still running: [web] cases/shop.yaml › slow AI · step 2/3 · aiAct (30.0s)',
@@ -1422,7 +1422,7 @@ describe('terminal reporter', () => {
     );
     expect(io.write).not.toHaveBeenCalled();
     reporter.dispose();
-    vi.advanceTimersByTime(60_000);
+    rs.advanceTimersByTime(60_000);
     expect(io.log).toHaveBeenCalledTimes(before + 1);
   });
 
@@ -1544,7 +1544,7 @@ describe('terminal reporter', () => {
   });
 
   it('keeps verbose output append-only even in an interactive terminal', () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const { reporter, io } = fixture('verbose', true);
     reporter.event({
       type: 'step-start',
@@ -1552,7 +1552,7 @@ describe('terminal reporter', () => {
       info: step('checkout'),
     });
     reporter.progress('step 2/3: aiAct');
-    vi.advanceTimersByTime(60_000);
+    rs.advanceTimersByTime(60_000);
     expect(io.log).toHaveBeenCalledWith('step 2/3: aiAct');
     expect(io.write).not.toHaveBeenCalled();
     expect(io.onResize).not.toHaveBeenCalled();

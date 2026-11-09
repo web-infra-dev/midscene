@@ -1,0 +1,7 @@
+```bash
+pnpm exec vitest run e2e/settings.test.ts
+```
+
+运行后，Vitest 会在终端汇总用例的通过或失败状态；Midscene SDK 则默认在 `midscene_run/report/` 下生成各 Agent 的执行报告，并在终端打印报告路径。在浏览器中打开生成的 HTML 报告，即可查看各步骤的截图、AI 执行过程和断言结果。
+
+与 Playwright Test 不同，Vitest 接入直接使用 SDK 内置的报告生成机制，无需额外部署 reporter。Vitest 的测试结果与 Midscene 的 Agent 报告相互独立；如需合并或进一步处理报告文件，请参阅[处理报告文件](../consume-report-file)。

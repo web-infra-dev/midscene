@@ -33,11 +33,11 @@
     "zustand": "4.5.2"
   },
   "devDependencies": {
-    "@rsbuild/core": "^1.6.15",
-    "@rsbuild/plugin-less": "^1.5.0",
-    "@rsbuild/plugin-node-polyfill": "1.4.2",
-    "@rsbuild/plugin-react": "^1.4.1",
-    "@rsbuild/plugin-svgr": "^1.2.2",
+    "@rsbuild/core": "^1.7.6",
+    "@rsbuild/plugin-less": "^1.6.4",
+    "@rsbuild/plugin-node-polyfill": "1.4.6",
+    "@rsbuild/plugin-react": "^1.4.6",
+    "@rsbuild/plugin-svgr": "^1.3.1",
     "@rstest/core": "0.12.0",
     "@tailwindcss/postcss": "4.1.11",
     "@types/chrome": "0.0.279",
@@ -45,13 +45,14 @@
     "@types/react-dom": "^18.3.1",
     "archiver": "^6.0.0",
     "concurrently": "^8.2.0",
+    "core-js": "^3.51.0",
     "jose": "5.9.6",
     "less": "^4.2.0",
     "openai": "6.3.0",
-    "rimraf": "~5.0.10",
-    "rsbuild-plugin-workspace-dev": "0.0.1",
+    "rimraf": "^6.1.4",
+    "rsbuild-plugin-workspace-dev": "1.0.0",
     "tailwindcss": "4.1.11",
     "typescript": "^5.8.3",
-    "web-ext": "9.0.0"
+    "web-ext": "10.8.0"
   }
 }

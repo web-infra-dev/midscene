@@ -10,7 +10,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { WorkflowExecutionFailure } from '@midscene/core/internal/test-runner';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod/v4';
 import {
   createTestRunId,
@@ -143,7 +143,7 @@ describe('test project main-process runner', () => {
       }),
     );
     expect(readFileSync(result.summaryPath, 'utf8')).toBe(summaryBefore);
-    await vi.waitFor(() => expect(state.cleaned).toBe(true));
+    await rs.waitFor(() => expect(state.cleaned).toBe(true));
     await new Promise((resolve) => setImmediate(resolve));
   });
   it('persists the full safe plan before setup, including filtered cases and unresolved variables', async () => {
@@ -2497,7 +2497,7 @@ afterAll:
   });
 
   it('documents only the native Test command surface', async () => {
-    const io = { log: vi.fn(), error: vi.fn() };
+    const io = { log: rs.fn(), error: rs.fn() };
     expect(await runTestCli(['--help'], io)).toBe(0);
     const help = io.log.mock.calls.flat().join('\n');
     expect(help).toContain('native cases/steps Test projects');

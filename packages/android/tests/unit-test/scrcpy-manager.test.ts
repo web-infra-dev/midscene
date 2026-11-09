@@ -926,6 +926,121 @@ describe('ScrcpyScreenshotManager', () => {
       expect(disconnect).toHaveBeenCalledOnce();
     });
 
+    it('includes the recalibration wait when an uncertainty-only planning frame is rechecked', async () => {
+      const manager = createManager({} as any);
+      // 300ms estimated age and 300ms uncertainty (upper bound 600ms) so only
+      // the uncertainty branch recalibrates. (roundTrip + 1) / 2 = 300ms.
+      prepareCachedPlanningFrame(manager, {
+        ptsUs: 2_000_000n,
+        roundTripUs: 599_999n,
+      });
+      const internals = manager as any;
+      internals.deviceClockCalibration.deviceUptimeUs = 2_300_000n;
+
+      let hostMonotonicUs = 10_000_000n;
+      internals.monotonicTimeUs.mockImplementation(() => hostMonotonicUs);
+      const readClock = rs
+        .spyOn(internals, 'readDeviceClockCalibration')
+        .mockImplementation(async () => {
+          // 2200ms passes while the resample is pending. A worse RTT keeps
+          // the existing anchor selected.
+          hostMonotonicUs += 2_200_000n;
+          return {
+            deviceUptimeUs: 4_500_000n,
+            hostMonotonicUs,
+            hostWallTimeMs: 4_200,
+            roundTripUs: 800_000n,
+          };
+        });
+      const estimateFrameAge = rs.spyOn(internals, 'estimateFrameAge');
+      const candidate = internals.getCachedKeyframeCandidate();
+
+      await expect(
+        internals.isPlanningCandidateFreshEnough(candidate),
+      ).resolves.toBe(false);
+
+      expect(readClock).toHaveBeenCalledOnce();
+      expect(internals.deviceClockCalibration).toMatchObject({
+        deviceUptimeUs: 2_300_000n,
+        hostMonotonicUs: 10_000_000n,
+        roundTripUs: 599_999n,
+      });
+      expect(estimateFrameAge.mock.calls.map((call) => call[1])).toEqual([
+        10_000_000n,
+        12_200_000n,
+      ]);
+      expect(
+        internals.estimateFrameAge(candidate.ptsUs, 12_200_000n),
+      ).toMatchObject({
+        estimatedAgeUs: 2_500_000n,
+      });
+    });
+
+    it.each(['improved', 'failed'])(
+      'rejects a frame that expires while clock recalibration is %s',
+      async (outcome) => {
+        const manager = createManager({} as any);
+        prepareCachedPlanningFrame(manager, {
+          ptsUs: 1_700_000n,
+          roundTripUs: 600_000n,
+        });
+        const internals = manager as any;
+        rs.spyOn(internals, 'readDeviceClockCalibration').mockImplementation(
+          async () => {
+            await Promise.resolve();
+            internals.monotonicTimeUs.mockReturnValue(12_200_000n);
+            if (outcome === 'failed') throw new Error('clock sample failed');
+            return {
+              deviceUptimeUs: 4_200_000n,
+              hostMonotonicUs: 12_200_000n,
+              hostWallTimeMs: 4_200,
+              roundTripUs: 20_000n,
+            };
+          },
+        );
+
+        await expect(
+          internals.isPlanningCandidateFreshEnough(
+            internals.getCachedKeyframeCandidate(),
+          ),
+        ).resolves.toBe(false);
+        expect(internals.deviceClockCalibration.roundTripUs).toBe(
+          outcome === 'improved' ? 20_000n : 600_000n,
+        );
+      },
+    );
+
+    it('throws the uncalibrated-clock error when recalibration clears the anchor', async () => {
+      const manager = createManager({} as any);
+      prepareCachedPlanningFrame(manager, {
+        ptsUs: 2_000_000n,
+        roundTripUs: 599_999n,
+      });
+      const internals = manager as any;
+      internals.deviceClockCalibration.deviceUptimeUs = 2_300_000n;
+
+      let hostMonotonicUs = 10_000_000n;
+      internals.monotonicTimeUs.mockImplementation(() => hostMonotonicUs);
+      rs.spyOn(internals, 'readDeviceClockCalibration').mockImplementation(
+        async () => {
+          hostMonotonicUs += 2_200_000n;
+          // A backwards PTS during the wait drops the anchor, then the
+          // resample fails. The pre-wait age must not be reused.
+          internals.deviceClockCalibration = null;
+          throw new Error('calibration invalidated');
+        },
+      );
+      const candidate = internals.getCachedKeyframeCandidate();
+
+      await expect(
+        internals.isPlanningCandidateFreshEnough(candidate),
+      ).rejects.toThrow(
+        'Scrcpy frame clock is not calibrated; cannot prove planning freshness',
+      );
+      expect(internals.deviceClockCalibration).toBeNull();
+      expect(candidate.streamEpoch).toBe(internals.streamEpoch);
+    });
+
     it('rejects an uncertainty-only candidate when its stream epoch changes during recalibration', async () => {
       const manager = createManager({} as any);
       prepareCachedPlanningFrame(manager, { frameData: 'obsolete-frame' });

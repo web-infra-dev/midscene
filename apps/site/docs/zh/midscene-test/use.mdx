@@ -2,6 +2,8 @@
 
 本指南将带你使用脚手架创建测试项目、运行内置的 TodoMVC 示例，并动手修改一条测试用例。下文以 Web 平台为例；如果你测试的是移动端或桌面端应用，只需在创建项目时选择对应的平台模板即可。
 
+如果是第一次在某个平台上运行，可以使用[开始使用](../get-started?scene=test)。它会按你选择的平台和模型接入方式，依次列出设备、模型和项目的配置步骤，直到示例运行通过。
+
 ## 创建项目
 
 ### 1. 生成项目文件并安装依赖
@@ -14,6 +16,8 @@ cd my-tests
 ```
 
 执行过程中按终端提示安装依赖即可。如果你想通过交互式菜单选择平台，可以直接运行 `pnpm dlx @midscene/test create`，创建完成后再进入项目目录。完整的命令行参数请参阅文末的[创建命令参考](#创建命令参考)。
+
+<span id="project-structure" />
 
 生成的项目结构如下：
 
@@ -34,7 +38,7 @@ my-tests/
 
 ### 2. 配置模型与运行环境
 
-将 `.env.example` 复制为 `.env`，按照[使用模型 API Key](../model-api-setup)填写模型名称、服务地址和 API Key。
+将 `.env.example` 复制为 `.env`，按照[使用模型 API Key](../model-api-setup)填写模型名称、服务地址和 API Key。如果使用 ChatGPT 订阅，请按[使用 ChatGPT 订阅](../chatgpt-subscription#cli--sdk)完成一次登录，然后设置 `MIDSCENE_MODEL_AUTH_MODE`、`MIDSCENE_MODEL_NAME` 和 `MIDSCENE_MODEL_FAMILY`，服务地址和 API Key 留空。
 
 运行测试前，可以先验证模型连通性是否正常：
 

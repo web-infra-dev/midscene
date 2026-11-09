@@ -1,0 +1,99 @@
+import SdkDeviceTests from '../../../theme/components/sdk-device-tests/en/sdk-device-tests.mdx';
+import SdkDeviceLifecycle from '../../../theme/components/sdk-device-tests/en/sdk-device-lifecycle.mdx';
+import SdkCommonMethods from '../common/sdk-common-methods.mdx';
+import { SdkPrerequisites, SdkPlatformProvider, SdkPlatformSelector, SdkPlatformContent } from '@theme';
+
+# Integrate with Rstest
+
+<SdkPlatformProvider lang="en">
+
+We recommend [Rstest](./rstest) or [Vitest](./vitest) for writing JavaScript and TypeScript tests on Android, iOS, HarmonyOS, and desktop. This guide covers Rstest. Rstest organizes test cases, runs lifecycle hooks, and aggregates test results, while Midscene Agents connect to devices, interact with the UI, and perform assertions.
+
+## Before you begin
+
+<SdkPrerequisites lang="en" mode="rstest" />
+
+<SdkPlatformSelector lang="en" />
+
+## 1. Install dependencies
+
+<SdkPlatformContent platform="android">
+
+```bash
+pnpm add -D @rstest/core dotenv @midscene/android
+```
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="ios">
+
+```bash
+pnpm add -D @rstest/core dotenv @midscene/ios
+```
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="harmonyos">
+
+```bash
+pnpm add -D @rstest/core dotenv @midscene/harmony
+```
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="desktop">
+
+```bash
+pnpm add -D @rstest/core dotenv @midscene/computer
+```
+
+</SdkPlatformContent>
+
+## 2. Configure Rstest
+
+Create `rstest.config.ts`. If your project already uses Rstest for unit tests, you can save this configuration separately as `rstest.device.config.ts` and pass `--config rstest.device.config.ts` when running device tests, leaving your existing test configuration untouched.
+
+```typescript title="rstest.config.ts"
+import { defineConfig } from '@rstest/core';
+
+export default defineConfig({
+  include: ['e2e/**/*.test.ts'],
+  testEnvironment: 'node',
+  testTimeout: 90_000,
+  hookTimeout: 90_000,
+  pool: { maxWorkers: 1 },
+  maxConcurrency: 1,
+  output: {
+    externals: {
+      '@silvia-odwyer/photon': 'commonjs @silvia-odwyer/photon',
+    },
+  },
+});
+```
+
+Model calls and device connections can take longer than unit tests, so adjust `testTimeout` and `hookTimeout` for your cases. For a shared device, use one worker (`pool.maxWorkers: 1`) and `maxConcurrency: 1`, and avoid `test.concurrent` and `describe.concurrent`. The external declaration keeps the Photon native addon out of the test bundle. See the [Rstest configuration reference](https://rstest.rs/config/).
+
+## 3. Write a test
+
+<SdkDeviceTests runner="rstest" />
+
+## 4. Run the test and view the report
+
+```bash
+pnpm exec rstest run e2e/settings.test.ts
+```
+
+Rstest prints the pass or fail status of each test in the terminal, while the Midscene SDK generates an execution report for each Agent under `midscene_run/report/` by default and prints the report path. Open the generated HTML file in a browser to inspect step-by-step screenshots, AI execution details, and assertion results.
+
+Unlike Playwright Test, Rstest integration uses the SDK's built-in report generation directly and does not require a custom reporter. Rstest test results and Midscene Agent reports are generated separately; to merge or further process report files, see [Process report files](../consume-report-file).
+
+## Common methods
+
+<SdkCommonMethods />
+
+## Lifecycle and exclusive device access
+
+<SdkDeviceLifecycle />
+
+
+</SdkPlatformProvider>

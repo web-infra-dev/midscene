@@ -13,9 +13,9 @@ import {
 import { tmpdir } from 'node:os';
 import { basename, join, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
+import { expect, it } from '@rstest/core';
 import { config as loadEnv } from 'dotenv';
 import { load as loadYaml } from 'js-yaml';
-import { expect, it } from 'vitest';
 
 const execFileAsync = promisify(execFile);
 const packageRoot = resolve(__dirname, '../..');
@@ -72,7 +72,7 @@ it('creates, installs, and runs the packaged Web starter with a real browser and
   mkdirSync(artifactRoot, { recursive: true });
   const artifacts = mkdtempSync(join(artifactRoot, 'run-'));
   const project = join(temporary, 'web');
-  // pnpm/Vitest can add workspace dependencies to NODE_PATH. The child must
+  // The test launcher can add workspace dependencies to NODE_PATH. The child must
   // resolve only the dependencies that were actually installed in its project.
   const env: NodeJS.ProcessEnv = {
     ...process.env,

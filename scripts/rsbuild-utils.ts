@@ -13,7 +13,7 @@ export const commonIgnoreWarnings = [
   /Critical dependency: the request of a dependency is an expression/,
 ];
 
-export const createTypeCheckPlugin = () =>
+export const createTypeCheckPlugin = (): ReturnType<typeof pluginTypeCheck> =>
   pluginTypeCheck({
     tsCheckerOptions: {
       typescript: {

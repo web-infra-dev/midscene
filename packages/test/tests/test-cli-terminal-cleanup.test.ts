@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { expect, it, vi } from 'vitest';
+import { expect, it, rs } from '@rstest/core';
 
 it.each([
   'missing config',
@@ -13,12 +13,12 @@ it.each([
   const tty = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');
   const stdout = process.stdout.write;
   const stderr = process.stderr.write;
-  const write = vi.fn(() => true);
+  const write = rs.fn(() => true);
   try {
-    vi.resetModules();
-    vi.spyOn(process, 'cwd').mockReturnValue(root);
-    vi.stubEnv('CI', '');
-    const errorOutput = vi.spyOn(console, 'error').mockImplementation(() => {});
+    rs.resetModules();
+    rs.spyOn(process, 'cwd').mockReturnValue(root);
+    rs.stubEnv('CI', '');
+    const errorOutput = rs.spyOn(console, 'error').mockImplementation(() => {});
     Object.defineProperty(process.stdout, 'isTTY', {
       value: true,
       configurable: true,
@@ -47,8 +47,8 @@ it.each([
     process.stderr.write = stderr;
     if (tty) Object.defineProperty(process.stdout, 'isTTY', tty);
     else Reflect.deleteProperty(process.stdout, 'isTTY');
-    vi.restoreAllMocks();
-    vi.unstubAllEnvs();
+    rs.restoreAllMocks();
+    rs.unstubAllEnvs();
     rmSync(root, { recursive: true, force: true });
   }
 });

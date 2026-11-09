@@ -1,19 +1,21 @@
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import {
   githubFailureAnnotation,
   writeGitHubSummary,
 } from '../src/cli/github-reporter';
 import type { TestProjectRunResult } from '../src/cli/types';
 
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  rs.unstubAllEnvs();
+});
 
 describe('GitHub reporter', () => {
   it('escapes workflow commands and locates YAML files relative to the workspace', () => {
-    vi.stubEnv('GITHUB_ACTIONS', 'true');
-    vi.stubEnv('GITHUB_WORKSPACE', '/repo');
+    rs.stubEnv('GITHUB_ACTIONS', 'true');
+    rs.stubEnv('GITHUB_WORKSPACE', '/repo');
     expect(
       githubFailureAnnotation(
         'checkout, web\nstep 3',
@@ -23,15 +25,15 @@ describe('GitHub reporter', () => {
     ).toBe(
       '::error file=tests/case.yaml,title=checkout%2C web%0Astep 3::failed%0A::warning::injected%25',
     );
-    vi.stubEnv('GITHUB_ACTIONS', 'false');
+    rs.stubEnv('GITHUB_ACTIONS', 'false');
     expect(githubFailureAnnotation('case', 'failed')).toBeUndefined();
   });
 
   it('appends summaries without counting recovered attempts as failed Cases', () => {
     const dir = mkdtempSync(join(tmpdir(), 'midscene-github-summary-'));
     try {
-      vi.stubEnv('GITHUB_ACTIONS', 'true');
-      vi.stubEnv('GITHUB_STEP_SUMMARY', join(dir, 'summary.md'));
+      rs.stubEnv('GITHUB_ACTIONS', 'true');
+      rs.stubEnv('GITHUB_STEP_SUMMARY', join(dir, 'summary.md'));
       const result: TestProjectRunResult = {
         schemaVersion: 3,
         runId: 'github-summary',
@@ -103,6 +105,66 @@ describe('GitHub reporter', () => {
         ),
       ).toHaveLength(2);
       expect(output).toContain('/repo/report/index.html');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('shows paths with markdown-sensitive characters literally in code spans', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'midscene-github-summary-'));
+    try {
+      rs.stubEnv('GITHUB_ACTIONS', 'true');
+      rs.stubEnv('GITHUB_STEP_SUMMARY', join(dir, 'summary.md'));
+      writeGitHubSummary({
+        schemaVersion: 3,
+        runId: 'github-summary-paths',
+        startedAt: '2026-10-20T00:00:00.000Z',
+        endedAt: '2026-10-20T00:00:01.000Z',
+        durationMs: 1000,
+        status: 'failed',
+        exitCode: 1,
+        resultDir: '/work/R&D',
+        reportDir: '/work/R&D/report',
+        summary: {
+          total: 1,
+          passed: 0,
+          failed: 1,
+          notRun: 0,
+          passedAfterRetry: 0,
+          finalPassRate: 0,
+          firstPassRate: 0,
+          filtered: 0,
+          collectionErrors: 0,
+          documentFailures: 0,
+          projectFailures: 0,
+        },
+        projects: [],
+        documents: [],
+        collectionErrors: [],
+        cases: [
+          {
+            caseId: 'failed',
+            caseIndex: 0,
+            documentId: 'cases/<draft>/user`s login.yaml',
+            status: 'failed',
+            name: 'login',
+            projectName: 'web',
+            sourcePath: 'cases/<draft>/user`s login.yaml',
+          },
+        ],
+        summaryPath: '/work/R&D/summary.json',
+        reportPath: '/work/R&D/report/index.html',
+      });
+      const output = readFileSync(join(dir, 'summary.md'), 'utf8');
+      // Entity references are not decoded inside code spans, so the path
+      // text must appear as is, with a fence longer than its backticks.
+      expect(output).toContain(
+        'Failed: **login** — web/``cases/<draft>/user`s login.yaml``',
+      );
+      expect(output).toContain(
+        'Report artifact entry: `/work/R&D/report/index.html`',
+      );
+      expect(output).toContain('Structured results: `/work/R&D/summary.json`');
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

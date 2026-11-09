@@ -10,7 +10,7 @@ import {
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from '@rstest/core';
 import {
   cliPath,
   execFileAsync,

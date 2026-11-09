@@ -1,8 +1,10 @@
+import fs from 'node:fs';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import type { ComputerAgent } from '../../src';
 import {
   type CdpTarget,
   openExtensionSidePanel,
+  readExtensionId,
 } from '../ai/chrome-extension-helpers';
 
 const EXTENSION_ID = 'abcdefghijklmnopabcdefghijklmnop';
@@ -26,9 +28,11 @@ function createAgent() {
   const tap = rs.fn(async () => undefined);
   const keyboardPress = rs.fn(async () => undefined);
   const size = rs.fn(async () => ({ width: 1920, height: 1080 }));
-  const aiTap = rs.fn(async () => undefined);
+  const aiAct = rs.fn(async () => undefined);
+  const aiWaitFor = rs.fn(async () => undefined);
   const agent = {
-    aiTap,
+    aiAct,
+    aiWaitFor,
     interface: {
       inputPrimitives: {
         keyboard: { keyboardPress },
@@ -37,51 +41,29 @@ function createAgent() {
       size,
     },
   } as unknown as ComputerAgent;
-  return { agent, aiTap, keyboardPress, size, tap };
+  return { agent, aiAct, aiWaitFor, keyboardPress, size, tap };
 }
 
 describe('Chrome extension side-panel helper', () => {
   afterEach(() => {
+    rs.restoreAllMocks();
     rs.useRealTimers();
     rs.unstubAllGlobals();
   });
 
-  it('opens the extension through stable browser-chrome coordinates', async () => {
+  it('locates native controls visually and waits for the panel to become visible', async () => {
     stubCdpTargets([], [EXTENSION_TARGET]);
-    const { agent, tap } = createAgent();
+    const { agent, tap, aiAct, aiWaitFor, keyboardPress } = createAgent();
 
     await openExtensionSidePanel(agent, EXTENSION_ID);
 
-    expect(tap).toHaveBeenNthCalledWith(1, { x: 1760, y: 72 });
-    expect(tap).toHaveBeenNthCalledWith(2, { x: 1554, y: 228 });
-  });
-
-  it('falls back to vision when Chrome ignores the native-menu click', async () => {
-    rs.useFakeTimers();
-    const { agent, aiTap, keyboardPress } = createAgent();
-    rs.stubGlobal(
-      'fetch',
-      rs.fn(async () => ({
-        json: async () =>
-          aiTap.mock.calls.length === 2 ? [EXTENSION_TARGET] : [],
-      })),
+    expect(tap).not.toHaveBeenCalled();
+    expect(keyboardPress).not.toHaveBeenCalled();
+    expect(aiAct).toHaveBeenCalledWith(
+      expect.stringContaining('If the Extensions menu is already open'),
     );
-
-    const openPromise = openExtensionSidePanel(agent, EXTENSION_ID);
-    await rs.runAllTimersAsync();
-    await openPromise;
-
-    expect(keyboardPress).toHaveBeenCalledWith('Escape');
-    expect(aiTap).toHaveBeenCalledTimes(2);
-    expect(aiTap).toHaveBeenNthCalledWith(
-      1,
-      expect.stringContaining('Extensions button'),
-      { deepLocate: true },
-    );
-    expect(aiTap).toHaveBeenNthCalledWith(
-      2,
-      expect.stringContaining('Midscene.js'),
-      { deepLocate: true },
+    expect(aiWaitFor).toHaveBeenCalledWith(
+      expect.stringContaining('popup menu has closed'),
     );
   });
 
@@ -93,5 +75,46 @@ describe('Chrome extension side-panel helper', () => {
 
     expect(size).not.toHaveBeenCalled();
     expect(tap).not.toHaveBeenCalled();
+  });
+});
+
+describe('Chrome extension identification', () => {
+  afterEach(() => {
+    rs.restoreAllMocks();
+    rs.unstubAllGlobals();
+  });
+
+  it('ignores built-in extension workers before Midscene registers', async () => {
+    rs.spyOn(fs, 'existsSync').mockReturnValue(false);
+    const builtin = {
+      type: 'service_worker',
+      url: 'chrome-extension://nkeimhogjdpnpccoofpliimaahmaaome/thunk.js',
+    };
+    stubCdpTargets(
+      [builtin],
+      [
+        builtin,
+        {
+          type: 'service_worker',
+          url: `chrome-extension://${EXTENSION_ID}/scripts/worker.js`,
+        },
+      ],
+    );
+
+    await expect(readExtensionId(2)).resolves.toBe(EXTENSION_ID);
+  });
+
+  it('fails instead of returning an unrelated extension ID', async () => {
+    rs.spyOn(fs, 'existsSync').mockReturnValue(false);
+    stubCdpTargets([
+      {
+        type: 'service_worker',
+        url: 'chrome-extension://nkeimhogjdpnpccoofpliimaahmaaome/thunk.js',
+      },
+    ]);
+
+    await expect(readExtensionId(1)).rejects.toThrow(
+      'Midscene.js extension not found',
+    );
   });
 });

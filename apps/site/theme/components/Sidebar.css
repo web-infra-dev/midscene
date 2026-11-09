@@ -1,0 +1,13 @@
+/* A layout-neutral wrapper: the sidebar items stay children of the aside. */
+.midscene-sidebar-get-started-path {
+  display: contents;
+}
+
+/* Same as `.rp-sidebar-item--active` in Rspress. */
+.midscene-sidebar-get-started-path .rp-sidebar-item[href$="/get-started"],
+.midscene-sidebar-get-started-path
+  .rp-sidebar-item[href$="/get-started"]:hover {
+  color: var(--rp-c-link);
+  background-color: var(--rp-c-brand-tint);
+  font-weight: 600;
+}

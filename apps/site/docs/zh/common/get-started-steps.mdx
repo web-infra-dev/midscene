@@ -1,0 +1,600 @@
+import {
+  ChromeExtensionButton,
+  GetStartedCreateCommand,
+  GetStartedLlmPicker,
+  GetStartedSdkPlatform,
+  GetStartedStep,
+  GetStartedSwitch,
+  GetStartedWhen,
+} from '@theme';
+import DoubaoSeedModelCard from './model-cards/doubao-seed-model.mdx';
+import QwenModelCard from './model-cards/qwen.mdx';
+import DeepseekModelCard from './model-cards/deepseek.mdx';
+import GeminiModelCard from './model-cards/gemini.mdx';
+import GptModelCard from './model-cards/gpt.mdx';
+import KimiModelCard from './model-cards/kimi.mdx';
+import XiaomiMimoModelCard from './model-cards/xiaomi-mimo.mdx';
+import GlmVModelCard from './model-cards/glm-v.mdx';
+import AntLingModelCard from './model-cards/ant-ling.mdx';
+import AndroidConnect from './android-connect.mdx';
+import IosConnect from './ios-connect.mdx';
+import HarmonyosConnect from './harmonyos-connect.mdx';
+import DesktopPrepare from './desktop-prepare.mdx';
+import AndroidPlaygroundLaunch from './android-playground-launch.mdx';
+import AndroidPlaygroundRun from './android-playground-run.mdx';
+import IosPlaygroundLaunch from './ios-playground-launch.mdx';
+import IosPlaygroundRun from './ios-playground-run.mdx';
+import HarmonyosPlaygroundLaunch from './harmonyos-playground-launch.mdx';
+import HarmonyosPlaygroundRun from './harmonyos-playground-run.mdx';
+import DesktopPlaygroundLaunch from './desktop-playground-launch.mdx';
+import DesktopPlaygroundRun from './desktop-playground-run.mdx';
+import WebPlaygroundCheck from './web-playground-check.mdx';
+import SiwcExtension from './siwc-extension.mdx';
+import SiwcCliLogin from './siwc-cli-login.mdx';
+import SiwcEnv from './siwc-env.mdx';
+import SdkPlaywrightSetup from './sdk-playwright-setup.mdx';
+import SdkPlaywrightFixture from './sdk-playwright-fixture.mdx';
+import SdkPlaywrightWrite from './sdk-playwright-write.mdx';
+import SdkPlaywrightRun from './sdk-playwright-run.mdx';
+import SdkVitestInstall from './sdk-vitest-install.mdx';
+import SdkVitestConfig from './sdk-vitest-config.mdx';
+import SdkVitestWrite from './sdk-vitest-write.mdx';
+import SdkVitestRun from './sdk-vitest-run.mdx';
+
+<GetStartedStep id="install-extension">
+
+## 安装 Chrome 插件
+
+1. 从 Chrome Web Store 安装 Midscene：
+
+   <ChromeExtensionButton linkLabel="从 Chrome Web Store 安装 Midscene 插件" />
+
+2. 在 Chrome 的扩展列表中打开 **Midscene**，浏览器右侧会出现 Midscene 侧边栏。
+
+如果无法访问 Chrome Web Store，请参阅[可以手动安装 Chrome 插件吗？](../platforms/web#chrome-extension-faq)
+
+</GetStartedStep>
+
+<GetStartedStep id="install-node">
+
+## 安装 Node.js
+
+安装 Node.js `^20.19.0 || ^22.12.0 || >=24.0.0`，并确认终端中可以执行 `node -v`。
+
+下文命令使用 pnpm。如果尚未安装，请运行 `npm install -g pnpm`。
+
+</GetStartedStep>
+
+<GetStartedStep id="connect-android">
+
+## 连接 Android 设备
+
+<AndroidConnect />
+
+</GetStartedStep>
+
+<GetStartedStep id="connect-ios">
+
+## 通过 WDA 连接 iOS 设备
+
+<IosConnect />
+
+</GetStartedStep>
+
+<GetStartedStep id="connect-harmonyos">
+
+## 连接 HarmonyOS 设备
+
+<HarmonyosConnect />
+
+</GetStartedStep>
+
+<GetStartedStep id="prepare-desktop">
+
+## 授予桌面系统权限
+
+<DesktopPrepare />
+
+如需通过 RDP 控制远程 Windows 桌面，请参阅[桌面端环境配置](../platforms/desktop#connect-device)。
+
+</GetStartedStep>
+
+<GetStartedStep id="test-create">
+
+## 创建测试项目
+
+<GetStartedCreateCommand />
+
+该命令会生成项目文件、安装依赖并生成 Node 说明书，不会运行测试。生成的文件说明请参阅[项目结构](../midscene-test/use#project-structure)。
+
+</GetStartedStep>
+
+<GetStartedStep id="model-api-key">
+
+## 配置模型
+
+<GetStartedWhen scene="test">
+
+在 `my-tests` 目录中，将 `.env.example` 复制为 `.env`：
+
+```bash
+cp .env.example .env
+```
+
+</GetStartedWhen>
+
+在下方选择一个模型，它的配置包含四项。点击**获取 API Key**到服务商创建 API Key，再用它替换 `MIDSCENE_MODEL_API_KEY` 中的 `......`。
+
+<GetStartedLlmPicker />
+
+<GetStartedWhen llm="doubao-seed-model">
+
+<DoubaoSeedModelCard purposes={["default"]} />
+
+其他版本与使用说明请参阅[豆包 Seed 系列](../model-api-setup#doubao-seed-model)。
+
+</GetStartedWhen>
+
+<GetStartedWhen llm="qwen">
+
+<QwenModelCard purposes={["default"]} />
+
+其他版本与使用说明请参阅[千问 Qwen 系列](../model-api-setup#qwen)。
+
+</GetStartedWhen>
+
+<GetStartedWhen llm="deepseek">
+
+<DeepseekModelCard purposes={["default"]} />
+
+其他版本与使用说明请参阅[深度求索 DeepSeek 系列](../model-api-setup#deepseek)。
+
+</GetStartedWhen>
+
+<GetStartedWhen llm="gemini">
+
+<GeminiModelCard purposes={["default"]} />
+
+其他版本与使用说明请参阅[Google Gemini 系列](../model-api-setup#gemini)。
+
+</GetStartedWhen>
+
+<GetStartedWhen llm="gpt">
+
+<GptModelCard purposes={["default"]} />
+
+其他版本与使用说明请参阅[OpenAI GPT 系列](../model-api-setup#gpt)。
+
+</GetStartedWhen>
+
+<GetStartedWhen llm="kimi">
+
+<KimiModelCard purposes={["default"]} />
+
+其他版本与使用说明请参阅[月之暗面 Kimi 系列](../model-api-setup#kimi)。
+
+</GetStartedWhen>
+
+<GetStartedWhen llm="xiaomi-mimo">
+
+<XiaomiMimoModelCard purposes={["default"]} />
+
+其他版本与使用说明请参阅[小米 MiMo 系列](../model-api-setup#xiaomi-mimo)。
+
+</GetStartedWhen>
+
+<GetStartedWhen llm="glm-v">
+
+<GlmVModelCard purposes={["default"]} />
+
+其他版本与使用说明请参阅[智谱 GLM-V 系列](../model-api-setup#glm-v)。
+
+</GetStartedWhen>
+
+<GetStartedWhen llm="ant-ling">
+
+<AntLingModelCard purposes={["default"]} />
+
+其他版本与使用说明请参阅[蚂蚁百灵 Ant Ling](../model-api-setup#ant-ling)。
+
+</GetStartedWhen>
+
+各模型的差异请参阅[模型选择指南](../model-selection)。UI-TARS 等兼容模型请参阅[使用模型 API Key](../model-api-setup#支持的模型)。
+
+<GetStartedWhen scene="playground" platform="web">
+
+在 Midscene 侧边栏中点击设置图标，粘贴配置并保存。
+
+</GetStartedWhen>
+
+<GetStartedWhen scene="playground" platform={['android', 'ios', 'harmonyos', 'desktop']}>
+
+先保留这份配置，后面的步骤会把它粘贴到 Playground 中。
+
+</GetStartedWhen>
+
+<GetStartedWhen scene="test">
+
+用这份配置填写 `.env` 中的四项 `MIDSCENE_MODEL_*` 变量。
+
+</GetStartedWhen>
+
+<GetStartedWhen scene="sdk">
+
+在项目目录中，把这四项配置写入 `.env` 文件。如果还没有项目，请先新建一个目录并在其中运行 `pnpm init`。
+
+</GetStartedWhen>
+
+</GetStartedStep>
+
+<GetStartedStep id="model-chatgpt-extension">
+
+## 使用 ChatGPT 订阅登录
+
+<SiwcExtension />
+
+可用模型以你的 ChatGPT 账号为准。凭据与额度说明请参阅[使用 ChatGPT 订阅](../chatgpt-subscription#额度与凭据)。
+
+</GetStartedStep>
+
+<GetStartedStep id="model-chatgpt-cli">
+
+## 使用 ChatGPT 订阅登录
+
+<GetStartedWhen scene="playground">
+
+登录命令需要 Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` 和 pnpm。请确认终端中可以执行 `node -v`；如果尚未安装 pnpm，请运行 `npm install -g pnpm`。
+
+</GetStartedWhen>
+
+<SiwcCliLogin />
+
+<GetStartedWhen scene="playground">
+
+Playground 会读取该命令保存的凭据。请先保留以下配置，后面的步骤会把它粘贴到 Playground 设置中：
+
+</GetStartedWhen>
+
+<GetStartedWhen scene="test">
+
+然后在 `my-tests` 目录中，将 `.env.example` 复制为 `.env`：
+
+```bash
+cp .env.example .env
+```
+
+`MIDSCENE_MODEL_BASE_URL` 和 `MIDSCENE_MODEL_API_KEY` 留空。设置 `MIDSCENE_MODEL_NAME` 和 `MIDSCENE_MODEL_FAMILY`，并添加 `MIDSCENE_MODEL_AUTH_MODE`：
+
+</GetStartedWhen>
+
+<GetStartedWhen scene="sdk">
+
+然后在项目目录中，把以下配置写入 `.env` 文件。如果还没有项目，请先新建一个目录并在其中运行 `pnpm init`。
+
+</GetStartedWhen>
+
+<SiwcEnv />
+
+可用模型以你的 ChatGPT 账号为准。凭据与额度说明请参阅[使用 ChatGPT 订阅](../chatgpt-subscription#额度与凭据)。
+
+</GetStartedStep>
+
+<GetStartedStep id="playground-web">
+
+## 执行操作并验证结果
+
+在当前标签页中打开 [TodoMVC](https://todomvc.com/examples/react/dist/#/)，并保持页面可见。
+
+<WebPlaygroundCheck />
+
+</GetStartedStep>
+
+<GetStartedStep id="playground-device-launch">
+
+## 启动 Playground
+
+<GetStartedWhen platform="android">
+  <AndroidPlaygroundLaunch />
+</GetStartedWhen>
+
+<GetStartedWhen platform="ios">
+  <IosPlaygroundLaunch />
+</GetStartedWhen>
+
+<GetStartedWhen platform="harmonyos">
+  <HarmonyosPlaygroundLaunch />
+</GetStartedWhen>
+
+<GetStartedWhen platform="desktop">
+  <DesktopPlaygroundLaunch />
+</GetStartedWhen>
+
+</GetStartedStep>
+
+<GetStartedStep id="playground-device-run">
+
+## 执行操作并验证结果
+
+<GetStartedWhen platform="android">
+  <AndroidPlaygroundRun />
+</GetStartedWhen>
+
+<GetStartedWhen platform="ios">
+  <IosPlaygroundRun />
+</GetStartedWhen>
+
+<GetStartedWhen platform="harmonyos">
+  <HarmonyosPlaygroundRun />
+</GetStartedWhen>
+
+<GetStartedWhen platform="desktop">
+  <DesktopPlaygroundRun />
+</GetStartedWhen>
+
+</GetStartedStep>
+
+<GetStartedStep id="test-configure">
+
+## 验证模型并完成配置
+
+运行以下命令，检查模型能否连通、是否与 Midscene 兼容。该命令只读取当前目录下的 `.env`，不需要浏览器或设备：
+
+```bash
+pnpm exec midscene-test model verify
+```
+
+如果验证失败，请参阅[验证模型连接](../model-config#verify-model-connectivity)。
+
+<GetStartedWhen platform="web">
+
+为 Playwright 安装 Chromium：
+
+```bash
+pnpm exec playwright install chromium
+```
+
+</GetStartedWhen>
+
+<GetStartedWhen platform="android">
+
+如果连接了多台设备，请在 `.env` 中将 `ANDROID_DEVICE_ID` 设置为 `adb devices -l` 输出中的设备 ID。
+
+</GetStartedWhen>
+
+<GetStartedWhen platform="ios">
+
+项目默认连接 `localhost:8100` 上的 WDA。如需使用其他地址，请在 `.env` 中设置 `WDA_HOST` 和 `WDA_PORT`；通过网关访问时设置 `WDA_BASE_URL`。
+
+</GetStartedWhen>
+
+<GetStartedWhen platform="harmonyos">
+
+如果连接了多台设备，请在 `.env` 中将 `HARMONY_DEVICE_ID` 设置为 `hdc list targets` 输出中的设备 ID。如果 `hdc` 不在 `PATH` 中，请设置 `HDC_HOME`。
+
+</GetStartedWhen>
+
+<GetStartedWhen platform="desktop">
+
+如需控制主显示器以外的显示器，请在 `.env` 中设置 `COMPUTER_DISPLAY_ID`。在无界面 Linux 环境中，还需设置 `MIDSCENE_COMPUTER_HEADLESS_LINUX=true`。
+
+</GetStartedWhen>
+
+</GetStartedStep>
+
+<GetStartedStep id="test-run">
+
+## 运行示例并查看报告
+
+<GetStartedWhen platform="web">
+
+示例会在 Chromium 中打开 React TodoMVC，预置三条待办事项，然后通过 `aiAct` 和 `aiAssert` 修改并检查它们。
+
+</GetStartedWhen>
+
+<GetStartedWhen platform={['android', 'ios', 'harmonyos']}>
+
+示例会在设备浏览器中打开 React TodoMVC，并先检查列表为空。请保持设备解锁。如果列表中留有之前运行产生的待办事项，请切换到 **All** 并删除全部事项（包括已完成的事项）。
+
+</GetStartedWhen>
+
+<GetStartedWhen platform="desktop">
+
+示例会在目标显示器的浏览器中打开 React TodoMVC，并先检查列表为空。运行期间请勿移动鼠标或操作键盘。如果列表中留有之前运行产生的待办事项，请切换到 **All** 并删除全部事项（包括已完成的事项）。
+
+</GetStartedWhen>
+
+```bash
+pnpm test
+```
+
+终端会输出测试结果和 `Report:` 报告路径。打开 HTML 报告，选择用例和步骤即可查看截图、输入输出和错误信息。报告默认保存在 `midscene_run/report/` 目录下。
+
+用例通过即表示模型、运行环境和项目都已正常工作。运行参数请参阅[运行测试](../midscene-test/running)。
+
+</GetStartedStep>
+
+<GetStartedStep id="sdk-setup">
+
+## 搭建项目
+
+在 `.env` 所在的项目目录中，验证模型配置：
+
+```bash
+pnpm dlx @midscene/test@latest model verify
+```
+
+如果验证失败，请参阅[验证模型连接](../model-config#verify-model-connectivity)。
+
+<GetStartedWhen platform="web">
+
+### 安装依赖并配置 Playwright
+
+如果该目录中还没有 Playwright Test 项目，请先安装 Playwright Test 及其 Chromium 浏览器：
+
+```bash
+pnpm add -D @playwright/test
+pnpm exec playwright install chromium
+```
+
+<SdkPlaywrightSetup />
+
+### 创建 fixture
+
+<SdkPlaywrightFixture />
+
+</GetStartedWhen>
+
+<GetStartedWhen platform={['android', 'ios', 'harmonyos', 'desktop']}>
+
+<GetStartedSdkPlatform>
+
+设备测试推荐使用 [Rstest](../sdk/rstest) 或 [Vitest](../sdk/vitest)。以下步骤以 Vitest 为例；Rstest 接入文档介绍了使用相同平台 Agent 的对应配置。
+
+### 安装依赖
+
+<SdkVitestInstall />
+
+### 配置 Vitest
+
+<SdkVitestConfig />
+
+</GetStartedSdkPlatform>
+
+</GetStartedWhen>
+
+</GetStartedStep>
+
+<GetStartedStep id="sdk-write">
+
+## 编写测试
+
+<GetStartedWhen platform="web">
+
+<SdkPlaywrightWrite />
+
+</GetStartedWhen>
+
+<GetStartedWhen platform={['android', 'ios', 'harmonyos', 'desktop']}>
+
+<GetStartedSdkPlatform>
+
+<SdkVitestWrite />
+
+</GetStartedSdkPlatform>
+
+</GetStartedWhen>
+
+</GetStartedStep>
+
+<GetStartedStep id="sdk-run">
+
+## 运行测试并查看报告
+
+<GetStartedWhen platform="web">
+
+<SdkPlaywrightRun />
+
+</GetStartedWhen>
+
+<GetStartedWhen platform={['android', 'ios', 'harmonyos', 'desktop']}>
+
+<GetStartedSdkPlatform>
+
+<SdkVitestRun />
+
+</GetStartedSdkPlatform>
+
+</GetStartedWhen>
+
+测试通过且报告中能看到每一步的截图，即表示模型、运行环境和项目都已正常工作。
+
+</GetStartedStep>
+
+<GetStartedStep id="next-steps">
+
+## 下一步
+
+- **查看更多案例**：[案例展示](../showcases)收录了各平台的演示视频和完整执行报告。
+
+<GetStartedWhen scene="playground">
+
+- **编写可重复运行的用例**：使用相同的平台和模型<GetStartedSwitch scene="test">创建 Midscene Test 项目</GetStartedSwitch>。用例是 YAML 文件，可以在本地或 CI 中运行。
+
+</GetStartedWhen>
+
+<GetStartedWhen scene="playground" platform="web">
+
+- **接入 Playwright Test**：使用相同的模型，<GetStartedSwitch scene="sdk">在 Playwright 测试中调用 Midscene</GetStartedSwitch>。
+- **用脚本控制当前浏览器**：[Chrome Bridge](../bridge-mode) 让 Node.js 脚本控制桌面 Chrome，并复用其中的登录状态和 Cookie。
+
+</GetStartedWhen>
+
+<GetStartedWhen scene="playground" platform={['android', 'ios', 'harmonyos', 'desktop']}>
+
+- **接入 Rstest 或 Vitest**：使用相同的平台和模型，<GetStartedSwitch scene="sdk">在 Vitest 测试中调用 Midscene</GetStartedSwitch>。
+
+</GetStartedWhen>
+
+<GetStartedWhen scene="playground">
+
+- **了解 Midscene 的工作方式**：[基本概念](../basics)介绍了基于视觉的方案，以及 `aiAct`、即时操作和洞察类 API 的适用场景。
+
+</GetStartedWhen>
+
+<GetStartedWhen scene="test" platform="web">
+
+- **测试自己的网站**：在 `cases/todo.yaml` 中，将 `beforeEach` 里的 TodoMVC 初始化步骤替换为打开你的 URL 的 `gotoUrl` Node，再用 `aiAct` 和 `aiAssert` 描述步骤。请参阅[各平台预置 Node](../midscene-test/builtin-nodes)。
+
+</GetStartedWhen>
+
+<GetStartedWhen scene="test" platform={['android', 'ios', 'harmonyos']}>
+
+- **测试自己的应用**：在 `cases/todo.yaml` 中，将 `beforeEach` 里的 TodoMVC 初始化步骤替换为打开应用的 `launch` Node：
+
+  ```yaml
+  beforeEach:
+    - launch: com.example.app
+
+  cases:
+    - name: 打开首页
+      steps:
+        - aiAssert: 应用首页已显示
+  ```
+
+  Android 使用包名，iOS 使用 Bundle ID，HarmonyOS 使用 bundle name。其他系统操作请参阅[各平台预置 Node](../midscene-test/builtin-nodes)。
+
+</GetStartedWhen>
+
+<GetStartedWhen scene="test" platform="desktop">
+
+- **测试自己的应用**：在被控制的显示器上打开目标应用，再用 `aiAct` 和 `aiAssert` 描述步骤。如需在用例中启动或重置应用，请[开发自定义 Node](../midscene-test/extend)。
+
+</GetStartedWhen>
+
+<GetStartedWhen scene="test">
+
+- **编写和组织用例**：[编写 YAML 用例](../midscene-test/writing)介绍了输入、变量、标签和 hooks。
+- **在 CI 中运行**：请参阅[在 GitHub Actions 中运行](../midscene-test/running#在-github-actions-中运行)。
+
+</GetStartedWhen>
+
+<GetStartedWhen scene="sdk">
+
+- **查阅 API**：[API reference](../reference/) 列出了全部 Agent 方法及其参数。
+- **将 AI 调用与代码结合**：[关键 API](../basics#javascript-orchestration) 说明了 `aiAct`、即时操作和洞察类 API 的适用场景。
+
+</GetStartedWhen>
+
+<GetStartedWhen scene="sdk" platform="web">
+
+- **配置 fixture 和 reporter**：[进一步配置](../integrate-with-playwright#进一步配置)介绍了 Agent 选项、指定页面操作和报告选项。
+
+</GetStartedWhen>
+
+<GetStartedWhen scene="sdk" platform={['android', 'ios', 'harmonyos', 'desktop']}>
+
+- **多个测试共用设备**：[生命周期与设备独占](../sdk/vitest#生命周期与设备独占)说明了多个测试共用一台设备时如何创建和销毁 Agent。
+
+</GetStartedWhen>
+
+</GetStartedStep>

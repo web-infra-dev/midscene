@@ -1,17 +1,17 @@
+import { describe, expect, it, rs } from '@rstest/core';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@midscene/playground-app', () => ({
+rs.mock('@midscene/playground-app', () => ({
   PlaygroundConversationPanel: () => null,
 }));
 
-vi.mock('../src/renderer/components/Recorder', () => ({
+rs.mock('../src/renderer/components/Recorder', () => ({
   StudioReplayPanel: () => null,
   StudioRecorderPanel: () => null,
 }));
 
-vi.mock('../src/renderer/components/StudioTimelinePanel', () => ({
+rs.mock('../src/renderer/components/StudioTimelinePanel', () => ({
   StudioTimelineHeader: () => null,
 }));
 

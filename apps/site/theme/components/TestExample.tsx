@@ -20,7 +20,9 @@ cases:
       - aiAct: ${act}
       - aiWaitFor: ${wait}
       - aiAssert: ${assert}`;
-  const javascript = `import { test } from 'vitest';
+  const javascript = (
+    runner: 'rstest' | 'vitest',
+  ) => `import { test } from '${runner === 'rstest' ? '@rstest/core' : 'vitest'}';
 import { PlaywrightAgent } from '@midscene/web/playwright';
 
 // ${t('exampleSetupOmitted')}
@@ -56,10 +58,17 @@ test(${name}, async () => {
               <Tab label="YAML · @midscene/test" value="yaml">
                 <CodeBlockRuntime lang="yaml" code={yaml} wrapCode />
               </Tab>
+              <Tab label="Rstest + JavaScript" value="rstest">
+                <CodeBlockRuntime
+                  lang="javascript"
+                  code={javascript('rstest')}
+                  wrapCode
+                />
+              </Tab>
               <Tab label="Vitest + JavaScript" value="vitest">
                 <CodeBlockRuntime
                   lang="javascript"
-                  code={javascript}
+                  code={javascript('vitest')}
                   wrapCode
                 />
               </Tab>

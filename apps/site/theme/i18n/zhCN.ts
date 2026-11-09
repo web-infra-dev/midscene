@@ -221,7 +221,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
     '使用 Midscene Test 编写 YAML 测试，并通过自定义 TypeScript Node 扩展。',
   featureRichAPIsLink: '/reference/',
   featureSkillsLink: '/skills',
-  featureReportsPlaygroundLink: '/quick-start#chrome-extension',
+  featureReportsPlaygroundLink: '/get-started?scene=playground&platform=web',
   featureFlexibleIntegrationLink: '/midscene-test/overview',
   featureBenchmarkLink: '/android-world-benchmark-report',
   featureMobileWorldBenchmarkLink: '/mobile-world-benchmark-report',

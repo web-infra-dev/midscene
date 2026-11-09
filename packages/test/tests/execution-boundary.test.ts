@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
+import { describe, expect, it } from '@rstest/core';
 import ts from 'typescript';
-import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const commonModules = [

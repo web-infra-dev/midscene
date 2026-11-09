@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { z } from 'zod/v4';
 import { NodeRegistry, runWorkflowDocument } from '../src';
 import { createAgentTestRunnerNodes } from '../src/midscene';
