@@ -299,6 +299,7 @@ async function preparePuppeteerPage(
           ignoreDefaultArgs: preference?.ignoreDefaultArgs,
         });
         ownsBrowser = true;
+        const ownedBrowser = browserInstance;
         freeFn.push({
           name: 'puppeteer_browser',
           fn: async () => {
@@ -308,7 +309,14 @@ async function preparePuppeteerPage(
             if (process.platform === 'win32') {
               await new Promise((resolve) => setTimeout(resolve, 800));
             }
-            await browserInstance?.close();
+            // Close live tabs before asking Chrome to exit. Its graceful
+            // browser shutdown can otherwise wait on active renderers.
+            try {
+              const pages = await ownedBrowser.pages();
+              await Promise.all(pages.map((page) => page.close()));
+            } finally {
+              await ownedBrowser.close();
+            }
           },
         });
       }
