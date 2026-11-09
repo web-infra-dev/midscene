@@ -331,7 +331,7 @@ cd packages/web-integration && pnpm run test:ai -- adb
 
 ### Run native default-scroll regression tests
 
-The Android Emulator and iOS Simulator workflows run a model-free scroll regression before their existing smoke and AI tests. Native lists and pagers measure content offsets while the built SDK executes the `Scroll` action. Each platform runs 32 cases covering both orientations, all four directions, stability at top/bottom boundaries, and scrolling from the middle to the top/bottom.
+The Android Emulator and iOS Simulator workflows run a model-free scroll regression before their existing smoke and AI tests. Native lists and pagers measure content offsets while the built SDK executes the `Scroll` action. Each platform runs 32 cases covering both orientations, all four directions, stability at top/bottom boundaries, and scrolling from the middle to the top/bottom. iOS also runs 36 bounded horizontal paging cases: oversized distances from 15%, 50%, and 85% of the screen width, in both directions and orientations, with three trials per combination. Each must advance exactly one native page.
 
 Build the target package first (`pnpm exec nx build @midscene/android` or `pnpm exec nx build @midscene/ios`). Then run from the repository root:
 

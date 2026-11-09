@@ -798,7 +798,16 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       (horizontal ? endX - x : endY - y) * delta > 0,
       'No room to scroll from this origin in the requested direction',
     );
-    await this.swipeCoordinates(x, y, endX, endY, duration);
+    const travel = Math.abs(endX - x);
+    // A clipped horizontal path can be less than half a page. Spending the
+    // original duration on it loses release velocity and makes native pagers
+    // snap back. Aim for 1 point/ms, with a 50ms floor, only when clipped.
+    // Keep untruncated gestures and vertical list scrolling at their old pace.
+    const gestureDuration =
+      horizontal && travel < Math.abs(delta)
+        ? Math.min(duration, Math.max(50, travel))
+        : duration;
+    await this.swipeCoordinates(x, y, endX, endY, gestureDuration);
   }
 
   async scrollUp(distance?: number, startPoint?: Point): Promise<void> {

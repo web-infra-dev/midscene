@@ -96,13 +96,13 @@ describe('IOSDevice', () => {
 
   describe('scroll gesture bounds', () => {
     it.each([
-      ['down', 319, 773, 319, 1],
-      ['up', 100, 100, 100, 811],
-      ['left', 100, 400, 374, 400],
-      ['right', 300, 400, 1, 400],
+      ['down', 319, 773, 319, 1, 500],
+      ['up', 100, 100, 100, 811, 500],
+      ['left', 100, 400, 374, 400, 274],
+      ['right', 300, 400, 1, 400, 299],
     ] as const)(
       'keeps an oversized %s scroll on screen without moving its touch origin',
-      async (direction, x, y, endX, endY) => {
+      async (direction, x, y, endX, endY, duration) => {
         await device.connect();
         const scroll = device
           .actionSpace()
@@ -111,9 +111,44 @@ describe('IOSDevice', () => {
           { direction, distance: 1000, locate: { center: [x, y] } },
           mockExecutorContext,
         );
-        expect(mockWdaClient.swipe).toHaveBeenCalledWith(x, y, endX, endY, 500);
+        expect(mockWdaClient.swipe).toHaveBeenCalledWith(
+          x,
+          y,
+          endX,
+          endY,
+          duration,
+        );
       },
     );
+  });
+
+  describe('clipped horizontal scroll timing', () => {
+    it.each([
+      ['scrollRight', 402, 201, 1, 200],
+      ['scrollLeft', 402, 201, 401, 200],
+      ['scrollRight', 874, 437, 1, 436],
+      ['scrollLeft', 874, 437, 873, 436],
+      ['scrollRight', 402, 40, 1, 50],
+      ['scrollLeft', 874, 100, 873, 500],
+    ] as const)(
+      '%s keeps a clipped flick bounded on a %i-point viewport',
+      async (method, width, startX, endX, duration) => {
+        mockWdaClient.getWindowSize.mockResolvedValue({ width, height: 900 });
+        await device[method](width * 4, { left: startX, top: 400 });
+        expect(mockWdaClient.swipe).toHaveBeenCalledWith(
+          startX,
+          400,
+          endX,
+          400,
+          duration,
+        );
+      },
+    );
+
+    it('preserves timing for an untruncated horizontal scroll', async () => {
+      await device.scrollRight(100, { left: 200, top: 400 });
+      expect(mockWdaClient.swipe).toHaveBeenCalledWith(200, 400, 100, 400, 500);
+    });
   });
 
   describe('scroll origin validation', () => {

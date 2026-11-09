@@ -265,7 +265,15 @@ try {
         orientation: orientation.toUpperCase(),
       });
     }
-    for (const [mode, directions, scrollType = 'singleAction'] of [
+    for (const [mode, directions, scrollType = 'singleAction', originRatio] of [
+      ...(platform === 'ios'
+        ? [0.5, 0.15, 0.85].map((ratio) => [
+            'horizontal',
+            ['right', 'left'],
+            'singleAction',
+            ratio,
+          ])
+        : []),
       ['vertical', ['down', 'up']],
       ['horizontal', ['right', 'left']],
       ['top', ['up']],
@@ -279,7 +287,8 @@ try {
           trial <= (mode === 'vertical' || mode === 'horizontal' ? 3 : 1);
           trial++
         ) {
-          const name = `${orientation}-${mode}-${direction}-${trial}`;
+          const located = originRatio !== undefined;
+          const name = `${orientation}-${mode}-${direction}${located ? `-bounded-${originRatio}` : ''}-${trial}`;
           const before = await reset(mode);
           const size = await device.size();
           assert.equal(
@@ -317,7 +326,21 @@ try {
           let after;
           try {
             await action.call(
-              { direction, scrollType },
+              {
+                direction,
+                scrollType,
+                ...(located
+                  ? {
+                      distance: size.width * 4,
+                      locate: {
+                        center: [
+                          Math.round(size.width * originRatio),
+                          Math.round(size.height / 2),
+                        ],
+                      },
+                    }
+                  : {}),
+              },
               { task: {}, skipDefaultWait: true },
             );
             after = await settled(before);
