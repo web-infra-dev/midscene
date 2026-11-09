@@ -1,8 +1,10 @@
+import { promises as fs } from 'node:fs';
 import { describe, expect, it, rs } from '@rstest/core';
 import { downloadGitHubReleaseAssetWithApiFallback } from '../../scripts/github-release-asset.mjs';
 
 const options = {
   assetName: 'tool.jar',
+  dispatcher: undefined,
   destinationPath: '/tmp/tool.jar',
   directUrl: 'https://github.com/example/tool/releases/download/v1/tool.jar',
   owner: 'example',
@@ -16,14 +18,14 @@ const assetUrl =
 
 describe('GitHub release API authentication', () => {
   it('authenticates both fallback requests without sending the token to the public download URL', async () => {
-    const writeFile = rs.fn();
-    const fetchImpl = rs.fn(async (url: string, init: RequestInit) => {
+    const writeFile = rs.fn<typeof fs.writeFile>();
+    const fetchImpl = rs.fn<typeof fetch>(async (url, init) => {
       if (url === options.directUrl) {
-        expect(init.headers).toBeUndefined();
+        expect(init?.headers).toBeUndefined();
         return new Response(null, { status: 504 });
       }
       if (
-        new Headers(init.headers).get('Authorization') !== 'Bearer test-token'
+        new Headers(init?.headers).get('Authorization') !== 'Bearer test-token'
       ) {
         return new Response(null, {
           status: 403,
@@ -36,7 +38,7 @@ describe('GitHub release API authentication', () => {
         });
       }
       if (url === assetUrl) {
-        expect(new Headers(init.headers).get('Accept')).toBe(
+        expect(new Headers(init?.headers).get('Accept')).toBe(
           'application/octet-stream',
         );
         return new Response('downloaded asset');
@@ -47,7 +49,7 @@ describe('GitHub release API authentication', () => {
       ...options,
       githubToken: 'test-token',
       fetchImpl,
-      fsApi: { writeFile },
+      fsApi: { ...fs, writeFile },
     });
     expect(fetchImpl).toHaveBeenCalledTimes(3);
     expect(writeFile).toHaveBeenCalledWith(
@@ -62,7 +64,7 @@ describe('GitHub release API authentication', () => {
       ...options,
       githubToken: '',
       fetchImpl,
-      fsApi: { writeFile: rs.fn() },
+      fsApi: { ...fs, writeFile: rs.fn<typeof fs.writeFile>() },
     });
     expect(fetchImpl).toHaveBeenCalledExactlyOnceWith(options.directUrl, {});
   });
@@ -83,7 +85,7 @@ describe('GitHub release API authentication', () => {
         ...options,
         githubToken: 'test-token',
         fetchImpl,
-        fsApi: { writeFile: rs.fn() },
+        fsApi: { ...fs, writeFile: rs.fn<typeof fs.writeFile>() },
       }),
     ).rejects.toThrow('Release asset API URL must use https://api.github.com');
     expect(fetchImpl).toHaveBeenCalledTimes(2);
