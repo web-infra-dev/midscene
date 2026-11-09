@@ -1,3 +1,4 @@
+import SdkDeviceLifecycle from '../../../theme/components/sdk-device-tests/zh/sdk-device-lifecycle.mdx';
 import SdkVitestInstall from '../common/sdk-vitest-install.mdx';
 import SdkVitestConfig from '../common/sdk-vitest-config.mdx';
 import SdkVitestWrite from '../common/sdk-vitest-write.mdx';
@@ -9,7 +10,7 @@ import { SdkPrerequisites, SdkPlatformProvider, SdkPlatformSelector } from '@the
 
 <SdkPlatformProvider lang="zh">
 
-编写 Android、iOS、HarmonyOS 和桌面端的 JavaScript / TypeScript 测试时，推荐使用 Vitest。Vitest 负责组织用例、执行生命周期钩子并汇总测试结果；Midscene Agent 负责连接设备、操作界面并执行断言。
+编写 Android、iOS、HarmonyOS 和桌面端的 JavaScript / TypeScript 测试时，推荐使用 [Rstest](./rstest) 或 [Vitest](./vitest)。本文介绍 Vitest 的接入方式。Vitest 负责组织用例、执行生命周期钩子并汇总测试结果；Midscene Agent 负责连接设备、操作界面并执行断言。
 
 ## 使用前准备
 
@@ -39,9 +40,7 @@ import { SdkPrerequisites, SdkPlatformProvider, SdkPlatformSelector } from '@the
 
 ## 生命周期与设备独占
 
-- **按用例隔离 Agent**：每个用例都应创建独立的 Agent。每个 Device 实例只能归属于一个 Agent，调用 `agent.destroy()` 时会一并清理对应的 Device，切勿在后续用例中复用已销毁的实例。
-- **显式管理应用状态**：销毁 Agent 不会重置应用数据或关闭目标应用。每个用例应自行准备好初始界面与测试数据，并在必要时清理状态，确保用例支持单独运行或失败重试。
-- **避免多进程争用设备**：Vitest 的串行配置仅约束当前测试进程，其他本地进程、CI 任务或人工操作仍可能争用同一台设备。如需并行运行测试，请为每个执行单元分配独立的设备或桌面会话，并在代码中显式指定连接目标。
+<SdkDeviceLifecycle />
 
 完整的示例工程可参考 [Android](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)、[iOS](https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo)、[HarmonyOS](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo) 和[桌面端](https://github.com/web-infra-dev/midscene-example/tree/main/computer/vitest-demo)的 Vitest 示例项目。
 

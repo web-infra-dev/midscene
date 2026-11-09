@@ -1,19 +1,21 @@
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import {
   githubFailureAnnotation,
   writeGitHubSummary,
 } from '../src/cli/github-reporter';
 import type { TestProjectRunResult } from '../src/cli/types';
 
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  rs.unstubAllEnvs();
+});
 
 describe('GitHub reporter', () => {
   it('escapes workflow commands and locates YAML files relative to the workspace', () => {
-    vi.stubEnv('GITHUB_ACTIONS', 'true');
-    vi.stubEnv('GITHUB_WORKSPACE', '/repo');
+    rs.stubEnv('GITHUB_ACTIONS', 'true');
+    rs.stubEnv('GITHUB_WORKSPACE', '/repo');
     expect(
       githubFailureAnnotation(
         'checkout, web\nstep 3',
@@ -23,15 +25,15 @@ describe('GitHub reporter', () => {
     ).toBe(
       '::error file=tests/case.yaml,title=checkout%2C web%0Astep 3::failed%0A::warning::injected%25',
     );
-    vi.stubEnv('GITHUB_ACTIONS', 'false');
+    rs.stubEnv('GITHUB_ACTIONS', 'false');
     expect(githubFailureAnnotation('case', 'failed')).toBeUndefined();
   });
 
   it('appends summaries without counting recovered attempts as failed Cases', () => {
     const dir = mkdtempSync(join(tmpdir(), 'midscene-github-summary-'));
     try {
-      vi.stubEnv('GITHUB_ACTIONS', 'true');
-      vi.stubEnv('GITHUB_STEP_SUMMARY', join(dir, 'summary.md'));
+      rs.stubEnv('GITHUB_ACTIONS', 'true');
+      rs.stubEnv('GITHUB_STEP_SUMMARY', join(dir, 'summary.md'));
       const result: TestProjectRunResult = {
         schemaVersion: 3,
         runId: 'github-summary',
@@ -111,8 +113,8 @@ describe('GitHub reporter', () => {
   it('shows paths with markdown-sensitive characters literally in code spans', () => {
     const dir = mkdtempSync(join(tmpdir(), 'midscene-github-summary-'));
     try {
-      vi.stubEnv('GITHUB_ACTIONS', 'true');
-      vi.stubEnv('GITHUB_STEP_SUMMARY', join(dir, 'summary.md'));
+      rs.stubEnv('GITHUB_ACTIONS', 'true');
+      rs.stubEnv('GITHUB_STEP_SUMMARY', join(dir, 'summary.md'));
       writeGitHubSummary({
         schemaVersion: 3,
         runId: 'github-summary-paths',

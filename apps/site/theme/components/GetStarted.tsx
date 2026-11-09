@@ -78,7 +78,7 @@ const copy = {
       },
     } satisfies Record<ModelAccess, Option>,
     sdkWeb: 'Add visual actions and assertions to Playwright Test.',
-    sdkDevice: 'Add visual actions and assertions to Vitest.',
+    sdkDevice: 'Add visual actions and assertions with Rstest or Vitest.',
     choose: 'Choose one',
     pending: 'Choose an option above to see your setup steps',
     pendingLeft: (left: number) =>
@@ -134,7 +134,7 @@ const copy = {
       },
     } satisfies Record<ModelAccess, Option>,
     sdkWeb: '在 Playwright Test 中加入视觉操作与断言。',
-    sdkDevice: '在 Vitest 中加入视觉操作与断言。',
+    sdkDevice: '通过 Rstest 或 Vitest 加入视觉操作与断言。',
     choose: '请选择',
     pending: '请先完成上方的选择，即可查看配置步骤',
     pendingLeft: (left: number) =>

@@ -177,7 +177,7 @@ describe('get started plan', () => {
     ).toBe('Get started: Web · Playwright Test · ChatGPT subscription');
     expect(
       pathTitle('zh', { platform: 'desktop', scene: 'sdk', model: 'api-key' }),
-    ).toBe('开始使用：桌面端 · Vitest · 模型 API Key');
+    ).toBe('开始使用：桌面端 · Rstest / Vitest · 模型 API Key');
     expect(
       pathDescription('zh', {
         platform: 'desktop',
@@ -185,7 +185,7 @@ describe('get started plan', () => {
         model: 'api-key',
       }),
     ).toBe(
-      '在桌面端上通过 Vitest 和模型 API Key 配置 Midscene 的完整步骤，最后完成一次可查看结果的运行。',
+      '在桌面端上通过 Rstest / Vitest 和模型 API Key 配置 Midscene 的完整步骤，最后完成一次可查看结果的运行。',
     );
   });
 
@@ -511,7 +511,9 @@ describe('get started model question', () => {
     expect(
       html.indexOf('Which platform do you want to automate?'),
     ).toBeLessThan(html.indexOf('What do you want to do first?'));
-    expect(html).toContain('Add visual actions and assertions to Vitest.');
+    expect(html).toContain(
+      'Add visual actions and assertions with Rstest or Vitest.',
+    );
     const web = renderToStaticMarkup(
       createElement(GetStarted, {
         lang: 'zh',

@@ -9,7 +9,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { resolveExampleTarget } from '../src/cli/example-sync-target';
 
 const roots: string[] = [];
@@ -37,7 +37,7 @@ const checkout = (
 };
 
 afterEach(() => {
-  vi.unstubAllEnvs();
+  rs.unstubAllEnvs();
   for (const root of roots.splice(0))
     rmSync(root, { recursive: true, force: true });
 });
@@ -48,7 +48,7 @@ describe('example sync target', () => {
     const source = join(root, 'midscene');
     mkdirSync(join(source, 'packages/test'), { recursive: true });
     const target = checkout(join(root, 'midscene-example'));
-    vi.stubEnv('INIT_CWD', source);
+    rs.stubEnv('INIT_CWD', source);
     expect(resolveExampleTarget('../midscene-example')).toBe(target);
     expect(resolveExampleTarget(target, source)).toBe(target);
     expect(readdirSync(target)).toEqual(['.git']);

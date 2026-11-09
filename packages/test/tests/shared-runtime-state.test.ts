@@ -4,7 +4,7 @@ import type * as RunnerRuntime from '@midscene/core/internal/test-runner';
 import * as esmYaml from '@midscene/core/internal/yaml-runtime';
 import type * as YamlRuntime from '@midscene/core/internal/yaml-runtime';
 import type * as CoreYaml from '@midscene/core/yaml';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 const require = createRequire(import.meta.url);
 const cjsRunner =
@@ -77,11 +77,11 @@ describe('CJS frontend with an ESM platform host', () => {
     expect(() => cjsRunner.assertResourceAvailable(agent)).toThrow(
       'Cannot reuse',
     );
-    const cleanup = vi.fn(async () => {});
+    const cleanup = rs.fn(async () => {});
     const failure = await cjsRunner
       .cleanupScopeResources(parent.signal, cleanup, {
         graceMs: 5,
-        onDeferredError: vi.fn(),
+        onDeferredError: rs.fn(),
       })
       .catch((error) => error);
     expect(failure.code).toBe('RESOURCE_CLEANUP_DEFERRED');

@@ -448,6 +448,8 @@ pnpm exec playwright install chromium
 
 <GetStartedSdkPlatform>
 
+We recommend [Rstest](../sdk/rstest) or [Vitest](../sdk/vitest) for device tests. The steps below use Vitest; the Rstest guide covers the equivalent setup with the same platform Agents.
+
 ### Install dependencies
 
 <SdkVitestInstall />
@@ -529,7 +531,7 @@ When the test passes and the report shows each step with screenshots, your model
 
 <GetStartedWhen scene="playground" platform={['android', 'ios', 'harmonyos', 'desktop']}>
 
-- **Add to Vitest**: <GetStartedSwitch scene="sdk">Call Midscene from your Vitest tests</GetStartedSwitch> with the same platform and model.
+- **Add to Rstest or Vitest**: <GetStartedSwitch scene="sdk">Call Midscene from your Vitest tests</GetStartedSwitch> with the same platform and model.
 
 </GetStartedWhen>
 

@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 import { RESOURCE_CLEANUP_GRACE_MS } from '@midscene/core/internal/test-runner';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import {
   type CollectedCase,
   NodeRegistry,
@@ -40,7 +40,7 @@ const collected = (
 });
 
 afterEach(() => {
-  vi.useRealTimers();
+  rs.useRealTimers();
 });
 
 describe('runCollectedCase', () => {
@@ -165,7 +165,7 @@ describe('runCollectedCase', () => {
   });
 
   it('applies continue-on-error only within each phase', async () => {
-    const next = vi.fn();
+    const next = rs.fn();
     const registry = new NodeRegistry([
       defineNode({
         name: 'fails',
@@ -187,8 +187,8 @@ describe('runCollectedCase', () => {
   });
 
   it('resolves every phase before running side effects and persists the result last', async () => {
-    const execute = vi.fn();
-    const onResult = vi.fn();
+    const execute = rs.fn();
+    const onResult = rs.fn();
     const registry = new NodeRegistry([defineNode({ name: 'known', execute })]);
 
     await expect(
@@ -248,10 +248,10 @@ describe('runCollectedCase', () => {
   });
 
   it('runs afterEach on cancellation but defers teardown until the running node settles', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const calls: string[] = [];
     const controller = new AbortController();
-    const removeAbortListener = vi.spyOn(
+    const removeAbortListener = rs.spyOn(
       controller.signal,
       'removeEventListener',
     );
@@ -290,10 +290,10 @@ describe('runCollectedCase', () => {
 
     try {
       controller.abort(cancellationReason);
-      await vi.advanceTimersByTimeAsync(0);
+      await rs.advanceTimersByTimeAsync(0);
       expect(calls).toEqual(['step', 'afterEach']);
 
-      await vi.advanceTimersByTimeAsync(RESOURCE_CLEANUP_GRACE_MS);
+      await rs.advanceTimersByTimeAsync(RESOURCE_CLEANUP_GRACE_MS);
       const result = await execution;
       expect(result.steps[0].error).toMatchObject({
         code: 'NODE_EXECUTION_ERROR',
@@ -302,7 +302,7 @@ describe('runCollectedCase', () => {
       expect(result.cleanup?.status).toBe('pending');
       expect(result.teardownErrors).toBeUndefined();
       expect(calls).toEqual(['step', 'afterEach']);
-      expect(vi.getTimerCount()).toBe(0);
+      expect(rs.getTimerCount()).toBe(0);
       expect(removeAbortListener).toHaveBeenCalledWith(
         'abort',
         expect.any(Function),
@@ -310,12 +310,12 @@ describe('runCollectedCase', () => {
 
       const snapshot = JSON.stringify(result);
       nodeExecution.resolve();
-      await vi.advanceTimersByTimeAsync(0);
+      await rs.advanceTimersByTimeAsync(0);
       expect(calls).toEqual(['step', 'afterEach', 'teardown']);
       expect(JSON.stringify(result)).toBe(snapshot);
     } finally {
       nodeExecution.resolve();
-      await vi.advanceTimersByTimeAsync(0);
+      await rs.advanceTimersByTimeAsync(0);
       await execution;
     }
   });
@@ -347,7 +347,7 @@ describe('runCollectedCase', () => {
   });
 
   it('retains the result of a node that settles cooperatively on parent cancellation', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const controller = new AbortController();
     const started = createDeferred();
     const node = defineNode({
@@ -374,18 +374,18 @@ describe('runCollectedCase', () => {
     await started.promise;
 
     controller.abort(new Error('stop requested'));
-    await vi.advanceTimersByTimeAsync(0);
+    await rs.advanceTimersByTimeAsync(0);
     const result = await execution;
 
     expect(result.steps[0]).toMatchObject({
       status: 'success',
       output: { summary: 'stopped cleanly' },
     });
-    expect(vi.getTimerCount()).toBe(0);
+    expect(rs.getTimerCount()).toBe(0);
   });
 
   it('keeps StepTimeoutError when timeout aborts a cooperative node first', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     let signal: AbortSignal | undefined;
     const node = defineNode({
       name: 'timed-cooperative',
@@ -406,16 +406,16 @@ describe('runCollectedCase', () => {
       { resolveNode: registry.require.bind(registry) },
     );
 
-    await vi.advanceTimersByTimeAsync(50);
+    await rs.advanceTimersByTimeAsync(50);
     const result = await execution;
 
     expect(signal?.reason).toBeInstanceOf(StepTimeoutError);
     expect(result.steps[0].error).toBeInstanceOf(StepTimeoutError);
-    expect(vi.getTimerCount()).toBe(0);
+    expect(rs.getTimerCount()).toBe(0);
   });
 
   it('preserves parent cancellation when timeout expires in the same timer turn', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const controller = new AbortController();
     const cancellationReason = new Error('cancelled at timeout boundary');
     const node = defineNode({
@@ -435,7 +435,7 @@ describe('runCollectedCase', () => {
       },
     );
     await Promise.resolve();
-    await vi.advanceTimersByTimeAsync(50);
+    await rs.advanceTimersByTimeAsync(50);
     const result = await execution;
 
     expect(result.steps[0].error).toMatchObject({
@@ -483,7 +483,7 @@ describe('runCollectedCase', () => {
   it('does not start a node after parent cancellation interrupts input parsing', async () => {
     const controller = new AbortController();
     const cancellationReason = new Error('cancelled during input parsing');
-    const execute = vi.fn();
+    const execute = rs.fn();
     const parsingStarted = createDeferred();
     const validationGate = createDeferred();
     const parsingFinished = createDeferred();
@@ -495,7 +495,7 @@ describe('runCollectedCase', () => {
       }),
     });
     const safeParseAsync = inputSchema.safeParseAsync.bind(inputSchema);
-    vi.spyOn(inputSchema, 'safeParseAsync').mockImplementation(
+    rs.spyOn(inputSchema, 'safeParseAsync').mockImplementation(
       async (input) => {
         const parsed = await safeParseAsync(input);
         parsingFinished.resolve();

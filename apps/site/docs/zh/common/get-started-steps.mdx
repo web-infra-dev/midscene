@@ -448,6 +448,8 @@ pnpm exec playwright install chromium
 
 <GetStartedSdkPlatform>
 
+设备测试推荐使用 [Rstest](../sdk/rstest) 或 [Vitest](../sdk/vitest)。以下步骤以 Vitest 为例；Rstest 接入文档介绍了使用相同平台 Agent 的对应配置。
+
 ### 安装依赖
 
 <SdkVitestInstall />
@@ -529,7 +531,7 @@ pnpm exec playwright install chromium
 
 <GetStartedWhen scene="playground" platform={['android', 'ios', 'harmonyos', 'desktop']}>
 
-- **接入 Vitest**：使用相同的平台和模型，<GetStartedSwitch scene="sdk">在 Vitest 测试中调用 Midscene</GetStartedSwitch>。
+- **接入 Rstest 或 Vitest**：使用相同的平台和模型，<GetStartedSwitch scene="sdk">在 Vitest 测试中调用 Midscene</GetStartedSwitch>。
 
 </GetStartedWhen>
 

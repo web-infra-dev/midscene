@@ -50,7 +50,7 @@ await agent.aiWaitFor('The filtered search results are visible');
 await agent.aiAssert('There are products in the search results, and each costs less than $100');
 ```
 
-For mobile and desktop apps, use the platform Agent with [Vitest](https://midscenejs.com/sdk/vitest). Open the generated HTML report to inspect screenshots, element locations, the AI decision process, and action and assertion results.
+For mobile and desktop apps, use the platform Agent with [Rstest](https://midscenejs.com/sdk/rstest) or [Vitest](https://midscenejs.com/sdk/vitest). Open the generated HTML report to inspect screenshots, element locations, the AI decision process, and action and assertion results.
 
 ## 👁️ See, act, and verify like a human
 
@@ -124,7 +124,7 @@ Reports, Test results, caches and logs are saved in `midscene_run/`. See [artifa
 ## 🚀 Get started
 
 - **Write YAML test cases** — [create a Midscene Test project](https://midscenejs.com/midscene-test/use).
-- **Add visual capabilities to existing tests** — [Playwright](https://midscenejs.com/integrate-with-playwright) for web apps, [Vitest](https://midscenejs.com/sdk/vitest) for mobile and desktop apps.
+- **Add visual capabilities to existing tests** — [Playwright](https://midscenejs.com/integrate-with-playwright) for web apps, [Rstest](https://midscenejs.com/sdk/rstest) or [Vitest](https://midscenejs.com/sdk/vitest) for mobile and desktop apps.
 - **Try it before writing tests** — the [Chrome extension](https://midscenejs.com/get-started?scene=playground&platform=web) or a [Playground for mobile or desktop](https://midscenejs.com/platforms).
 - **Run standalone automation scripts** — the [JavaScript SDK](https://midscenejs.com/sdk/standalone).
 - **Let your AI agent operate the UI** — [Midscene Skills](https://midscenejs.com/skills).

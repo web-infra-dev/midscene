@@ -6,7 +6,7 @@ import {
   recordOperation,
   setResourceOperationIdentity,
 } from '@midscene/core/internal/test-runner';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { createOperationJournal } from '../src/cli/operation-journal';
 
 describe('append-only operation journal', () => {

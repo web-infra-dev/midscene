@@ -5,7 +5,7 @@ import { stripVTControlCharacters } from 'node:util';
 import { WorkflowExecutionFailure } from '@midscene/core/internal/test-runner';
 import { getDebug, runWithConsoleLogHandler } from '@midscene/shared/logger';
 import type { ConsoleLogEntry } from '@midscene/shared/logger';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import type { TestProjectRunOptions } from '../src/cli/execution-plan';
 import type { TestReporterEvent } from '../src/cli/reporter-events';
 import { TerminalReporter } from '../src/cli/terminal-reporter';
@@ -160,7 +160,7 @@ afterEach(() => {
     rmSync(root, { recursive: true, force: true });
 });
 const waitFor = (predicate: () => boolean) =>
-  vi.waitFor(() => expect(predicate()).toBe(true), {
+  rs.waitFor(() => expect(predicate()).toBe(true), {
     timeout: 3000,
     interval: 5,
   });
@@ -207,9 +207,9 @@ describe('native file concurrency', () => {
       const slow = gate();
       const events: TestReporterEvent[] = [];
       const io = {
-        log: vi.fn(),
-        error: vi.fn(),
-        write: vi.fn(),
+        log: rs.fn(),
+        error: rs.fn(),
+        write: rs.fn(),
         isTTY: true,
         columns: 160,
         rows: 40,
@@ -329,9 +329,9 @@ describe('native file concurrency', () => {
       const entries: ConsoleLogEntry[] = [];
       const progress: string[] = [];
       const io = {
-        log: vi.fn(),
-        error: vi.fn(),
-        write: vi.fn(),
+        log: rs.fn(),
+        error: rs.fn(),
+        write: rs.fn(),
         isTTY,
         columns: 160,
         rows: 40,

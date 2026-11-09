@@ -1,0 +1,99 @@
+import SdkDeviceTests from '../../../theme/components/sdk-device-tests/zh/sdk-device-tests.mdx';
+import SdkDeviceLifecycle from '../../../theme/components/sdk-device-tests/zh/sdk-device-lifecycle.mdx';
+import SdkCommonMethods from '../common/sdk-common-methods.mdx';
+import { SdkPrerequisites, SdkPlatformProvider, SdkPlatformSelector, SdkPlatformContent } from '@theme';
+
+# 接入 Rstest
+
+<SdkPlatformProvider lang="zh">
+
+编写 Android、iOS、HarmonyOS 和桌面端的 JavaScript / TypeScript 测试时，推荐使用 [Rstest](./rstest) 或 [Vitest](./vitest)。本文介绍 Rstest 的接入方式。Rstest 负责组织用例、执行生命周期钩子并汇总测试结果；Midscene Agent 负责连接设备、操作界面并执行断言。
+
+## 使用前准备
+
+<SdkPrerequisites lang="zh" mode="rstest" />
+
+<SdkPlatformSelector lang="zh" />
+
+## 1. 安装依赖
+
+<SdkPlatformContent platform="android">
+
+```bash
+pnpm add -D @rstest/core dotenv @midscene/android
+```
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="ios">
+
+```bash
+pnpm add -D @rstest/core dotenv @midscene/ios
+```
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="harmonyos">
+
+```bash
+pnpm add -D @rstest/core dotenv @midscene/harmony
+```
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="desktop">
+
+```bash
+pnpm add -D @rstest/core dotenv @midscene/computer
+```
+
+</SdkPlatformContent>
+
+## 2. 配置测试
+
+新建 `rstest.config.ts`。如果项目已在使用 Rstest，可以将设备测试配置单独保存为 `rstest.device.config.ts`，运行时通过 `--config rstest.device.config.ts` 指定，以免影响现有的单元测试配置。
+
+```typescript title="rstest.config.ts"
+import { defineConfig } from '@rstest/core';
+
+export default defineConfig({
+  include: ['e2e/**/*.test.ts'],
+  testEnvironment: 'node',
+  testTimeout: 90_000,
+  hookTimeout: 90_000,
+  pool: { maxWorkers: 1 },
+  maxConcurrency: 1,
+  output: {
+    externals: {
+      '@silvia-odwyer/photon': 'commonjs @silvia-odwyer/photon',
+    },
+  },
+});
+```
+
+模型调用和设备连接可能耗时较长，请按实际用例调整 `testTimeout` 和 `hookTimeout`。共享一台设备时，使用单个 worker（`pool.maxWorkers: 1`）和 `maxConcurrency: 1`，并避免调用 `test.concurrent` 或 `describe.concurrent`。配置中的 external 声明让 Photon 原生模块不参与测试打包。详见 [Rstest 配置参考](https://rstest.rs/config/)。
+
+## 3. 编写测试
+
+<SdkDeviceTests runner="rstest" />
+
+## 4. 运行测试与查看报告
+
+```bash
+pnpm exec rstest run e2e/settings.test.ts
+```
+
+运行后，Rstest 会在终端汇总用例的通过或失败状态；Midscene SDK 则默认在 `midscene_run/report/` 下生成各 Agent 的执行报告，并在终端打印报告路径。在浏览器中打开生成的 HTML 报告，即可查看各步骤的截图、AI 执行过程和断言结果。
+
+与 Playwright Test 不同，Rstest 接入直接使用 SDK 内置的报告生成机制，无需额外部署 reporter。Rstest 的测试结果与 Midscene 的 Agent 报告相互独立；如需合并或进一步处理报告文件，请参阅[处理报告文件](../consume-report-file)。
+
+## 常用方法
+
+<SdkCommonMethods />
+
+## 生命周期与设备独占
+
+<SdkDeviceLifecycle />
+
+
+</SdkPlatformProvider>

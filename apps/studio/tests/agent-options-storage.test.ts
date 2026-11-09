@@ -1,5 +1,5 @@
-// @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest';
+// @rstest-environment jsdom
+import { afterEach, describe, expect, it } from '@rstest/core';
 import {
   loadAgentOptions,
   saveAgentOptions,

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import {
   CaseRunner,
   NodeExecutionError,
@@ -10,7 +10,7 @@ import {
 } from '../src';
 
 afterEach(() => {
-  vi.useRealTimers();
+  rs.useRealTimers();
 });
 
 describe('CaseRunner', () => {
@@ -62,7 +62,7 @@ describe('CaseRunner', () => {
   });
 
   it('records a failed step and continues when configured', async () => {
-    const next = vi.fn();
+    const next = rs.fn();
     const runner = new CaseRunner({
       nodes: [
         defineNode({
@@ -96,7 +96,7 @@ describe('CaseRunner', () => {
   });
 
   it('throws normalized errors and stops by default', async () => {
-    const next = vi.fn();
+    const next = rs.fn();
     const runner = new CaseRunner({
       nodes: [
         defineNode({
@@ -118,7 +118,7 @@ describe('CaseRunner', () => {
   });
 
   it('resolves every node before starting case side effects', async () => {
-    const first = vi.fn();
+    const first = rs.fn();
     const runner = new CaseRunner({
       nodes: [defineNode({ name: 'first.node', execute: first })],
     });
@@ -147,7 +147,7 @@ describe('CaseRunner', () => {
   });
 
   it('parses schema input before execution and passes the inferred output', async () => {
-    const execute = vi.fn();
+    const execute = rs.fn();
     const inputSchema = z.strictObject({
       count: z.coerce.number().int().default(1),
       label: z.string().transform((value) => value.toUpperCase()),
@@ -169,7 +169,7 @@ describe('CaseRunner', () => {
   });
 
   it('normalizes Zod issues without exposing the complete input', async () => {
-    const execute = vi.fn();
+    const execute = rs.fn();
     const node = defineNode({
       name: 'validated.node',
       inputSchema: z.strictObject({ count: z.number().positive() }),
@@ -205,7 +205,7 @@ describe('CaseRunner', () => {
   });
 
   it('supports asynchronous schema refinements', async () => {
-    const execute = vi.fn();
+    const execute = rs.fn();
     const node = defineNode({
       name: 'async-schema.node',
       inputSchema: z.strictObject({
@@ -222,7 +222,7 @@ describe('CaseRunner', () => {
   });
 
   it('aborts and fails a timed out node even if it never settles', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     let signal: AbortSignal | undefined;
     const node = defineNode({
       name: 'slow.node',
@@ -242,7 +242,7 @@ describe('CaseRunner', () => {
       ],
     });
 
-    await vi.advanceTimersByTimeAsync(50);
+    await rs.advanceTimersByTimeAsync(50);
     const result = await execution;
 
     expect(signal?.aborted).toBe(true);

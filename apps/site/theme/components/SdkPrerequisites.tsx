@@ -4,7 +4,7 @@ const nodeVersion = '^20.19.0 || ^22.12.0 || >=24.0.0';
 
 type SdkPrerequisitesProps = {
   lang: 'en' | 'zh';
-  mode: 'playwright' | 'vitest' | 'standalone';
+  mode: 'playwright' | 'vitest' | 'rstest' | 'standalone';
 };
 
 // Keep section headings in MDX so Rspress includes them in the table of contents.
@@ -53,7 +53,7 @@ export function SdkPrerequisites({ lang, mode }: SdkPrerequisitesProps) {
                 ': Install Chromium and make sure the browser can access the target page.'
               }
             </>
-          ) : mode === 'vitest' ? (
+          ) : mode === 'vitest' || mode === 'rstest' ? (
             <>
               <strong>Platform environment</strong>
               {': Complete the environment setup for '}
@@ -146,7 +146,7 @@ export function SdkPrerequisites({ lang, mode }: SdkPrerequisitesProps) {
               <strong>平台环境</strong>
               {'：已安装 Chromium，且浏览器能够访问待测页面。'}
             </>
-          ) : mode === 'vitest' ? (
+          ) : mode === 'vitest' || mode === 'rstest' ? (
             <>
               <strong>平台环境</strong>
               {'：已完成目标平台的环境准备：'}

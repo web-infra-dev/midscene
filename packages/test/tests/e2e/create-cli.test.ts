@@ -17,8 +17,8 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { executablePath } from 'puppeteer';
-import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   type CreateServices,
   runCreateCommand,
@@ -52,17 +52,17 @@ const temp = () => {
   temporaryDirectories.push(path);
   return path;
 };
-const io = () => ({ log: vi.fn(), error: vi.fn() });
+const io = () => ({ log: rs.fn(), error: rs.fn() });
 const services = (cwd: string): CreateServices => ({
   cwd,
   interactive: false,
-  confirmInstall: vi.fn(async () => true),
+  confirmInstall: rs.fn(async () => true),
   userAgent: 'pnpm/9.15.0 npm/? node/v22.19.0',
-  selectPackageManager: vi.fn(async (defaultValue) => defaultValue),
+  selectPackageManager: rs.fn(async (defaultValue) => defaultValue),
   promptDirectory: async () => {
     throw new Error('Unexpected prompt');
   },
-  selectPlatform: vi.fn(async () => {
+  selectPlatform: rs.fn(async () => {
     throw new Error('Unexpected platform prompt');
   }),
   runPackageManager: async () => {
@@ -844,7 +844,7 @@ describe('generated project integration', () => {
         format === 'module'
           ? `await assert.rejects(import('@midscene/web/playwright'), { message: new RegExp("Cannot find package '@playwright/test'") });`
           : `assert.throws(() => require('@midscene/web/playwright'), { message: new RegExp("Cannot find module '@playwright/test'") });`;
-      // pnpm's Vitest launcher adds workspace packages to NODE_PATH. Clear it
+      // The test launcher can add workspace packages to NODE_PATH. Clear it
       // in these subprocesses so CommonJS cannot borrow optional peers.
       await execFileAsync(
         process.execPath,

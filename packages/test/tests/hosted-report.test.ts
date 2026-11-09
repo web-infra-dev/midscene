@@ -19,7 +19,7 @@ import {
   readReportRunnerDump,
 } from '@midscene/core/report';
 import { setMidsceneRunDir } from '@midscene/shared/common';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from '@rstest/core';
 import { runTestProject } from '../src/cli';
 import { createMidsceneNodes } from '../src/midscene';
 

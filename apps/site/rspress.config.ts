@@ -320,6 +320,10 @@ export default defineConfig(async () => {
             link: '/integrate-with-playwright',
           },
           {
+            text: 'Integrate with Rstest',
+            link: '/sdk/rstest',
+          },
+          {
             text: 'Integrate with Vitest',
             link: '/sdk/vitest',
           },
@@ -589,6 +593,10 @@ export default defineConfig(async () => {
           {
             text: '接入 Playwright Test',
             link: '/zh/integrate-with-playwright',
+          },
+          {
+            text: '接入 Rstest',
+            link: '/zh/sdk/rstest',
           },
           {
             text: '接入 Vitest',

@@ -305,7 +305,7 @@ export function sceneLabel(
   { platform, scene }: Pick<CompleteSelection, 'platform' | 'scene'>,
 ) {
   if (scene !== 'sdk') return pathLabels[lang].scenes[scene];
-  return platform === 'web' ? 'Playwright Test' : 'Vitest';
+  return platform === 'web' ? 'Playwright Test' : 'Rstest / Vitest';
 }
 
 export function pathTitle(lang: Lang, path: CompleteSelection) {

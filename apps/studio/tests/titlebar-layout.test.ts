@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import {
   MACOS_HIDDEN_INSET_TRAFFIC_LIGHT_OFFSET,
   MACOS_TRAFFIC_LIGHT_POSITION,

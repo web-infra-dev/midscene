@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @rstest-environment jsdom */
 import { afterEach, beforeAll, describe, expect, it, rs } from '@rstest/core';
 import React, { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';

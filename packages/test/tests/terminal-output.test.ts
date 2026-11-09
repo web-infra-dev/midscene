@@ -1,5 +1,5 @@
 import { PassThrough } from 'node:stream';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { captureTerminalOutput } from '../src/cli/terminal-output';
 
 describe('CLI terminal stream capture', () => {
@@ -12,7 +12,7 @@ describe('CLI terminal stream capture', () => {
     const observed: string[] = [];
     stdout.on('data', (chunk) => logs.push(chunk.toString()));
     stderr.on('data', (chunk) => errors.push(chunk.toString()));
-    const done = vi.fn();
+    const done = rs.fn();
     const restore = captureTerminalOutput(
       (message, write) => {
         observed.push(message);

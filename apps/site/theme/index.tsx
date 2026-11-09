@@ -42,6 +42,7 @@ export {
 
 export { SdkPrerequisites } from './components/SdkPrerequisites';
 
+export { SdkDeviceTestExample } from './components/SdkDeviceTestExample';
 export {
   GetStartedHtmlOnly,
   GetStartedLlmPicker,

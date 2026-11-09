@@ -11,7 +11,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { confirm, input, select } from '@inquirer/prompts';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import {
   type CreateServices,
   parseCreateArgs,
@@ -20,10 +20,10 @@ import {
 import { renderNodeSpec } from '../src/cli/node-spec';
 import { parseTestCliArgs, runTestCli } from '../src/cli/test-command';
 
-vi.mock('@inquirer/prompts', () => ({
-  input: vi.fn(),
-  select: vi.fn(),
-  confirm: vi.fn(),
+rs.mock('@inquirer/prompts', () => ({
+  input: rs.fn(),
+  select: rs.fn(),
+  confirm: rs.fn(),
 }));
 
 const temporaryDirectories: string[] = [];
@@ -32,21 +32,21 @@ const temp = () => {
   temporaryDirectories.push(path);
   return path;
 };
-const io = () => ({ log: vi.fn(), error: vi.fn() });
+const io = () => ({ log: rs.fn(), error: rs.fn() });
 const spec = renderNodeSpec([]).markdown;
 const services = (cwd: string): CreateServices => ({
   cwd,
   interactive: false,
-  confirmInstall: vi.fn(async () => true),
+  confirmInstall: rs.fn(async () => true),
   userAgent: 'pnpm/9.15.0 npm/? node/v22.19.0',
-  selectPackageManager: vi.fn(async (defaultValue) => defaultValue),
-  promptDirectory: vi.fn(async () => {
+  selectPackageManager: rs.fn(async (defaultValue) => defaultValue),
+  promptDirectory: rs.fn(async () => {
     throw new Error('Unexpected prompt');
   }),
-  selectPlatform: vi.fn(async () => {
+  selectPlatform: rs.fn(async () => {
     throw new Error('Unexpected platform prompt');
   }),
-  runPackageManager: vi.fn(async (_manager, args, root) => {
+  runPackageManager: rs.fn(async (_manager, args, root) => {
     if (args[0] !== 'install') {
       const platform = readFileSync(
         join(root, 'midscene.config.ts'),
@@ -59,7 +59,7 @@ const services = (cwd: string): CreateServices => ({
 });
 
 afterEach(() => {
-  vi.resetAllMocks();
+  rs.resetAllMocks();
   for (const directory of temporaryDirectories.splice(0)) {
     rmSync(directory, { recursive: true, force: true });
   }
@@ -205,7 +205,7 @@ describe('create installation confirmation and postinstall', () => {
       const cwd = temp();
       const runtime = services(cwd);
       runtime.interactive = true;
-      runtime.confirmInstall = vi.fn(async () => {
+      runtime.confirmInstall = rs.fn(async () => {
         expect(existsSync(join(cwd, 'midscene.config.ts'))).toBe(true);
         return false;
       });
@@ -296,7 +296,7 @@ describe('create installation confirmation and postinstall', () => {
       runtime.interactive = true;
       const error = new Error('Cancelled');
       error.name = name;
-      runtime.confirmInstall = vi.fn().mockRejectedValue(error);
+      runtime.confirmInstall = rs.fn().mockRejectedValue(error);
       await expect(
         runCreateCommand(['.', '--platform', 'web'], io(), runtime),
       ).rejects.toThrow('Project files are preserved');
@@ -309,7 +309,7 @@ describe('create installation confirmation and postinstall', () => {
     const cwd = temp();
     const runtime = services(cwd);
     runtime.interactive = true;
-    runtime.runPackageManager = vi.fn(async () => {
+    runtime.runPackageManager = rs.fn(async () => {
       writeFileSync(join(cwd, 'midscene-node-spec.web.md'), spec);
       return '';
     });
@@ -339,7 +339,7 @@ describe('create installation confirmation and postinstall', () => {
   it('rejects invalid output left by postinstall', async () => {
     const cwd = temp();
     const runtime = services(cwd);
-    runtime.runPackageManager = vi.fn(async () => {
+    runtime.runPackageManager = rs.fn(async () => {
       writeFileSync(join(cwd, 'midscene-node-spec.web.md'), 'invalid output');
       return '';
     });
@@ -356,9 +356,9 @@ describe('create installation confirmation and postinstall', () => {
 describe('create project', () => {
   it('uses Inquirer input and selection prompts for missing choices', async () => {
     const cwd = temp();
-    vi.mocked(input).mockResolvedValue('library-tests');
-    vi.mocked(confirm).mockResolvedValue(true);
-    vi.mocked(select)
+    rs.mocked(input).mockResolvedValue('library-tests');
+    rs.mocked(confirm).mockResolvedValue(true);
+    rs.mocked(select)
       .mockResolvedValueOnce('ios')
       .mockResolvedValueOnce('pnpm');
     await runCreateCommand([], io(), {
@@ -404,8 +404,8 @@ describe('create project', () => {
       const cwd = temp();
       const error = new Error('Prompt cancelled');
       error.name = name;
-      vi.mocked(select).mockRejectedValue(error);
-      const runPackageManager = vi.fn(async () => spec);
+      rs.mocked(select).mockRejectedValue(error);
+      const runPackageManager = rs.fn(async () => spec);
       await expect(
         runCreateCommand(['.'], io(), {
           cwd,
@@ -477,8 +477,8 @@ describe('create project', () => {
     const cwd = temp();
     const runtime = services(cwd);
     runtime.interactive = true;
-    runtime.promptDirectory = vi.fn().mockResolvedValue('interactive-tests');
-    runtime.selectPlatform = vi.fn().mockResolvedValue('android');
+    runtime.promptDirectory = rs.fn().mockResolvedValue('interactive-tests');
+    runtime.selectPlatform = rs.fn().mockResolvedValue('android');
     await runCreateCommand([], io(), runtime);
     expect(runtime.promptDirectory).toHaveBeenCalledTimes(1);
     expect(runtime.selectPlatform).toHaveBeenCalledTimes(1);
@@ -494,7 +494,7 @@ describe('create project', () => {
     const cwd = temp();
     const runtime = services(cwd);
     runtime.interactive = true;
-    runtime.selectPlatform = vi.fn().mockResolvedValue('ios');
+    runtime.selectPlatform = rs.fn().mockResolvedValue('ios');
     await runCreateCommand(['.', '--package-manager', 'pnpm'], io(), runtime);
     expect(runtime.promptDirectory).not.toHaveBeenCalled();
     expect(runtime.selectPlatform).toHaveBeenCalledTimes(1);
@@ -518,7 +518,7 @@ describe('create project', () => {
     const cwd = temp();
     const runtime = services(cwd);
     runtime.interactive = true;
-    runtime.promptDirectory = vi
+    runtime.promptDirectory = rs
       .fn()
       .mockRejectedValue(new Error('Project creation cancelled.'));
     await expect(runCreateCommand([], io(), runtime)).rejects.toThrow(
@@ -560,7 +560,7 @@ describe('create project', () => {
   it('preserves files and explains recovery after installation fails', async () => {
     const cwd = temp();
     const runtime = services(cwd);
-    runtime.runPackageManager = vi
+    runtime.runPackageManager = rs
       .fn()
       .mockRejectedValue(new Error('registry unavailable'));
     await expect(
@@ -579,7 +579,7 @@ describe('create project', () => {
       const cause = new Error('original package manager failure', {
         cause: new Error('underlying dependency failure'),
       });
-      runtime.runPackageManager = vi.fn(async (_manager, args) => {
+      runtime.runPackageManager = rs.fn(async (_manager, args) => {
         if (phase === 'install' || args[0] !== 'install') throw cause;
         return '';
       });
@@ -601,7 +601,7 @@ describe('create project', () => {
     async (output) => {
       const cwd = temp();
       const runtime = services(cwd);
-      runtime.runPackageManager = vi.fn().mockResolvedValue(output);
+      runtime.runPackageManager = rs.fn().mockResolvedValue(output);
       await expect(
         runCreateCommand(['.', '--platform', 'web'], io(), runtime),
       ).rejects.toThrow('Node Spec generation failed');
@@ -731,7 +731,7 @@ describe('create package manager selection', () => {
       runtime.interactive = true;
       runtime.userAgent = `${detected}/10.0.0`;
       const selected = detected === 'npm' ? 'pnpm' : 'npm';
-      runtime.selectPackageManager = vi.fn().mockResolvedValue(selected);
+      runtime.selectPackageManager = rs.fn().mockResolvedValue(selected);
       await runCreateCommand(['.', '--platform', 'web'], io(), runtime);
       expect(runtime.selectPackageManager).toHaveBeenCalledWith(detected);
       expect(runtime.runPackageManager).toHaveBeenCalledWith(
@@ -748,7 +748,7 @@ describe('create package manager selection', () => {
     runtime.interactive = true;
     const error = new Error('Cancelled');
     error.name = 'ExitPromptError';
-    runtime.selectPackageManager = vi.fn().mockRejectedValue(error);
+    runtime.selectPackageManager = rs.fn().mockRejectedValue(error);
     await expect(
       runCreateCommand(['.', '--platform', 'web'], io(), runtime),
     ).rejects.toThrow('Project creation cancelled.');
@@ -787,7 +787,7 @@ describe('create package manager selection', () => {
       for (const failure of ['install', 'describe']) {
         const cwd = temp();
         const runtime = services(cwd);
-        runtime.runPackageManager = vi.fn(async (_manager, args) => {
+        runtime.runPackageManager = rs.fn(async (_manager, args) => {
           if (failure === 'install' || args[0] === 'exec')
             throw new Error('command failed');
           return '';
