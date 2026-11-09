@@ -119,6 +119,8 @@ Each report includes the run configuration and task results; see AndroidWorld's 
 
 Start with [Create and use test projects](https://midscenejs.com/midscene-test/use), then learn how to [Develop custom Nodes](https://midscenejs.com/midscene-test/extend) and control [lifecycle and concurrency](https://midscenejs.com/midscene-test/execution).
 
+Reports, Test results, caches and logs are saved in `midscene_run/`. See [artifact directories](https://midscenejs.com/midscene-test/running#unified-artifact-root-and-migration) for configuration and CI archiving.
+
 ## 🚀 Get started
 
 - **Write YAML test cases** — [create a Midscene Test project](https://midscenejs.com/midscene-test/use).

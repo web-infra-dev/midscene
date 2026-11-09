@@ -54,7 +54,6 @@ const defaultConfig: IModelConfig = {
 const goodResult = {
   model: 'jev-1.14.0',
   answers: {
-    present: { type: 'noul', noul: 0.95 },
     target: {
       type: 'box',
       box: { left: 0.1, top: 0.1, right: 0.3, bottom: 0.2 },
@@ -331,7 +330,7 @@ describe('Jev requests and coordinates', () => {
       'true',
     );
     const body = JSON.parse(init?.body as string);
-    expect(Object.keys(body.questions)).toEqual(['present', 'target']);
+    expect(Object.keys(body.questions)).toEqual(['target']);
     expect(body.assets[body.state.screenshot].format).toBe('png');
     expect(runtime.onUsage).toHaveBeenCalledTimes(1);
     expect(runtime.onRequest).toHaveBeenCalledTimes(1);
@@ -426,24 +425,6 @@ describe('Jev requests and coordinates', () => {
       },
     });
     expect(result.parseResult.element?.center).toEqual([700, 375]);
-  });
-  it('reports an absent target without switching models', async () => {
-    const fetchMock = rs.spyOn(globalThis, 'fetch').mockResolvedValue(
-      response({
-        ...goodResult,
-        answers: {
-          ...goodResult.answers,
-          present: { type: 'noul', noul: 0.1 },
-        },
-      }),
-    );
-    const result = await AiLocateElement({
-      context: await context(),
-      targetElementDescription: 'missing',
-      modelRuntime: getModelRuntime(jevConfig),
-    });
-    expect(result.parseResult.element).toBeUndefined();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
   it('supports text-only boolean checks and preserves false', async () => {
     const fetchMock = rs.spyOn(globalThis, 'fetch').mockResolvedValue(

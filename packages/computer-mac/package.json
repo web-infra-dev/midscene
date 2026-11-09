@@ -1,6 +1,6 @@
 {
   "name": "@midscene/computer-mac",
-  "version": "1.17.5",
+  "version": "1.17.7",
   "description": "Midscene.js Computer Desktop Automation for macOS",
   "license": "MIT",
   "repository": {
@@ -49,7 +49,7 @@
     "@midscene/computer": "workspace:*"
   },
   "devDependencies": {
-    "@rslib/core": "^0.18.3",
+    "@rslib/core": "~0.19.6",
     "@types/node": "^18.0.0",
     "typescript": "^5.8.3"
   }

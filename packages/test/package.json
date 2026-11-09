@@ -1,7 +1,7 @@
 {
   "name": "@midscene/test",
   "description": "Midscene Test: an extensible YAML testing framework and Node SDK.",
-  "version": "1.17.5",
+  "version": "1.17.7",
   "repository": {
     "type": "git",
     "url": "https://github.com/web-infra-dev/midscene.git",
@@ -57,13 +57,12 @@
     "chalk": "4.1.2",
     "dotenv": "^16.4.5",
     "execa": "9.3.0",
-    "glob": "11.0.0",
     "http-server": "14.1.1",
-    "js-yaml": "4.1.0",
+    "js-yaml": "4.3.2",
     "lodash.merge": "4.6.2",
     "string-width": "4.2.3",
     "tinyglobby": "0.2.15",
-    "tsx": "^4.19.2",
+    "tsx": "^4.23.15",
     "yargs": "17.7.3",
     "zod": "^3.25.1"
   },
@@ -73,15 +72,16 @@
     "@midscene/harmony": "workspace:*",
     "@midscene/ios": "workspace:*",
     "@midscene/web": "workspace:*",
-    "@rslib/core": "^0.18.3",
+    "@rslib/core": "~0.19.6",
     "@types/js-yaml": "4.0.9",
     "@types/lodash.merge": "4.6.9",
     "@types/node": "^18.0.0",
     "@types/yargs": "17.0.32",
     "playwright": "^1.45.0",
-    "puppeteer": "24.6.0",
+    "puppeteer": "24.43.1",
     "typescript": "^5.8.3",
-    "vitest": "3.0.5"
+    "vite": "6.4.5",
+    "vitest": "4.1.12"
   },
   "peerDependencies": {
     "@midscene/android": "workspace:*",

@@ -5,12 +5,12 @@ import { WebMidsceneTools } from '@/agent-tools';
 import { WebCdpMidsceneTools } from '@/agent-tools-cdp';
 import { WebPuppeteerMidsceneTools } from '@/agent-tools-puppeteer';
 import { AgentOverChromeBridge } from '@/bridge-mode';
-import { PuppeteerAgent } from '@/puppeteer';
+import { PuppeteerBrowserAgent } from '@/puppeteer';
 import { setMidsceneRunDir } from '@midscene/shared/common';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import puppeteer from 'puppeteer-core';
 
-rs.mock('@/puppeteer', () => ({ PuppeteerAgent: rs.fn() }));
+rs.mock('@/puppeteer', () => ({ PuppeteerBrowserAgent: rs.fn() }));
 rs.mock('@/bridge-mode', () => ({ AgentOverChromeBridge: rs.fn() }));
 rs.mock('puppeteer-core', () => ({ default: { connect: rs.fn() } }));
 rs.mock('@/cdp-proxy-manager', () => ({
@@ -34,25 +34,27 @@ describe('Web CLI report session wiring', () => {
     async (mode) => {
       const root = mkdtempSync(join(tmpdir(), 'web-report-session-'));
       setMidsceneRunDir(root);
+      const page = {
+        url: () => 'https://fixture.invalid',
+        target: () => ({ _targetId: 'fixture-tab' }),
+        isClosed: () => false,
+        bringToFront: rs.fn().mockResolvedValue(undefined),
+      };
       const agent = {
+        activePage: page,
         page: { screenshotBase64: rs.fn().mockResolvedValue(png) },
         aiAction: rs.fn().mockResolvedValue(undefined),
         connectCurrentTab: rs.fn().mockResolvedValue(undefined),
         destroy: rs.fn().mockResolvedValue(undefined),
       };
-      rs.mocked(PuppeteerAgent).mockImplementation(() => agent as any);
+      rs.mocked(PuppeteerBrowserAgent).mockImplementation(() => agent as any);
       rs.mocked(AgentOverChromeBridge).mockImplementation(() => agent as any);
-      const page = {
-        url: () => 'https://fixture.invalid',
-        target: () => ({ _targetId: 'fixture-tab' }),
-        bringToFront: rs.fn().mockResolvedValue(undefined),
-      };
       const browser = { pages: async () => [page], disconnect: rs.fn() };
       rs.mocked(puppeteer.connect).mockResolvedValue(browser as any);
       const factory =
         mode === 'bridge'
           ? rs.mocked(AgentOverChromeBridge)
-          : rs.mocked(PuppeteerAgent);
+          : rs.mocked(PuppeteerBrowserAgent);
       factory.mockClear();
       const call = async (command: string) => {
         const tools =
@@ -83,7 +85,7 @@ describe('Web CLI report session wiring', () => {
           await tools.destroy();
         }
         const args = factory.mock.calls.at(-1)!;
-        return (mode === 'bridge' ? args[0] : args[1]) as {
+        return (mode === 'bridge' ? args[0] : args[2]) as {
           reportFileName: string;
           reportAttributes: Record<string, string>;
         };

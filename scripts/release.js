@@ -3,7 +3,6 @@ const path = require('node:path');
 const semver = require('semver');
 const dayjs = require('dayjs');
 const args = require('minimist')(process.argv.slice(2));
-const bumpPrompt = require('@jsdevtools/version-bump-prompt');
 const { execa } = require('@esm2cjs/execa');
 const chalk = require('chalk');
 
@@ -42,7 +41,7 @@ async function main() {
       './release-notes.mjs'
     );
     const root = path.resolve(__dirname, '..');
-    // Check the requested release type before version-bump-prompt edits files.
+    // Check the requested release type before the version bump edits files.
     if (['major', 'minor'].includes(args.version)) {
       readHighlights(
         root,
@@ -239,12 +238,8 @@ async function bumpVersion() {
       version = semver.inc(currentVersion, version, `beta-${hash}`);
     }
 
-    return await bumpPrompt({
-      files: ['package.json', 'packages/*/package.json'],
-      release: version || '',
-      push: false,
-      tag: false,
-    });
+    const { bumpReleaseVersion } = await import('./bump-release-version.mjs');
+    return await bumpReleaseVersion(path.resolve(__dirname, '..'), version);
   } catch (error) {
     console.error(chalk.red('Error bumping version'));
     throw error;

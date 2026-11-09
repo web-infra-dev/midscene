@@ -601,6 +601,11 @@ describe('test project config', () => {
       "output: { reportFormat: 'png' }",
       'output.reportFormat must be',
     ],
+    [
+      'unsupported artifact root option',
+      "output: { runDir: 'artifacts' }",
+      'output.runDir is not supported',
+    ],
     ['empty projects', 'projects: []', 'projects must be a non-empty array'],
     [
       'duplicate project names',
@@ -756,7 +761,7 @@ describe('test project config', () => {
     expect(error.message).toContain(`Failed to load Midscene config "${path}"`);
     expect(error.cause).toBeInstanceOf(Error);
     expect(error.cause.message).toMatch(
-      /Expected a semicolon|Unexpected token/,
+      /Expected a semicolon|Unexpected token|'const' declarations must be initialized/,
     );
   });
 

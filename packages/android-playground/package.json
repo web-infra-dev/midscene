@@ -1,6 +1,6 @@
 {
   "name": "@midscene/android-playground",
-  "version": "1.17.5",
+  "version": "1.17.7",
   "repository": {
     "type": "git",
     "url": "https://github.com/web-infra-dev/midscene.git",
@@ -44,17 +44,17 @@
     "@yume-chan/scrcpy": "2.3.0",
     "@yume-chan/stream-extra": "2.6.1",
     "cors": "^2.8.5",
-    "express": "^4.21.2",
+    "express": "^4.22.3",
     "open": "10.1.0",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.4"
   },
   "devDependencies": {
-    "@rslib/core": "^0.18.3",
+    "@rslib/core": "~0.19.6",
     "@rstest/core": "0.12.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^18.0.0",
-    "socket.io-client": "4.8.1",
+    "socket.io-client": "4.8.4",
     "typescript": "^5.8.3"
   },
   "license": "MIT"

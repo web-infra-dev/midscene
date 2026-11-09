@@ -1,6 +1,6 @@
 {
   "name": "@midscene/harmony",
-  "version": "1.17.5",
+  "version": "1.17.7",
   "repository": {
     "type": "git",
     "url": "https://github.com/web-infra-dev/midscene.git",
@@ -49,15 +49,15 @@
     "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=harmony rstest"
   },
   "dependencies": {
+    "@inquirer/prompts": "^7.8.6",
     "@midscene/core": "workspace:*",
     "@midscene/playground": "workspace:*",
     "@midscene/shared": "workspace:*",
-    "@inquirer/prompts": "^7.8.6",
     "open": "10.1.0",
     "zod": "^3.25.1"
   },
   "devDependencies": {
-    "@rslib/core": "^0.18.3",
+    "@rslib/core": "~0.19.6",
     "@rstest/core": "0.12.0",
     "@types/node": "^18.0.0",
     "dotenv": "^16.4.5",

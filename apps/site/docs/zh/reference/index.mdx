@@ -114,17 +114,14 @@ await agent.aiAct('登录');
 ### 报告配置 {#report-options}
 
 - `generateReport?: boolean` —— 是否生成执行报告文件。默认值：`true`。
-- `persistExecutionDump?: boolean` —— 是否在生成报告的同时，在同目录下额外输出每次执行的原始 JSON dump 文件（要求 `generateReport` 为 `true`）。默认值：`false`。
+- `persistExecutionDump?: boolean` —— 是否额外保存原始执行 JSON，供诊断或分析使用（要求 `generateReport` 为 `true`）。默认值：`false`。
 - `reportFileName?: string` —— 自定义报告输出名称（默认由 Midscene 自动生成）。其具体含义取决于 `outputFormat`：
   - 当 `outputFormat` 为 `'single-html'`（默认）时：作为文件名，输出到 `midscene_run/report/<reportFileName>.html`（若已包含 `.html` 后缀则不会重复追加）。
   - 当 `outputFormat` 为 `'html-and-external-assets'` 时：作为子目录名，输出到 `midscene_run/report/<reportFileName>/index.html` 及同级静态资源目录。
 - `autoPrintReportMsg?: boolean` —— 是否在终端打印报告文件路径提示。默认值：`true`。
 - `outputFormat?: 'single-html' | 'html-and-external-assets'` —— 报告输出格式。默认值：`'single-html'`：
-  - `'single-html'`（默认）：将 Viewer、执行数据和 Base64 图片包含在一个 HTML 文件中，可直接打开，也可离线查看。
-  - `'html-and-external-assets'`：生成 `index.html`、`report.json`、`data/` 下的执行 JSON 和 `screenshots/` 下的图片文件。相同图片内容共用一个文件，每次截图仍保留独立的 ID、时间和步骤关联。分享时需保留完整报告目录，并通过 HTTP 服务访问。本地预览时，可进入报告目录并启动静态文件服务：
-    - 使用 Node.js：`npx serve`
-    - 使用 Python：`python3 -m http.server`
-    然后在浏览器中访问终端输出的地址（如 `http://localhost:3000`）。
+  - `'single-html'`（默认）：生成自包含 HTML，直接用浏览器打开，支持离线查看和单文件分享。
+  - `'html-and-external-assets'`：生成 HTML 和外置资源，重复图片自动复用。分享时上传整个报告目录。预览时，在报告目录运行 `pnpm dlx serve`，再打开终端显示的地址。
 
 ### 回调 {#callback-options}
 
@@ -1916,7 +1913,7 @@ function mergeReports(
 
   - 返回合并后报告的入口 HTML 路径；若待合并列表为空，则返回 `null`。
   - 使用 `'single-html'`（默认）时，输出路径为 `<outputDir>/<reportFileName>.html`。
-  - 使用 `'html-and-external-assets'` 时，输出路径为 `<outputDir>/<reportFileName>/index.html`，同级包含 `report.json`、`data/` 和 `screenshots/`。
+  - 使用 `'html-and-external-assets'` 时，输出路径为 `<outputDir>/<reportFileName>/index.html`。分享时需保留整个报告目录，并通过 HTTP 服务查看。
 
 - 示例：
 

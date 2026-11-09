@@ -427,7 +427,7 @@ steps:
 | `projects[].retry` | 用例执行失败后的最大重试次数，默认为 `0`。 |
 | `test.testTimeout` | 单个步骤的默认超时时间（毫秒），默认为 `120000`。步骤内的 `$.timeout` 可覆盖该默认值。 |
 | `test.bail` | 失败用例数达到该阈值后停止调度新任务；设为 `0` 表示不限制。 |
-| `output.reportDir` | HTML 报告的输出目录，默认为 `./midscene_run/report`。 |
+| `output.reportDir` | 可选的报告目录覆盖值，相对测试项目解析；默认位于产物根下的 `report/`，未设置 `MIDSCENE_RUN_DIR` 时为 `midscene_run/report/`。 |
 | `output.reportFormat` | `'single-html'`（默认）将执行数据和图片打包在一个 HTML 中，可直接离线打开；`'html-and-external-assets'` 生成目录报告，需通过 HTTP 预览。 |
 
 脚手架生成的配置默认匹配 `cases/**/*.{yaml,yml}`；如果未配置 `files`，Midscene Test 会按 `**/*.{yaml,yml}` 在测试根目录下递归查找用例文件，自动去重并按路径排序。
@@ -487,9 +487,6 @@ export default defineTestProject<ProjectContext>({
     maxConcurrentProjects: 1, // 同时运行的执行项目数量上限
     bail: 0,                  // 大于 0 时，失败用例数达到此值后停止调度新任务
     testTimeout: 120_000,
-  },
-  output: {
-    reportDir: './midscene_run/report',
   },
 });
 ```

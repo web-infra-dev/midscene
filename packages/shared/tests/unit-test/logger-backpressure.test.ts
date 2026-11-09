@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { describe, expect, it, rs } from '@rstest/core';
 
 const mocks = rs.hoisted(() => {
@@ -14,6 +15,7 @@ const mocks = rs.hoisted(() => {
   const createWriteStream = rs.fn(() => stream);
 
   return {
+    directory: '/tmp/midscene-log',
     createWriteStream,
     debugFn: rs.fn(),
     listeners,
@@ -33,7 +35,7 @@ rs.mock('node:fs', () => ({
 }));
 
 rs.mock('../../src/common', () => ({
-  getMidsceneRunSubDir: rs.fn(() => '/tmp/midscene-log'),
+  getMidsceneRunSubDir: rs.fn(() => mocks.directory),
 }));
 
 rs.mock('../../src/utils', () => ({
@@ -81,6 +83,25 @@ describe('file logger backpressure', () => {
       { flags: 'a' },
     );
     expect(mocks.stream.end).toHaveBeenCalledTimes(2);
+    setLogDirectoryResolver(undefined);
+  });
+
+  it('keeps logging in another run when the same topic is backpressured', () => {
+    const debugLog = getDebug('logger:concurrent-roots');
+    const before = mocks.stream.write.mock.calls.length;
+    mocks.directory = '/tmp/run-a/log';
+    mocks.stream.write.mockReturnValueOnce(false);
+    debugLog('run a is waiting for disk');
+    mocks.directory = '/tmp/run-b/log';
+    debugLog('run b must still be recorded');
+    expect(mocks.stream.write.mock.calls.length).toBe(before + 2);
+    expect(mocks.createWriteStream).toHaveBeenLastCalledWith(
+      path.join('/tmp/run-b/log', 'logger-concurrent-roots.log'),
+      { flags: 'a' },
+    );
+    mocks.listeners.get('drain')?.();
+    mocks.directory = '/tmp/midscene-log';
+    setLogDirectoryResolver(() => '/tmp/midscene-log');
     setLogDirectoryResolver(undefined);
   });
 });

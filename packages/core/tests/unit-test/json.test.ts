@@ -76,6 +76,25 @@ describe('parseModelResponseJson', () => {
     expect(result).toEqual({ key: 'value' });
   });
 
+  it.each([
+    '[]',
+    '[{"index":1}]',
+    '[{"index":1},{"index":2}]',
+    '[[{"index":1}]]',
+    '[1,{"index":1},null]',
+    '"text with {braces}"',
+  ])('should preserve JSON value structure: %s', (input) => {
+    const expected = JSON.parse(input);
+    expect(parseModelResponseJson(input)).toEqual(expected);
+    expect(parseModelResponseJson(`\`\`\`json\n${input}\n\`\`\``)).toEqual(
+      expected,
+    );
+  });
+
+  it('should preserve arrays when repairing malformed JSON', () => {
+    expect(parseModelResponseJson('[{index: 1,}]')).toEqual([{ index: 1 }]);
+  });
+
   it('should parse dirty JSON that jsonrepair can fix', () => {
     const input = "{key: 'value'}";
     const result = parseModelResponseJson(input);
@@ -328,11 +347,11 @@ describe('parseModelResponseJson', () => {
     expect(result.type).toBe('Tap');
   });
 
-  it('should handle a single object wrapped in an array through legacy extraction', () => {
+  it('should preserve a single object wrapped in an array', () => {
     const input = '[{"  type  ": "  Tap  "}]';
     const result = parseJson(input);
 
-    expect(result).toEqual({ type: 'Tap' });
+    expect(result).toEqual([{ type: 'Tap' }]);
   });
 
   it('should preserve coordinate tuple text inside valid JSON strings', () => {

@@ -1,7 +1,7 @@
 {
   "name": "@midscene/core",
   "description": "Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML. See https://midscenejs.com/ for details.",
-  "version": "1.17.5",
+  "version": "1.17.7",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
@@ -40,6 +40,11 @@
       "types": "./dist/types/utils.d.ts",
       "import": "./dist/es/utils.mjs",
       "require": "./dist/lib/utils.js"
+    },
+    "./siwc": {
+      "types": "./dist/types/siwc.d.ts",
+      "import": "./dist/es/siwc.mjs",
+      "require": "./dist/lib/siwc.js"
     },
     "./ai-model": {
       "types": "./dist/types/ai-model/index.d.ts",
@@ -111,6 +116,7 @@
     "*": {
       ".": ["./dist/types/index.d.ts"],
       "utils": ["./dist/types/utils.d.ts"],
+      "siwc": ["./dist/types/siwc.d.ts"],
       "ai-model": ["./dist/types/ai-model.d.ts"],
       "tree": ["./dist/types/tree.d.ts"],
       "device": ["./dist/types/device.d.ts"],
@@ -160,28 +166,28 @@
     "dotenv": "^16.4.5",
     "fetch-socks": "^1.3.0",
     "jose": "5.9.6",
-    "js-yaml": "4.1.0",
+    "js-yaml": "4.3.2",
     "jsonrepair": "3.15.0",
     "mdast-util-from-markdown": "^2.0.2",
     "mdast-util-to-markdown": "^2.1.2",
     "openai": "6.3.0",
-    "semver": "7.5.2",
-    "undici": "^6.0.0",
+    "semver": "7.8.6",
+    "undici": "^7.30.1",
     "zod": "^3.25.1"
   },
   "devDependencies": {
-    "@rslib/core": "^0.18.3",
+    "@rslib/core": "~0.19.6",
     "@rstest/core": "0.12.0",
     "@types/js-yaml": "4.0.9",
     "@types/node": "^18.0.0",
     "@types/node-fetch": "2.6.11",
     "@types/semver": "7.7.0",
-    "langsmith": "^0.3.74",
-    "sharp": "^0.34.3",
+    "langsmith": "^0.11.8",
+    "sharp": "^0.35.5",
     "typescript": "^5.8.3"
   },
   "engines": {
-    "node": ">=18.19.0"
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
   },
   "publishConfig": {
     "access": "public",

@@ -1,6 +1,6 @@
 {
   "name": "@midscene/recorder-ui",
-  "version": "1.17.5",
+  "version": "1.17.7",
   "repository": {
     "type": "git",
     "url": "https://github.com/web-infra-dev/midscene.git",
@@ -21,18 +21,18 @@
     "build:watch": "rslib build --watch --no-clean"
   },
   "devDependencies": {
-    "@rsbuild/plugin-react": "^1.4.1",
-    "@rslib/core": "^0.18.3",
+    "@rsbuild/plugin-react": "^1.4.6",
+    "@rslib/core": "~0.19.6",
     "@types/react": "^18.3.1",
     "react": "18.3.1",
     "typescript": "^5.8.3"
   },
   "dependencies": {
     "@ant-design/icons": "^5.3.1",
+    "@midscene/shared": "workspace:*",
     "antd": "^5.21.6",
     "dayjs": "^1.11.11",
-    "react-dom": "18.3.1",
-    "@midscene/shared": "workspace:*"
+    "react-dom": "18.3.1"
   },
   "peerDependencies": {
     "react": "18.3.1",

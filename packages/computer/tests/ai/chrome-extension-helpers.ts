@@ -18,17 +18,8 @@ const CDP_INJECTION_TIMEOUT = 10_000;
 const NAVIGATE_INJECT_TIMEOUT = 15_000;
 const RELOAD_TIMEOUT = 5_000;
 const BRING_TO_FRONT_TIMEOUT = 5_000;
-const EXTENSION_MENU_OPEN_DELAY = 500;
 const SIDE_PANEL_READY_MAX_ATTEMPTS = 20;
 const SIDE_PANEL_READY_INTERVAL = 250;
-// The headless-extension jobs launch a pinned Chrome 135 window at 1920x1080.
-// Browser chrome is not exposed through the page CDP target, so address the
-// two stable native controls relative to the right edge of that window.
-const CHROME_TOOLBAR_Y = 72;
-const EXTENSIONS_BUTTON_RIGHT_OFFSET = 160;
-const EXTENSION_MENU_ROW_RIGHT_OFFSET = 366;
-const EXTENSION_MENU_ROW_Y = 228;
-
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface CdpTarget {
@@ -154,67 +145,24 @@ export async function openExtensionSidePanel(
   // Rstest can retry a failed case without restarting Chrome. Clicking the
   // extension action again in that state closes an already-open side panel,
   // so make this helper idempotent before sending any native input.
-  if (await findExtensionPageTarget(extensionId)) {
-    console.log('Extension side panel is already open');
-    return;
-  }
-
-  const pointer = agent.interface.inputPrimitives?.pointer;
-  if (!pointer) {
-    throw new Error('Computer pointer input is unavailable');
-  }
-
-  const { width, height } = await agent.interface.size();
-  if (
-    width <= EXTENSION_MENU_ROW_RIGHT_OFFSET ||
-    height <= EXTENSION_MENU_ROW_Y
-  ) {
-    throw new Error(
-      `Chrome window is too small to open the extension: ${width}x${height}`,
+  if (!(await findExtensionPageTarget(extensionId))) {
+    // Chrome can move the toolbar controls when its sign-in chip appears,
+    // and a previous attempt may leave the menu open. Let the agent observe
+    // the current state between actions instead of blindly toggling the menu.
+    await agent.aiAct(
+      'Open the Midscene.js extension side panel using Chrome browser controls. If the Extensions menu is already open, click the Midscene.js icon or name in it. Otherwise open the toolbar Extensions puzzle-piece menu first. Do not click the site-access toggle or the three-dot menu. Stop once the Midscene.js side panel is visibly docked on the right; do not close it.',
     );
+
+    if (!(await waitForExtensionPageTarget(extensionId))) {
+      throw new Error('Midscene extension side panel did not open');
+    }
   }
 
-  // Keep browser-chrome interaction deterministic. A slow vision-model retry
-  // previously consumed almost the entire test timeout and left Chrome state
-  // open across the test retry.
-  await pointer.tap({
-    x: width - EXTENSIONS_BUTTON_RIGHT_OFFSET,
-    y: CHROME_TOOLBAR_Y,
-  });
-  await sleep(EXTENSION_MENU_OPEN_DELAY);
-  await pointer.tap({
-    x: width - EXTENSION_MENU_ROW_RIGHT_OFFSET,
-    y: EXTENSION_MENU_ROW_Y,
-  });
-
-  if (await waitForExtensionPageTarget(extensionId)) {
-    return;
-  }
-
-  // Chrome occasionally ignores a native-menu click even when the pointer
-  // reaches the expected coordinates. Clear any menu left behind and use
-  // vision as a fallback instead of cascading the missing side panel into the
-  // remaining bridge tests.
-  console.log(
-    'Fixed-coordinate side-panel open did not succeed; retrying with vision',
+  // A CDP target can appear before Chrome has dismissed the native menu and
+  // painted the panel. Wait for the actual visible state, including on retry.
+  await agent.aiWaitFor(
+    'The Midscene.js side panel is docked at the right of Chrome and its UI is visible; the Chrome Extensions popup menu has closed',
   );
-  await agent.interface.inputPrimitives?.keyboard?.keyboardPress('Escape');
-  await sleep(EXTENSION_MENU_OPEN_DELAY);
-  await agent.aiTap(
-    'the Chrome toolbar Extensions button with a puzzle-piece icon in the top-right browser chrome, not any icon inside the web page',
-    { deepLocate: true },
-  );
-  await sleep(EXTENSION_MENU_OPEN_DELAY);
-  await agent.aiTap(
-    'the row labeled "Midscene.js" inside the open Chrome Extensions menu below the toolbar, not any text or control inside the web page',
-    { deepLocate: true },
-  );
-
-  if (await waitForExtensionPageTarget(extensionId)) {
-    return;
-  }
-
-  throw new Error('Midscene extension side panel did not open');
 }
 
 async function waitForExtensionPageTarget(extensionId: string) {
@@ -257,19 +205,17 @@ async function waitForCdpReady(
 // Read the extension id from the live CDP target list. The extension's
 // service worker registers as a `chrome-extension://<id>/...` target as soon
 // as it boots — typically well before Chrome flushes the id into the on-disk
-// Preferences file. Only one extension is loaded
-// (`--disable-extensions-except`), so any chrome-extension target is ours.
+// Preferences file. Chrome also exposes built-in extensions despite
+// --disable-extensions-except. Match our manifest background worker, not the
+// first chrome-extension target (which may belong to a built-in extension).
 async function readExtensionIdFromCdp(): Promise<string | null> {
   try {
     const targets = await listCdpTargets();
     for (const t of targets) {
-      const match = t.url?.match(/^chrome-extension:\/\/([a-p]{32})\//);
-      if (
-        match &&
-        (t.type === 'service_worker' ||
-          t.type === 'background_page' ||
-          t.type === 'page')
-      ) {
+      const match = t.url?.match(
+        /^chrome-extension:\/\/([a-p]{32})\/scripts\/worker\.js$/,
+      );
+      if (match && t.type === 'service_worker') {
         return match[1];
       }
     }

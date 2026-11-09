@@ -61,13 +61,14 @@ export interface ResolvedTestOptions {
 }
 
 export interface TestOutputDefinition {
+  /** Explicit report location, relative to the Test project. Defaults to report/ under the artifact root. */
   reportDir?: string;
   /** Defaults to a self-contained HTML; external assets require HTTP preview. */
   reportFormat?: 'single-html' | 'html-and-external-assets';
 }
 
 export interface ResolvedTestOutputDefinition {
-  reportDir: string;
+  reportDir?: string;
   reportFormat: 'single-html' | 'html-and-external-assets';
 }
 
@@ -586,12 +587,7 @@ const validateTestOptions = (
   });
 };
 
-const validateOutputPath = (
-  value: unknown,
-  fallback: string,
-  label: string,
-): string => {
-  if (value === undefined) return fallback;
+const validateOutputPath = (value: unknown, label: string): string => {
   if (typeof value !== 'string' || value.trim().length === 0) {
     throw new TypeError(`Midscene config ${label} must be non-empty.`);
   }
@@ -615,11 +611,14 @@ const validateOutput = (value: unknown): ResolvedTestOutputDefinition => {
   }
   return Object.freeze({
     reportFormat: candidate.reportFormat ?? 'single-html',
-    reportDir: validateOutputPath(
-      candidate.reportDir,
-      './midscene_run/report',
-      'output.reportDir',
-    ),
+    ...(candidate.reportDir === undefined
+      ? {}
+      : {
+          reportDir: validateOutputPath(
+            candidate.reportDir,
+            'output.reportDir',
+          ),
+        }),
   });
 };
 
