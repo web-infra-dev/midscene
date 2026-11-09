@@ -24,7 +24,7 @@ export function normalizedCoordinateToPixel(
   value: number,
   normalizedBy: number,
   size: number,
-  normalizationBasis: NormalizationBasis = 'image-size',
+  normalizationBasis: NormalizationBasis,
 ) {
   const scale = (() => {
     switch (normalizationBasis) {
@@ -82,7 +82,7 @@ export function clampPixelPointToSize(
 export function clampPixelBboxToSize(
   pixelBbox: PixelBbox,
   size: { width: number; height: number },
-  boundsType: BboxBoundsType = 'closed',
+  boundsType: BboxBoundsType,
 ): PixelBbox {
   const [left, top, right, bottom] = pixelBbox;
   if (boundsType === 'left-closed-right-open') {
@@ -107,7 +107,7 @@ export function clampPixelBboxToSize(
 function pixelIntervalLength(
   start: number,
   end: number,
-  boundsType: BboxBoundsType = 'closed',
+  boundsType: BboxBoundsType,
 ) {
   return end - start + (boundsType === 'closed' ? 1 : 0);
 }

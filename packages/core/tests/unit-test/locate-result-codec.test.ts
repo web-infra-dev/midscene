@@ -303,7 +303,7 @@ describe('createLocateResultCodec', () => {
     });
   });
 
-  it.each([undefined, 'invalid'])(
+  it.each(['invalid'])(
     'rejects custom parser metadata without valid rounding: %s',
     (rounding) => {
       const codec = createLocateResultCodec({
@@ -322,6 +322,32 @@ describe('createLocateResultCodec', () => {
       );
     },
   );
+  it('resolves omitted defaults from custom parser metadata', () => {
+    const codec = createLocateResultCodec({
+      coordinates: {
+        shape: 'point',
+        normalizationBasis: 'last-pixel',
+        rounding: 'none',
+      },
+      parseRawLocateValue: () => ({
+        coordinates: [100, 200, 300, 400],
+        coordinatesMeta: { shape: 'bbox', normalizedBy: 1000 },
+      }),
+    });
+    expect(codec.toPixelResult(null, locateCtx(1000, 1000))).toEqual({
+      center: [201, 301],
+      rect: { left: 100, top: 200, width: 201, height: 201 },
+    });
+    expect(resolveLocateResultCoordinates({ shape: 'bbox' })).toEqual({
+      shape: 'bbox',
+      order: 'xy',
+      normalizedBy: undefined,
+      normalizationBasis: 'image-size',
+      boundsType: 'closed',
+      rounding: 'round',
+    });
+  });
+
   it('resolves default rounding before mapping positions and distances', () => {
     const coordinates = resolveLocateResultCoordinates({
       shape: 'point',
@@ -385,7 +411,7 @@ describe('createLocateResultCodec', () => {
       });
       const distanceToPixels = createCoordinateDistanceToPixels(
         size,
-        coordinates,
+        resolveLocateResultCoordinates(coordinates),
       );
       expect(
         pointCodec.toPixelResult([375, 500], { preparedSize: size }).center,

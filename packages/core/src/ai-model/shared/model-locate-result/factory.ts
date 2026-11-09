@@ -1,4 +1,5 @@
-import { parseNumericLocateResult } from './parse';
+import { resolveLocateResultCoordinates } from './coordinates';
+import { createLocateResultValue, parseNumericLocateResult } from './parse';
 import {
   clampPixelPointToSize,
   mapLocateResultToPixelPoint,
@@ -6,36 +7,13 @@ import {
 } from './pixel-mapper';
 import { createLocateResultPromptSpec } from './prompt-spec';
 import { isBboxLocateResultValue } from './types';
-import type {
-  LocateResultCodec,
-  LocateResultCoordinates,
-  LocateResultFormatDefinition,
-  ResolvedLocateResultCoordinates,
-} from './types';
+import type { LocateResultCodec, LocateResultFormatDefinition } from './types';
 import {
   assertLocateResultCoordinateRangeAndOrder,
   assertLocateResultStructure,
 } from './validation';
 
-export function resolveLocateResultCoordinates(
-  coordinates: LocateResultCoordinates,
-): ResolvedLocateResultCoordinates {
-  if (coordinates.normalizedBy !== undefined && coordinates.normalizedBy <= 0) {
-    throw new Error(
-      `locate result coordinates normalizedBy must be positive: ${coordinates.normalizedBy}`,
-    );
-  }
-  return {
-    ...(coordinates.shape === 'bbox'
-      ? { boundsType: coordinates.boundsType ?? 'closed' }
-      : {}),
-    shape: coordinates.shape,
-    order: coordinates.order ?? 'xy',
-    normalizedBy: coordinates.normalizedBy,
-    normalizationBasis: coordinates.normalizationBasis ?? 'image-size',
-    rounding: coordinates.rounding ?? 'round',
-  };
-}
+export { resolveLocateResultCoordinates } from './coordinates';
 
 export function createLocateResultCodec(
   config: LocateResultFormatDefinition,
@@ -52,9 +30,13 @@ export function createLocateResultCodec(
       resultKeyAliases: config.resultKeyAliases,
     }),
     toPixelResult: (rawResult, context) => {
-      const result = parseRawLocateValue(rawResult);
+      const parsed = parseRawLocateValue(rawResult);
+      assertLocateResultStructure(parsed);
+      const result = createLocateResultValue(
+        parsed.coordinatesMeta,
+        parsed.coordinates,
+      );
       const { preparedSize, contentSize = preparedSize } = context;
-      assertLocateResultStructure(result);
       const leftClosedRightOpenBounds =
         isBboxLocateResultValue(result) &&
         result.coordinatesMeta.boundsType === 'left-closed-right-open';

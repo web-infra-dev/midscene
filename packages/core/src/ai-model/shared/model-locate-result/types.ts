@@ -120,19 +120,32 @@ export type ResolvedLocateResultCoordinates =
       shape: 'point';
       order: 'xy' | 'yx';
       normalizedBy?: number;
-      normalizationBasis?: NormalizationBasis;
+      normalizationBasis: NormalizationBasis;
       rounding: CoordinateRounding;
     }
   | {
       shape: 'bbox';
-      boundsType?: BboxBoundsType;
+      boundsType: BboxBoundsType;
       order: 'xy' | 'yx';
       normalizedBy?: number;
-      normalizationBasis?: NormalizationBasis;
+      normalizationBasis: NormalizationBasis;
       rounding: CoordinateRounding;
     };
 
-export type RawLocateValueParser = (input: RawLocateValue) => LocateResultValue;
+/** Parser output may omit defaults; the codec resolves them before mapping. */
+export type ParsedLocateResultValue =
+  | {
+      coordinates: LocateResultPoint;
+      coordinatesMeta: LocateResultCoordinates & { shape: 'point' };
+    }
+  | {
+      coordinates: LocateResultBbox;
+      coordinatesMeta: LocateResultCoordinates & { shape: 'bbox' };
+    };
+
+export type RawLocateValueParser = (
+  input: RawLocateValue,
+) => ParsedLocateResultValue;
 
 /**
  * Format of one model coordinate value, shared by element and search-area locate.
