@@ -169,7 +169,8 @@ export type LocateResultFormatDefinition = {
    * Optional model-specific parser for nonstandard formats or point/bbox fallback.
    * Return `{ coordinates, coordinatesMeta }` describing the actual shape, axis
    * order, and normalization. Preserve coordinate precision; do not round or map
-   * to pixels here. Include an explicit rounding policy in `coordinatesMeta`.
+   * to pixels here. Optional `coordinatesMeta` fields may be omitted; the codec
+   * resolves their defaults before mapping, including `rounding: 'round'`.
    * Omit the parser to parse numeric values according to `coordinates`.
    */
   parseRawLocateValue?: RawLocateValueParser;
