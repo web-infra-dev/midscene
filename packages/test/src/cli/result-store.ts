@@ -167,6 +167,15 @@ export const writeTestProjectRunResult = (
     ...(result.markdownPath
       ? { markdown: relativeToSummary(result.summaryPath, result.markdownPath) }
       : {}),
+    ...(result.junitPath
+      ? { junit: relativeToSummary(result.summaryPath, result.junitPath) }
+      : {}),
+    ...(result.reporterArtifacts?.length ? {
+      reporters: result.reporterArtifacts.map((artifact) => ({
+        name: artifact.name,
+        path: relativeToSummary(result.summaryPath, artifact.path),
+      })),
+    } : {}),
     summary: result.summary,
     ...(result.metrics ? { metrics: result.metrics } : {}),
     projects: result.projects.map((project) => ({

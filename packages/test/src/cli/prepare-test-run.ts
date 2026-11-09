@@ -18,6 +18,9 @@ import {
   selectProjects,
 } from './project-preparation';
 import { loadTestProject } from './test-project';
+import { validateTestReporters } from './reporter-config';
+import { emitConfiguredReporterEvent } from './reporter-runner';
+import type { TestReporterFailure } from './reporter-config';
 
 const padDatePart = (value: number): string => String(value).padStart(2, '0');
 
@@ -85,6 +88,8 @@ export async function prepareTestRun(
   if (options.configPath && !existsSync(configPath!))
     throw new Error(`Midscene config does not exist: ${configPath}`);
   const definition = await loadTestProject<unknown>(configPath);
+  const reporters = validateTestReporters(options.reporters ?? definition.reporters);
+  const reporterEventFailures: TestReporterFailure[] = [];
   const artifactDir = resolveMidsceneRunDir(input.projectRoot);
   return runWithMidsceneRunDir(artifactDir, async () => {
     const resultDir = options.resultDir
@@ -143,8 +148,16 @@ export async function prepareTestRun(
       preflightScope: hasFormatMismatch ? 'run' : 'project',
       reportEnabled: true,
       publications: [],
+      reporters,
+      reporterEventFailures,
       onProgress: options.onProgress ?? (() => {}),
-      onEvent: options.onEvent,
+      onEvent: (event) => {
+        try {
+          options.onEvent?.(event);
+        } finally {
+          emitConfiguredReporterEvent(reporters, reporterEventFailures, event);
+        }
+      },
     };
   });
 }

@@ -12,6 +12,18 @@ import {
 import type { TestReporterEvent } from './reporter-events';
 import type { TestProjectRunResult } from './types';
 
+const emptyIndex = (): TestRunReportSourceIndex => ({
+  sources: [],
+  metrics: {
+    modelCallCount: 0,
+    modelTimeMs: 0,
+    promptTokens: 0,
+    cachedInputTokens: 0,
+    completionTokens: 0,
+    totalTokens: 0,
+  },
+});
+
 export function emitConfiguredReporterEvent(
   reporters: readonly TestReporterEntry[],
   failures: TestReporterFailure[],
@@ -57,7 +69,7 @@ export async function publishConfiguredReporters(options: PublishReportersOption
         const result = options.result();
         const returnedPath = await entry.onFinished!({
           result,
-          dump: buildTestRunReportDump(result, options.reportIndex),
+          dump: buildTestRunReportDump(result, options.reportIndex ?? emptyIndex()),
           outputDir,
         });
         if (returnedPath !== undefined) {
@@ -77,7 +89,7 @@ export async function publishConfiguredReporters(options: PublishReportersOption
       : entry;
     const output = filePath(outputDir, config.outputFile ?? (name === 'junit' ? 'junit.xml' : 'result.json'));
     const ok = await options.publish(output, async () => {
-      const dump = buildTestRunReportDump(options.result(), options.reportIndex);
+      const dump = buildTestRunReportDump(options.result(), options.reportIndex ?? emptyIndex());
       const text = name === 'junit'
         ? renderTestResultJUnit(dump)
         : JSON.stringify(dump, null, 2) + '\n';

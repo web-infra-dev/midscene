@@ -20,6 +20,7 @@ import {
 import { runWithMidsceneRunDir } from '@midscene/shared/common';
 import { getDebug } from '@midscene/shared/logger';
 import { writeTestResultMarkdown } from '../report/result-markdown';
+import { publishConfiguredReporters } from './reporter-runner';
 import {
   buildTestRunReportDump,
   collectTestRunReportSources,
@@ -517,6 +518,20 @@ async function runWithReportSession(
       completedResult = { ...completedResult, markdownPath };
     },
   );
+  await publishConfiguredReporters({
+    reporters: plan.reporters,
+    eventFailures: plan.reporterEventFailures,
+    result: () => completedResult,
+    reportIndex,
+    publish: (_path, callback) => publish('write-result', _path, callback),
+    onArtifact: (artifact) => {
+      completedResult = {
+        ...completedResult,
+        reporterArtifacts: [...(completedResult.reporterArtifacts ?? []), artifact],
+        ...(artifact.name === 'junit' ? { junitPath: artifact.path } : {}),
+      };
+    },
+  });
   if (completedResult.reportPath && !hasInfrastructureError)
     await publish('write-result', reports.directory, () => reports.prune());
   await writeSummary();

@@ -19,6 +19,7 @@ import {
   runTestProject,
 } from './test-project-runner';
 import type { TestProjectRunResult } from './types';
+import type { BuiltinTestReporter } from './reporter-config';
 
 export interface TestCliIO {
   log(message: string): void;
@@ -38,6 +39,7 @@ interface ParsedTestArgs {
   resultDir?: string;
   projectNames?: string[];
   reporter?: TerminalReporterMode;
+  reporters?: BuiltinTestReporter[];
 }
 
 export const parseTestCliArgs = (
@@ -51,6 +53,7 @@ export const parseTestCliArgs = (
   let resultDir: string | undefined;
   const projectNames: string[] = [];
   let reporter: TerminalReporterMode | undefined;
+  const reporters: BuiltinTestReporter[] = [];
 
   for (let index = commandOffset; index < args.length; index += 1) {
     const token = args[index];
@@ -76,11 +79,11 @@ export const parseTestCliArgs = (
       else if (arg === '--result-dir') resultDir = resolve(cwd, value);
       else if (arg === '--project') projectNames.push(value);
       else {
-        if (value !== 'default' && value !== 'verbose')
-          throw new Error(
-            `Unknown reporter: ${value}. Expected default or verbose.`,
-          );
-        reporter = value;
+        if (value === 'default' || value === 'verbose') reporter = value;
+        else if (value === 'junit' || value === 'json') reporters.push(value);
+        else throw new Error(
+          `Unknown reporter: ${value}. Expected default, verbose, junit or json.`,
+        );
       }
       if (inlineValue === undefined) index += 1;
     } else {
@@ -91,6 +94,8 @@ export const parseTestCliArgs = (
   if (command === 'nodes' && resultDir) {
     throw new Error('--result-dir is not supported by nodes.');
   }
+  if (command === 'nodes' && reporters.length)
+    throw new Error('--reporter is not supported by nodes.');
   if (command === 'nodes' && reporter)
     throw new Error('--reporter is not supported by nodes.');
   if (command === 'nodes' && projectNames.length > 1) {
@@ -104,6 +109,7 @@ export const parseTestCliArgs = (
     resultDir,
     ...(projectNames.length > 0 ? { projectNames } : {}),
     ...(reporter ? { reporter } : {}),
+    ...(reporters.length ? { reporters } : {}),
   };
 };
 
@@ -137,7 +143,7 @@ Options:
   --config <path>              Native TypeScript or JavaScript Test config
   --project <name>             Select a native execution Project (repeatable)
   --result-dir <path>          Store Test result files in this directory
-  --reporter <default|verbose> Concise Case results or full step diagnostics
+  --reporter <name>           Repeatable: default, verbose, junit or json
   --help, -h                  Show this help
   --version                   Show the package version
 
@@ -437,6 +443,8 @@ const reportTestProjectResult = (
   if (result.markdownPath && reporter.mode === 'verbose')
     io.log(`Markdown: ${result.markdownPath}`);
   if (result.reportPath) io.log(`Report: ${result.reportPath}`);
+  for (const artifact of result.reporterArtifacts ?? [])
+    io.log(`${artifact.name}: ${artifact.path}`);
   return result.exitCode;
 };
 

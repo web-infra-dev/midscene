@@ -4,6 +4,7 @@ import type {
   WorkflowDocumentSource,
 } from '@midscene/core/internal/test-runner';
 import type { TestReporterEvent } from './reporter-events';
+import type { TestReporterEntry, TestReporterFailure } from './reporter-config';
 import type {
   LoadedExecutionProject,
   LoadedTestProject,
@@ -17,6 +18,8 @@ export interface TestProjectRunOptions {
   configPath?: string;
   resultDir?: string;
   projectNames?: readonly string[];
+  /** Override reporters from project configuration. */
+  reporters?: readonly TestReporterEntry[];
   onProgress?(message: string): void;
   onEvent?(event: TestReporterEvent): void;
 }
@@ -99,6 +102,8 @@ export interface PreparedTestRunPlan {
   preflightScope: 'project' | 'run';
   reportEnabled: boolean;
   publications: readonly PreparedRunPublication[];
+  reporters: readonly TestReporterEntry[];
+  reporterEventFailures: TestReporterFailure[];
   onProgress(message: string): void;
   onEvent?(event: TestReporterEvent): void;
 }

@@ -1,5 +1,12 @@
 export * from './types';
 export * from './test-project';
+export type {
+  BuiltinTestReporter,
+  TestReporter,
+  TestReporterContext,
+  TestReporterEntry,
+  TestReporterOptions,
+} from './reporter-config';
 export {
   DEFAULT_TEST_FILE_SELECTION,
   createTestRunId,
