@@ -141,8 +141,8 @@ describe('IOSDevice', () => {
     it.each([
       ['down', 319, 773, 319, 1, 500],
       ['up', 100, 100, 100, 811, 500],
-      ['left', 100, 400, 374, 400, 274],
-      ['right', 300, 400, 1, 400, 299],
+      ['left', 100, 400, 374, 400, 500],
+      ['right', 300, 400, 1, 400, 500],
     ] as const)(
       'keeps an oversized %s scroll on screen without moving its touch origin',
       async (direction, x, y, endX, endY, duration) => {
@@ -165,32 +165,34 @@ describe('IOSDevice', () => {
     );
   });
 
-  describe('clipped horizontal scroll timing', () => {
-    it.each([
-      ['scrollRight', 402, 201, 1, 200],
-      ['scrollLeft', 402, 201, 401, 200],
-      ['scrollRight', 874, 437, 1, 436],
-      ['scrollLeft', 874, 437, 873, 436],
-      ['scrollRight', 402, 40, 1, 50],
-      ['scrollLeft', 874, 100, 873, 500],
-    ] as const)(
-      '%s keeps a clipped flick bounded on a %i-point viewport',
-      async (method, width, startX, endX, duration) => {
-        mockWdaClient.getWindowSize.mockResolvedValue({ width, height: 900 });
-        await device[method](width * 4, { left: startX, top: 400 });
-        expect(mockWdaClient.swipe).toHaveBeenCalledWith(
-          startX,
-          400,
-          endX,
-          400,
-          duration,
-        );
+  describe('horizontal scroll timing', () => {
+    it.each(['scrollRight', 'scrollLeft'] as const)(
+      '%s keeps the same pace on both sides of the clipping threshold',
+      async (method) => {
+        mockWdaClient.getWindowSize.mockResolvedValue({
+          width: 402,
+          height: 874,
+        });
+        for (const distance of [39, 100, 199, 200, 201, 1608]) {
+          await device[method](distance, { left: 201, top: 437 });
+          const endX =
+            method === 'scrollRight'
+              ? Math.max(1, 201 - distance)
+              : Math.min(401, 201 + distance);
+          expect(mockWdaClient.swipe).toHaveBeenLastCalledWith(
+            201,
+            437,
+            endX,
+            437,
+            500,
+          );
+        }
       },
     );
 
-    it('preserves timing for an untruncated horizontal scroll', async () => {
-      await device.scrollRight(100, { left: 200, top: 400 });
-      expect(mockWdaClient.swipe).toHaveBeenCalledWith(200, 400, 100, 400, 500);
+    it('does not accelerate an extremely short clipped path', async () => {
+      await device.scrollRight(1000, { left: 40, top: 400 });
+      expect(mockWdaClient.swipe).toHaveBeenCalledWith(40, 400, 1, 400, 500);
     });
   });
 

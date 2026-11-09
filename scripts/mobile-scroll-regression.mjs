@@ -251,6 +251,15 @@ try {
   });
   const action = device.actionSpace().find(({ name }) => name === 'Scroll');
   assert(action, 'SDK does not expose Scroll');
+  const gestures = [];
+  if (platform === 'ios') {
+    // Observe the real WDA dispatch without replacing the backend or gesture.
+    const swipe = device.wdaBackend.swipe.bind(device.wdaBackend);
+    device.wdaBackend.swipe = async (fromX, fromY, toX, toY, duration) => {
+      gestures.push({ fromX, fromY, toX, toY, duration });
+      return swipe(fromX, fromY, toX, toY, duration);
+    };
+  }
   for (const orientation of ['portrait', 'landscape']) {
     if (platform === 'android')
       adb(
@@ -280,6 +289,7 @@ try {
             direction === 'right' ? 'horizontal' : 'vertical',
           );
           screenshot(`${name}-before`);
+          const gestureCount = gestures.length;
           let error;
           try {
             await action.call(
@@ -299,6 +309,11 @@ try {
           results.push(result);
           save(`${name}.json`, { ...result, before, after });
           save('results.json', results);
+          assert.equal(
+            gestures.length,
+            gestureCount,
+            `${name}: invalid input reached WDA`,
+          );
           assert.match(
             error ?? '',
             /Scroll distance must be positive and finite/,
@@ -413,6 +428,7 @@ try {
           }
           screenshot(`${name}-before`);
           let after;
+          const gestureCount = gestures.length;
           try {
             await action.call(
               {
@@ -438,7 +454,14 @@ try {
             const delta = after[axis] - before[axis];
             const fraction =
               (delta / extent) * (['up', 'left'].includes(direction) ? -1 : 1);
-            const result = { name, delta, fraction, extent };
+            const dispatched = gestures.slice(gestureCount);
+            const result = {
+              name,
+              delta,
+              fraction,
+              extent,
+              ...(platform === 'ios' ? { gestures: dispatched } : {}),
+            };
             results.push(result);
             save(`${name}.json`, { before, after, size, ...result });
             if (scrollType !== 'singleAction') {
@@ -455,6 +478,26 @@ try {
                 Math.abs(after.y - target) <= 1,
                 `${name}: expected boundary ${target}, got ${after.y}`,
               );
+            } else if (located) {
+              // A valid bounded Scroll is not a promise to flip a native page.
+              // Inspect the real dispatch, preserve the origin and pace, and
+              // reject reverse content motion; Swipe cases above assert paging.
+              const fromX = Math.round(size.width * originRatio);
+              const fromY = Math.round(size.height / 2);
+              assert.deepEqual(
+                dispatched,
+                [
+                  {
+                    fromX,
+                    fromY,
+                    toX: direction === 'right' ? 1 : size.width - 1,
+                    toY: fromY,
+                    duration: 500,
+                  },
+                ],
+                `${name}: invalid bounded gesture`,
+              );
+              assert(fraction >= -0.03, `${name}: content moved in reverse`);
             } else if (mode === 'horizontal')
               assert(
                 Math.abs(fraction - 1) < 0.03,
