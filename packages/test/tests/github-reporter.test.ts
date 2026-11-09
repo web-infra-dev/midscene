@@ -97,9 +97,10 @@ describe('GitHub reporter', () => {
       expect(output).toContain('| 1 | 1 | 2 | 1 | 1.3s |');
       expect(output).toContain('Failed: **checkout**');
       expect(output).not.toContain('old attempt');
+      // Badge fail is failed + notRun (1 + 2). The summary table keeps those counts separate.
       expect(
         output.match(
-          /!\[Midscene Test: 1 passed, 1 failed\]\(https:\/\/badge\.midscenejs\.com\/e2e\?pass=1&fail=1&style=large\)/g,
+          /!\[Midscene Test: 1 passed, 3 failed\]\(https:\/\/badge\.midscenejs\.com\/e2e\?pass=1&fail=3&style=large\)/g,
         ),
       ).toHaveLength(2);
       expect(output).toContain('/repo/report/index.html');
