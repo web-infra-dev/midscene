@@ -10,32 +10,59 @@ pnpm exec midscene-test
 
 ### 指定用例目录或文件
 
-脚手架生成的项目默认通过 `files.include` 匹配 `cases/` 目录下的 `.yaml` 和 `.yml` 文件。如果配置文件中未声明 `files`，Midscene Test 会递归查找测试根目录下的所有 YAML 文件（自动忽略 `node_modules` 和 `.git`）。
+文件或目录参数用于筛选用例。运行全部用例、单个文件或子目录时，命令使用同一份项目配置。
 
-文件或目录参数只缩小用例范围，不改变项目上下文。
-
-- **查找配置**：默认只在当前工作目录查找 `midscene.config.ts` 或 `midscene.config.mjs`，不查找父目录或子目录。显式 `--config` 路径相对于当前工作目录解析。
-- **测试根目录**：找到配置时使用配置所在目录；无配置时使用当前工作目录。配置中的 `files.include`、`files.exclude` 和 `output.reportDir` 都相对于测试根目录解析。
-- **命令行路径**：文件/目录参数和 `--result-dir` 都相对于当前工作目录解析。
-- **筛选规则**：先应用 `--project`、配置中的文件包含/排除规则和 tags，路径参数进一步缩小范围，不会绕过排除规则。没有匹配用例时，命令会报筛选错误。
-
-从项目根目录运行时，以下命令使用同一份配置、Nodes 和默认输出目录：
+从项目根目录运行以下命令：
 
 ```bash
 pnpm exec midscene-test
 pnpm exec midscene-test ./cases/order.yaml
 pnpm exec midscene-test ./cases/smoke
-pnpm exec midscene-test ./cases/order.yaml --config ./midscene.config.ts
 ```
 
-从子目录运行时，显式指定项目配置：
+这些命令共用配置中的 Node（节点）和 Project（执行项目），默认输出位置也相同。
+
+**配置与路径规则**
+
+| 项目 | 解析规则 |
+| --- | --- |
+| 默认配置 | 仅查找当前工作目录。支持 `midscene.config.ts` 和 `midscene.config.mjs`。 |
+| `--config` | 相对路径以当前工作目录为基准，也支持绝对路径。 |
+| 测试根目录 | 使用配置所在目录。无配置时，使用当前工作目录。 |
+| 文件或目录参数 | 以当前工作目录为基准，仅用于筛选用例。 |
+| 配置中的路径 | `files.include`、`files.exclude` 和 `output.reportDir` 均以测试根目录为基准。 |
+| `--result-dir` | 相对路径以当前工作目录为基准。 |
+
+默认配置查找只检查当前工作目录。从子目录运行时，请显式指定项目配置：
 
 ```bash
 cd cases
 pnpm exec midscene-test ./order.yaml --config ../midscene.config.ts
 ```
 
-目录参数不再切换项目。运行另一个项目时，请进入该项目目录，或用 `--config` 指定它的配置。SDK 中使用 `projectRoot` 指定配置查找目录，使用 `testPath` 筛选文件；显式 `configPath` 相对于 `cwd` 解析，并以配置所在目录为测试根目录。
+此时，测试根目录是配置所在的父目录。默认输出仍位于父目录的 `midscene_run`。
+
+**文件与标签筛选**
+
+脚手架生成的项目通过 `files.include` 选择用例。默认范围是 `cases/` 下的 `.yaml` 和 `.yml` 文件。省略 `files` 时，框架递归查找测试根目录下的 YAML 文件，并忽略 `node_modules`、`.git` 和运行产物目录。
+
+路径参数会进一步缩小用例范围。`--project`、文件包含与排除规则，以及 tags（标签）筛选仍然生效。显式指定文件也需要满足这些规则。
+
+传入路径参数后，如果所有 Project 都没有匹配的用例，命令会报筛选错误。部分 Project 没有匹配用例时，其他 Project 仍可运行。
+
+未传路径参数时，沿用原有行为：如果文件存在，但 tags 排除了全部用例，命令可以成功退出。文件查找失败等其他错误仍会导致运行失败。
+
+**切换项目与 SDK 调用**
+
+运行另一个项目时，请进入该项目目录，或用 `--config` 指定配置。目录参数只用于筛选用例。
+
+SDK 使用以下参数：
+
+- `projectRoot`：指定默认配置查找目录。省略时使用 `cwd`。
+- `testPath`：指定文件或目录筛选路径。相对路径以 `cwd` 为基准。
+- `configPath`：显式选择配置。相对路径以 `cwd` 为基准，测试根目录为配置所在目录。
+
+以上规则适用于测试运行。`nodes` 子命令保留原有的目录和配置解析规则。
 
 ### 过滤执行项目与指定配置文件
 

@@ -10,32 +10,59 @@ pnpm exec midscene-test
 
 ### Specify a test case directory or file
 
-Projects generated from templates use `files.include` to match `.yaml` and `.yml` files under `cases/` by default. If `files` is not declared in the configuration, Midscene Test recursively searches for all YAML files under the test root directory (automatically ignoring `node_modules` and `.git`).
+A file or directory argument filters the selected cases. Full-suite, single-file, and subdirectory runs share the same project configuration.
 
-File and directory arguments only narrow the selected cases; they do not change the project context.
-
-- **Config discovery**: Look for `midscene.config.ts` or `midscene.config.mjs` in the current working directory only. No parent or child directories are searched. Resolve an explicit `--config` path relative to the working directory.
-- **Test root**: Use the config's directory, or the working directory when no config is found. Resolve `files.include`, `files.exclude`, and `output.reportDir` relative to this root.
-- **CLI paths**: Resolve the file/directory argument and `--result-dir` relative to the working directory.
-- **Selection**: Apply `--project`, configured file inclusion/exclusion, and tags. The positional path further narrows this selection; it never bypasses exclusions. If no cases match, the command fails with a selection error.
-
-From the project root, these commands share the same config, Nodes, and default output directory:
+Run these commands from the project root:
 
 ```bash
 pnpm exec midscene-test
 pnpm exec midscene-test ./cases/order.yaml
 pnpm exec midscene-test ./cases/smoke
-pnpm exec midscene-test ./cases/order.yaml --config ./midscene.config.ts
 ```
 
-From a child directory, select the project config explicitly:
+They share the configured Nodes, Execution Projects, and default output location.
+
+**Configuration and path resolution**
+
+| Input | Resolution rule |
+| --- | --- |
+| Default config | Search cwd only for `midscene.config.ts` or `midscene.config.mjs`. |
+| `--config` | Resolve relative paths from cwd; absolute paths are also supported. |
+| Test root | Use the config directory, or cwd when no config is found. |
+| File or directory argument | Resolve from cwd and use only as a case filter. |
+| Paths in config | Resolve `files.include`, `files.exclude`, and `output.reportDir` from the test root. |
+| `--result-dir` | Resolve relative paths from cwd. |
+
+Default discovery checks cwd only. When running from a child directory, select the project config explicitly:
 
 ```bash
 cd cases
 pnpm exec midscene-test ./order.yaml --config ../midscene.config.ts
 ```
 
-A directory argument no longer switches projects. To run another project, change into its directory or use `--config` to select its config. In the SDK, use `projectRoot` to choose the config discovery directory and `testPath` to filter files; an explicit `configPath` is relative to `cwd` and its directory becomes the root.
+The parent directory containing the config becomes the test root. Default output remains in that directory's `midscene_run`.
+
+**File and tag selection**
+
+Scaffolded projects use `files.include` to select `.yaml` and `.yml` files under `cases/`. Without `files`, the framework discovers YAML files recursively under the test root, ignoring `node_modules`, `.git`, and run artifact directories.
+
+The positional path further narrows the selection. `--project`, file inclusion/exclusion rules, and tags still apply, including to explicitly named files.
+
+With a positional path, the command fails with a selection error if no Project has matching cases. An empty selection in one Project does not prevent other Projects from running.
+
+Without a positional path, existing behavior is preserved: if files exist but tags exclude every case, the command can succeed. Other errors, such as failure to discover files, still fail the run.
+
+**Switching projects and SDK calls**
+
+To run another project, change into its directory or select its config with `--config`. A directory argument only filters cases.
+
+The SDK accepts these options:
+
+- `projectRoot`: the default config discovery directory; defaults to `cwd`.
+- `testPath`: a file or directory filter, resolved relative to `cwd`.
+- `configPath`: an explicit config, resolved relative to `cwd`. Its directory becomes the test root.
+
+These rules apply to test runs. The `nodes` subcommand retains its existing directory and config resolution rules.
 
 ### Filter execution targets and configuration files
 
