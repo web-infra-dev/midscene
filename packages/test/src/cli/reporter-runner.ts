@@ -84,9 +84,8 @@ export async function publishConfiguredReporters(options: PublishReportersOption
       continue;
     }
 
-    const [name, config] = typeof entry === 'string'
-      ? [entry, {}] as const
-      : entry;
+    const name = typeof entry === 'string' ? entry : entry[0];
+    const config = typeof entry === 'string' ? {} as { outputFile?: string } : entry[1];
     const output = filePath(outputDir, config.outputFile ?? (name === 'junit' ? 'junit.xml' : 'result.json'));
     const ok = await options.publish(output, async () => {
       const dump = buildTestRunReportDump(options.result(), options.reportIndex ?? emptyIndex());

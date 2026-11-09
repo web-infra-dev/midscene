@@ -84,6 +84,57 @@ In CI:
 - With the [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action), set `run-directory` or `MIDSCENE_RUN_DIR`. Execution and artifact collection use the same directory.
 - Collect files using the printed `Summary:` / `Report:` paths or the SDK's `summaryPath`, `markdownPath`, and `reportPath`. See below for sharing reports.
 
+### Configurable result reporters
+
+Midscene Test supports multiple output reporters for CI integrations. Existing
+terminal, HTML, Markdown, and summary outputs remain enabled as before.
+Additional reporters are opt-in. Configure them in `midscene.config.ts`:
+
+```ts
+import { defineTestProject } from '@midscene/test/config';
+
+export default defineTestProject({
+  reporters: [
+    ['junit', { outputFile: 'ci/junit.xml' }],
+    ['json', { outputFile: 'ci/results.json' }],
+  ],
+});
+```
+
+You can also enable built-in reporters with repeatable CLI arguments:
+
+```bash
+pnpm exec midscene-test --reporter=verbose --reporter=junit --reporter=json
+```
+
+`default` and `verbose` select the terminal presentation. `junit` and
+`json` add output files. Paths are relative to each run's results directory,
+unless absolute; defaults are `junit.xml` and `result.json`. Outputs are
+listed in `summary.json` under `reporters`; JUnit also sets `junit`.
+The SDK accepts `runTestProject({ reporters: ['junit', 'json'] })`,
+which overrides project reporter configuration.
+
+A custom reporter can be supplied directly in a JavaScript/TypeScript config
+or SDK call:
+
+```ts
+reporters: [{
+  name: 'my-reporter',
+  onEvent(event) { /* live, synchronous events */ },
+  async onFinished({ result, dump, outputDir }) {
+    // Write a file and return its relative or absolute path, or return void.
+  },
+}]
+```
+
+Custom `onFinished` receives the completed result and sanitized report dump.
+Reporter failures are captured as publication failures, make the run fail, and
+do not prevent subsequent reporters from running. JUnit represents Case failures
+as `<failure>`, unexecuted Cases as `<skipped>`, and collection, lifecycle,
+file-hook and run-infrastructure failures as `<error>`. CI collectors can read
+`midscene_run/test-results/*/junit.xml` (or the configured path). Preserve
+the original command's exit code when collecting artifacts.
+
 ### Exit codes
 
 You can determine the overall outcome of a test run from the CLI exit code:
