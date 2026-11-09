@@ -1,0 +1,22 @@
+import { PackageManagerTabs } from '@theme';
+
+<PackageManagerTabs command="install @midscene/web dotenv --save-dev" />
+
+Add the following configuration to `playwright.config.ts` (create the file if your project does not have one yet), while keeping your project's other settings and reporters:
+
+```typescript title="playwright.config.ts"
+import 'dotenv/config';
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './e2e',
+  timeout: 90_000,
+  use: { browserName: 'chromium' },
+  reporter: [
+    ['list'],
+    ['@midscene/web/playwright-reporter'],
+  ],
+});
+```
+
+`dotenv/config` loads model settings from the project's `.env` file (settings in the Chrome extension Playground are not automatically shared with test runs). Because model calls take longer than standard DOM operations, increase `timeout` as needed for your tests.

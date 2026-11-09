@@ -1,11 +1,14 @@
-import SdkDeviceTests from '../../../theme/components/sdk-device-tests/zh/sdk-device-tests.mdx';
 import SdkDeviceLifecycle from '../../../theme/components/sdk-device-tests/zh/sdk-device-lifecycle.mdx';
+import SdkVitestInstall from '../common/sdk-vitest-install.mdx';
+import SdkVitestConfig from '../common/sdk-vitest-config.mdx';
+import SdkVitestWrite from '../common/sdk-vitest-write.mdx';
+import SdkVitestRun from '../common/sdk-vitest-run.mdx';
 import SdkCommonMethods from '../common/sdk-common-methods.mdx';
-import { SdkPrerequisites, SdkPlatformProvider, SdkPlatformSelector, SdkPlatformContent } from '@theme';
+import { SdkPrerequisites, SdkPlatformProvider, SdkPlatformSelector } from '@theme';
 
 # 接入 Vitest
 
-<SdkPlatformProvider>
+<SdkPlatformProvider lang="zh">
 
 编写 Android、iOS、HarmonyOS 和桌面端的 JavaScript / TypeScript 测试时，推荐使用 [Rstest](./rstest) 或 [Vitest](./vitest)。本文介绍 Vitest 的接入方式。Vitest 负责组织用例、执行生命周期钩子并汇总测试结果；Midscene Agent 负责连接设备、操作界面并执行断言。
 
@@ -17,72 +20,19 @@ import { SdkPrerequisites, SdkPlatformProvider, SdkPlatformSelector, SdkPlatform
 
 ## 1. 安装依赖
 
-<SdkPlatformContent platform="android">
-
-```bash
-pnpm add -D vitest dotenv @midscene/android
-```
-
-</SdkPlatformContent>
-
-<SdkPlatformContent platform="ios">
-
-```bash
-pnpm add -D vitest dotenv @midscene/ios
-```
-
-</SdkPlatformContent>
-
-<SdkPlatformContent platform="harmonyos">
-
-```bash
-pnpm add -D vitest dotenv @midscene/harmony
-```
-
-</SdkPlatformContent>
-
-<SdkPlatformContent platform="desktop">
-
-```bash
-pnpm add -D vitest dotenv @midscene/computer
-```
-
-</SdkPlatformContent>
+<SdkVitestInstall />
 
 ## 2. 配置测试
 
-新建 `vitest.config.ts`。如果项目已在使用 Vitest，可以将设备测试配置单独保存为 `vitest.device.config.ts`，运行时通过 `--config vitest.device.config.ts` 指定，以免影响现有的单元测试配置。
-
-```typescript title="vitest.config.ts"
-import { defineConfig } from 'vitest/config';
-
-export default defineConfig({
-  test: {
-    include: ['e2e/**/*.test.ts'],
-    environment: 'node',
-    testTimeout: 90_000,
-    hookTimeout: 90_000,
-    fileParallelism: false,
-    sequence: { concurrent: false },
-  },
-});
-```
-
-由于模型调用和设备连接耗时较长，请根据实际用例适当调大 `testTimeout` 与 `hookTimeout`。在共享同一台设备时，需关闭文件级并行（`fileParallelism: false`）并保持用例串行执行（`sequence.concurrent: false`），同时避免在代码中调用 `test.concurrent` 或 `describe.concurrent`。相关配置项详见 Vitest 的 [fileParallelism](https://vitest.dev/config/fileparallelism)、[testTimeout](https://vitest.dev/config/testtimeout) 和 [hookTimeout](https://vitest.dev/config/hooktimeout) 文档。
+<SdkVitestConfig />
 
 ## 3. 编写测试
 
-<SdkDeviceTests runner="vitest" />
+<SdkVitestWrite />
 
 ## 4. 运行测试与查看报告
 
-```bash
-pnpm exec vitest run e2e/settings.test.ts
-```
-
-运行后，Vitest 会在终端汇总用例的通过或失败状态；Midscene SDK 则默认在 `midscene_run/report/` 下生成各 Agent 的执行报告，并在终端打印报告路径。在浏览器中打开生成的 HTML 报告，即可查看各步骤的截图、AI 执行过程和断言结果。
-
-与 Playwright Test 不同，Vitest 接入直接使用 SDK 内置的报告生成机制，无需额外部署 reporter。Vitest 的测试结果与 Midscene 的 Agent 报告相互独立；如需合并或进一步处理报告文件，请参阅[处理报告文件](../consume-report-file)。
+<SdkVitestRun />
 
 ## 常用方法
 

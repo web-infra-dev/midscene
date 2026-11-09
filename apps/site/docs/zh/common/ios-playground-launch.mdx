@@ -1,0 +1,12 @@
+请确保已安装 Node.js（版本要求 `^20.19.0 || ^22.12.0 || >=24.0.0`），且终端中可正常执行 `node -v`。下方命令使用 pnpm，如果尚未安装，请运行 `npm install -g pnpm`。
+
+1. 在终端运行以下命令启动 iOS Playground：
+
+```bash
+pnpm dlx @midscene/ios-playground
+```
+
+2. 在打开的 Playground 页面中，点击右上角的齿轮图标，粘贴模型配置并保存。
+3. 若浏览器未自动打开，请手动访问终端打印的本地地址，并保持该终端进程持续运行。
+4. 若页面弹出连接面板，请填写 WDA 的主机地址与端口（本机默认为 `localhost` 和 `8100`）并创建 Agent（若本机默认端口上的 WDA 已就绪，Playground 可能会自动完成连接；若通过网关代理访问 WDA，请填写完整的 **WebDriverAgent base URL**，切勿同时填写 host / port）。
+5. 确认预览区域已正常显示当前设备或模拟器的屏幕画面；若画面未显示，请先排查 WDA 连接与端口转发。

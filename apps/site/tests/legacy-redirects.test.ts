@@ -39,7 +39,10 @@ describe('legacy HTTP redirects', () => {
   it('redirects reported missing documentation URLs to their replacements', () => {
     const expected = {
       '/android-integration': '/sdk/android',
-      '/zh/quick-experience.html': '/zh/quick-start#chrome-extension',
+      '/zh/quick-experience.html':
+        '/zh/get-started?scene=playground&platform=web',
+      '/quick-start': '/get-started?scene=playground&platform=web',
+      '/zh/quick-start.html': '/zh/get-started?scene=playground&platform=web',
       '/zh/batch-yaml.html': '/zh/yaml-script-runner',
       '/zh/test-runner-overview': '/zh/midscene-test/overview',
       '/reference.html': '/reference/',
@@ -110,7 +113,8 @@ describe('legacy HTTP redirects', () => {
     for (const { from, to, status } of rules) {
       expect(['200', '301', '302']).toContain(status);
       expect(rules.some((rule) => rule.from === to)).toBe(false);
-      const [pathname, fragment] = to.split('#');
+      const [location, fragment] = to.split('#');
+      const pathname = location.split('?')[0];
       if (existsSync(new URL(`public${pathname}`, docs))) {
         continue;
       }

@@ -4,8 +4,9 @@ import { defineConfig } from '@rspress/core';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import { pluginClientRedirects } from '@rspress/plugin-client-redirects';
-import { pluginLlms } from '@rspress/plugin-llms';
-import { pluginSitemap } from '@rspress/plugin-sitemap';
+import { isAnchorOutsideMarkdown } from './plugins/anchor-excludes';
+import { pluginGetStartedPages } from './plugins/get-started-pages';
+import { pluginMarkdownOutput } from './plugins/markdown-output';
 import { getGitHubStars } from './scripts/github-stars';
 
 const SITE_URL = 'https://midscenejs.com';
@@ -51,6 +52,8 @@ export default defineConfig(async () => {
     root: path.join(__dirname, 'docs'),
     route: {
       cleanUrls: true,
+      // MDX fragments imported by pages. They are not pages themselves.
+      exclude: ['**/common/**'],
     },
     title: 'Midscene.js - AI UI Automation and E2E Testing',
     description:
@@ -105,7 +108,14 @@ export default defineConfig(async () => {
     markdown: {
       link: {
         checkDeadLinks: true,
+        checkAnchors: { excludes: isAnchorOutsideMarkdown },
       },
+    },
+    // Render pages, including imported MDX fragments and components, to
+    // Markdown for llms.txt, llms-full.txt, and per-page .md files.
+    llms: true,
+    sitemap: {
+      siteUrl: SITE_URL,
     },
     mediumZoom: {
       selector: '.rspress-doc img:not(.no-zoom)',
@@ -182,12 +192,8 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Getting started',
           },
           {
-            text: 'Try the GUI Agent',
-            link: '/quick-start',
-          },
-          {
-            text: 'Start with Midscene Test',
-            link: '/midscene-test/use',
+            text: 'Get started',
+            link: '/get-started',
           },
           {
             text: 'Control any platform with Skills',
@@ -201,16 +207,23 @@ export default defineConfig(async () => {
             link: '/model-selection',
           },
           {
-            text: 'Use a model API Key',
-            link: '/model-api-setup',
-          },
-          {
-            text: 'Use a ChatGPT subscription',
-            link: '/chatgpt-subscription',
-          },
-          {
-            text: 'Advanced configuration & debugging',
-            link: '/model-config',
+            text: 'Configure a model',
+            collapsible: true,
+            collapsed: false,
+            items: [
+              {
+                text: 'Use a model API Key',
+                link: '/model-api-setup',
+              },
+              {
+                text: 'Use a ChatGPT subscription',
+                link: '/chatgpt-subscription',
+              },
+              {
+                text: 'Advanced configuration & debugging',
+                link: '/model-config',
+              },
+            ],
           },
           {
             sectionHeaderText: 'Platform environment setup',
@@ -220,28 +233,35 @@ export default defineConfig(async () => {
             link: '/platforms/',
           },
           {
-            text: 'Web',
-            link: '/platforms/web',
-          },
-          {
-            text: 'Chrome Bridge',
-            link: '/bridge-mode',
-          },
-          {
-            text: 'Android',
-            link: '/platforms/android',
-          },
-          {
-            text: 'iOS',
-            link: '/platforms/ios',
-          },
-          {
-            text: 'HarmonyOS',
-            link: '/platforms/harmonyos',
-          },
-          {
-            text: 'Desktop',
-            link: '/platforms/desktop',
+            text: 'Set up by platform',
+            collapsible: true,
+            collapsed: false,
+            items: [
+              {
+                text: 'Web',
+                link: '/platforms/web',
+              },
+              {
+                text: 'Chrome Bridge',
+                link: '/bridge-mode',
+              },
+              {
+                text: 'Android',
+                link: '/platforms/android',
+              },
+              {
+                text: 'iOS',
+                link: '/platforms/ios',
+              },
+              {
+                text: 'HarmonyOS',
+                link: '/platforms/harmonyos',
+              },
+              {
+                text: 'Desktop',
+                link: '/platforms/desktop',
+              },
+            ],
           },
           {
             sectionHeaderText: 'Midscene Test',
@@ -371,20 +391,26 @@ export default defineConfig(async () => {
             text: 'Cache AI plans & DOM locators',
             link: '/caching',
           },
+          // A group, not a section header, so it can start collapsed. Rspress
+          // expands it when the current page is one of its items.
           {
-            sectionHeaderText: 'Legacy YAML automation',
-          },
-          {
-            text: 'YAML script runner',
-            link: '/yaml-script-runner',
-          },
-          {
-            text: 'Workflow in YAML format',
-            link: '/automate-with-scripts-in-yaml',
-          },
-          {
-            text: 'Migrate to Midscene Test',
-            link: '/migrate-to-midscene-test',
+            text: 'Legacy YAML automation',
+            collapsible: true,
+            collapsed: true,
+            items: [
+              {
+                text: 'YAML script runner',
+                link: '/yaml-script-runner',
+              },
+              {
+                text: 'Workflow in YAML format',
+                link: '/automate-with-scripts-in-yaml',
+              },
+              {
+                text: 'Migrate to Midscene Test',
+                link: '/migrate-to-midscene-test',
+              },
+            ],
           },
           {
             sectionHeaderText: 'Resources',
@@ -441,12 +467,8 @@ export default defineConfig(async () => {
             sectionHeaderText: '开始使用',
           },
           {
-            text: '快速体验 GUI Agent',
-            link: '/zh/quick-start',
-          },
-          {
-            text: '创建 Midscene Test E2E 项目',
-            link: '/zh/midscene-test/use',
+            text: '开始使用',
+            link: '/zh/get-started',
           },
           {
             text: '使用 Skills 控制任意平台',
@@ -460,16 +482,23 @@ export default defineConfig(async () => {
             link: '/zh/model-selection',
           },
           {
-            text: '使用模型 API Key',
-            link: '/zh/model-api-setup',
-          },
-          {
-            text: '使用 ChatGPT 订阅',
-            link: '/zh/chatgpt-subscription',
-          },
-          {
-            text: '高级配置与调试',
-            link: '/zh/model-config',
+            text: '配置模型',
+            collapsible: true,
+            collapsed: false,
+            items: [
+              {
+                text: '使用模型 API Key',
+                link: '/zh/model-api-setup',
+              },
+              {
+                text: '使用 ChatGPT 订阅',
+                link: '/zh/chatgpt-subscription',
+              },
+              {
+                text: '高级配置与调试',
+                link: '/zh/model-config',
+              },
+            ],
           },
           {
             sectionHeaderText: '平台环境配置',
@@ -479,28 +508,35 @@ export default defineConfig(async () => {
             link: '/zh/platforms/',
           },
           {
-            text: 'Web',
-            link: '/zh/platforms/web',
-          },
-          {
-            text: 'Chrome Bridge',
-            link: '/zh/bridge-mode',
-          },
-          {
-            text: 'Android',
-            link: '/zh/platforms/android',
-          },
-          {
-            text: 'iOS',
-            link: '/zh/platforms/ios',
-          },
-          {
-            text: 'HarmonyOS',
-            link: '/zh/platforms/harmonyos',
-          },
-          {
-            text: '桌面端',
-            link: '/zh/platforms/desktop',
+            text: '按平台配置',
+            collapsible: true,
+            collapsed: false,
+            items: [
+              {
+                text: 'Web',
+                link: '/zh/platforms/web',
+              },
+              {
+                text: 'Chrome Bridge',
+                link: '/zh/bridge-mode',
+              },
+              {
+                text: 'Android',
+                link: '/zh/platforms/android',
+              },
+              {
+                text: 'iOS',
+                link: '/zh/platforms/ios',
+              },
+              {
+                text: 'HarmonyOS',
+                link: '/zh/platforms/harmonyos',
+              },
+              {
+                text: '桌面端',
+                link: '/zh/platforms/desktop',
+              },
+            ],
           },
           {
             sectionHeaderText: 'Midscene Test',
@@ -630,20 +666,26 @@ export default defineConfig(async () => {
             text: '缓存 AI 规划与 DOM 定位',
             link: '/zh/caching',
           },
+          // A group, not a section header, so it can start collapsed. Rspress
+          // expands it when the current page is one of its items.
           {
-            sectionHeaderText: '旧版 YAML 自动化',
-          },
-          {
-            text: 'YAML 脚本运行器',
-            link: '/zh/yaml-script-runner',
-          },
-          {
-            text: 'YAML 格式的工作流',
-            link: '/zh/automate-with-scripts-in-yaml',
-          },
-          {
-            text: '迁移到 Midscene Test',
-            link: '/zh/migrate-to-midscene-test',
+            text: '旧版 YAML 自动化',
+            collapsible: true,
+            collapsed: true,
+            items: [
+              {
+                text: 'YAML 脚本运行器',
+                link: '/zh/yaml-script-runner',
+              },
+              {
+                text: 'YAML 格式的工作流',
+                link: '/zh/automate-with-scripts-in-yaml',
+              },
+              {
+                text: '迁移到 Midscene Test',
+                link: '/zh/migrate-to-midscene-test',
+              },
+            ],
           },
           {
             sectionHeaderText: '资源',
@@ -731,29 +773,8 @@ export default defineConfig(async () => {
     },
     lang: 'en',
     plugins: [
-      pluginLlms([
-        {
-          llmsTxt: {
-            name: 'llms.txt',
-          },
-          llmsFullTxt: {
-            name: 'llms-full.txt',
-          },
-          include: ({ page }) => page.lang === 'en',
-        },
-        {
-          llmsTxt: {
-            name: 'zh/llms.txt',
-          },
-          llmsFullTxt: {
-            name: 'zh/llms-full.txt',
-          },
-          include: ({ page }) => page.lang === 'zh',
-        },
-      ]),
-      pluginSitemap({
-        siteUrl: 'https://midscenejs.com',
-      }),
+      pluginGetStartedPages(),
+      pluginMarkdownOutput(),
       pluginClientRedirects({
         redirects: [
           { from: '^/zh$', to: '/zh/' },
@@ -779,6 +800,7 @@ export default defineConfig(async () => {
                 'model-config#verify-model-connectivity',
               ],
               ['cli', 'yaml-script-runner'],
+              ['quick-start', 'get-started?scene=playground&platform=web'],
               [
                 'blog-programming-practice-using-structured-api',
                 'basics#javascript-orchestration',
@@ -956,7 +978,7 @@ export default defineConfig(async () => {
           },
           {
             from: '^/quick-experience(?:\\.html)?/?$',
-            to: '/quick-start#chrome-extension',
+            to: '/get-started?scene=playground&platform=web',
           },
           {
             from: '^/quick-experience-with-android(?:\\.html)?/?$',
@@ -996,7 +1018,7 @@ export default defineConfig(async () => {
           },
           {
             from: '^/zh/quick-experience(?:\\.html)?/?$',
-            to: '/zh/quick-start#chrome-extension',
+            to: '/zh/get-started?scene=playground&platform=web',
           },
           {
             from: '^/zh/batch-yaml(?:\\.html)?/?$',

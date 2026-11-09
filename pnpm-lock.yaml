@@ -526,17 +526,11 @@ importers:
         version: 18.3.1(react@18.3.1)
     devDependencies:
       '@rspress/core':
-        specifier: 2.0.18
-        version: 2.0.18(@rspack/core@2.3.1(@swc/helpers@0.5.24))(@types/mdast@4.0.4)(@types/react@19.3.0)(core-js@3.51.0)(micromark-util-types@2.0.3)(micromark@4.0.3)
+        specifier: 2.1.0
+        version: 2.1.0(@rspack/core@2.3.1(@swc/helpers@0.5.24))(core-js@3.51.0)(micromark-util-types@2.0.3)(micromark@4.0.3)
       '@rspress/plugin-client-redirects':
-        specifier: 2.0.18
-        version: 2.0.18(@rspress/core@2.0.18(@rspack/core@2.3.1(@swc/helpers@0.5.24))(@types/mdast@4.0.4)(@types/react@19.3.0)(core-js@3.51.0)(micromark-util-types@2.0.3)(micromark@4.0.3))
-      '@rspress/plugin-llms':
-        specifier: 2.0.18
-        version: 2.0.18(@rspress/core@2.0.18(@rspack/core@2.3.1(@swc/helpers@0.5.24))(@types/mdast@4.0.4)(@types/react@19.3.0)(core-js@3.51.0)(micromark-util-types@2.0.3)(micromark@4.0.3))
-      '@rspress/plugin-sitemap':
-        specifier: 2.0.18
-        version: 2.0.18(@rspress/core@2.0.18(@rspack/core@2.3.1(@swc/helpers@0.5.24))(@types/mdast@4.0.4)(@types/react@19.3.0)(core-js@3.51.0)(micromark-util-types@2.0.3)(micromark@4.0.3))
+        specifier: 2.1.0
+        version: 2.1.0(@rspress/core@2.1.0(@rspack/core@2.3.1(@swc/helpers@0.5.24))(core-js@3.51.0)(micromark-util-types@2.0.3)(micromark@4.0.3))
       '@rstest/core':
         specifier: 0.12.0
         version: 0.12.0(core-js@3.51.0)(jsdom@29.0.2(@noble/hashes@1.8.0))
@@ -552,6 +546,9 @@ importers:
       postcss:
         specifier: 8.5.32
         version: 8.5.32
+      react-render-to-markdown:
+        specifier: 18.3.2
+        version: 18.3.2(react@18.3.1)
       tailwindcss:
         specifier: 4.1.11
         version: 4.1.11
@@ -3929,31 +3926,19 @@ packages:
   '@rspack/resolver@0.2.8':
     resolution: {integrity: sha512-FBWqdHhzS8mcf/WN4Ktzr7EaeaN+hsxbN98EweegX3924beZuY6H70CSFWCv1fIHAieCUv/9XCjKggHvhCsLwA==}
 
-  '@rspress/core@2.0.18':
-    resolution: {integrity: sha512-DBpsr/6XAItQkZPL5FSjthLGuzdG9ks/7EOxkqaaXp93uAT54LO0PD5Dkoy6ydup1PnvkpHyiHpUyDcnHHTVhg==}
+  '@rspress/core@2.1.0':
+    resolution: {integrity: sha512-xw5iGhzLn4O8vGUj8+y7AiVo51Pd1l1GkIBF9q5btfXTYR0xkGY984rxMFOYI43etvlRRkMM2du+IwiyqUnPGA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
-  '@rspress/plugin-client-redirects@2.0.18':
-    resolution: {integrity: sha512-q70ufN0S125kl0QlucO7JuiZ0WJaxFOtPPoGu7eWwam9fb+i4YsWnOWtAKSKGH4JP5+897mgpDPP+dmfl9DPCw==}
+  '@rspress/plugin-client-redirects@2.1.0':
+    resolution: {integrity: sha512-iqNZyaBe1lrAQSUIunzlYDLlDlE3Vmz7S7heVaNSqXZVWXtT3MdemqdR3qLo6FvFb7ZXcXqijpdWWpsflG4wNA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
-      '@rspress/core': ^2.0.10
+      '@rspress/core': ^2.1.0-beta.2
 
-  '@rspress/plugin-llms@2.0.18':
-    resolution: {integrity: sha512-kSjRip/IR2D9L65OR1nxt+CWjjmMLEntgyy3p12G4EKqeLYZLclGIZ2UweuPUPHEM8bKRIwHWV1wjfZOxTsqqA==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    peerDependencies:
-      '@rspress/core': ^2.0.10
-
-  '@rspress/plugin-sitemap@2.0.18':
-    resolution: {integrity: sha512-XfaXzZx+ASN9OMTc0fOvW8QmbmyCyDWkO8xJj4XF4E0YJtsu7j/65+v8/KXXdwpywOfUIQ6M94/meRTy2urNmQ==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    peerDependencies:
-      '@rspress/core': ^2.0.10
-
-  '@rspress/shared@2.0.18':
-    resolution: {integrity: sha512-GJswqJQCPSxvBt5r+gJzz8Em8EEK/sOmCQjTpemTvldvxr1Lva85BGVnSQZOgofnM0nrjt18kn4mmnuuSstbpA==}
+  '@rspress/shared@2.1.0':
+    resolution: {integrity: sha512-D2wnLO4aV1eFxNbUqQaLY4QfZZktegM+lCIDbQ9H2wxNQHKde39U1hpRdZKIA4aCuPYf/RSb6EdmJiZOkoZaWw==}
 
   '@rstest/core@0.12.0':
     resolution: {integrity: sha512-jawxfkm97gUroI/KNgNwvEOQ7Ty6gIdWK8U7pbs9MSSDQQxR8I8tMs3SoIRKtaxVLy5n8eDJpWWvffMPF43YZg==}
@@ -6573,6 +6558,7 @@ packages:
   image-size@0.7.5:
     resolution: {integrity: sha512-Hiyv+mXHfFEP7LzUL/llg9RwFxxY+o9N3JVLIeG5E7iFIFAalxvRU9UZthBdYDEVnzHMgjnKJPPpay5BWf1g9g==}
     engines: {node: '>=6.9.0'}
+    deprecated: Please migrate to image-size@2.x
     hasBin: true
 
   image-size@2.0.4:
@@ -7381,8 +7367,8 @@ packages:
     resolution: {integrity: sha512-dq+qelQ9akHpcOl/gUVRTxVIOkAJ1wR3QAvb4RsVjS8oVoFjDGTc679wJYmUmknUF5HwMLOgb5O+a3KxfWapPQ==}
     engines: {node: '>= 0.6'}
 
-  medium-zoom@1.1.0:
-    resolution: {integrity: sha512-ewyDsp7k4InCUp3jRmwHBRFGyjBimKps/AJLjRSox+2q/2H4p/PNpQf+pwONWlJiOudkBXtbdmVbFjqyybfTmQ==}
+  medium-zoom@1.1.2:
+    resolution: {integrity: sha512-0wTqeCQ4NGzjPghi7i2lMI6RyGj9N60fGvzY9HiNcxDTcvOw7S+ri7K3xVkrIZ+2uzUg4w/KSVMDdZXYMtHkdw==}
 
   memfs@4.80.0:
     resolution: {integrity: sha512-N70W2isi44XdGn7uPo9NJ4zRukcdkwSFHlnYx42SWOH/+hzqNc8P7+tVoA2up4z7faHvNi1RSNCFjxoYQ71VPQ==}
@@ -8658,6 +8644,12 @@ packages:
   react-lazy-with-preload@2.2.1:
     resolution: {integrity: sha512-ONSb8gizLE5jFpdHAclZ6EAAKuFX2JydnFXPPPjoUImZlLjGtKzyBS8SJgJq7CpLgsGKh9QCZdugJyEEOVC16Q==}
 
+  react-reconciler@0.29.2:
+    resolution: {integrity: sha512-zZQqIiYgDCTP/f1N/mAR10nJGrPD2ZR+jDSEsKWJHYC7Cm2wodlwbR3upZRdC3cjIjSlTLNVyO7Iu0Yy7t2AYg==}
+    engines: {node: '>=0.10.0'}
+    peerDependencies:
+      react: ^18.3.1
+
   react-reconciler@0.33.0:
     resolution: {integrity: sha512-KetWRytFv1epdpJc3J4G75I4WrplZE5jOL7Yq0p34+OVOKF4Se7WrdIdVC45XsSSmUTlht2FM/fM1FZb1mfQeA==}
     engines: {node: '>=0.10.0'}
@@ -8671,6 +8663,11 @@ packages:
   react-refresh@0.19.0:
     resolution: {integrity: sha512-5HdstYgoJBbBofjapO5qCPcovECJCBfvjLb+iTcsmqDFVMRdqy0qs7iiInBJTUXmIFc2bjoc5b2HVLp2zRtYhQ==}
     engines: {node: '>=0.10.0'}
+
+  react-render-to-markdown@18.3.2:
+    resolution: {integrity: sha512-sBYF4ItGTbP3+EXik2wWV7AwrLbD1OVIfWh53a3ueEzicZgZc64eW4Fw8j19bx0GXLVNOAQzs/isSPPVSIqmlw==}
+    peerDependencies:
+      react: '>=18.2.0'
 
   react-render-to-markdown@19.1.0:
     resolution: {integrity: sha512-dF9b3tO41ezqdmHP8X92kbHbMexJ6iC7iHw4ykC8fwiO7DgpFc9PhMoKlI+BcPzRxGcWgQSdrixVB9RykhjJpQ==}
@@ -9697,9 +9694,6 @@ packages:
 
   unist-util-position@5.0.0:
     resolution: {integrity: sha512-fucsC7HjXvkB5R3kTCO7kUjRdrS0BJt3M/FPxmHMBOm8JQi2BsHAHFsy27E0EolP8rp0NzXsJ+jNPyDWvOJZPA==}
-
-  unist-util-remove@4.0.0:
-    resolution: {integrity: sha512-b4gokeGId57UVRX/eVKej5gXqGlc9+trkORhFJpu9raqZkZhU0zm8Doi05+HaiBsMEIJowL+2WtQ5ItjsngPXg==}
 
   unist-util-stringify-position@4.0.0:
     resolution: {integrity: sha512-0ASV06AAoKCDkS2+xw5RXJywruurpbC4JZSm7nr7MOt1ojAzvyyaO+UxZf18j8FCF6kmzCZKcAgN/yu2gm2XgQ==}
@@ -12663,15 +12657,16 @@ snapshots:
       - '@emnapi/core'
       - '@emnapi/runtime'
 
-  '@rspress/core@2.0.18(@rspack/core@2.3.1(@swc/helpers@0.5.24))(@types/mdast@4.0.4)(@types/react@19.3.0)(core-js@3.51.0)(micromark-util-types@2.0.3)(micromark@4.0.3)':
+  '@rspress/core@2.1.0(@rspack/core@2.3.1(@swc/helpers@0.5.24))(core-js@3.51.0)(micromark-util-types@2.0.3)(micromark@4.0.3)':
     dependencies:
       '@mdx-js/mdx': 3.1.1
       '@mdx-js/react': 3.1.1(@types/react@19.3.0)(react@19.3.1)
       '@rsbuild/core': 2.3.1(core-js@3.51.0)
       '@rsbuild/plugin-react': 2.1.1(@rsbuild/core@2.3.1(core-js@3.51.0))(@rspack/core@2.3.1(@swc/helpers@0.5.24))
-      '@rspress/shared': 2.0.18(core-js@3.51.0)
+      '@rspress/shared': 2.1.0(core-js@3.51.0)
       '@shikijs/rehype': 4.6.0
-      '@types/unist': 3.0.3
+      '@types/mdast': 4.0.4
+      '@types/react': 19.3.0
       '@unhead/react': 2.1.17(react@19.3.1)
       body-scroll-lock: 4.0.0-beta.0
       clsx: 2.1.1
@@ -12681,12 +12676,11 @@ snapshots:
       hast-util-to-jsx-runtime: 2.3.7
       mdast-util-mdx: 3.0.0
       mdast-util-mdxjs-esm: 2.0.1
-      medium-zoom: 1.1.0
+      medium-zoom: 1.1.2
       nprogress: 0.2.0
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
       react-lazy-with-preload: 2.2.1
-      react-reconciler: 0.33.0(react@19.3.1)
       react-render-to-markdown: 19.1.0(react@19.3.1)
       react-router-dom: 7.18.5(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       rehype-external-links: 3.0.0
@@ -12700,46 +12694,32 @@ snapshots:
       scroll-into-view-if-needed: 3.1.0
       shiki: 4.6.0
       unified: 11.0.5
-      unist-util-remove: 4.0.0
       unist-util-visit: 5.2.0
       unist-util-visit-children: 3.0.0
+      vfile: 6.0.3
     transitivePeerDependencies:
       - '@module-federation/runtime-tools'
       - '@rspack/core'
-      - '@types/mdast'
-      - '@types/react'
       - core-js
       - micromark
       - micromark-util-types
       - supports-color
 
-  '@rspress/plugin-client-redirects@2.0.18(@rspress/core@2.0.18(@rspack/core@2.3.1(@swc/helpers@0.5.24))(@types/mdast@4.0.4)(@types/react@19.3.0)(core-js@3.51.0)(micromark-util-types@2.0.3)(micromark@4.0.3))':
+  '@rspress/plugin-client-redirects@2.1.0(@rspress/core@2.1.0(@rspack/core@2.3.1(@swc/helpers@0.5.24))(core-js@3.51.0)(micromark-util-types@2.0.3)(micromark@4.0.3))':
     dependencies:
-      '@rspress/core': 2.0.18(@rspack/core@2.3.1(@swc/helpers@0.5.24))(@types/mdast@4.0.4)(@types/react@19.3.0)(core-js@3.51.0)(micromark-util-types@2.0.3)(micromark@4.0.3)
+      '@rspress/core': 2.1.0(@rspack/core@2.3.1(@swc/helpers@0.5.24))(core-js@3.51.0)(micromark-util-types@2.0.3)(micromark@4.0.3)
 
-  '@rspress/plugin-llms@2.0.18(@rspress/core@2.0.18(@rspack/core@2.3.1(@swc/helpers@0.5.24))(@types/mdast@4.0.4)(@types/react@19.3.0)(core-js@3.51.0)(micromark-util-types@2.0.3)(micromark@4.0.3))':
-    dependencies:
-      '@rspress/core': 2.0.18(@rspack/core@2.3.1(@swc/helpers@0.5.24))(@types/mdast@4.0.4)(@types/react@19.3.0)(core-js@3.51.0)(micromark-util-types@2.0.3)(micromark@4.0.3)
-      remark-mdx: 3.1.1
-      remark-parse: 11.0.0
-      remark-stringify: 11.0.0
-      unified: 11.0.5
-      unist-util-visit: 5.2.0
-    transitivePeerDependencies:
-      - supports-color
-
-  '@rspress/plugin-sitemap@2.0.18(@rspress/core@2.0.18(@rspack/core@2.3.1(@swc/helpers@0.5.24))(@types/mdast@4.0.4)(@types/react@19.3.0)(core-js@3.51.0)(micromark-util-types@2.0.3)(micromark@4.0.3))':
-    dependencies:
-      '@rspress/core': 2.0.18(@rspack/core@2.3.1(@swc/helpers@0.5.24))(@types/mdast@4.0.4)(@types/react@19.3.0)(core-js@3.51.0)(micromark-util-types@2.0.3)(micromark@4.0.3)
-
-  '@rspress/shared@2.0.18(core-js@3.51.0)':
+  '@rspress/shared@2.1.0(core-js@3.51.0)':
     dependencies:
       '@rsbuild/core': 2.3.1(core-js@3.51.0)
       '@shikijs/rehype': 4.6.0
+      '@types/react': 19.3.0
+      mdast-util-mdx-jsx: 3.2.1
       unified: 11.0.5
     transitivePeerDependencies:
       - '@module-federation/runtime-tools'
       - core-js
+      - supports-color
 
   '@rstest/core@0.12.0(core-js@3.51.0)(jsdom@29.0.2(@noble/hashes@1.8.0))':
     dependencies:
@@ -16822,7 +16802,7 @@ snapshots:
 
   media-typer@0.3.0: {}
 
-  medium-zoom@1.1.0: {}
+  medium-zoom@1.1.2: {}
 
   memfs@4.80.0:
     dependencies:
@@ -18484,6 +18464,12 @@ snapshots:
 
   react-lazy-with-preload@2.2.1: {}
 
+  react-reconciler@0.29.2(react@18.3.1):
+    dependencies:
+      loose-envify: 1.4.0
+      react: 18.3.1
+      scheduler: 0.23.2
+
   react-reconciler@0.33.0(react@19.3.1):
     dependencies:
       react: 19.3.1
@@ -18492,6 +18478,11 @@ snapshots:
   react-refresh@0.18.0: {}
 
   react-refresh@0.19.0: {}
+
+  react-render-to-markdown@18.3.2(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+      react-reconciler: 0.29.2(react@18.3.1)
 
   react-render-to-markdown@19.1.0(react@19.3.1):
     dependencies:
@@ -19643,12 +19634,6 @@ snapshots:
   unist-util-position@5.0.0:
     dependencies:
       '@types/unist': 3.0.3
-
-  unist-util-remove@4.0.0:
-    dependencies:
-      '@types/unist': 3.0.3
-      unist-util-is: 6.0.1
-      unist-util-visit-parents: 6.1.0
 
   unist-util-stringify-position@4.0.0:
     dependencies:

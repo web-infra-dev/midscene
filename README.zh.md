@@ -125,7 +125,7 @@ Midscene 支持豆包 Seed、千问 Qwen、DeepSeek、Gemini、GPT、Kimi 等模
 
 - **编写 YAML 测试用例**：[创建 Midscene Test 项目](https://midscenejs.com/zh/midscene-test/use)。
 - **为现有测试引入视觉能力**：Web 应用接入 [Playwright](https://midscenejs.com/zh/integrate-with-playwright)，移动端和桌面端应用接入 [Rstest](https://midscenejs.com/zh/sdk/rstest) 或 [Vitest](https://midscenejs.com/zh/sdk/vitest)。
-- **编写测试前先体验**：使用 [Chrome 插件](https://midscenejs.com/zh/quick-start)或[移动端、桌面端 Playground](https://midscenejs.com/zh/platforms)。
+- **编写测试前先体验**：使用 [Chrome 插件](https://midscenejs.com/zh/get-started?scene=playground&platform=web)或[移动端、桌面端 Playground](https://midscenejs.com/zh/platforms)。
 - **运行独立的自动化脚本**：使用 [JavaScript SDK](https://midscenejs.com/zh/sdk/standalone)。
 - **让 AI Agent 操作界面**：安装 [Midscene Skills](https://midscenejs.com/zh/skills)。
 

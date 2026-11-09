@@ -1,0 +1,15 @@
+import { ModelConfigCard } from '@theme';
+
+<ModelConfigCard
+  purposes={props.purposes}
+  providers={[
+    {
+      name: "Alibaba Cloud",
+      href: "https://modelstudio.console.alibabacloud.com/ap-southeast-1/settings/api-key",
+      baseUrl: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+      modelName: "qwen3.7-plus",
+    },
+  ]}
+  openRouterModel="qwen/qwen3.7-plus"
+  modelFamily={{ value: "qwen3", comment: "If you use another Qwen version, replace this with the corresponding model family" }}
+/>

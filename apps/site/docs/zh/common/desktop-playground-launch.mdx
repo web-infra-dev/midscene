@@ -1,0 +1,18 @@
+请确保已安装 Node.js（版本要求 `^20.19.0 || ^22.12.0 || >=24.0.0`），且终端中可正常执行 `node -v`。下方命令使用 pnpm，如果尚未安装，请运行 `npm install -g pnpm`。
+
+1. 在终端运行以下命令启动桌面端 Playground：
+
+```bash
+pnpm dlx @midscene/computer-playground
+```
+
+无头 Linux 环境请使用以下命令启动虚拟显示器，并确保目标应用也在同一虚拟显示器中运行：
+
+```bash
+MIDSCENE_COMPUTER_HEADLESS_LINUX=true pnpm dlx @midscene/computer-playground
+```
+
+2. 在打开的 Playground 页面中，点击右上角的齿轮图标，粘贴模型配置并保存。
+3. 若浏览器未自动打开，请手动访问终端打印的本地地址，并保持该终端进程持续运行。
+4. 在左侧连接面板的 **Display** 下拉框中选择要控制的显示器并创建 Agent，同时将待操作的目标应用窗口移至该显示器上。
+5. 确认预览区域已正常显示所选显示器的实时桌面画面；若画面黑屏或报错，请先排查上方的系统屏幕录制权限或依赖项。
