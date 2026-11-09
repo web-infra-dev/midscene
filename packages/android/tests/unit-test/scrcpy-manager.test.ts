@@ -976,6 +976,40 @@ describe('ScrcpyScreenshotManager', () => {
       });
     });
 
+    it.each(['improved', 'failed'])(
+      'rejects a frame that expires while clock recalibration is %s',
+      async (outcome) => {
+        const manager = createManager({} as any);
+        prepareCachedPlanningFrame(manager, {
+          ptsUs: 1_700_000n,
+          roundTripUs: 600_000n,
+        });
+        const internals = manager as any;
+        rs.spyOn(internals, 'readDeviceClockCalibration').mockImplementation(
+          async () => {
+            await Promise.resolve();
+            internals.monotonicTimeUs.mockReturnValue(12_200_000n);
+            if (outcome === 'failed') throw new Error('clock sample failed');
+            return {
+              deviceUptimeUs: 4_200_000n,
+              hostMonotonicUs: 12_200_000n,
+              hostWallTimeMs: 4_200,
+              roundTripUs: 20_000n,
+            };
+          },
+        );
+
+        await expect(
+          internals.isPlanningCandidateFreshEnough(
+            internals.getCachedKeyframeCandidate(),
+          ),
+        ).resolves.toBe(false);
+        expect(internals.deviceClockCalibration.roundTripUs).toBe(
+          outcome === 'improved' ? 20_000n : 600_000n,
+        );
+      },
+    );
+
     it('throws the uncalibrated-clock error when recalibration clears the anchor', async () => {
       const manager = createManager({} as any);
       prepareCachedPlanningFrame(manager, {
