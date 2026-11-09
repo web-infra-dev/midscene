@@ -71,7 +71,7 @@ export interface LocateResultPromptSpec {
 }
 
 export interface PixelLocateResult {
-  /** Raw bbox midpoint (or raw point), mapped to the locate image using the configured rounding. */
+  /** Bounds-aware bbox center (or raw point), mapped to pixels before final rounding and content clamping. */
   center: LocateResultPoint;
   /**
    * Original bbox mapped to locate-image pixels and clipped to content bounds.
@@ -89,20 +89,28 @@ export interface LocateResultCodec {
   ): PixelLocateResult;
 }
 
+export type NormalizationBasis = 'image-size' | 'last-pixel';
+
 export type CoordinateRounding = 'round' | 'trunc' | 'none';
 
 /** Applied to both axes: closed [min, max] or left-closed-right-open [min, max). */
 export type BboxBoundsType = 'closed' | 'left-closed-right-open';
 
 export interface LocateResultCoordinates {
-  /** Bbox boundary semantics; defaults to closed (both pixel endpoints included). */
+  /** Bbox endpoint inclusion; defaults to closed. Used for interval lengths. */
   boundsType?: BboxBoundsType;
   shape: LocateResultShape;
   /** Axis order in the raw coordinates; defaults to xy. */
   order?: 'xy' | 'yx';
-  /** Normalization range, e.g. 1 or 1000. Omit for model-image pixel coordinates. */
+  /**
+   * Input normalization scale, e.g. 1 or 1000, independent of boundsType.
+   * normalizationBasis determines the target pixel scale.
+   * Omit for model-image pixel coordinates.
+   */
   normalizedBy?: number;
-  /** Rounding after normalized-to-pixel mapping; defaults to round. Pixel inputs retain their precision. */
+  /** Mapping multiplier: size (default) or size - 1. Ignored for pixel inputs. */
+  normalizationBasis?: NormalizationBasis;
+  /** Final pixel rounding for centers, bbox corners and distances, regardless of input units; defaults to round. Use none to retain subpixel precision. */
   rounding?: CoordinateRounding;
 }
 
@@ -112,6 +120,7 @@ export type ResolvedLocateResultCoordinates =
       shape: 'point';
       order: 'xy' | 'yx';
       normalizedBy?: number;
+      normalizationBasis?: NormalizationBasis;
       rounding: CoordinateRounding;
     }
   | {
@@ -119,6 +128,7 @@ export type ResolvedLocateResultCoordinates =
       boundsType?: BboxBoundsType;
       order: 'xy' | 'yx';
       normalizedBy?: number;
+      normalizationBasis?: NormalizationBasis;
       rounding: CoordinateRounding;
     };
 
@@ -129,7 +139,7 @@ export type RawLocateValueParser = (input: RawLocateValue) => LocateResultValue;
  * The operation protocol extracts target/reference values from the response;
  * the codec parses each value once and maps it to `{ center, rect }` using the
  * parsed result's coordinatesMeta. Rect is undefined for actual point results.
- * Raw-value parsing and normalized-coordinate rounding are configurable;
+ * Raw-value parsing and final pixel rounding are configurable;
  * coordinate mapping is shared.
  */
 export type LocateResultFormatDefinition = {

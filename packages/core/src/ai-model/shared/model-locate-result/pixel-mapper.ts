@@ -4,8 +4,10 @@ import type {
   BboxBoundsType,
   BboxLocateResultValue,
   CoordinateRounding,
+  LocateResultContext,
   LocateResultPoint,
   LocateResultValue,
+  NormalizationBasis,
   PixelBbox,
 } from './types';
 
@@ -17,13 +19,30 @@ export function maxPixelCoordinate(size: number) {
   return Math.max(size - 1, 0);
 }
 
+/** Convert units without rounding so intermediate geometry retains precision. */
 export function normalizedCoordinateToPixel(
   value: number,
   normalizedBy: number,
   size: number,
+  normalizationBasis: NormalizationBasis = 'image-size',
+) {
+  const scale = (() => {
+    switch (normalizationBasis) {
+      case 'image-size':
+        return size;
+      case 'last-pixel':
+        return maxPixelCoordinate(size);
+      default:
+        throw new Error(`Invalid normalization basis: ${normalizationBasis}`);
+    }
+  })();
+  return (value * scale) / normalizedBy;
+}
+
+export function roundPixelCoordinate(
+  pixel: number,
   rounding: CoordinateRounding,
 ) {
-  const pixel = (value * size) / normalizedBy;
   switch (rounding) {
     case 'round':
       return Math.round(pixel);
@@ -34,6 +53,18 @@ export function normalizedCoordinateToPixel(
     default:
       throw new Error(`Invalid coordinate rounding: ${rounding}`);
   }
+}
+
+export function roundPixelBbox(
+  [left, top, right, bottom]: PixelBbox,
+  rounding: CoordinateRounding,
+): PixelBbox {
+  return [
+    roundPixelCoordinate(left, rounding),
+    roundPixelCoordinate(top, rounding),
+    roundPixelCoordinate(right, rounding),
+    roundPixelCoordinate(bottom, rounding),
+  ];
 }
 
 /** Restrict an already mapped point to the effective content area. */
@@ -68,53 +99,128 @@ export function clampPixelBboxToSize(
   ];
 }
 
-export function pixelBboxToRect(
-  [left, top, right, bottom]: PixelBbox,
+/**
+ * Measure the extent covered by pixel-space endpoints. Closed bounds include
+ * the final pixel: [0, 719] and half-open [0, 720) both cover 720 pixels.
+ * The +1 measures coverage; it does not rescale or shift either endpoint.
+ */
+function pixelIntervalLength(
+  start: number,
+  end: number,
   boundsType: BboxBoundsType = 'closed',
-): Rect {
-  return {
-    left,
-    top,
-    width: right - left + (boundsType === 'closed' ? 1 : 0),
-    height: bottom - top + (boundsType === 'closed' ? 1 : 0),
-  };
+) {
+  return end - start + (boundsType === 'closed' ? 1 : 0);
 }
 
-export function mapLocateResultToPixelBbox(
+/**
+ * Map axis order and units to an intermediate pixel bbox without rounding or
+ * clipping. normalizationBasis selects the pixel scale independently of bbox
+ * endpoint inclusion. Used to derive the final click center or rect, not
+ * returned as a final locate result. Pixel inputs are not rescaled.
+ */
+export function mapLocateResultToUnroundedPixelBbox(
   result: BboxLocateResultValue,
   { width, height }: { width: number; height: number },
 ): PixelBbox {
-  const { normalizedBy, order, rounding } = result.coordinatesMeta;
+  const { normalizedBy, order, normalizationBasis } = result.coordinatesMeta;
   const [first, second, third, fourth] = result.coordinates;
   const xyBbox: PixelBbox =
     order === 'yx' ? [second, first, fourth, third] : result.coordinates;
   return normalizedBy === undefined
     ? xyBbox
     : [
-        normalizedCoordinateToPixel(xyBbox[0], normalizedBy, width, rounding),
-        normalizedCoordinateToPixel(xyBbox[1], normalizedBy, height, rounding),
-        normalizedCoordinateToPixel(xyBbox[2], normalizedBy, width, rounding),
-        normalizedCoordinateToPixel(xyBbox[3], normalizedBy, height, rounding),
+        normalizedCoordinateToPixel(
+          xyBbox[0],
+          normalizedBy,
+          width,
+          normalizationBasis,
+        ),
+        normalizedCoordinateToPixel(
+          xyBbox[1],
+          normalizedBy,
+          height,
+          normalizationBasis,
+        ),
+        normalizedCoordinateToPixel(
+          xyBbox[2],
+          normalizedBy,
+          width,
+          normalizationBasis,
+        ),
+        normalizedCoordinateToPixel(
+          xyBbox[3],
+          normalizedBy,
+          height,
+          normalizationBasis,
+        ),
       ];
 }
 
-/** Resolve the target before any rounding or clipping can shift its center. */
+/** Build region metadata independently from the click center. */
+export function mapLocateResultToPixelRect(
+  result: BboxLocateResultValue,
+  { preparedSize, contentSize = preparedSize }: LocateResultContext,
+): Rect {
+  const { rounding, boundsType } = result.coordinatesMeta;
+  const [left, top, right, bottom] = clampPixelBboxToSize(
+    roundPixelBbox(
+      mapLocateResultToUnroundedPixelBbox(result, preparedSize),
+      rounding,
+    ),
+    contentSize,
+    boundsType,
+  );
+  return {
+    left,
+    top,
+    width: pixelIntervalLength(left, right, boundsType),
+    height: pixelIntervalLength(top, bottom, boundsType),
+  };
+}
+
+/** Resolve the bounds-aware center before corner rounding or bbox clipping. */
 export function mapLocateResultToPixelPoint(
   result: LocateResultValue,
   { width, height }: { width: number; height: number },
 ): LocateResultPoint {
-  const { order, normalizedBy, rounding } = result.coordinatesMeta;
-  const [first, second] = isBboxLocateResultValue(result)
-    ? [
-        (result.coordinates[0] + result.coordinates[2]) / 2,
-        (result.coordinates[1] + result.coordinates[3]) / 2,
-      ]
-    : result.coordinates;
-  const [x, y] = order === 'yx' ? [second, first] : [first, second];
-  return normalizedBy === undefined
-    ? [x, y]
-    : [
-        normalizedCoordinateToPixel(x, normalizedBy, width, rounding),
-        normalizedCoordinateToPixel(y, normalizedBy, height, rounding),
-      ];
+  const { order, normalizedBy, rounding, normalizationBasis } =
+    result.coordinatesMeta;
+  if (isBboxLocateResultValue(result)) {
+    const [left, top, right, bottom] = mapLocateResultToUnroundedPixelBbox(
+      result,
+      { width, height },
+    );
+    const { boundsType } = result.coordinatesMeta;
+    return [
+      roundPixelCoordinate(
+        left + pixelIntervalLength(left, right, boundsType) / 2,
+        rounding,
+      ),
+      roundPixelCoordinate(
+        top + pixelIntervalLength(top, bottom, boundsType) / 2,
+        rounding,
+      ),
+    ];
+  }
+
+  const [first, second] = result.coordinates;
+  const [pointX, pointY] = order === 'yx' ? [second, first] : [first, second];
+  const [x, y] =
+    normalizedBy === undefined
+      ? [pointX, pointY]
+      : [
+          normalizedCoordinateToPixel(
+            pointX,
+            normalizedBy,
+            width,
+            normalizationBasis,
+          ),
+          normalizedCoordinateToPixel(
+            pointY,
+            normalizedBy,
+            height,
+            normalizationBasis,
+          ),
+        ];
+  return [roundPixelCoordinate(x, rounding), roundPixelCoordinate(y, rounding)];
 }

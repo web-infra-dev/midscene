@@ -1,10 +1,8 @@
 import { parseNumericLocateResult } from './parse';
 import {
-  clampPixelBboxToSize,
   clampPixelPointToSize,
-  mapLocateResultToPixelBbox,
   mapLocateResultToPixelPoint,
-  pixelBboxToRect,
+  mapLocateResultToPixelRect,
 } from './pixel-mapper';
 import { createLocateResultPromptSpec } from './prompt-spec';
 import { isBboxLocateResultValue } from './types';
@@ -34,6 +32,7 @@ export function resolveLocateResultCoordinates(
     shape: coordinates.shape,
     order: coordinates.order ?? 'xy',
     normalizedBy: coordinates.normalizedBy,
+    normalizationBasis: coordinates.normalizationBasis ?? 'image-size',
     rounding: coordinates.rounding ?? 'round',
   };
 }
@@ -74,17 +73,7 @@ export function createLocateResultCodec(
       // and aiLocate's return value. Point-only results leave rect undefined;
       // click coordinates always use the independently calculated center.
       const rect = isBboxLocateResultValue(result)
-        ? (() => {
-            const pixelBbox = clampPixelBboxToSize(
-              mapLocateResultToPixelBbox(result, preparedSize),
-              contentSize,
-              result.coordinatesMeta.boundsType,
-            );
-            return pixelBboxToRect(
-              pixelBbox,
-              result.coordinatesMeta.boundsType,
-            );
-          })()
+        ? mapLocateResultToPixelRect(result, context)
         : undefined;
       return { center, rect };
     },

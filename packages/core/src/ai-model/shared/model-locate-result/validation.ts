@@ -51,7 +51,13 @@ export function assertLocateResultStructure(result: LocateResultValue): void {
       `invalid locate bbox boundsType: ${result.coordinatesMeta.boundsType}`,
     );
   }
-  const { order, normalizedBy, rounding } = coordinatesMeta;
+  const { order, normalizedBy, rounding, normalizationBasis } = coordinatesMeta;
+  if (
+    normalizationBasis !== undefined &&
+    !['image-size', 'last-pixel'].includes(normalizationBasis)
+  ) {
+    throw new Error(`invalid normalization basis: ${normalizationBasis}`);
+  }
   if (!['round', 'trunc', 'none'].includes(rounding)) {
     throw new Error(`invalid locate coordinate rounding: ${rounding}`);
   }
