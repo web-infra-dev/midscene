@@ -50,7 +50,7 @@ await agent.aiWaitFor('筛选后的搜索结果已显示');
 await agent.aiAssert('搜索结果中有商品，且每件商品价格都低于 100 美元');
 ```
 
-移动端和桌面端应用可以通过 [Vitest](https://midscenejs.com/zh/sdk/vitest) 或 [Rstest](https://midscenejs.com/zh/sdk/rstest) 使用对应平台的 Agent。打开生成的 HTML 报告，即可查看截图、元素定位、AI 决策过程，以及操作和断言结果。
+移动端和桌面端应用可以通过 [Rstest](https://midscenejs.com/zh/sdk/rstest) 或 [Vitest](https://midscenejs.com/zh/sdk/vitest) 使用对应平台的 Agent。打开生成的 HTML 报告，即可查看截图、元素定位、AI 决策过程，以及操作和断言结果。
 
 ## 👁️ 像人一样观察、操作并验证结果
 
@@ -124,7 +124,7 @@ Midscene 支持豆包 Seed、千问 Qwen、DeepSeek、Gemini、GPT、Kimi 等模
 ## 🚀 开始使用
 
 - **编写 YAML 测试用例**：[创建 Midscene Test 项目](https://midscenejs.com/zh/midscene-test/use)。
-- **为现有测试引入视觉能力**：Web 应用接入 [Playwright](https://midscenejs.com/zh/integrate-with-playwright)，移动端和桌面端应用接入 [Vitest](https://midscenejs.com/zh/sdk/vitest) 或 [Rstest](https://midscenejs.com/zh/sdk/rstest)。
+- **为现有测试引入视觉能力**：Web 应用接入 [Playwright](https://midscenejs.com/zh/integrate-with-playwright)，移动端和桌面端应用接入 [Rstest](https://midscenejs.com/zh/sdk/rstest) 或 [Vitest](https://midscenejs.com/zh/sdk/vitest)。
 - **编写测试前先体验**：使用 [Chrome 插件](https://midscenejs.com/zh/quick-start)或[移动端、桌面端 Playground](https://midscenejs.com/zh/platforms)。
 - **运行独立的自动化脚本**：使用 [JavaScript SDK](https://midscenejs.com/zh/sdk/standalone)。
 - **让 AI Agent 操作界面**：安装 [Midscene Skills](https://midscenejs.com/zh/skills)。

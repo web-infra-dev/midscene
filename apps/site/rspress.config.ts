@@ -300,12 +300,12 @@ export default defineConfig(async () => {
             link: '/integrate-with-playwright',
           },
           {
-            text: 'Integrate with Vitest',
-            link: '/sdk/vitest',
-          },
-          {
             text: 'Integrate with Rstest',
             link: '/sdk/rstest',
+          },
+          {
+            text: 'Integrate with Vitest',
+            link: '/sdk/vitest',
           },
           {
             text: 'Write standalone automation scripts',
@@ -559,12 +559,12 @@ export default defineConfig(async () => {
             link: '/zh/integrate-with-playwright',
           },
           {
-            text: '接入 Vitest',
-            link: '/zh/sdk/vitest',
-          },
-          {
             text: '接入 Rstest',
             link: '/zh/sdk/rstest',
+          },
+          {
+            text: '接入 Vitest',
+            link: '/zh/sdk/vitest',
           },
           {
             text: '编写独立自动化脚本',
