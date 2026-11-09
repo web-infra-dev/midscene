@@ -2,6 +2,8 @@
 
 Report e2e 使用包含真实 Agent 录制数据的报告，验证核心用户流程。配置模型凭据后运行 `pnpm --filter @midscene/report e2e`，该命令会构建报告和 CLI、生成测试数据，通过 Midscene Test 跑完所有 YAML 测试后汇总失败。项目设置了 `test.bail: 0`，单个 Case 失败不会阻止后续文件执行。任何测试文件失败，命令仍会以失败状态退出。
 
+配置文件位于 `apps/report/midscene.config.ts`。测试根目录为 `apps/report`，通过 `e2e/*.yaml` 选择用例。默认产物保存在 `apps/report/midscene_run/`。
+
 ## 开发原则
 
 Report 的开发、评审和测试优先关注核心流程与数据正确性。日常迭代重点是用户能否读取结果、跳转 Case、查看失败信息和证据。间距、颜色、边框、阴影、圆角、图标外观和精确尺寸不作为默认验收条件，也不应引发反复验证；明确提出的设计要求再做针对性检查。

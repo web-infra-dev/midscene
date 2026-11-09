@@ -8,7 +8,7 @@
     },
     "declarationDir": "dist/types"
   },
-  "include": ["src", "tests", "scripts", "e2e/midscene.config.ts"],
+  "include": ["src", "tests", "scripts", "midscene.config.ts"],
   "references": [
     {
       "path": "../../packages/core"
