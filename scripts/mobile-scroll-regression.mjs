@@ -265,6 +265,95 @@ try {
         orientation: orientation.toUpperCase(),
       });
     }
+    if (platform === 'ios') {
+      // Exercise the public action entry point, not just scrollRight/scrollDown.
+      // Invalid input must not be silently converted into the default gesture.
+      for (const direction of ['right', 'down']) {
+        for (const [label, distance] of [
+          ['zero', 0],
+          ['nan', Number.NaN],
+          ['negative', -1],
+          ['infinity', Number.POSITIVE_INFINITY],
+        ]) {
+          const name = `${orientation}-invalid-${direction}-${label}`;
+          const before = await reset(
+            direction === 'right' ? 'horizontal' : 'vertical',
+          );
+          screenshot(`${name}-before`);
+          let error;
+          try {
+            await action.call(
+              {
+                direction,
+                distance,
+                locate: { center: [before.width / 2, before.height / 2] },
+              },
+              { task: {}, skipDefaultWait: true },
+            );
+          } catch (cause) {
+            error = cause.message;
+          }
+          const after = await settled(before);
+          screenshot(`${name}-after`);
+          const result = { name, error };
+          results.push(result);
+          save(`${name}.json`, { ...result, before, after });
+          save('results.json', results);
+          assert.match(
+            error ?? '',
+            /Scroll distance must be positive and finite/,
+          );
+          assert(
+            Math.abs(after.x - before.x) <= 1 &&
+              Math.abs(after.y - before.y) <= 1,
+            `${name}: invalid input moved content`,
+          );
+          console.log(`${name}: PASS`);
+        }
+      }
+
+      // Paging is a Swipe interaction. Choose an explicit path inside the
+      // control with room to travel, instead of relying on a clipped Scroll
+      // from an arbitrary edge to trigger a UIKit paging threshold.
+      const swipe = device.actionSpace().find(({ name }) => name === 'Swipe');
+      assert(swipe, 'SDK does not expose Swipe');
+      for (const yRatio of [0.25, 0.5, 0.75]) {
+        for (const direction of ['left', 'right']) {
+          const name = `${orientation}-paging-swipe-${direction}-${yRatio}`;
+          const before = await reset('horizontal');
+          const y = Math.round(before.height * yRatio);
+          const fromX = Math.round(
+            before.width * (direction === 'left' ? 0.8 : 0.2),
+          );
+          const toX = Math.round(
+            before.width * (direction === 'left' ? 0.2 : 0.8),
+          );
+          screenshot(`${name}-before`);
+          await swipe.call(
+            {
+              start: { center: [fromX, y] },
+              end: { center: [toX, y] },
+              duration: 300,
+            },
+            { task: {}, skipDefaultWait: true },
+          );
+          const after = await settled(before);
+          screenshot(`${name}-after`);
+          const fraction =
+            ((after.x - before.x) / before.width) *
+            (direction === 'left' ? 1 : -1);
+          const result = { name, fraction };
+          results.push(result);
+          save(`${name}.json`, { ...result, before, after });
+          save('results.json', results);
+          assert(
+            Math.abs(fraction - 1) < 0.03,
+            `${name}: expected one page, got ${fraction}`,
+          );
+          console.log(`${name}: PASS`);
+        }
+      }
+    }
     for (const [mode, directions, scrollType = 'singleAction', originRatio] of [
       ...(platform === 'ios'
         ? [0.5, 0.15, 0.85].map((ratio) => [

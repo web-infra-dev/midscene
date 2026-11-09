@@ -325,13 +325,13 @@ export class IOSDevice implements AbstractInterface {
       await this.scrollUntilLeft(startingPoint);
     } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
       if (param?.direction === 'down' || !param || !param.direction) {
-        await this.scrollDown(param?.distance || undefined, startingPoint);
+        await this.scrollDown(param?.distance ?? undefined, startingPoint);
       } else if (param.direction === 'up') {
-        await this.scrollUp(param.distance || undefined, startingPoint);
+        await this.scrollUp(param.distance ?? undefined, startingPoint);
       } else if (param.direction === 'left') {
-        await this.scrollLeft(param.distance || undefined, startingPoint);
+        await this.scrollLeft(param.distance ?? undefined, startingPoint);
       } else if (param.direction === 'right') {
-        await this.scrollRight(param.distance || undefined, startingPoint);
+        await this.scrollRight(param.distance ?? undefined, startingPoint);
       } else {
         throw new Error(`Unknown scroll direction: ${param.direction}`);
       }

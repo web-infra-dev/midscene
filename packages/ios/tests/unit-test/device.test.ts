@@ -94,6 +94,49 @@ describe('IOSDevice', () => {
     }
   });
 
+  describe('Scroll action distance validation', () => {
+    it.each(['down', 'up', 'left', 'right'] as const)(
+      'rejects invalid %s distances before sending any gesture',
+      async (direction) => {
+        const scroll = device
+          .actionSpace()
+          .find(({ name }) => name === 'Scroll')!;
+        for (const distance of [
+          0,
+          Number.NaN,
+          -1,
+          Number.POSITIVE_INFINITY,
+          Number.NEGATIVE_INFINITY,
+        ]) {
+          await expect(
+            scroll.call(
+              { direction, distance, locate: { center: [188, 406] } },
+              mockExecutorContext,
+            ),
+          ).rejects.toThrow('Scroll distance must be positive and finite');
+        }
+        expect(mockWdaClient.swipe).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([undefined, null])(
+      'keeps the default scroll when distance is %s',
+      async (distance) => {
+        const scroll = device
+          .actionSpace()
+          .find(({ name }) => name === 'Scroll')!;
+        await scroll.call({ direction: 'down', distance }, mockExecutorContext);
+        expect(mockWdaClient.swipe).toHaveBeenCalledWith(
+          188,
+          690,
+          188,
+          122,
+          1420,
+        );
+      },
+    );
+  });
+
   describe('scroll gesture bounds', () => {
     it.each([
       ['down', 319, 773, 319, 1, 500],
