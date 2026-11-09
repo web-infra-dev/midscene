@@ -197,7 +197,7 @@ export async function prepareProject(
   const discoveredFiles =
     options.files ??
     discoverResolvedTestFiles(
-      projectRoot,
+      options.discoveryRoot ?? projectRoot,
       fileSelection,
       options.excludedDirectories,
     );

@@ -10,7 +10,7 @@ pnpm exec midscene-test
 
 ### Specify a test case directory or file
 
-A file or directory argument filters the selected cases. Full-suite, single-file, and subdirectory runs share the same project configuration.
+With a config, a file or directory argument filters the selected cases. Full-suite, single-file, and subdirectory runs share the same project configuration.
 
 Run these commands from the project root:
 
@@ -29,7 +29,7 @@ They share the configured Nodes, Execution Projects, and default output location
 | Default config | Search cwd only for `midscene.config.ts` or `midscene.config.mjs`. |
 | `--config` | Resolve relative paths from cwd; absolute paths are also supported. |
 | Test root | Use the config directory, or cwd when no config is found. |
-| File or directory argument | Resolve from cwd and use only as a case filter. |
+| File or directory argument | Resolve from cwd. Filter configured cases when a config exists; otherwise run the selected file or directory. |
 | Paths in config | Resolve `files.include`, `files.exclude`, and `output.reportDir` from the test root. |
 | `--result-dir` | Resolve relative paths from cwd. |
 
@@ -42,11 +42,15 @@ pnpm exec midscene-test ./order.yaml --config ../midscene.config.ts
 
 The parent directory containing the config becomes the test root. Default output remains in that directory's `midscene_run`.
 
+Without a config, a file argument runs that YAML directly, and a directory argument discovers YAML files in that directory. Paths outside cwd are supported. With no argument, discovery starts at cwd. Configs beside the selected input are not loaded. Default artifacts stay under `cwd/midscene_run`.
+
+Without a config, no Nodes are registered. YAML that references Nodes still needs a config that registers them. Legacy `tasks/flow` YAML is run with `midscene`, not `midscene-test`.
+
 **File and tag selection**
 
 Scaffolded projects use `files.include` to select `.yaml` and `.yml` files under `cases/`. Without `files`, the framework discovers YAML files recursively under the test root, ignoring `node_modules`, `.git`, and run artifact directories.
 
-The positional path further narrows the selection. `--project`, file inclusion/exclusion rules, and tags still apply, including to explicitly named files.
+When a config is loaded, the positional path further narrows the selection. `--project`, file inclusion/exclusion rules, and tags still apply, including to explicitly named files.
 
 With a positional path, the command fails with a selection error if no Project has matching cases. An empty selection in one Project does not prevent other Projects from running.
 
@@ -54,7 +58,7 @@ Without a positional path, existing behavior is preserved: if files exist but ta
 
 **Switching projects and SDK calls**
 
-To run another project, change into its directory or select its config with `--config`. A directory argument only filters cases.
+To run another project, change into its directory or select its config with `--config`. A directory argument does not change config discovery.
 
 The SDK accepts these options:
 

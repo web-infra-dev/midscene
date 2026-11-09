@@ -24,6 +24,39 @@ afterAll(() => {
 });
 
 describe('midscene-test CLI configuration', () => {
+  it.each(['file', 'directory'])(
+    'collects a standalone external %s without loading its config',
+    async (kind) => {
+      const cwd = mkdtempSync(join(tmpdir(), 'cli-standalone-cwd-'));
+      const target = mkdtempSync(join(tmpdir(), 'cli-standalone-target-'));
+      temporaryDirectories.push(cwd, target);
+      writeFileSync(
+        join(target, 'midscene.config.mjs'),
+        'throw new Error("target config loaded")',
+      );
+      writeFileSync(
+        join(target, 'case.yaml'),
+        'cases: [{ name: standalone, steps: [{ wait: { duration: 1, unit: ms } }] }]',
+      );
+      const failure = await runFailure(
+        [kind === 'file' ? join(target, 'case.yaml') : target],
+        process.env,
+        cwd,
+      );
+      expect(failure.code).toBe(1);
+      expect(failure.stderr).toContain('unknown node "wait"');
+      expect(failure.stderr).not.toContain('target config loaded');
+      const summary = JSON.parse(
+        readFileSync(
+          summaryPathFor(join(cwd, 'midscene_run/test-results')),
+          'utf8',
+        ),
+      );
+      expect(summary.projectRoot).toBe(realpathSync(cwd));
+      expect(summary.projects[0].collectionErrors).toHaveLength(1);
+    },
+  );
+
   it('runs file and directory filters with the same cwd config and artifacts', async () => {
     const root = mkdtempSync(join(tmpdir(), 'cli-path-filter-'));
     temporaryDirectories.push(root);

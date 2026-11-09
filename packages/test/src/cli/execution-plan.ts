@@ -42,6 +42,8 @@ export interface PreparedDocumentInvocation {
 }
 
 export interface ProjectPreparationOptions {
+  /** Standalone input discovery does not change the project/artifact root. */
+  discoveryRoot?: string;
   files?: readonly string[];
   testPath?: string;
   excludedDirectories?: readonly string[];

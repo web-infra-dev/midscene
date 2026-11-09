@@ -118,6 +118,12 @@ export async function prepareTestRun(
           definition.test.testTimeout,
           {
             testPath: input.testPath,
+            discoveryRoot:
+              !configPath && input.testPath
+                ? statSync(input.testPath).isDirectory()
+                  ? input.testPath
+                  : dirname(input.testPath)
+                : undefined,
             excludedDirectories: [
               artifactDir,
               resultDir,

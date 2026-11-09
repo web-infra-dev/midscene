@@ -143,7 +143,8 @@ Options:
   --help, -h                  Show this help
   --version                   Show the package version
 
-Run paths only filter files; they do not change the project root.
+With a config, run paths filter project files. Without one, they select standalone inputs.
+Run paths never change config discovery or the artifact root.
 For test runs, config discovery checks cwd only; --config is relative to cwd.
 The selected config directory becomes the test root.
 File include/exclude and tag rules still apply to explicit paths.

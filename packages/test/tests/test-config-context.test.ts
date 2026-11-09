@@ -157,6 +157,36 @@ describe('stable project context with CLI path filters', () => {
     expect(plan.configPath).toBeUndefined();
   });
 
+  it.each(['file', 'directory'])(
+    'collects an external %s without loading its config',
+    async (kind) => {
+      const cwd = mkdtempSync(join(tmpdir(), 'midscene-no-config-'));
+      roots.push(cwd);
+      const target = mkdtempSync(join(tmpdir(), 'midscene-external-'));
+      roots.push(target);
+      write(
+        target,
+        'standalone.yaml',
+        'cases: [{ name: standalone, steps: [{ wait: { duration: 1, unit: ms } }] }]',
+      );
+      // Even an invalid config beside the selected YAML must not be loaded.
+      write(
+        target,
+        'midscene.config.ts',
+        'throw new Error("target config loaded");',
+      );
+      const path = kind === 'file' ? join(target, 'standalone.yaml') : target;
+      const plan = await prepareTestRun(parseTestCliArgs([path], cwd));
+      expect(plan.configPath).toBeUndefined();
+      const errors = plan.projects.flatMap((p) => p.collectionErrors);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].sourcePath).toMatch(/standalone\.yaml$/);
+      expect(errors[0].error.message).toContain('unknown node "wait"');
+      expect(plan.projectRoot).toBe(cwd);
+      expect(plan.resultDir).toBe(join(cwd, 'midscene_run/test-results'));
+    },
+  );
+
   it('rejects missing paths and non-YAML files before collection', async () => {
     const root = fixture();
     await expect(
