@@ -72,6 +72,7 @@ describe('launchPuppeteerPage', () => {
     rs.clearAllMocks();
     mockLaunch.mockResolvedValue(browserMock);
     pageMock = createPageMock();
+    browserMock.pages.mockResolvedValue([pageMock]);
     mockNewPage.mockResolvedValue(pageMock as unknown as Page);
     browserContextMock.newPage.mockResolvedValue(pageMock as unknown as Page);
   });
@@ -310,6 +311,48 @@ describe('launchPuppeteerPage', () => {
     ).rejects.toBe(navigationError);
 
     expect(pageMock.waitForNetworkIdle).not.toHaveBeenCalled();
+  });
+
+  it('closes all owned tabs before shutting down the browser', async () => {
+    const popup = createPageMock();
+    browserMock.pages.mockResolvedValue([pageMock, popup]);
+    let finishClosing: () => void = () => {};
+    pageMock.close.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishClosing = resolve;
+        }),
+    );
+    const { freeFn } = await launchPuppeteerPage({
+      url: 'https://example.com',
+    });
+    const closing = freeFn[0].fn();
+    await Promise.resolve();
+    expect(popup.close).toHaveBeenCalledTimes(1);
+    expect(browserMock.close).not.toHaveBeenCalled();
+    finishClosing();
+    await closing;
+    expect(browserMock.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('still closes the browser and reports a tab cleanup failure', async () => {
+    const failure = new Error('tab close failed');
+    pageMock.close.mockRejectedValueOnce(failure);
+    const { freeFn } = await launchPuppeteerPage({
+      url: 'https://example.com',
+    });
+    await expect(freeFn[0].fn()).rejects.toBe(failure);
+    expect(browserMock.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves tabs when keepWindow is enabled', async () => {
+    const { freeFn } = await launchPuppeteerPage(
+      { url: 'https://example.com' },
+      { keepWindow: true },
+    );
+    await freeFn[0].fn();
+    expect(browserMock.pages).not.toHaveBeenCalled();
+    expect(browserMock.close).not.toHaveBeenCalled();
   });
 
   it('closes an internally launched browser when navigation fails', async () => {
