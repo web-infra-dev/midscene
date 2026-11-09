@@ -761,7 +761,7 @@ describe('test project config', () => {
     expect(error.message).toContain(`Failed to load Midscene config "${path}"`);
     expect(error.cause).toBeInstanceOf(Error);
     expect(error.cause.message).toMatch(
-      /Expected a semicolon|Unexpected token|Missing initializer in const declaration/,
+      /Expected a semicolon|Unexpected token|Missing initializer in const declaration|'const' declarations must be initialized/,
     );
   });
 

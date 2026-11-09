@@ -105,6 +105,13 @@ describe('renderBadge', () => {
     expect(formatPassRate(0, 5)).toBe('0%');
     expect(formatPassRate(0, 0)).toBe('0%');
   });
+
+  it('never rounds a run with a failure to 100% or one with a pass to 0%', () => {
+    expect(formatPassRate(9999, 1)).toBe('99.9%');
+    expect(formatPassRate(1999, 1)).toBe('99.9%');
+    expect(formatPassRate(1, 9999)).toBe('0.1%');
+    expect(formatPassRate(999, 1)).toBe('99.9%');
+  });
 });
 
 describe('handleRequest', () => {

@@ -26,6 +26,14 @@ const sharedConfig = defineConfig({
       ),
     },
   },
+  // Let jsdom own browser storage instead of Node's native implementation.
+  pool: {
+    execArgv: process.allowedNodeEnvironmentFlags.has(
+      '--no-experimental-webstorage',
+    )
+      ? ['--no-experimental-webstorage']
+      : [],
+  },
   testEnvironment: 'node',
   include: ['tests/**/*.test.{mjs,ts,tsx}'],
 });
