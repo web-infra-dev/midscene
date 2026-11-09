@@ -11,7 +11,6 @@ export function createCoverageConfig(projectDir: string) {
     provider: 'v8' as const,
     reporter: ['text', 'json', 'json-summary', 'html'],
     reportsDirectory: path.join(workspaceRoot, coverageDir, projectName),
-    all: true,
     include: ['src/**/*.{ts,tsx,js,jsx,mjs,cjs}'],
     exclude: [
       '**/*.d.ts',

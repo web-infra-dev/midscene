@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Search Demo</title>
+  <style>
+    body { font: 24px system-ui; margin: 80px; background: white; color: #222; }
+    form { display: flex; gap: 12px; }
+    input, button { font: inherit; padding: 12px; }
+    input { width: 500px; }
+    article { margin-top: 40px; }
+  </style>
+</head>
+<body>
+  <h1>Search Demo</h1>
+  <form>
+    <label>Search <input name="q" aria-label="Search" autocomplete="off"></label>
+    <button type="submit">Search</button>
+  </form>
+  <section id="results" aria-live="polite"></section>
+  <script>
+    const query = new URLSearchParams(location.search).get('q');
+    if (query) {
+      document.querySelector('input').value = query;
+      const heading = document.createElement('h2');
+      heading.textContent = 'Search results for "' + query + '"';
+      const result = document.createElement('article');
+      result.textContent = query.toLowerCase() === 'midscene.js'
+        ? 'Midscene.js — AI automation for browsers, desktop and mobile apps.'
+        : 'No matching results.';
+      document.querySelector('#results').append(heading, result);
+    }
+  </script>
+</body>
+</html>
