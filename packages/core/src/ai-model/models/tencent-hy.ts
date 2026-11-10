@@ -1,4 +1,5 @@
 import type { TModelFamily } from '@midscene/shared/env';
+import { isOpenRouter } from '../model-adapter/is-openrouter';
 import type {
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
@@ -6,21 +7,39 @@ import type {
 } from '../model-adapter/types';
 
 const buildTencentHyChatCompletionParams = ({
+  baseURL,
   midsceneDefaults,
   userConfig,
 }: ChatCompletionCallContext): ChatCompletionParamsResult => {
   const { reasoningEnabled, reasoningEffort } = userConfig;
+  const enabled = reasoningEnabled ?? false;
   const reasoningConfig: Record<string, unknown> = {};
 
-  if (reasoningEnabled !== 'default') {
-    const enabled = reasoningEnabled ?? false;
-    // https://cloud.tencent.com/document/product/1823/131208
-    reasoningConfig.thinking = {
-      type: enabled ? 'enabled' : 'disabled',
-    };
-
-    if (enabled && reasoningEffort) {
-      reasoningConfig.reasoning_effort = reasoningEffort;
+  if (isOpenRouter(baseURL)) {
+    // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
+    const reasoning: Record<string, unknown> = {};
+    if (enabled !== 'default') {
+      reasoning.enabled = enabled;
+    }
+    if (enabled !== false) {
+      if (reasoningEffort !== undefined) {
+        reasoning.effort = reasoningEffort;
+      }
+    }
+    if (Object.keys(reasoning).length > 0) {
+      reasoningConfig.reasoning = reasoning;
+    }
+  } else {
+    if (enabled !== 'default') {
+      // https://cloud.tencent.com/document/product/1823/131208
+      reasoningConfig.thinking = {
+        type: enabled ? 'enabled' : 'disabled',
+      };
+    }
+    if (enabled !== false) {
+      if (reasoningEffort !== undefined) {
+        reasoningConfig.reasoning_effort = reasoningEffort;
+      }
     }
   }
 
