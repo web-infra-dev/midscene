@@ -14,7 +14,7 @@ import { config as loadEnv } from 'dotenv';
 import puppeteer, { type Browser, type Page } from 'puppeteer';
 import sirv from 'sirv';
 
-const reportRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const reportRoot = dirname(fileURLToPath(import.meta.url));
 // Exported settings take precedence; app-local settings override repository defaults.
 loadEnv({ path: resolve(reportRoot, '.env') });
 loadEnv({ path: resolve(reportRoot, '../../.env') });

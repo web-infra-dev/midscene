@@ -10,21 +10,93 @@ pnpm exec midscene-test
 
 ### Specify a test case directory or file
 
-Projects generated from templates use `files.include` to match `.yaml` and `.yml` files under `cases/` by default. If `files` is not declared in the configuration, Midscene Test recursively searches for all YAML files under the test root directory (automatically ignoring `node_modules` and `.git`).
+With a config, a file or directory argument filters the selected cases. Full-suite, single-file, and subdirectory runs share the same project configuration.
 
-When passing a directory or file path on the command line, be aware of how the **test root** changes and affects path resolution:
-
-- **Determining the test root**: Without path arguments, the test root is the current working directory. With a directory argument, the test root becomes that directory. With a single file argument, the test root becomes the file's containing directory.
-- **Resolved relative to the test root**: Default configuration file discovery (searches only within the test root, without traversing parent directories), the `--config` parameter path, and `files.include` / `files.exclude` patterns in the configuration.
-- **Resolved relative to the current working directory**: The `--result-dir` parameter path.
-
-Therefore, when `midscene.config.ts` lives in the project root and you only want to run a single file in the `cases/` subdirectory, you need to explicitly pass `--config` (note that it resolves relative to the `cases/` directory where the target file is located):
+Run these commands from the project root:
 
 ```bash
-pnpm exec midscene-test ./cases/order.yaml --config ../midscene.config.ts
+pnpm exec midscene-test
+pnpm exec midscene-test ./cases/order.yaml
+pnpm exec midscene-test ./cases/smoke
 ```
 
-When targeting a single file directly, that file is not restricted by `files.include` / `files.exclude` rules, but `tags` filtering still applies. If you want to run only a specific subdirectory (such as `cases/smoke`), it is recommended to run the command from the project root and restrict the scope by setting `files.include` to `cases/smoke/**/*.{yaml,yml}` in the configuration, avoiding changes to the test root.
+They share the configured Nodes, Execution Projects, and default output location.
+
+**Configuration and path resolution**
+
+| Input | Resolution rule |
+| --- | --- |
+| Default config | Search cwd only for `midscene.config.ts` or `midscene.config.mjs`. |
+| `--config` | Resolve relative paths from cwd; absolute paths are also supported. |
+| Test root | Use the config directory, or cwd when no config is found. |
+| File or directory argument | Resolve from cwd. Filter configured cases when a config exists; otherwise discover and collect cases from the selected file or directory. |
+| Paths in config | Resolve `files.include`, `files.exclude`, and `output.reportDir` from the test root. |
+| `--result-dir` | Resolve relative paths from cwd. |
+
+Default discovery checks cwd only. When running from a child directory, select the project config explicitly:
+
+```bash
+cd cases
+pnpm exec midscene-test ./order.yaml --config ../midscene.config.ts
+```
+
+The parent directory containing the config becomes the test root. Default output remains in that directory's `midscene_run`.
+
+Without a config, a file argument collects the selected YAML, and a directory argument discovers YAML files in that directory. Paths outside cwd are supported. With no argument, discovery starts at cwd. Configs beside the selected input are not loaded. Default artifacts stay under `cwd/midscene_run`.
+
+Without a config, no Nodes are registered. YAML that references Nodes still needs a config that registers them. Legacy `tasks/flow` YAML is run with `midscene`, not `midscene-test`.
+
+**File and tag selection**
+
+Scaffolded projects use `files.include` to select `.yaml` and `.yml` files under `cases/`. Without `files`, the framework discovers YAML files recursively under the test root, ignoring `node_modules`, `.git`, and run artifact directories.
+
+When a config is loaded, the positional path further narrows the selection. `--project`, file inclusion/exclusion rules, and tags still apply, including to explicitly named files.
+
+With a positional path, the command fails with a selection error if no Project has matching cases. An empty selection in one Project does not prevent other Projects from running.
+
+Without a positional path, existing behavior is preserved: if files exist but tags exclude every case, the command can succeed. Other errors, such as failure to discover files, still fail the run.
+
+**Switching projects and SDK calls**
+
+To run another project, change into its directory or select its config with `--config`. A directory argument does not change config discovery.
+
+The SDK accepts these options:
+
+- `projectRoot`: the default config discovery directory; defaults to `cwd`.
+- `testPath`: a file or directory filter, resolved relative to `cwd`.
+- `configPath`: an explicit config, resolved relative to `cwd`. Its directory becomes the test root.
+
+These rules apply to test runs. The `nodes` subcommand retains its existing directory and config resolution rules.
+
+### Migrate config discovery
+
+Default config discovery checks the current working directory (cwd) only. It does not search parent directories or switch configs when you specify a test directory.
+
+If an existing command relies on a directory argument to load another project's config:
+
+```bash
+pnpm exec midscene-test ./other-project
+```
+
+Select that config explicitly:
+
+```bash
+pnpm exec midscene-test --config ./other-project/midscene.config.ts
+```
+
+Alternatively, change into `other-project` and run `pnpm exec midscene-test`. To run one file from the original working directory:
+
+```bash
+pnpm exec midscene-test ./other-project/cases/order.yaml --config ./other-project/midscene.config.ts
+```
+
+Check these paths when upgrading:
+
+- `files.include`, `files.exclude`, and `output.reportDir` resolve from the config directory. If your config is in `config/` and your tests are in a sibling `cases/` directory, move the config to their common parent and set `files.include` to `['cases/**/*.yaml']`.
+- Default artifacts go to `midscene_run` inside the config directory. Update CI artifact collection paths, or move the config to the project root.
+- A relative `--config` path now resolves from cwd, even when you specify a test file or directory. Relative test input and `--result-dir` paths also resolve from cwd.
+
+Without a config, YAML discovery and collection remain available, but referenced Nodes must be registered through a config. This does not enable arbitrary YAML execution without configuration.
 
 ### Filter execution targets and configuration files
 
