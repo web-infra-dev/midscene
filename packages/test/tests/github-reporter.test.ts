@@ -220,4 +220,56 @@ describe('GitHub reporter', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it('shows Case and project names with Markdown syntax literally', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'midscene-github-summary-'));
+    try {
+      rs.stubEnv('GITHUB_ACTIONS', 'true');
+      rs.stubEnv('GITHUB_STEP_SUMMARY', join(dir, 'summary.md'));
+      writeGitHubSummary({
+        schemaVersion: 3,
+        runId: 'github-summary-names',
+        startedAt: '2026-10-20T00:00:00.000Z',
+        endedAt: '2026-10-20T00:00:01.000Z',
+        durationMs: 1000,
+        status: 'failed',
+        exitCode: 1,
+        resultDir: '/work/results',
+        reportDir: '/work/results/report',
+        summary: {
+          total: 1,
+          passed: 0,
+          failed: 1,
+          notRun: 0,
+          passedAfterRetry: 0,
+          finalPassRate: 0,
+          firstPassRate: 0,
+          filtered: 0,
+          collectionErrors: 0,
+          documentFailures: 0,
+          projectFailures: 0,
+        },
+        projects: [],
+        documents: [],
+        collectionErrors: [],
+        cases: [
+          {
+            caseId: 'failed',
+            caseIndex: 0,
+            documentId: 'cases/pay.yaml',
+            status: 'failed',
+            name: 'pays with **saved** card [docs](https://example.com) ~old~ a_b\\c',
+            projectName: 'web_*',
+            sourcePath: 'cases/pay.yaml',
+          },
+        ],
+        summaryPath: '/work/results/summary.json',
+      });
+      expect(readFileSync(join(dir, 'summary.md'), 'utf8')).toContain(
+        '- Failed: **pays with &#42;&#42;saved&#42;&#42; card &#91;docs&#93;(https://example.com) &#126;old&#126; a&#95;b&#92;c** — web&#95;&#42;/`cases/pay.yaml`',
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
