@@ -8,6 +8,7 @@ import KimiModelCard from './common/model-cards/kimi.mdx';
 import XiaomiMimoModelCard from './common/model-cards/xiaomi-mimo.mdx';
 import GlmVModelCard from './common/model-cards/glm-v.mdx';
 import AntLingModelCard from './common/model-cards/ant-ling.mdx';
+import TencentHyModelCard from './common/model-cards/tencent-hy.mdx';
 
 # Use a model API key
 
@@ -236,6 +237,24 @@ Configuration example (`glm-5v-turbo`):
 We observed that localization accuracy may decrease when the longest image edge exceeds 2000 pixels. Use the Agent's `screenshotShrinkFactor` option to resize images.
 
 :::
+
+</ModelConfigSection>
+
+<ModelConfigSection description="Hy4">
+
+### Tencent HY {#tencent-hy}
+
+<div className="model-series-table">
+
+| Model<br />`MIDSCENE_MODEL_NAME` | Model family<br />`MIDSCENE_MODEL_FAMILY` | Notes |
+| --- | --- | --- |
+| **Hy4**<br />`hy4` | `tencent-hy` | — |
+
+</div>
+
+Configuration example (`hy4`):
+
+<TencentHyModelCard />
 
 </ModelConfigSection>
 
