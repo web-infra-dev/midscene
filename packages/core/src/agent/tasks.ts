@@ -450,7 +450,7 @@ export class TaskExecutor {
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
     reportOptions?: ActionReportOptions,
-    scrollRecoveryEnabled = false,
+    scrollRecoveryInterval?: number,
   ): Promise<
     ExecutionResult<
       | {
@@ -473,7 +473,7 @@ export class TaskExecutor {
         deepLocate,
         abortSignal,
         reportOptions,
-        scrollRecoveryEnabled,
+        scrollRecoveryInterval,
       );
     });
   }
@@ -523,7 +523,7 @@ export class TaskExecutor {
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
     reportOptions?: ActionReportOptions,
-    scrollRecoveryEnabled = false,
+    scrollRecoveryInterval?: number,
   ): Promise<
     ExecutionResult<
       | {
@@ -618,9 +618,10 @@ export class TaskExecutor {
     let outputString: string | undefined;
     let latestPlanResult: PlanningAIResponse | undefined;
     let latestPlanIndex = 0;
-    const scrollRecovery = scrollRecoveryEnabled
-      ? new ScrollRecovery(session, planningModel)
-      : undefined;
+    const scrollRecovery =
+      scrollRecoveryInterval !== undefined
+        ? new ScrollRecovery(session, planningModel, scrollRecoveryInterval)
+        : undefined;
 
     if (abortSignal?.aborted) {
       return appendFailedPlan(

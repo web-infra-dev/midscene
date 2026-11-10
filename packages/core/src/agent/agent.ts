@@ -106,6 +106,10 @@ import {
   runGherkinScenario,
 } from './run-gherkin-scenario';
 import { markdownToAiActPrompt } from './run-markdown';
+import {
+  type ScrollRecoveryOptions,
+  resolveScrollRecoveryInterval,
+} from './scroll-recovery';
 import { TaskCache } from './task-cache';
 import { TaskExecutor, locatePlanForLocate, withFileChooser } from './tasks';
 import {
@@ -154,10 +158,11 @@ class AgentScopedModelConfigManager extends ModelConfigManager {
 export type AiActOptions = {
   /**
    * Opt in to visual review after repeated same-direction scrolls. Defaults to false.
-   * Adds one model call per pair of scrolls, even when content is moving.
+   * Adds one model call per three scrolls by default, even when content is moving.
+   * Use { afterScrolls: n } to configure the interval (integer >= 2).
    * Requires a standard planner using openai-chat; review failures fail aiAct.
    */
-  scrollRecovery?: boolean;
+  scrollRecovery?: ScrollRecoveryOptions;
   cacheable?: boolean;
   fileChooserAccept?: string | string[];
   fileChooserAllowedDir?: string;
@@ -1297,10 +1302,13 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     }
 
     const runAiAct = async () => {
+      const scrollRecoveryInterval = resolveScrollRecoveryInterval(
+        opt?.scrollRecovery,
+      );
       const planningModel = this.resolveModelRuntime('planning', 'planning');
       const locateModel = this.resolveModelRuntime('locate', 'locate');
       if (
-        opt?.scrollRecovery &&
+        scrollRecoveryInterval !== undefined &&
         (planningModel.adapter.planning.kind !== 'standard' ||
           planningModel.config.protocol === 'openai-responses')
       ) {
@@ -1422,7 +1430,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         deepLocate,
         abortSignal,
         internalReportDisplay,
-        opt?.scrollRecovery,
+        scrollRecoveryInterval,
       );
 
       // update cache

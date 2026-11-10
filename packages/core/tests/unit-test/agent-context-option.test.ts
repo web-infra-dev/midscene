@@ -565,13 +565,17 @@ describe('Agent per-call context option', () => {
 it('passes scrollRecovery to the executor only when requested', async () => {
   const { agent, taskExecutor } = createAgentStub();
   await agent.aiAct('Find Next', { scrollRecovery: false });
-  expect(taskExecutor.action.mock.calls[0][11]).toBe(false);
+  expect(taskExecutor.action.mock.calls[0][11]).toBeUndefined();
   (agent as any).resolveModelRuntime = rs.fn(() => ({
     config: { slot: 'default' },
     adapter: { planning: { kind: 'standard', cacheEnabled: false } },
   }));
   await agent.aiAct('Find Next', { scrollRecovery: true });
-  expect(taskExecutor.action.mock.calls[1][11]).toBe(true);
+  expect(taskExecutor.action.mock.calls[1][11]).toBe(3);
+  await agent.aiAct('Find Next', { scrollRecovery: { afterScrolls: 2 } });
+  expect(taskExecutor.action.mock.calls[2][11]).toBe(2);
+  await agent.aiAct('Find Next', { scrollRecovery: {} });
+  expect(taskExecutor.action.mock.calls[3][11]).toBe(3);
 });
 it.each(['custom', 'responses'])(
   'rejects unsupported scrollRecovery before invoking the executor: %s',
@@ -588,6 +592,25 @@ it.each(['custom', 'responses'])(
     await expect(
       agent.aiAct('Find Next', { scrollRecovery: true }),
     ).rejects.toThrow('scrollRecovery requires');
+    expect(taskExecutor.action).not.toHaveBeenCalled();
+  },
+);
+
+it.each([
+  0,
+  1,
+  -1,
+  2.5,
+  Number.NaN,
+  Number.POSITIVE_INFINITY,
+  Number.MAX_SAFE_INTEGER + 1,
+])(
+  'rejects invalid scroll recovery interval before execution: %s',
+  async (afterScrolls) => {
+    const { agent, taskExecutor } = createAgentStub();
+    await expect(
+      agent.aiAct('Find Next', { scrollRecovery: { afterScrolls } }),
+    ).rejects.toThrow('scrollRecovery.afterScrolls');
     expect(taskExecutor.action).not.toHaveBeenCalled();
   },
 );

@@ -1076,7 +1076,7 @@ describe('TaskExecutor concurrency isolation', () => {
         undefined,
         undefined,
         undefined,
-        true,
+        2,
       );
       expect(scroll).toHaveBeenCalledTimes(2);
       expect(reviewScroll).toHaveBeenCalledOnce();
@@ -1090,6 +1090,70 @@ describe('TaskExecutor concurrency isolation', () => {
       expect(rs.mocked(standardPlan).mock.calls[0][1].reassessScroll).toBe(
         false,
       );
+    },
+  );
+
+  it.each([2, 3])(
+    'reviews six advancing scrolls at configured interval %s',
+    async (interval) => {
+      const executor = new TaskExecutor(mockInterface, mockService, {
+        getDefaultModelRuntime: defaultModel,
+        replanningCycleLimit: 7,
+        actionSpace: emptyParamActionSpace,
+      });
+      const scroll = rs.fn(async () => ({}));
+      rs.spyOn(executor, 'convertPlanToExecutable').mockImplementation(
+        async (plan) => ({
+          tasks: plan.length
+            ? [
+                {
+                  type: 'Action Space',
+                  subType: 'Scroll',
+                  param: { direction: 'down' },
+                  executor: scroll,
+                },
+              ]
+            : [],
+          yamlFlow: [],
+        }),
+      );
+      rs.mocked(reviewScroll).mockResolvedValue({
+        content: {
+          progress: 'moved',
+          observation: 'List advanced',
+          nextSearchDirection: null,
+        },
+        contentString: 'review',
+      });
+      let plans = 0;
+      rs.mocked(standardPlan).mockImplementation(async (_prompt, opts) => {
+        expect(opts.reassessScroll).toBe(false);
+        const done = plans++ === 6;
+        return {
+          actions: done
+            ? []
+            : [{ type: 'Scroll', param: { direction: 'down' } }],
+          shouldContinuePlanning: !done,
+          ...(done ? { finalizeSuccess: true } : {}),
+          log: '',
+        };
+      });
+      await executor.action(
+        'Find Next',
+        planningModel(),
+        defaultModel(),
+        undefined,
+        undefined,
+        undefined,
+        'balance',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        interval,
+      );
+      expect(scroll).toHaveBeenCalledTimes(6);
+      expect(reviewScroll).toHaveBeenCalledTimes(Math.floor(6 / interval));
     },
   );
 
@@ -1168,7 +1232,7 @@ describe('TaskExecutor concurrency isolation', () => {
           undefined,
           controller.signal,
           undefined,
-          true,
+          2,
         ),
       ).rejects.toThrow(
         failure === 'cancelled' ? 'cancel review' : 'invalid review',

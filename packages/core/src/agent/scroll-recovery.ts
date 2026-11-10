@@ -1,6 +1,7 @@
 import type { ModelRuntime } from '@/ai-model/models';
 import { AIResponseParseError } from '@/ai-model/service-caller';
 import {
+  DEFAULT_SCROLL_REVIEW_INTERVAL,
   type ScrollReview,
   findScrollToReview,
   reviewScroll,
@@ -9,6 +10,28 @@ import { assert } from '@midscene/shared/utils';
 import type { ExecutionSession } from './execution-session';
 import { withUsageIntent } from './usage-intent';
 
+export type ScrollRecoveryOptions =
+  | boolean
+  | {
+      /** Review after this many consecutive same-direction scrolls. Integer >= 2; default 3. */
+      afterScrolls?: number;
+    };
+
+export function resolveScrollRecoveryInterval(
+  options?: ScrollRecoveryOptions,
+): number | undefined {
+  if (!options) return undefined;
+  const interval =
+    typeof options === 'boolean'
+      ? DEFAULT_SCROLL_REVIEW_INTERVAL
+      : (options.afterScrolls ?? DEFAULT_SCROLL_REVIEW_INTERVAL);
+  if (!Number.isSafeInteger(interval) || interval < 2)
+    throw new Error(
+      'scrollRecovery.afterScrolls must be a safe integer greater than or equal to 2',
+    );
+  return interval;
+}
+
 /** Per-aiAct review state and report lifecycle; never executes a UI action. */
 export class ScrollRecovery {
   private reviewedTaskId?: string;
@@ -16,6 +39,7 @@ export class ScrollRecovery {
   constructor(
     private readonly session: ExecutionSession,
     private readonly model: ModelRuntime,
+    private readonly afterScrolls: number,
   ) {
     if (
       model.adapter.planning.kind !== 'standard' ||
@@ -31,8 +55,12 @@ export class ScrollRecovery {
     onStart: () => Promise<void>,
     abortSignal?: AbortSignal,
   ): Promise<ScrollReview | undefined> {
-    const task = findScrollToReview(this.session.getRunner().tasks);
-    if (!task || task.taskId === this.reviewedTaskId) return undefined;
+    const task = findScrollToReview(
+      this.session.getRunner().tasks,
+      this.afterScrolls,
+      this.reviewedTaskId,
+    );
+    if (!task) return undefined;
     this.reviewedTaskId = task.taskId;
     await onStart();
     let observation: ScrollReview | undefined;

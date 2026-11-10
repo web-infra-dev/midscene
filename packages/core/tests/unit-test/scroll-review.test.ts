@@ -13,29 +13,78 @@ const scroll = (direction = 'down', status = 'finished') =>
     uiContext: {},
   }) as ExecutionTask;
 describe('scroll review trigger', () => {
-  it('reviews every pair, not the first scroll or every subsequent step', () => {
-    const tasks = [scroll(), scroll(), scroll(), scroll()];
-    expect(findScrollToReview(tasks.slice(0, 1))).toBeUndefined();
-    expect(findScrollToReview(tasks.slice(0, 2))).toBe(tasks[1]);
-    expect(findScrollToReview(tasks.slice(0, 3))).toBeUndefined();
-    expect(findScrollToReview(tasks)).toBe(tasks[3]);
-  });
-  it('resets on another action, direction, or failed scroll', () => {
-    expect(findScrollToReview([scroll(), scroll('right')])).toBeUndefined();
+  it.each([2, 3, 4])(
+    'reviews at interval %s without reviewing intervening scrolls',
+    (interval) => {
+      const tasks = Array.from({ length: 12 }, (_, i) => ({
+        ...scroll(),
+        taskId: `scroll-${i}`,
+      }));
+      let reviewedTaskId: string | undefined;
+      for (let count = 1; count <= tasks.length; count++) {
+        const candidate = findScrollToReview(
+          tasks.slice(0, count),
+          interval,
+          reviewedTaskId,
+        );
+        expect(candidate).toBe(
+          count % interval === 0 ? tasks[count - 1] : undefined,
+        );
+        if (candidate) reviewedTaskId = candidate.taskId;
+      }
+    },
+  );
+  it('reviews batches crossing the threshold and counts anew after the last review', () => {
+    const tasks = Array.from({ length: 7 }, (_, i) => ({
+      ...scroll(),
+      taskId: `scroll-${i}`,
+    }));
+    expect(findScrollToReview(tasks.slice(0, 4), 3)).toBe(tasks[3]);
     expect(
-      findScrollToReview([scroll(), { ...scroll(), subType: 'Tap' }, scroll()]),
+      findScrollToReview(tasks.slice(0, 4), 3, tasks[3].taskId),
     ).toBeUndefined();
     expect(
-      findScrollToReview([scroll(), scroll('down', 'failed')]),
+      findScrollToReview(tasks.slice(0, 6), 3, tasks[3].taskId),
+    ).toBeUndefined();
+    expect(findScrollToReview(tasks, 3, tasks[3].taskId)).toBe(tasks[6]);
+  });
+  it('defaults to three scrolls', () => {
+    const tasks = [scroll(), scroll(), scroll()];
+    expect(findScrollToReview(tasks.slice(0, 2))).toBeUndefined();
+    expect(findScrollToReview(tasks)).toBe(tasks[2]);
+  });
+  it('resets on another action, direction, or failed scroll', () => {
+    expect(
+      findScrollToReview([scroll(), scroll(), scroll('right')]),
+    ).toBeUndefined();
+    expect(
+      findScrollToReview([
+        scroll(),
+        scroll(),
+        { ...scroll(), subType: 'Tap' },
+        scroll(),
+      ]),
+    ).toBeUndefined();
+    expect(
+      findScrollToReview([scroll(), scroll(), scroll('down', 'failed')]),
     ).toBeUndefined();
   });
   it('does not count planning tasks or review missing screenshots', () => {
     const last = scroll();
     expect(
-      findScrollToReview([scroll(), { ...scroll(), type: 'Planning' }, last]),
+      findScrollToReview([
+        scroll(),
+        scroll(),
+        { ...scroll(), type: 'Planning' },
+        last,
+      ]),
     ).toBe(last);
     expect(
-      findScrollToReview([scroll(), { ...last, uiContext: undefined }]),
+      findScrollToReview([
+        scroll(),
+        scroll(),
+        { ...last, uiContext: undefined },
+      ]),
     ).toBeUndefined();
   });
 });

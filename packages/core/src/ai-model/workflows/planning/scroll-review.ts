@@ -26,9 +26,13 @@ function scrollDirection(task: ExecutionTask): string {
   );
 }
 
-/** Review every pair of consecutive same-direction scrolls, not every replan. */
+export const DEFAULT_SCROLL_REVIEW_INTERVAL = 3;
+
+/** Review at the configured cadence of consecutive same-direction scrolls. */
 export function findScrollToReview(
   tasks: ExecutionTask[],
+  afterScrolls = DEFAULT_SCROLL_REVIEW_INTERVAL,
+  reviewedTaskId?: string,
 ): ExecutionTask | undefined {
   const actions = tasks.filter((task) => task.type === 'Action Space');
   const last = actions.at(-1);
@@ -42,6 +46,7 @@ export function findScrollToReview(
   for (let i = actions.length - 1; i >= 0; i--) {
     const task = actions[i];
     if (
+      (reviewedTaskId !== undefined && task.taskId === reviewedTaskId) ||
       task.subType !== 'Scroll' ||
       task.status !== 'finished' ||
       scrollDirection(task) !== scrollDirection(last)
@@ -49,7 +54,7 @@ export function findScrollToReview(
       break;
     count++;
   }
-  return count >= 2 && count % 2 === 0 ? last : undefined;
+  return count >= afterScrolls ? last : undefined;
 }
 
 /** A separate observation avoids anchoring on the previous planner's guesses. */
