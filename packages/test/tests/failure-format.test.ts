@@ -122,6 +122,33 @@ describe('first application stack frame', () => {
     expect(firstBusinessFrame(wrapper, '/demo')).toBe('custom node.ts:42:5');
   });
 
+  it("keeps frames from the project's own packages folders", () => {
+    // A user monorepo with its own packages/shared/src or packages/core/src:
+    // only Midscene's packages, outside the project, are framework frames.
+    const error = new Error('failure');
+    error.stack = [
+      'Error: failure',
+      ' at engine (/work/midscene/packages/core/dist/lib/run.js:7:2)',
+      ' at login (/work/acme/packages/shared/src/nodes/login.ts:7:3)',
+    ].join('\n');
+    expect(firstBusinessFrame(error, '/work/acme')).toBe(
+      'packages/shared/src/nodes/login.ts:7:3',
+    );
+    error.stack = error.stack.replace(
+      'packages/shared/src',
+      'packages/core/src',
+    );
+    expect(firstBusinessFrame(error, '/work/acme/')).toBe(
+      'packages/core/src/nodes/login.ts:7:3',
+    );
+    const windows = new Error('failure');
+    windows.stack =
+      'Error: failure\n at login (C:\\work\\acme\\packages\\test\\dist\\nodes.js:3:1)';
+    expect(firstBusinessFrame(windows, 'C:\\work\\acme')).toBe(
+      'packages/test/dist/nodes.js:3:1',
+    );
+  });
+
   it('keeps parentheses that are part of the file path', () => {
     const windows = new Error('failure');
     windows.stack =
