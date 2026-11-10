@@ -150,32 +150,66 @@ describe('TaskExecutor custom planning adapters', () => {
     expect(nextAction).not.toHaveBeenCalled();
     expect(callAIWithStringResponse).toHaveBeenCalledTimes(1);
   });
-  it('replans after successful waiting instead of executing coordinates from before the wait', async () => {
+  it('replans from a fresh observation after waiting and completes only the replacement action', async () => {
     const oldAction = rs.fn(async () => {});
+    const newAction = rs.fn(async () => {});
+    const plannedActions = [
+      { type: 'WaitFor', param: { condition: 'ready' } },
+      { type: 'OldSubmit', param: {} },
+    ];
+    const initialContext = await mockService.contextRetrieverFn();
+    const freshScreenshot = ScreenshotItem.create(validBase64Image, Date.now());
+    let waited = false;
+    rs.mocked(mockService.contextRetrieverFn).mockImplementation(async () => ({
+      ...initialContext,
+      screenshot: waited ? freshScreenshot : initialContext.screenshot,
+    }));
+    const wait = rs.fn(async () => {
+      waited = true;
+      plannedActions.splice(0, plannedActions.length, {
+        type: 'Submit',
+        param: {},
+      });
+    });
     const actionSpace = [
-      definePlannedWait(async () => {}),
+      definePlannedWait(wait),
+      {
+        name: 'OldSubmit',
+        description: 'old submit',
+        paramSchema: z.object({}),
+        call: oldAction,
+      },
       {
         name: 'Submit',
         description: 'submit',
         paramSchema: z.object({}),
-        call: oldAction,
+        call: newAction,
       },
     ];
     const executor = new TaskExecutor(mockInterface, mockService, {
       getDefaultModelRuntime: defaultModel,
       actionSpace,
       planningWaitFor: true,
-      replanningCycleLimit: 1,
+      replanningCycleLimit: 2,
     });
-    const planning = createCustomPlanningModel([
-      { type: 'WaitFor', param: { condition: 'ready' } },
-      { type: 'Submit', param: {} },
-    ]);
     rs.mocked(callAIWithStringResponse).mockResolvedValue({ content: '' });
-    await expect(
-      executor.action('send once', planning, defaultModel()),
-    ).rejects.toThrow();
+    const result = await executor.action(
+      'send once',
+      createCustomPlanningModel(plannedActions),
+      defaultModel(),
+    );
+    expect(wait).toHaveBeenCalledTimes(1);
     expect(oldAction).not.toHaveBeenCalled();
+    expect(newAction).toHaveBeenCalledTimes(1);
+    expect(callAIWithStringResponse).toHaveBeenCalledTimes(2);
+    expect(
+      JSON.stringify(rs.mocked(callAIWithStringResponse).mock.calls[1][0]),
+    ).toContain('WaitFor succeeded: ready');
+    const plans = result.runner.tasks.filter(
+      (task) => task.type === 'Planning',
+    );
+    expect(plans.at(-1)?.uiContext?.screenshot).toBe(freshScreenshot);
+    expect(JSON.stringify(result.output)).not.toContain('OldSubmit');
   });
 
   it('requests prompt-only planning when a separate Locate model is configured', async () => {

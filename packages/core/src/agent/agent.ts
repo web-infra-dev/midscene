@@ -1687,10 +1687,11 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     await player.run();
 
     if (player.status === 'error') {
-      const readinessFailure = player.taskStatusList.find((task) =>
-        isActionReadinessError(task.error),
+      const terminalFailure = player.taskStatusList.find(
+        (task) =>
+          isActionReadinessError(task.error) || isPlannedWaitError(task.error),
       );
-      if (readinessFailure) throw readinessFailure.error;
+      if (terminalFailure) throw terminalFailure.error;
       const errors = player.taskStatusList
         .filter((task) => task.status === 'error')
         .map((task) => {

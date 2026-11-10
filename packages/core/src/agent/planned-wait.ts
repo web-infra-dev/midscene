@@ -1,4 +1,6 @@
+import { buildYamlFlowFromPlans } from '@/common';
 import { defineAction } from '@/device';
+import type { DeviceAction, PlanningAIResponse } from '@/types';
 import { z } from 'zod';
 
 /** Planning guidance is only attached when conditional waiting is enabled. */
@@ -64,4 +66,23 @@ export function definePlannedWait(
       }
     },
   });
+}
+
+/** Discard actions whose coordinates predate a wait, including their cached flow. */
+export function normalizePlannedWait(
+  plan: PlanningAIResponse,
+  actionSpace: DeviceAction[],
+): PlanningAIResponse {
+  if (plan.delegation || !plan.actions) return plan;
+  const waitIndex = plan.actions.findIndex(
+    (action) => action.type === 'WaitFor',
+  );
+  if (waitIndex < 0) return plan;
+  const actions = plan.actions.slice(0, waitIndex + 1);
+  return {
+    ...plan,
+    actions,
+    yamlFlow: buildYamlFlowFromPlans(actions, actionSpace),
+    shouldContinuePlanning: true,
+  };
 }

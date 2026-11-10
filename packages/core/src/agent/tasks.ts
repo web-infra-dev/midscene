@@ -6,7 +6,6 @@ import { standardPlan } from '@/ai-model/workflows/planning';
 import {
   type TMultimodalPrompt,
   type TUserPrompt,
-  buildYamlFlowFromPlans,
   getReadableTimeString,
   userPromptToMultimodalPrompt,
   userPromptToString,
@@ -51,7 +50,7 @@ import {
 import { ExecutionSession } from './execution-session';
 import { withFileChooser } from './file-chooser';
 import { evaluatePlanFreshness } from './plan-freshness';
-import { isPlannedWaitError } from './planned-wait';
+import { isPlannedWaitError, normalizePlannedWait } from './planned-wait';
 import {
   type AgentProgressPublisher,
   createAiActActionReporter,
@@ -772,23 +771,8 @@ export class TaskExecutor {
             } finally {
               setTimingFieldOnce(timing, 'callAiEnd');
             }
-            if (this.planningWaitFor && !planResult.delegation) {
-              const waitIndex =
-                planResult.actions?.findIndex(
-                  (action) => action.type === 'WaitFor',
-                ) ?? -1;
-              if (waitIndex >= 0) {
-                // Async readiness can invalidate every coordinate after the wait.
-                planResult.actions = planResult.actions!.slice(
-                  0,
-                  waitIndex + 1,
-                );
-                planResult.yamlFlow = buildYamlFlowFromPlans(
-                  planResult.actions,
-                  actionSpace,
-                );
-                planResult.shouldContinuePlanning = true;
-              }
+            if (this.planningWaitFor) {
+              planResult = normalizePlannedWait(planResult, actionSpace);
             }
             debug('planResult', JSON.stringify(planResult, null, 2));
 
