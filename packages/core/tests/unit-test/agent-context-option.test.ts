@@ -561,3 +561,33 @@ describe('Agent per-call context option', () => {
     });
   });
 });
+
+it('passes scrollRecovery to the executor only when requested', async () => {
+  const { agent, taskExecutor } = createAgentStub();
+  await agent.aiAct('Find Next', { scrollRecovery: false });
+  expect(taskExecutor.action.mock.calls[0][11]).toBe(false);
+  (agent as any).resolveModelRuntime = rs.fn(() => ({
+    config: { slot: 'default' },
+    adapter: { planning: { kind: 'standard', cacheEnabled: false } },
+  }));
+  await agent.aiAct('Find Next', { scrollRecovery: true });
+  expect(taskExecutor.action.mock.calls[1][11]).toBe(true);
+});
+it.each(['custom', 'responses'])(
+  'rejects unsupported scrollRecovery before invoking the executor: %s',
+  async (mode) => {
+    const { agent, taskExecutor } = createAgentStub();
+    (agent as any).resolveModelRuntime = rs.fn(() => ({
+      config: {
+        protocol: mode === 'responses' ? 'openai-responses' : 'openai-chat',
+      },
+      adapter: {
+        planning: { kind: mode === 'custom' ? 'custom' : 'standard' },
+      },
+    }));
+    await expect(
+      agent.aiAct('Find Next', { scrollRecovery: true }),
+    ).rejects.toThrow('scrollRecovery requires');
+    expect(taskExecutor.action).not.toHaveBeenCalled();
+  },
+);

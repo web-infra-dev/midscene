@@ -28,6 +28,7 @@ import {
   preparedReferenceImagesToMessages,
 } from '../../shared/multimodal-prompt';
 import { parsePlanningActions } from './parse-planning-actions';
+import { projectScrollRecoveryHistory } from './scroll-recovery-history';
 import { parseStandardPlanningResponse } from './standard-planning-parser';
 import type { PlanOptions } from './types';
 
@@ -229,9 +230,11 @@ export async function standardPlan(
   // Otherwise: show historical execution logs
   const executionProgressText = includeSubGoals
     ? conversationHistory.subGoalsToText()
-    : conversationHistory.historicalLogsToText();
+    : opts.reassessScroll
+      ? ''
+      : conversationHistory.historicalLogsToText();
   const executionProgressSection = executionProgressText
-    ? `\n\n${executionProgressText}`
+    ? `\n\n<execution_history>${executionProgressText}</execution_history>`
     : conversationHistory.pendingFeedbackMessage
       ? ''
       : `\n\n${noPreviousActionsText}`;
@@ -246,7 +249,7 @@ export async function standardPlan(
       content: [
         {
           type: 'text',
-          text: `${conversationHistory.pendingFeedbackMessage}. The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.${memoriesSection}${executionProgressSection}`,
+          text: `${memoriesSection}${executionProgressSection}\n\nLatest execution feedback: ${conversationHistory.pendingFeedbackMessage}. Here is the latest screenshot. Use the observed result, not the intent of previous actions, to choose the next action.`,
         },
         {
           type: 'image',
@@ -262,7 +265,7 @@ export async function standardPlan(
       content: [
         {
           type: 'text',
-          text: `This is the current screenshot.${memoriesSection}${executionProgressSection}`,
+          text: `${memoriesSection}${executionProgressSection}\n\nThis is the current screenshot. Use the observed result, not the intent of previous actions, to choose the next action.`,
         },
         {
           type: 'image',
@@ -276,7 +279,12 @@ export async function standardPlan(
   // Compress history if it exceeds the threshold to avoid context overflow
   conversationHistory.compressHistory(50, 20);
 
-  const historyLog = conversationHistory.snapshot(opts.imagesIncludeCount);
+  const historySnapshot = conversationHistory.snapshot(
+    opts.reassessScroll ? 2 : opts.imagesIncludeCount,
+  );
+  const historyLog = opts.reassessScroll
+    ? projectScrollRecoveryHistory(historySnapshot)
+    : historySnapshot;
 
   const msgs: ModelCallMessages = [
     { role: 'system', content: systemPrompt },

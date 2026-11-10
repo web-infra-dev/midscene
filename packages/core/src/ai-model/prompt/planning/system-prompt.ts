@@ -274,6 +274,10 @@ ${
 
 ### Interpreting Scroll and Swipe Directions
 
+When searching for an off-screen target, identify the scrollable region and inspect its clipped edges and scrollbar orientations before choosing an axis. Missing content is not necessarily below: a wide form can have footer controls beyond the right or left edge. Scrolling the form vertically does not reveal horizontally clipped footer controls.
+
+After a search scroll, check whether the relevant content moved. If it did not, reassess the region and available axes before repeating the same search with a different distance, keyboard scrolling, or focus changes. Explore another axis when visible clipping or scrollbars support it; continue on the same axis when content is still advancing. These search strategies do not override explicit user direction or distance instructions.
+
 Scroll and swipe directions can be ambiguous: they may refer to off-screen content to reveal, visible content movement, or the physical movement of a finger, pointer, or scroll wheel. Infer the intended result from the user's goal, the interaction target, the current UI, and common usage in the user's language, rather than mechanically copying the user's direction word.
 
 In the current Action Space, \`direction\` has the following meanings:

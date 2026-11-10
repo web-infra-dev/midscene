@@ -18,6 +18,17 @@ rs.mock('@midscene/shared/img', () => ({
   preProcessImageUrl: rs.fn(async (url: string) => `prepared:${url}`),
 }));
 
+import * as scrollReviewActual from '@/ai-model/workflows/planning/scroll-review' with {
+  rstest: 'importActual',
+};
+rs.mock('@/ai-model/workflows/planning/scroll-review', () => ({
+  ...scrollReviewActual,
+  reviewScroll: rs.fn(),
+}));
+import { AIResponseParseError } from '@/ai-model/service-caller';
+import { reviewScroll } from '@/ai-model/workflows/planning/scroll-review';
+import type { TaskRunner } from '@/task-runner';
+
 import { TaskExecutor } from '@/agent/tasks';
 import { getMidsceneLocationSchema } from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
@@ -948,6 +959,234 @@ describe('TaskExecutor concurrency isolation', () => {
       'Current time: 2023-10-15 15:37:00 (YYYY-MM-DD HH:mm:ss)',
     ]);
   });
+
+  it('does not invoke auxiliary review by default even after repeated scrolling', async () => {
+    const executor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
+      replanningCycleLimit: 3,
+      actionSpace: emptyParamActionSpace,
+    });
+    rs.spyOn(executor, 'convertPlanToExecutable').mockResolvedValue({
+      tasks: [
+        {
+          type: 'Action Space',
+          subType: 'Scroll',
+          param: { direction: 'down' },
+          executor: async () => ({}),
+        },
+      ],
+      yamlFlow: [],
+    } as any);
+    rs.mocked(reviewScroll).mockClear();
+    rs.mocked(standardPlan)
+      .mockResolvedValueOnce({
+        actions: [],
+        shouldContinuePlanning: true,
+        log: '',
+      })
+      .mockResolvedValueOnce({
+        actions: [],
+        shouldContinuePlanning: true,
+        log: '',
+      })
+      .mockResolvedValueOnce({
+        actions: [],
+        shouldContinuePlanning: false,
+        log: '',
+      });
+    await executor.action('Find Next', planningModel(), defaultModel());
+    expect(reviewScroll).not.toHaveBeenCalled();
+  });
+
+  it.each(['moved', 'unchanged', 'uncertain'] as const)(
+    'reviews repeated scrolls and only reassesses confirmed stalls: %s',
+    async (progress) => {
+      const executor = new TaskExecutor(mockInterface, mockService, {
+        getDefaultModelRuntime: defaultModel,
+        replanningCycleLimit: 3,
+        actionSpace: emptyParamActionSpace,
+      });
+      const scroll = rs.fn(async () => ({}));
+      rs.spyOn(executor, 'convertPlanToExecutable')
+        .mockResolvedValueOnce({
+          tasks: [
+            {
+              type: 'Action Space',
+              subType: 'Scroll',
+              param: { direction: 'down' },
+              executor: scroll,
+            },
+          ],
+          yamlFlow: [],
+        } as any)
+        .mockResolvedValueOnce({
+          tasks: [
+            {
+              type: 'Action Space',
+              subType: 'Scroll',
+              param: { direction: 'down' },
+              executor: scroll,
+            },
+          ],
+          yamlFlow: [],
+        } as any)
+        .mockResolvedValue({ tasks: [], yamlFlow: [] } as any);
+      rs.mocked(reviewScroll).mockResolvedValue({
+        content: {
+          progress,
+          observation: 'Visual scroll observation',
+          nextSearchDirection: null,
+        },
+        contentString: 'review',
+      });
+      rs.mocked(standardPlan)
+        .mockResolvedValueOnce({
+          actions: [{ type: 'Scroll', param: { direction: 'down' } }],
+          shouldContinuePlanning: true,
+          log: '',
+        })
+        .mockResolvedValueOnce({
+          actions: [{ type: 'Scroll', param: { direction: 'down' } }],
+          shouldContinuePlanning: true,
+          log: '',
+        })
+        .mockImplementationOnce(async (_prompt, opts) => {
+          expect(opts.reassessScroll).toBe(progress === 'unchanged');
+          expect(
+            opts.conversationHistory.pendingFeedbackMessage.includes(
+              'Visual scroll observation',
+            ),
+          ).toBe(progress === 'unchanged');
+          return {
+            actions: [],
+            shouldContinuePlanning: false,
+            log: '',
+            finalizeSuccess: true,
+          };
+        });
+      const result = await executor.action(
+        'Find an item in the list',
+        planningModel(),
+        defaultModel(),
+        undefined,
+        undefined,
+        undefined,
+        'balance',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        true,
+      );
+      expect(scroll).toHaveBeenCalledTimes(2);
+      expect(reviewScroll).toHaveBeenCalledOnce();
+      expect(
+        result.runner.tasks.find((t) => t.subType === 'ScrollReview')?.output,
+      ).toEqual({
+        progress,
+        observation: 'Visual scroll observation',
+        nextSearchDirection: null,
+      });
+      expect(rs.mocked(standardPlan).mock.calls[0][1].reassessScroll).toBe(
+        false,
+      );
+    },
+  );
+
+  it.each(['invalid response', 'cancelled'] as const)(
+    'records review failure and stops before another plan: %s',
+    async (failure) => {
+      const controller = new AbortController();
+      const phases: string[] = [];
+      let runner: TaskRunner | undefined;
+      const executor = new TaskExecutor(mockInterface, mockService, {
+        getDefaultModelRuntime: defaultModel,
+        replanningCycleLimit: 3,
+        actionSpace: emptyParamActionSpace,
+        hooks: {
+          onExecutionCreated: (value) => {
+            runner = value;
+          },
+          onProgress: async (_scope, phase) => {
+            phases.push(phase);
+          },
+        },
+      });
+      const scroll = rs.fn(async () => ({}));
+      rs.spyOn(executor, 'convertPlanToExecutable').mockImplementation(
+        async () => ({
+          tasks: [
+            {
+              type: 'Action Space',
+              subType: 'Scroll',
+              param: { direction: 'down' },
+              executor: scroll,
+            },
+          ],
+          yamlFlow: [],
+        }),
+      );
+      rs.mocked(standardPlan).mockResolvedValue({
+        actions: [{ type: 'Scroll', param: { direction: 'down' } }],
+        shouldContinuePlanning: true,
+        log: '',
+      });
+      const usage = {
+        prompt_tokens: 1,
+        completion_tokens: 2,
+        total_tokens: 3,
+        cached_input: 0,
+        time_cost: 1,
+        model_name: undefined,
+        model_description: undefined,
+        response_model_name: undefined,
+        intent: undefined,
+        slot: undefined,
+        request_id: undefined,
+      };
+      rs.mocked(reviewScroll).mockImplementation(async () => {
+        if (failure === 'cancelled') {
+          controller.abort('cancel review');
+          controller.signal.throwIfAborted();
+        }
+        throw new AIResponseParseError(
+          'invalid review',
+          'raw invalid response',
+          usage,
+        );
+      });
+      await expect(
+        executor.action(
+          'Find Next',
+          planningModel(),
+          defaultModel(),
+          undefined,
+          undefined,
+          undefined,
+          'balance',
+          undefined,
+          undefined,
+          controller.signal,
+          undefined,
+          true,
+        ),
+      ).rejects.toThrow(
+        failure === 'cancelled' ? 'cancel review' : 'invalid review',
+      );
+      expect(scroll).toHaveBeenCalledTimes(2);
+      expect(standardPlan).toHaveBeenCalledTimes(2);
+      expect(reviewScroll).toHaveBeenCalledOnce();
+      expect(phases).toContain('plan_failed');
+      const reviewTask = runner?.tasks.find(
+        (task) => task.subType === 'ScrollReview',
+      );
+      expect(reviewTask?.status).toBe('failed');
+      if (failure === 'invalid response') {
+        expect(reviewTask?.log?.rawResponse).toBe('raw invalid response');
+        expect(reviewTask?.usage).toEqual({ ...usage, intent: 'planning' });
+      }
+    },
+  );
 
   it('should pass RunAdbShell planning feedback into the next planning request', async () => {
     const seenPendingFeedback: string[] = [];

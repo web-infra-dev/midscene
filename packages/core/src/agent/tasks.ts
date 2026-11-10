@@ -3,6 +3,7 @@ import type { ModelRuntime } from '@/ai-model/models';
 import { buildTypeQueryDemandValue } from '@/ai-model/prompt/insight';
 import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
 import { standardPlan } from '@/ai-model/workflows/planning';
+import { scrollReviewFeedback } from '@/ai-model/workflows/planning/scroll-review';
 import {
   type TMultimodalPrompt,
   type TUserPrompt,
@@ -55,6 +56,7 @@ import {
   errorMessageForAiAct,
 } from './progress';
 import { renderAIContext } from './prompt-context';
+import { ScrollRecovery } from './scroll-recovery';
 import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
@@ -448,6 +450,7 @@ export class TaskExecutor {
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
     reportOptions?: ActionReportOptions,
+    scrollRecoveryEnabled = false,
   ): Promise<
     ExecutionResult<
       | {
@@ -470,6 +473,7 @@ export class TaskExecutor {
         deepLocate,
         abortSignal,
         reportOptions,
+        scrollRecoveryEnabled,
       );
     });
   }
@@ -519,6 +523,7 @@ export class TaskExecutor {
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
     reportOptions?: ActionReportOptions,
+    scrollRecoveryEnabled = false,
   ): Promise<
     ExecutionResult<
       | {
@@ -613,6 +618,9 @@ export class TaskExecutor {
     let outputString: string | undefined;
     let latestPlanResult: PlanningAIResponse | undefined;
     let latestPlanIndex = 0;
+    const scrollRecovery = scrollRecoveryEnabled
+      ? new ScrollRecovery(session, planningModel)
+      : undefined;
 
     if (abortSignal?.aborted) {
       return appendFailedPlan(
@@ -640,6 +648,31 @@ export class TaskExecutor {
           `Task aborted: ${abortSignal.reason || 'abort signal received'}`,
           planIndex,
         );
+      }
+
+      let reassessScroll = false;
+      if (scrollRecovery && !delegation) {
+        try {
+          const observation = await scrollRecovery.review(
+            () =>
+              this.emitAiActProgress('plan_thinking', {
+                planIndex,
+                planLimit: replanningCycleLimit,
+              }),
+            abortSignal,
+          );
+          if (observation?.progress === 'unchanged') {
+            conversationHistory.pendingFeedbackMessage += `\n${scrollReviewFeedback(observation)}`;
+            reassessScroll = true;
+          }
+        } catch (error) {
+          await this.emitAiActProgress('plan_failed', {
+            planIndex,
+            planLimit: replanningCycleLimit,
+            error: errorMessageForAiAct(error),
+          });
+          throw error;
+        }
       }
 
       // Get sub-goal status text if available
@@ -736,6 +769,7 @@ export class TaskExecutor {
                 conversationHistory,
                 includeLocateInPlanning: !delegation && includeLocateInPlanning,
                 imagesIncludeCount,
+                reassessScroll,
                 effort,
                 abortSignal,
               });
@@ -856,7 +890,7 @@ export class TaskExecutor {
         yamlFlow.push(...(planResult?.yamlFlow || []));
 
         let executables: Awaited<
-          ReturnType<typeof this.convertPlanToExecutable>
+          ReturnType<TaskExecutor['convertPlanToExecutable']>
         >;
         try {
           executables = await this.convertPlanToExecutable(

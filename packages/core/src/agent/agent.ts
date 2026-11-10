@@ -152,6 +152,12 @@ class AgentScopedModelConfigManager extends ModelConfigManager {
 }
 
 export type AiActOptions = {
+  /**
+   * Opt in to visual review after repeated same-direction scrolls. Defaults to false.
+   * Adds one model call per pair of scrolls, even when content is moving.
+   * Requires a standard planner using openai-chat; review failures fail aiAct.
+   */
+  scrollRecovery?: boolean;
   cacheable?: boolean;
   fileChooserAccept?: string | string[];
   fileChooserAllowedDir?: string;
@@ -1293,6 +1299,15 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     const runAiAct = async () => {
       const planningModel = this.resolveModelRuntime('planning', 'planning');
       const locateModel = this.resolveModelRuntime('locate', 'locate');
+      if (
+        opt?.scrollRecovery &&
+        (planningModel.adapter.planning.kind !== 'standard' ||
+          planningModel.config.protocol === 'openai-responses')
+      ) {
+        throw new Error(
+          'scrollRecovery requires a standard planner using openai-chat',
+        );
+      }
       const aiActContext = this.resolveUserContext('aiAct', opt?.context);
       const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
       // Resolve the public planning controls at the API boundary. Internal
@@ -1407,6 +1422,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         deepLocate,
         abortSignal,
         internalReportDisplay,
+        opt?.scrollRecovery,
       );
 
       // update cache

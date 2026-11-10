@@ -354,6 +354,16 @@ await agent.aiAct(
 );
 ```
 
+**按需启用滚动恢复**
+
+当 `aiAct` 搜索隐藏控件时反复选错滚动方向，可设置 `scrollRecovery: true`，默认值为 `false`。它要求标准规划器使用 `openai-chat` 协议；启用时不支持自定义规划器和 `openai-responses`，会直接报错。这是 JavaScript 单次调用选项，不是 YAML 或 Chrome 扩展设置。
+
+```typescript
+await agent.aiAct('找到并点击下一步', { scrollRecovery: true });
+```
+
+每连续执行两次同方向滚动，Midscene 会增加一次模型调用，比较实际目标区域的前后截图。只有 `unchanged` 才触发搜索方向重评估；`moved` 和 `uncertain` 保留正常规划上下文。检查以 `ScrollReview` 记录在报告中，包含模型用量。即使滚动正常，也会产生额外延迟和 Token 成本。检查在配置的重试次数后仍失败，会使调用失败；取消仍然有效。用户明确指定的方向、距离和停止条件优先。这是视觉推断，不保证已到达滚动边界，也不改变 `aiScroll` 或缓存计划回放。
+
 <a id="aiact-deepthink"></a>
 
 **`deepThink` 规划模式**
