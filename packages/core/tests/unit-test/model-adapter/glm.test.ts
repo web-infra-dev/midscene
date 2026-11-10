@@ -5,6 +5,43 @@ import { describe, expect, it } from '@rstest/core';
 const glmAdapter = new ResolvedModelAdapter(glmAdapters['glm-v'], 'glm-v');
 
 describe('glm model adapter', () => {
+  describe.each([
+    { baseURL: 'https://open.bigmodel.cn/api/paas/v4', openRouter: false },
+    { baseURL: 'https://openrouter.ai/api/v1', openRouter: true },
+  ])('reasoning parameters for $baseURL', ({ baseURL, openRouter }) => {
+    it.each([undefined, false, true, 'default'] as const)(
+      'maps enabled=%s while omitting unsupported effort and budget',
+      (reasoningEnabled) => {
+        const result = glmAdapter.chatCompletion.buildChatCompletionParams({
+          baseURL,
+          expectedJsonObjectResponse: true,
+          userConfig: {
+            reasoningEnabled,
+            reasoningEffort: 'high',
+            reasoningBudget: 1024,
+            temperature: 0.7,
+          },
+        });
+        const thinkingConfig =
+          reasoningEnabled === 'default'
+            ? {}
+            : openRouter
+              ? { reasoning: { enabled: reasoningEnabled ?? false } }
+              : {
+                  thinking: {
+                    type: reasoningEnabled ? 'enabled' : 'disabled',
+                  },
+                };
+
+        expect(result.config).toEqual({
+          temperature: 0.7,
+          response_format: { type: 'json_object' },
+          ...thinkingConfig,
+        });
+      },
+    );
+  });
+
   it('defaults glm-v thinking to disabled when reasoning config is unset', () => {
     const result = glmAdapter.chatCompletion.buildChatCompletionParams({
       userConfig: {},

@@ -1,4 +1,5 @@
 import type { TModelFamily } from '@midscene/shared/env';
+import { isOpenRouter } from '../model-adapter/is-openrouter';
 import type {
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
@@ -8,8 +9,8 @@ import type {
 const buildGlmChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
-  const { midsceneDefaults, userConfig } = input;
-  const { reasoningEnabled } = userConfig;
+  const { baseURL, midsceneDefaults, userConfig } = input;
+  const { reasoningEnabled = false } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
 
   if (userConfig.temperature !== undefined) {
@@ -27,10 +28,17 @@ const buildGlmChatCompletionParams = (
 
   const modelSpecificConfig: Record<string, unknown> = {};
 
-  if (reasoningEnabled !== 'default') {
-    modelSpecificConfig.thinking = {
-      type: (reasoningEnabled ?? false) ? 'enabled' : 'disabled',
-    };
+  if (isOpenRouter(baseURL)) {
+    // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
+    if (reasoningEnabled !== 'default') {
+      modelSpecificConfig.reasoning = { enabled: reasoningEnabled };
+    }
+  } else {
+    if (reasoningEnabled !== 'default') {
+      modelSpecificConfig.thinking = {
+        type: reasoningEnabled ? 'enabled' : 'disabled',
+      };
+    }
   }
 
   return {
