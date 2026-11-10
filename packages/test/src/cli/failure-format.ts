@@ -28,13 +28,15 @@ const shorten = (value: string, length: number): string => {
 };
 
 function unwrapFrameLocation(location: string): string {
+  if (!location.endsWith(')')) return location;
   // Real file frames have an absolute path or file URL. Recognize that
   // boundary explicitly so unmatched parentheses in a path remain literal.
-  const absoluteLocation = location.match(
-    / \(((?:file:\/\/|[A-Za-z]:[\\/]|\/|\\\\).*:\d+:\d+)\)$/,
+  // Search only for the bounded prefix; matching the entire suffix at every
+  // candidate would cause quadratic backtracking on malformed stack lines.
+  const absoluteStart = location.search(
+    / \((?:file:\/\/|[A-Za-z]:[\\/]|\/|\\\\)/,
   );
-  if (absoluteLocation) return absoluteLocation[1];
-  if (!location.endsWith(')')) return location;
+  if (absoluteStart !== -1) return location.slice(absoluteStart + 2, -1);
 
   // Synthetic frames can have relative filenames. Match the closing wrapper
   // instead of splitting on parentheses that belong to the function name.

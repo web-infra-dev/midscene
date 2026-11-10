@@ -192,4 +192,15 @@ describe('first application stack frame', () => {
       expect(firstBusinessFrame(error, projectRoot)).toBe(`${expected}:7:3`);
     }
   });
+
+  it('skips long malformed frames and retains the next application frame', () => {
+    const error = {
+      stack: [
+        'Error: failure',
+        ` at ${' (/'.repeat(100_000)}invalid)`,
+        ' at run (/demo/nodes/login.ts:7:3)',
+      ].join('\n'),
+    };
+    expect(firstBusinessFrame(error, '/demo')).toBe('nodes/login.ts:7:3');
+  });
 });
