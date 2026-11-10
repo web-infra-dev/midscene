@@ -334,10 +334,10 @@ export default {
     expect(execution.stderr).toContain('Error: Expected 36, received 24.');
     expect(execution.stderr).toContain('Input    outcome: final-failure');
     expect(execution.stderr).toContain('caseLabel: Case A');
-    expect(execution.stderr).toContain('password: [REDACTED]');
+    expect(execution.stderr).toContain('password: private-secret');
     expect(execution.stderr).toMatch(/at midscene\.config\.mjs:4:\d+/);
     expect(execution.stderr).not.toMatch(
-      /private-secret|unrelated input marker|unexecuted input marker|node_modules|NodeExecutionError/,
+      /unrelated input marker|unexecuted input marker|node_modules|NodeExecutionError/,
     );
     expect(execution.stderr).not.toContain('\u001b');
     const summary = JSON.parse(readFileSync(summaryPathFor(resultDir), 'utf8'));

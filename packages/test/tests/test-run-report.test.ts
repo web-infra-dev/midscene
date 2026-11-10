@@ -146,7 +146,7 @@ const index: TestRunReportSourceIndex = {
 };
 
 describe('Midscene Test report manifest', () => {
-  it('redacts and truncates arbitrary display data', () => {
+  it('preserves fields and bounds arbitrary display data', () => {
     const cyclic: Record<string, unknown> = {
       password: 'password',
       refresh_token: 'token',
@@ -158,17 +158,16 @@ describe('Midscene Test report manifest', () => {
 
     const sanitized = sanitizeReportValue(cyclic);
     expect(sanitized.value).toMatchObject({
-      password: '[REDACTED]',
-      refresh_token: '[REDACTED]',
+      password: 'password',
+      refresh_token: 'token',
       self: '[Unsupported circular value]',
     });
-    expect(sanitized.redactedPaths).toEqual(['$.password', '$.refresh_token']);
     expect(sanitized.truncatedPaths).toEqual(
       expect.arrayContaining(['$.long', '$.values', '$.fn', '$.self']),
     );
   });
 
-  it('preserves the original error stack while redacting diagnostic details', () => {
+  it('preserves the original error stack and diagnostic details', () => {
     const error = Object.assign(new Error('failed'), {
       code: 'FAILED',
       details: { authorization: 'Bearer secret' },
@@ -180,8 +179,7 @@ describe('Midscene Test report manifest', () => {
       stack: error.stack,
       code: 'FAILED',
       details: {
-        value: { authorization: '[REDACTED]' },
-        redactedPaths: ['$.authorization'],
+        value: { authorization: 'Bearer secret' },
       },
     });
   });
@@ -203,16 +201,16 @@ describe('Midscene Test report manifest', () => {
     expect(reported?.cause?.stack).toBe(cause.stack);
   });
 
-  it('maps a Step trace to exactly one Agent report and keeps safe values', () => {
+  it('maps a Step trace to exactly one Agent report and keeps input and output values', () => {
     const manifest = buildTestRunReportDump(result([step()]), index);
     const reportStep =
       manifest.projects[0].documents[0].cases[0].attempts[0].steps[0];
     expect(reportStep.agentDetails).toEqual([
       { reportId: 'report-1', executionId: 'execution-1' },
     ]);
-    expect(reportStep.input?.value).toMatchObject({ api_key: '[REDACTED]' });
+    expect(reportStep.input?.value).toMatchObject({ api_key: 'secret-key' });
     expect(reportStep.output?.data?.value).toEqual({
-      accessToken: '[REDACTED]',
+      accessToken: 'secret-token',
     });
     expect(manifest.metrics.modelTimeMs).toBe(500);
   });

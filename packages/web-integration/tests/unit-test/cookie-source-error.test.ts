@@ -1,7 +1,7 @@
 import { resolveCookieInput } from '@/common/test-runner/cookies';
 import { expect, it } from '@rstest/core';
 
-it('redacts storage-state resolver failures before they reach the report', async () => {
+it('preserves the storage-state resolver error as the cause', async () => {
   const secret = 'session=private-cookie-value';
   const result = resolveCookieInput(
     { storageStatePath: 'state.json' },
@@ -15,5 +15,5 @@ it('redacts storage-state resolver failures before they reach the report', async
   await expect(result).rejects.toThrow(
     'Failed to read cookie storage state state.json',
   );
-  await expect(result).rejects.not.toThrow(secret);
+  await expect(result).rejects.toHaveProperty('cause.message', secret);
 });

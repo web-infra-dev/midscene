@@ -75,7 +75,7 @@ export interface CollectedWorkflowDocument {
   documentId: string;
   projectId: string;
   sourcePath: string;
-  /** Redacted source snapshot, captured before resolving variables. */
+  /** Report source snapshot, captured before resolving variables. */
   sourceYaml?: TestRunReportValue;
   lifecycle: CollectedDocumentLifecycle;
   cases: readonly CollectedCase[];

@@ -300,16 +300,13 @@ record.
 
 Use exactly one of `cookiesEnv`, `profile`, or `storageStatePath` as a cookie
 reference. The Node resolves the actual cookies only at execution time and
-passes them directly to the Playwright BrowserContext. Its result contains only
-the reference name and cookie count. Cookie names, values, and scopes are not
-written to the run result.
+passes them directly to the Playwright BrowserContext. On success, the result records the reference name and cookie count. On failure,
+the underlying error may contain cookie values.
 
 An environment variable may contain a Cookie header, a JSON cookie array, or
 Playwright storage-state JSON. Relative storage-state paths resolve from the
 current working directory by default; use `resolveStorageStatePath` when a
-project needs a different root. References prevent Midscene Test from persisting
-the cookies, but the environment variable, profile, or storage-state file must
-still be protected. Do not commit storage-state files containing real cookies.
+project needs a different root. Protect the environment variable, profile, or storage-state file. Do not commit storage-state files containing real cookies.
 
 ```yaml
 beforeEach:
@@ -350,7 +347,7 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
 });
 ```
 
-The Playwright and Puppeteer integrations use the same Web Node schemas and execution implementation. Browser-specific code is limited to a driver adapter. For portable YAML, use `domcontentloaded`, `load`, or `networkidle` for `gotoUrl.waitUntil`; the Puppeteer adapter maps `networkidle` to `networkidle0`. Existing engine-specific values remain supported: Playwright accepts `commit`, while Puppeteer accepts `networkidle0` and `networkidle2`. Using one of those values with the other driver produces an explicit error. Cookie references and result redaction also behave the same on both integrations. Relative URLs resolve against `testRunner.baseURL`, then against the current HTTP(S) page URL.
+The Playwright and Puppeteer integrations use the same Web Node schemas and execution implementation. Browser-specific code is limited to a driver adapter. For portable YAML, use `domcontentloaded`, `load`, or `networkidle` for `gotoUrl.waitUntil`; the Puppeteer adapter maps `networkidle` to `networkidle0`. Existing engine-specific values remain supported: Playwright accepts `commit`, while Puppeteer accepts `networkidle0` and `networkidle2`. Using one of those values with the other driver produces an explicit error. Both integrations accept the same cookie references. Relative URLs resolve against `testRunner.baseURL`, then against the current HTTP(S) page URL.
 
 ### Android
 
