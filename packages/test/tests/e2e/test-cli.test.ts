@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
+import { readReportRunnerDump } from '@midscene/core/report';
 import { afterAll, describe, expect, it } from '@rstest/core';
 
 const temporaryDirectories: string[] = [];
@@ -366,7 +367,7 @@ export default {
         `export default {
   projects: [{ name: 'headphones', retry: 1 }],
   nodes: [{ name: 'demo.outcome', execute({ input }) {
-    if (input.outcome === 'final-failure') throw new Error('Expected 36, received 24. token=annotation-test-value');
+    if (input.outcome === 'final-failure') throw new Error('Expected 36, received 24. token=annotation-test-value\\nAuthorization: Basic basic-sample\\nAuthorization: Bearer bearer-sample');
   } }],
 };\n`,
       );
@@ -374,7 +375,7 @@ export default {
         join(root, 'cases.yaml'),
         [
           'cases:',
-          '  - name: Case A',
+          '  - name: Case A token=title-sample',
           '    steps:',
           '      - demo.outcome:',
           '          outcome: success',
@@ -390,13 +391,19 @@ export default {
           '',
         ].join('\n'),
       );
-      const execution = await runFailure([root, '--result-dir', resultDir], {
+      const env = {
         ...process.env,
         GITHUB_ACTIONS: 'true',
         MIDSCENE_TEST_REPORT_REDACT: redact,
-      });
+      };
+      const execution = await runFailure(
+        [root, '--result-dir', resultDir],
+        env,
+      );
       expect(execution.code).toBe(1);
-      expect(execution.stderr).toContain('FAIL [headphones] Case A');
+      expect(execution.stderr).toContain(
+        'FAIL [headphones] Case A token=[REDACTED]',
+      );
       expect(execution.stderr).toContain('Step     2/3 · demo.outcome');
       expect(execution.stderr).toContain('Location cases.yaml:8');
       expect(execution.stderr).toContain('Attempt  2/2');
@@ -407,7 +414,14 @@ export default {
         .split('\n')
         .filter((line) => line.startsWith('::error '));
       expect(annotations.join('\n')).toContain('token=[REDACTED]');
-      expect(annotations.join('\n')).not.toContain('annotation-test-value');
+      expect(annotations.join('\n')).toContain('Case A token=[REDACTED]');
+      expect(annotations.join('\n')).toContain(
+        'Authorization: [REDACTED]%0AAuthorization: [REDACTED]',
+      );
+      const credentials =
+        /annotation-test-value|basic-sample|bearer-sample|title-sample/;
+      expect(annotations.join('\n')).not.toMatch(credentials);
+      expect(execution.stderr).not.toMatch(credentials);
       expect(execution.stderr).toContain('Input    outcome: final-failure');
       expect(execution.stderr).toContain('caseLabel: Case A');
       expect(execution.stderr).toContain('password: [REDACTED]');
@@ -431,6 +445,55 @@ export default {
       const expectedMessage =
         redact === 'true' ? 'token=[REDACTED]' : 'token=annotation-test-value';
       expect(saved.steps[1].error.cause.message).toContain(expectedMessage);
+
+      const verbose = await runFailure([root, '--reporter', 'verbose'], env);
+      expect(verbose.code).toBe(1);
+      expect(verbose.stderr).toMatch(/^FAIL .*Case A token=\[REDACTED\]/m);
+      expect(verbose.stderr).not.toMatch(credentials);
+    },
+  );
+
+  it.each(['true', 'false'])(
+    'redacts snapshot warnings while the saved diagnostic follows report redaction=%s',
+    async (redact) => {
+      const root = mkdtempSync(join(tmpdir(), 'cli-snapshot-warning-'));
+      temporaryDirectories.push(root);
+      writeFileSync(
+        join(root, 'midscene.config.mjs'),
+        `export default {nodes: [{
+        name: 'demo.snapshot',
+        execute({report}) {
+          report.onSnapshot(() => { throw new Error('token=snapshot-sample'); });
+        },
+      }]};`,
+      );
+      writeFileSync(
+        join(root, 'case.yaml'),
+        'cases:\n  - name: snapshot\n    steps:\n      - demo.snapshot: {}\n',
+      );
+      const resultDir = join(root, 'results');
+      const { stdout, stderr } = await execFileAsync(
+        process.execPath,
+        [cliPath, root, '--result-dir', resultDir],
+        {
+          cwd: root,
+          env: { ...process.env, MIDSCENE_TEST_REPORT_REDACT: redact },
+        },
+      );
+      const terminal = stdout + stderr;
+      expect(terminal).toMatch(/WARN[^\n]*token=\[REDACTED\]/);
+      expect(terminal).not.toContain('snapshot-sample');
+      const summaryPath = summaryPathFor(resultDir);
+      const summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
+      const dump = readReportRunnerDump(
+        resolve(dirname(summaryPath), summary.report),
+      );
+      const diagnostic = dump?.diagnostics?.find(
+        (item) => item.code === 'agent-source-unavailable',
+      );
+      expect(diagnostic?.message).toContain(
+        redact === 'false' ? 'token=snapshot-sample' : 'token=[REDACTED]',
+      );
     },
   );
 

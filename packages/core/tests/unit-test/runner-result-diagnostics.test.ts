@@ -96,6 +96,27 @@ describe('structured execution diagnostics', () => {
       ),
     ).toBe(true);
   });
+  test('masks complete authorization values without consuming the next header or JSON property', () => {
+    const message = [
+      'Authorization: Basic dGVzdDp0ZXN0',
+      'authorization: Bearer test-bearer',
+      'Authorization: Digest username="sample", response="test-digest"',
+      '{"Authorization":"Basic test-json","status":403}',
+      'Retrying request',
+    ].join('\r\n');
+    const value = sanitizeReportError(new Error(message));
+    expect(value.message).toBe(
+      [
+        'Authorization: [REDACTED]',
+        'authorization: [REDACTED]',
+        'Authorization: [REDACTED]',
+        '{"Authorization":"[REDACTED]","status":403}',
+        'Retrying request',
+      ].join('\r\n'),
+    );
+    expect(sanitizeReportError(value)).toEqual(value);
+  });
+
   test('preserves redacted causes and aggregate branches in JSON transport', () => {
     const leaf = new WorkflowError('request failed', {
       code: 'REQUEST_FAILED',

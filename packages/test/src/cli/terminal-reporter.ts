@@ -5,6 +5,7 @@ import type {
   CaseRunResult,
   StepExecutionInfo,
 } from '@midscene/core/internal/test-runner';
+import { redactCredentials } from '@midscene/core/internal/test-runner';
 import type { ConsoleLogEntry } from '@midscene/shared/logger';
 import chalk from 'chalk';
 import stringWidth from 'string-width';
@@ -865,9 +866,9 @@ export class TerminalReporter {
             this.io.error(`FAIL ${detail.title}\n${detail.body.join('\n')}\n`);
           continue;
         }
-        const message = formatCliError(failure.error);
+        const message = redactCredentials(formatCliError(failure.error));
         this.io.error(
-          `FAIL midscene-test: ${failure.source}:\n${message
+          `FAIL midscene-test: ${redactCredentials(failure.source)}:\n${message
             .split('\n')
             .map((line) => `  ${line}`)
             .join('\n')}\n`,

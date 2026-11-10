@@ -6,6 +6,7 @@ import {
   WorkflowPublicationError,
   asExecutionError,
   observeResourceOperations,
+  redactDiagnosticMessage,
   sumTestRunReportMetrics,
 } from '@midscene/core/internal/test-runner';
 import type {
@@ -482,7 +483,7 @@ async function runWithReportSession(
             console: true,
           });
           for (const diagnostic of dump.diagnostics ?? [])
-            warn(diagnostic.message);
+            warn(redactDiagnosticMessage(diagnostic.message));
           return dump;
         },
       });

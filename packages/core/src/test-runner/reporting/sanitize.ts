@@ -185,14 +185,26 @@ export function sanitizeReportValue(
   };
 }
 
-function redactCredentials(value: string): string {
-  return value
-    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]')
-    .replace(/(https?:\/\/)[^\s/@]+:[^\s/@]+@/gi, '$1[REDACTED]@')
-    .replace(
-      /(["']?\b(?:password|passwd|secret|token|authorization|cookie|api[_-]?key)\b["']?\s*[:=]\s*)(?:\[REDACTED\]|"[^"]*"|'[^']*'|[^\s,;}\]]+)/gi,
-      '$1[REDACTED]',
-    );
+export function redactCredentials(value: string): string {
+  return (
+    value
+      // An unquoted Authorization header extends to the end of its line.
+      // Keep quotes around structured values so repeat serialization stays stable.
+      .replace(
+        /(["']?\bauthorization\b["']?[ \t]*[:=][ \t]*)("(?:\\[^\r\n]|[^"\\\r\n])*"|'(?:\\[^\r\n]|[^'\\\r\n])*'|[^\r\n]*)/gi,
+        (_, label: string, header: string) => {
+          const quote =
+            header.startsWith('"') || header.startsWith("'") ? header[0] : '';
+          return `${label}${quote}[REDACTED]${quote}`;
+        },
+      )
+      .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]')
+      .replace(/(https?:\/\/)[^\s/@]+:[^\s/@]+@/gi, '$1[REDACTED]@')
+      .replace(
+        /(["']?\b(?:password|passwd|secret|token|cookie|api[_-]?key)\b["']?\s*[:=]\s*)(?:\[REDACTED\]|"[^"]*"|'[^']*'|[^\s,;}\]]+)/gi,
+        '$1[REDACTED]',
+      )
+  );
 }
 
 export function redactDiagnosticMessage(value: string): string {

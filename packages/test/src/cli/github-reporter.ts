@@ -47,7 +47,7 @@ export function githubFailureAnnotation(
   const path = file
     ? relative(workspace, resolve(file)).split(sep).join('/')
     : undefined;
-  return `::error ${path ? `file=${escapeProperty(path)},` : ''}title=${escapeProperty(source)}::${escapeData(redactDiagnosticMessage(message))}`;
+  return `::error ${path ? `file=${escapeProperty(path)},` : ''}title=${escapeProperty(redactDiagnosticMessage(source))}::${escapeData(redactDiagnosticMessage(message))}`;
 }
 
 export function writeGitHubSummary(result: TestProjectRunResult): void {

@@ -198,5 +198,5 @@ export function formatFailureDetails(
   }
   const frame = firstBusinessFrame(error, context.projectRoot);
   if (frame) body.push('', `  at ${oneLine(frame)}`);
-  return { title, body };
+  return { title: redactDiagnosticMessage(title), body };
 }
