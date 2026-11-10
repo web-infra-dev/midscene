@@ -23,6 +23,7 @@ export async function prepareResponses({
   const debugCall = getDebug('ai:call');
   const { config: modelConfig, adapter } = modelRuntime;
   const modelCallInput: ModelRequestConfigInput = {
+    baseURL: modelConfig.openaiBaseURL,
     intent: modelConfig.intent,
     userConfig: {
       temperature: modelConfig.temperature,

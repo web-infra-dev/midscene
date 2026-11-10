@@ -24,6 +24,7 @@ export const prepareChatCompletion = async ({
   const { config: modelConfig, adapter } = modelRuntime;
 
   const modelCallInput: ModelRequestConfigInput = {
+    baseURL: modelConfig.openaiBaseURL,
     intent: modelConfig.intent,
     userConfig: {
       temperature: modelConfig.temperature,

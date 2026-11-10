@@ -67,6 +67,8 @@ export interface ModelRequestUserConfig extends ReasoningInput {
 export type UnsupportedUserConfig = keyof ModelRequestUserConfig;
 
 export interface ModelRequestConfigInput {
+  /** API endpoint configured for this model request. */
+  baseURL?: string;
   intent?: TIntent;
   userConfig?: ModelRequestUserConfig;
   /**
@@ -86,12 +88,8 @@ export interface ModelRequestConfigInput {
   expectedJsonObjectResponse?: boolean;
 }
 
-export interface ChatCompletionCallContext {
-  intent?: TIntent;
+export interface ChatCompletionCallContext extends ModelRequestConfigInput {
   userConfig: ModelRequestUserConfig;
-  semanticRetryAttempt?: number;
-  requiresOriginalImageDetail?: boolean;
-  expectedJsonObjectResponse?: boolean;
   midsceneDefaults: MidsceneChatCompletionDefaults;
 }
 
