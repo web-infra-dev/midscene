@@ -27,6 +27,29 @@ const shorten = (value: string, length: number): string => {
   return text.length <= length ? text : `${text.slice(0, length - 1)}…`;
 };
 
+function unwrapFrameLocation(location: string): string {
+  // Real file frames have an absolute path or file URL. Recognize that
+  // boundary explicitly so unmatched parentheses in a path remain literal.
+  const absoluteLocation = location.match(
+    / \(((?:file:\/\/|[A-Za-z]:[\\/]|\/|\\\\).*:\d+:\d+)\)$/,
+  );
+  if (absoluteLocation) return absoluteLocation[1];
+  if (!location.endsWith(')')) return location;
+
+  // Synthetic frames can have relative filenames. Match the closing wrapper
+  // instead of splitting on parentheses that belong to the function name.
+  let depth = 0;
+  for (let index = location.length - 1; index >= 0; index--) {
+    if (location[index] === ')') depth++;
+    else if (location[index] === '(' && --depth === 0) {
+      return location[index - 1] === ' '
+        ? location.slice(index + 1, -1)
+        : location;
+    }
+  }
+  return location;
+}
+
 /** Follow original causes first, retaining only application code frames. */
 export function firstBusinessFrame(
   error: unknown,
@@ -49,14 +72,12 @@ export function firstBusinessFrame(
     if (typeof detail.stack !== 'string') return;
     for (const line of detail.stack.split('\n')) {
       if (!line.trim().startsWith('at ')) continue;
-      let location = line
-        .trim()
-        .slice(3)
-        .replace(/^async /, '');
-      // V8 writes `name (location)`. The location can hold parentheses too,
-      // as in `C:\Program Files (x86)`, so split at the first ` (`.
-      if (location.endsWith(')') && location.includes(' ('))
-        location = location.slice(location.indexOf(' (') + 2, -1);
+      const location = unwrapFrameLocation(
+        line
+          .trim()
+          .slice(3)
+          .replace(/^async /, ''),
+      );
       const match = location.match(/^(.*):(\d+):(\d+)$/);
       if (!match) continue;
       let file = match[1];

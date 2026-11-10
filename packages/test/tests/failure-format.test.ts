@@ -1,3 +1,4 @@
+import { runInNewContext } from 'node:vm';
 import { NodeExecutionError } from '@midscene/core/internal/test-runner';
 import { describe, expect, it } from '@rstest/core';
 import {
@@ -155,5 +156,40 @@ describe('first application stack frame', () => {
     ).toBe('midscene.config.ts:112:13');
     expect(firstBusinessFrame(null)).toBeUndefined();
     expect(firstBusinessFrame({ message: 'no stack' })).toBeUndefined();
+  });
+
+  it('preserves real V8 locations when function names and paths contain parentheses', () => {
+    for (const projectRoot of ['/demo', '/demo (copy)', '/demo (draft']) {
+      let failure: unknown;
+      try {
+        runInNewContext(
+          "({ ['run (test)']() { throw new Error('failure'); } })['run (test)']();",
+          {},
+          { filename: `${projectRoot}/nodes/login.ts` },
+        );
+      } catch (error) {
+        failure = error;
+      }
+      expect(firstBusinessFrame(failure, projectRoot)).toBe(
+        'nodes/login.ts:1:29',
+      );
+    }
+  });
+
+  it('handles parenthesized names with Windows, URL and relative locations', () => {
+    for (const [location, projectRoot, expected] of [
+      ['C:\\demo (copy)\\nodes\\login.ts', 'C:\\demo (copy)', 'nodes/login.ts'],
+      [
+        'file:///demo%20(copy)/nodes/login.mjs',
+        '/demo (copy)',
+        'nodes/login.mjs',
+      ],
+      ['nodes/login (copy).ts', undefined, 'nodes/login (copy).ts'],
+    ]) {
+      const error = {
+        stack: `Error: failure\n at run (test) (${location}:7:3)`,
+      };
+      expect(firstBusinessFrame(error, projectRoot)).toBe(`${expected}:7:3`);
+    }
   });
 });
