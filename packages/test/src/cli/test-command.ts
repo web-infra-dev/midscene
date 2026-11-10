@@ -7,6 +7,7 @@ import { formatCliError, formatConciseError } from './error-format';
 import type { CliFailureContext } from './failure-format';
 import { githubFailureAnnotation } from './github-reporter';
 import { renderNodeSpec, sortNodesForSpec } from './node-spec';
+import type { BuiltinTestReporter } from './reporter-config';
 import { captureTerminalOutput } from './terminal-output';
 import {
   TerminalReporter,
@@ -19,7 +20,6 @@ import {
   runTestProject,
 } from './test-project-runner';
 import type { TestProjectRunResult } from './types';
-import type { BuiltinTestReporter } from './reporter-config';
 
 export interface TestCliIO {
   log(message: string): void;
@@ -81,9 +81,10 @@ export const parseTestCliArgs = (
       else {
         if (value === 'default' || value === 'verbose') reporter = value;
         else if (value === 'junit' || value === 'json') reporters.push(value);
-        else throw new Error(
-          `Unknown reporter: ${value}. Expected default, verbose, junit or json.`,
-        );
+        else
+          throw new Error(
+            `Unknown reporter: ${value}. Expected default, verbose, junit or json.`,
+          );
       }
       if (inlineValue === undefined) index += 1;
     } else {

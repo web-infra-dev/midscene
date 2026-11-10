@@ -3,8 +3,9 @@ import type {
   RunWorkflowDocumentOptions,
   WorkflowDocumentSource,
 } from '@midscene/core/internal/test-runner';
+import type { TestReporterEntry } from './reporter-config';
 import type { TestReporterEvent } from './reporter-events';
-import type { TestReporterEntry, TestReporterFailure } from './reporter-config';
+import type { createTestReporters } from './reporter-runner';
 import type {
   LoadedExecutionProject,
   LoadedTestProject,
@@ -102,8 +103,7 @@ export interface PreparedTestRunPlan {
   preflightScope: 'project' | 'run';
   reportEnabled: boolean;
   publications: readonly PreparedRunPublication[];
-  reporters: readonly TestReporterEntry[];
-  reporterEventFailures: TestReporterFailure[];
+  reporters: ReturnType<typeof createTestReporters>;
   onProgress(message: string): void;
   onEvent?(event: TestReporterEvent): void;
 }

@@ -2,8 +2,11 @@ import { dirname, isAbsolute, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { require as tsxRequire } from 'tsx/cjs/api';
 import { NodeRegistry } from '../engine/registry';
-import { validateTestReporters, type TestReporterEntry } from './reporter-config';
 import type { NodeDefinition } from '../node/types';
+import {
+  type TestReporterEntry,
+  validateTestReporters,
+} from './reporter-config';
 
 import type {
   FileSetupDefinition,

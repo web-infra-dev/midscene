@@ -1,11 +1,11 @@
 import type { TestRunReportMetrics } from '@midscene/core';
-import type { TestReporterArtifact } from './reporter-config';
 import type {
   CaseRunOutcome,
   ProjectRuntimeResult,
   WorkflowDocumentRunResult,
 } from '../engine/types';
 import type { WorkflowError } from '../errors';
+import type { TestReporterArtifact } from './reporter-config';
 import type { TestFileSelection, TestTagSelection } from './test-project';
 
 export type TestProjectCaseRunResult = CaseRunOutcome & {

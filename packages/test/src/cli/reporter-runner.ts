@@ -1,100 +1,140 @@
 import { mkdir, stat, writeFile } from 'node:fs/promises';
-import { dirname, isAbsolute, join, resolve } from 'node:path';
-import type { TestRunReportSourceIndex } from '@midscene/core';
+import { dirname, join, resolve, sep } from 'node:path';
+import type { TestRunReportDump } from '@midscene/core';
 import { renderTestResultJUnit } from '../report/result-junit';
-import { buildTestRunReportDump } from '../report/test-run-report';
 import {
-  isCustomTestReporter,
+  type BuiltinTestReporter,
+  type TestReporter,
   type TestReporterArtifact,
+  type TestReporterContext,
   type TestReporterEntry,
   type TestReporterFailure,
+  isCustomTestReporter,
 } from './reporter-config';
 import type { TestReporterEvent } from './reporter-events';
-import type { TestProjectRunResult } from './types';
 
-const emptyIndex = (): TestRunReportSourceIndex => ({
-  sources: [],
-  metrics: {
-    modelCallCount: 0,
-    modelTimeMs: 0,
-    promptTokens: 0,
-    cachedInputTokens: 0,
-    completionTokens: 0,
-    totalTokens: 0,
+const formats = {
+  junit: { file: 'junit.xml', render: renderTestResultJUnit },
+  json: {
+    file: 'result.json',
+    render: (dump: TestRunReportDump) => `${JSON.stringify(dump, null, 2)}\n`,
   },
-});
+};
 
-export function emitConfiguredReporterEvent(
-  reporters: readonly TestReporterEntry[],
-  failures: TestReporterFailure[],
-  event: TestReporterEvent,
-): void {
-  for (const entry of reporters) {
-    if (!isCustomTestReporter(entry) || !entry.onEvent) continue;
-    try {
-      entry.onEvent(event);
-    } catch (error) {
-      failures.push({ name: entry.name, error });
-    }
-  }
+interface Registration {
+  reporter: TestReporter;
+  builtin?: BuiltinTestReporter;
+  output?: string;
 }
 
-interface PublishReportersOptions {
-  reporters: readonly TestReporterEntry[];
-  eventFailures: readonly TestReporterFailure[];
-  result(): TestProjectRunResult;
-  reportIndex?: TestRunReportSourceIndex;
-  /** Uses the runner's existing infrastructure error and exit-code policy. */
-  publish(path: string, callback: () => Promise<void>): Promise<boolean>;
-  onArtifact(artifact: TestReporterArtifact): void;
+interface PublishOptions {
+  context(): TestReporterContext;
+  publish(path: string, write: () => Promise<void>): Promise<boolean>;
+  onArtifact(
+    artifact: TestReporterArtifact,
+    builtin?: BuiltinTestReporter,
+  ): void;
 }
 
-const filePath = (outputDir: string, configured: string): string =>
-  isAbsolute(configured) ? configured : resolve(outputDir, configured);
-
-/** Every reporter is attempted, even when a preceding reporter fails. */
-export async function publishConfiguredReporters(options: PublishReportersOptions): Promise<void> {
-  const outputDir = dirname(options.result().summaryPath);
-  for (const failure of options.eventFailures) {
-    await options.publish(join(outputDir, 'reporter-event-' + failure.name), async () => {
-      throw failure.error;
-    });
-  }
-
-  for (const entry of options.reporters) {
-    if (isCustomTestReporter(entry)) {
-      if (!entry.onFinished) continue;
-      let artifactPath: string | undefined;
-      const ok = await options.publish(join(outputDir, 'reporter-' + entry.name), async () => {
-        const result = options.result();
-        const returnedPath = await entry.onFinished!({
-          result,
-          dump: buildTestRunReportDump(result, options.reportIndex ?? emptyIndex()),
-          outputDir,
-        });
-        if (returnedPath !== undefined) {
-          if (typeof returnedPath !== 'string' || !returnedPath.trim())
-            throw new TypeError('Reporter ' + entry.name + ' returned an invalid artifact path.');
-          artifactPath = filePath(outputDir, returnedPath);
-          if (!(await stat(artifactPath)).isFile())
-            throw new Error('Reporter ' + entry.name + ' did not produce a file.');
-        }
-      });
-      if (ok && artifactPath) options.onArtifact({ name: entry.name, path: artifactPath });
-      continue;
-    }
-
+export function createTestReporters(
+  entries: readonly TestReporterEntry[],
+  outputDir: string,
+  projectDirectories: readonly string[],
+) {
+  // Reject case-only collisions consistently on developer machines and CI.
+  const reserved = [
+    'summary.json',
+    'result.md',
+    'plan.json',
+    'operations.jsonl',
+    'records',
+    ...projectDirectories,
+  ];
+  const claimed = new Map(
+    reserved.map((file) => [join(outputDir, file).toLowerCase(), file]),
+  );
+  const registrations = entries.map((entry): Registration => {
+    if (isCustomTestReporter(entry)) return { reporter: entry };
     const name = typeof entry === 'string' ? entry : entry[0];
-    const config = typeof entry === 'string' ? {} as { outputFile?: string } : entry[1];
-    const output = filePath(outputDir, config.outputFile ?? (name === 'junit' ? 'junit.xml' : 'result.json'));
-    const ok = await options.publish(output, async () => {
-      const dump = buildTestRunReportDump(options.result(), options.reportIndex ?? emptyIndex());
-      const text = name === 'junit'
-        ? renderTestResultJUnit(dump)
-        : JSON.stringify(dump, null, 2) + '\n';
-      await mkdir(dirname(output), { recursive: true });
-      await writeFile(output, text, 'utf8');
-    });
-    if (ok) options.onArtifact({ name, path: output });
-  }
+    const format = formats[name];
+    const output = resolve(
+      outputDir,
+      (typeof entry === 'string' ? undefined : entry[1].outputFile) ??
+        format.file,
+    );
+    const key = output.toLowerCase();
+    for (const [path, owner] of claimed) {
+      if (
+        path === key ||
+        path.startsWith(key + sep) ||
+        key.startsWith(path + sep)
+      )
+        throw new Error(
+          `Reporter ${name} output ${output} conflicts with ${owner} (${path}).`,
+        );
+    }
+    claimed.set(key, name);
+    return {
+      builtin: name,
+      output,
+      reporter: {
+        name,
+        async onFinished({ dump }) {
+          await mkdir(dirname(output), { recursive: true });
+          await writeFile(output, format.render(dump), 'utf8');
+          return output;
+        },
+      },
+    };
+  });
+
+  const failures: TestReporterFailure[] = [];
+  const pending = new Set<Promise<void>>();
+  return {
+    onEvent(event: TestReporterEvent) {
+      for (const { reporter } of registrations) {
+        try {
+          const completion = reporter.onEvent?.(event);
+          if (completion) {
+            const tracked = Promise.resolve(completion)
+              .catch((error) => {
+                failures.push({ name: reporter.name, error });
+              })
+              .finally(() => pending.delete(tracked));
+            pending.add(tracked);
+          }
+        } catch (error) {
+          failures.push({ name: reporter.name, error });
+        }
+      }
+    },
+    async finish({ context, publish, onArtifact }: PublishOptions) {
+      await Promise.all(pending);
+      for (const { name, error } of failures)
+        await publish(join(outputDir, `reporter-event-${name}`), async () => {
+          throw error;
+        });
+
+      for (const { reporter, builtin, output } of registrations) {
+        if (!reporter.onFinished) continue;
+        await publish(
+          output ?? join(outputDir, `reporter-${reporter.name}`),
+          async () => {
+            const file = await reporter.onFinished!(context());
+            if (file === undefined) return;
+            if (typeof file !== 'string' || !file.trim())
+              throw new TypeError(
+                `Reporter ${reporter.name} returned an invalid artifact path.`,
+              );
+            const path = resolve(outputDir, file);
+            if (!(await stat(path)).isFile())
+              throw new Error(
+                `Reporter ${reporter.name} did not produce a file.`,
+              );
+            onArtifact({ name: reporter.name, path }, builtin);
+          },
+        );
+      }
+    },
+  };
 }

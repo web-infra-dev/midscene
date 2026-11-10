@@ -120,18 +120,22 @@ or SDK call:
 ```ts
 reporters: [{
   name: 'my-reporter',
-  onEvent(event) { /* live, synchronous events */ },
+  onEvent(event) { /* live events */ },
   async onFinished({ result, dump, outputDir }) {
     // Write a file and return its relative or absolute path, or return void.
   },
 }]
 ```
 
+Choose distinct output paths for built-in reporters. Paths that conflict with runner files such as `summary.json` or `plan.json` are rejected before execution. Built-in output names must also be distinct ignoring case and stay outside the runner’s records and project directories. Custom reporters own the paths they write.
+
+Event handlers may return promises and overlap during execution. All pending handlers settle before `onFinished` runs.
+
 Custom `onFinished` receives the completed result and sanitized report dump.
 Reporter failures are captured as publication failures, make the run fail, and
 do not prevent subsequent reporters from running. JUnit represents Case failures
 as `<failure>`, unexecuted Cases as `<skipped>`, and collection, lifecycle,
-file-hook and run-infrastructure failures as `<error>`. CI collectors can read
+file-hook, resource cleanup and run-infrastructure failures as `<error>`. CI collectors can read
 `midscene_run/test-results/*/junit.xml` (or the configured path). Preserve
 the original command's exit code when collecting artifacts.
 

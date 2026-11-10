@@ -22,10 +22,12 @@ export interface TestReporterContext {
 /** A custom reporter can be supplied directly from midscene.config.ts or the SDK. */
 export interface TestReporter {
   name: string;
-  /** Synchronous events; exceptions are recorded and fail publication, not execution. */
-  onEvent?(event: TestReporterEvent): void;
+  /** Event handlers may overlap. Pending handlers settle before publication. */
+  onEvent?(event: TestReporterEvent): void | Promise<void>;
   /** Return an absolute or outputDir-relative artifact path to include it in summary.json. */
-  onFinished?(context: TestReporterContext): string | void | Promise<string | void>;
+  onFinished?(
+    context: TestReporterContext,
+  ): string | void | Promise<string | undefined> | Promise<void>;
 }
 
 export type TestReporterEntry =
@@ -50,42 +52,85 @@ const builtin = (value: unknown): value is BuiltinTestReporter =>
   value === 'junit' || value === 'json';
 
 /** Validate both config and SDK overrides at the execution boundary. */
-export function validateTestReporters(value: unknown): readonly TestReporterEntry[] {
+export function validateTestReporters(
+  value: unknown,
+): readonly TestReporterEntry[] {
   if (value === undefined) return Object.freeze([]);
   if (!Array.isArray(value))
     throw new TypeError('Midscene config reporters must be an array.');
 
-  return Object.freeze(value.map((candidate, index): TestReporterEntry => {
-    const label = 'reporters[' + index + ']';
-    if (builtin(candidate)) return candidate;
-    if (Array.isArray(candidate)) {
-      if (candidate.length !== 2 || !builtin(candidate[0]) || !isRecord(candidate[1]))
-        throw new TypeError('Midscene config ' + label + ' must be [junit|json, options].');
-      const options = candidate[1];
-      const unknown = Object.keys(options).find((key) => key !== 'outputFile');
-      if (unknown)
-        throw new TypeError('Midscene config ' + label + '.' + unknown + ' is not supported.');
-      if (options.outputFile !== undefined &&
-          (typeof options.outputFile !== 'string' || !options.outputFile.trim()))
-        throw new TypeError('Midscene config ' + label + '.outputFile must be a non-empty string.');
-      return Object.freeze([candidate[0], Object.freeze({
-        ...(options.outputFile === undefined ? {} : { outputFile: options.outputFile }),
-      })] as const);
-    }
-    if (isRecord(candidate)) {
-      if (typeof candidate.name !== 'string' || !candidate.name.trim() ||
-          (typeof candidate.onEvent !== 'function' && typeof candidate.onFinished !== 'function'))
-        throw new TypeError('Midscene config ' + label + ' must have a name and onEvent or onFinished callback.');
-      if (candidate.onEvent !== undefined && typeof candidate.onEvent !== 'function')
-        throw new TypeError('Midscene config ' + label + '.onEvent must be a function.');
-      if (candidate.onFinished !== undefined && typeof candidate.onFinished !== 'function')
-        throw new TypeError('Midscene config ' + label + '.onFinished must be a function.');
-      return candidate as unknown as TestReporter;
-    }
-    throw new TypeError('Midscene config ' + label + ' is not a supported reporter.');
-  }));
+  return Object.freeze(
+    value.map((candidate, index): TestReporterEntry => {
+      const label = `reporters[${index}]`;
+      if (builtin(candidate)) return candidate;
+      if (Array.isArray(candidate)) {
+        if (
+          candidate.length !== 2 ||
+          !builtin(candidate[0]) ||
+          !isRecord(candidate[1])
+        )
+          throw new TypeError(
+            `Midscene config ${label} must be [junit|json, options].`,
+          );
+        const options = candidate[1];
+        const unknown = Object.keys(options).find(
+          (key) => key !== 'outputFile',
+        );
+        if (unknown)
+          throw new TypeError(
+            `Midscene config ${label}.${unknown} is not supported.`,
+          );
+        if (
+          options.outputFile !== undefined &&
+          (typeof options.outputFile !== 'string' || !options.outputFile.trim())
+        )
+          throw new TypeError(
+            `Midscene config ${label}.outputFile must be a non-empty string.`,
+          );
+        return Object.freeze([
+          candidate[0],
+          Object.freeze({
+            ...(options.outputFile === undefined
+              ? {}
+              : { outputFile: options.outputFile }),
+          }),
+        ] as const);
+      }
+      if (isRecord(candidate)) {
+        if (
+          typeof candidate.name !== 'string' ||
+          !candidate.name.trim() ||
+          (typeof candidate.onEvent !== 'function' &&
+            typeof candidate.onFinished !== 'function')
+        )
+          throw new TypeError(
+            `Midscene config ${label} must have a name and onEvent or onFinished callback.`,
+          );
+        if (
+          candidate.onEvent !== undefined &&
+          typeof candidate.onEvent !== 'function'
+        )
+          throw new TypeError(
+            `Midscene config ${label}.onEvent must be a function.`,
+          );
+        if (
+          candidate.onFinished !== undefined &&
+          typeof candidate.onFinished !== 'function'
+        )
+          throw new TypeError(
+            `Midscene config ${label}.onFinished must be a function.`,
+          );
+        return candidate as unknown as TestReporter;
+      }
+      throw new TypeError(
+        `Midscene config ${label} is not a supported reporter.`,
+      );
+    }),
+  );
 }
 
-export function isCustomTestReporter(entry: TestReporterEntry): entry is TestReporter {
+export function isCustomTestReporter(
+  entry: TestReporterEntry,
+): entry is TestReporter {
   return typeof entry === 'object' && !Array.isArray(entry);
 }

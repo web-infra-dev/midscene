@@ -119,17 +119,21 @@ SDK 可传入 `runTestProject({ reporters: ['junit', 'json'] })`，
 ```ts
 reporters: [{
   name: 'my-reporter',
-  onEvent(event) { /* 同步实时事件 */ },
+  onEvent(event) { /* 实时事件 */ },
   async onFinished({ result, dump, outputDir }) {
     // 写入文件并返回相对/绝对路径；也可以不返回产物。
   },
 }]
 ```
 
+内置 Reporter 的输出路径必须互不冲突。路径与 `summary.json`、`plan.json` 等运行产物冲突时，会在执行前报错。 内置输出路径忽略大小写后也必须唯一，且须避开本次运行的 records 及各 Project 产物目录。自定义 Reporter 负责选择自己写入的文件路径。
+
+事件回调可以返回 Promise，多个回调可以同时执行。所有事件回调结束后才调用 `onFinished`。
+
 `onFinished` 可读取完整执行结果与脱敏报告数据。Reporter 失败会记录为
 发布阶段错误，并使此次运行失败，但不会跳过后续 Reporter。
 JUnit 中失败 Case 对应 `<failure>`，未运行 Case 对应 `<skipped>`；
-收集、生命周期、文件钩子和运行级基础设施错误对应 `<error>`。
+收集、生命周期、文件钩子、资源清理和运行级基础设施错误对应 `<error>`。
 CI 可收集 `midscene_run/test-results/*/junit.xml`（或自定义路径），
 并保留原测试命令的退出码。
 
