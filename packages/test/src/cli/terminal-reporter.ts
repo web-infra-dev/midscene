@@ -144,7 +144,7 @@ export class TerminalReporter {
     this.lastOutput = Date.now();
   }
   progress(message: string): void {
-    if (this.mode === 'verbose') this.log(message);
+    if (this.mode === 'verbose') this.log(redactCredentials(message));
   }
   console(entry: ConsoleLogEntry): void {
     if (entry.type === 'report') {
@@ -361,13 +361,15 @@ export class TerminalReporter {
     const key =
       info.scope === 'case' ? info.case.caseId : info.document.documentId;
     const attempt = info.scope === 'case' ? info.case.attemptIndex : 0;
+    const caseName =
+      info.scope === 'case' ? redactCredentials(info.case.name) : undefined;
     const previous = this.attempts.get(key);
     if (previous && previous.run.attemptIndex < attempt) {
       this.attempts.delete(key);
       if (this.mode === 'default' && !this.interactive)
         this.log(
           this.color.yellow(
-            ` ↻ ${identity(projectName, position.sourcePath, info.scope === 'case' ? info.case.name : undefined)} · case retry · attempt ${attempt + 1}/${previous.max}`,
+            ` ↻ ${identity(projectName, position.sourcePath, caseName)} · case retry · attempt ${attempt + 1}/${previous.max}`,
           ),
         );
     }
@@ -375,7 +377,7 @@ export class TerminalReporter {
     const now = Date.now();
     this.active.set(key, {
       file,
-      name: info.scope === 'case' ? info.case.name : undefined,
+      name: caseName,
       step: `${position.phase === 'steps' ? 'step' : position.phase} ${position.stepIndex + 1}/${info.stepCount} · ${oneLine(info.node)}`,
       since: existing?.attempt === attempt ? existing.since : now,
       attempt,
@@ -681,7 +683,7 @@ export class TerminalReporter {
       outcome.status === 'not-run'
         ? c.dim(` · ${outcome.notRunReason ?? 'not run'}`)
         : ` ${c.dim(duration)}${retries ? c.yellow(` · ${outcome.status === 'success' ? 'passed after retry' : 'failed after retries'} (${retries + 1} attempts)`) : documentRetries ? c.yellow(` · file retried ${documentRetries}x`) : ''}`;
-    return `${symbol} ${oneLine(outcome.name)}${detail}`;
+    return `${symbol} ${oneLine(redactCredentials(outcome.name))}${detail}`;
   }
   private statusSymbol(status: FileState['status']): string {
     return status === 'failed'

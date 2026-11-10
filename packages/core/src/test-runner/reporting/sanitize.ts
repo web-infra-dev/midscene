@@ -185,18 +185,23 @@ export function sanitizeReportValue(
   };
 }
 
+function redactAuthorizationValue(_: string, label: string, value: string) {
+  const quote = value.startsWith('"') || value.startsWith("'") ? value[0] : '';
+  return `${label}${quote}[REDACTED]${quote}`;
+}
+
 export function redactCredentials(value: string): string {
   return (
     value
-      // An unquoted Authorization header extends to the end of its line.
-      // Keep quotes around structured values so repeat serialization stays stable.
+      // A quoted field can span lines. Stop at the next structured field.
       .replace(
-        /(["']?\bauthorization\b["']?[ \t]*[:=][ \t]*)("(?:\\[^\r\n]|[^"\\\r\n])*"|'(?:\\[^\r\n]|[^'\\\r\n])*'|[^\r\n]*)/gi,
-        (_, label: string, header: string) => {
-          const quote =
-            header.startsWith('"') || header.startsWith("'") ? header[0] : '';
-          return `${label}${quote}[REDACTED]${quote}`;
-        },
+        /((?:"authorization"|'authorization')\s*[:=]\s*)("(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|\[REDACTED\]|[^\r\n,;}\]]+)/gi,
+        redactAuthorizationValue,
+      )
+      // A bare header owns its whole line. Accept quoted or indented continuations.
+      .replace(
+        /(\bauthorization[ \t]*[:=][ \t]*(?:\s*(?=["'])|\r?\n[ \t]+)?)("(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|[^\r\n]*)/gi,
+        redactAuthorizationValue,
       )
       .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]')
       .replace(/(https?:\/\/)[^\s/@]+:[^\s/@]+@/gi, '$1[REDACTED]@')

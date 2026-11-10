@@ -1030,7 +1030,7 @@ describe('terminal reporter', () => {
     (status) => {
       rs.useFakeTimers();
       const { reporter, io } = fixture('default', true);
-      const other = outcome('other Case');
+      const other = outcome('other Case token=live-sample');
       const retried = outcome('search', status);
       const failed = {
         ...retried.run!,
@@ -1059,7 +1059,7 @@ describe('terminal reporter', () => {
       expect(
         frame(io)
           .split('\n')
-          .find((line) => line.includes(other.name)),
+          .find((line) => line.includes('other Case token=[REDACTED]')),
       ).not.toContain('attempt');
       reporter.event({
         type: 'step-end',
@@ -1080,6 +1080,7 @@ describe('terminal reporter', () => {
         io.write.mock.calls.flat().join(''),
       );
       expect(output).not.toContain('case retry');
+      expect(output).not.toContain('live-sample');
       expect(output).not.toContain('↻');
       expect(
         output.match(
@@ -1439,7 +1440,7 @@ describe('terminal reporter', () => {
       projectName: 'web',
       sourcePath: 'cases/shop.yaml',
       caseId: 'case-1',
-      caseName: 'checkout',
+      caseName: 'checkout token=warning-sample',
       runId: 'attempt-1',
       phase: 'steps',
       stepIndex: 1,
@@ -1478,7 +1479,7 @@ describe('terminal reporter', () => {
     expect(
       io.log.mock.calls.flat().filter((line) => line.startsWith('WARN')),
     ).toEqual([
-      'WARN [web] › cases/shop.yaml › checkout › step[2] aiAct · model request retry 2/2 in 2s (model): 429 厂商资源池资源不足',
+      'WARN [web] › cases/shop.yaml › checkout token=[REDACTED] › step[2] aiAct · model request retry 2/2 in 2s (model): 429 厂商资源池资源不足',
     ]);
     // Request counters from independently loaded SDKs must not hide another Case.
     reporter.console({

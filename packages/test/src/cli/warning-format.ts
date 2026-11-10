@@ -1,4 +1,5 @@
 import { stripVTControlCharacters } from 'node:util';
+import { redactCredentials } from '@midscene/core/internal/test-runner';
 import type { ConsoleLogEntry, ConsoleLogScope } from '@midscene/shared/logger';
 
 const oneLine = (text: string): string =>
@@ -8,7 +9,7 @@ export function formatWarningScope(scope?: ConsoleLogScope): string {
   if (!scope) return '';
   const parts = [`[${oneLine(scope.projectName)}]`];
   if (scope.sourcePath) parts.push(oneLine(scope.sourcePath));
-  if (scope.caseName) parts.push(oneLine(scope.caseName));
+  if (scope.caseName) parts.push(oneLine(redactCredentials(scope.caseName)));
   if (scope.phase) {
     const phase = scope.phase === 'steps' ? 'step' : scope.phase;
     parts.push(

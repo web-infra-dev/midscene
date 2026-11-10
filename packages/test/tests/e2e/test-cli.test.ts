@@ -394,6 +394,7 @@ export default {
       const env = {
         ...process.env,
         GITHUB_ACTIONS: 'true',
+        GITHUB_STEP_SUMMARY: join(root, 'step-summary.md'),
         MIDSCENE_TEST_REPORT_REDACT: redact,
       };
       const execution = await runFailure(
@@ -420,7 +421,10 @@ export default {
       );
       const credentials =
         /annotation-test-value|basic-sample|bearer-sample|title-sample/;
-      expect(annotations.join('\n')).not.toMatch(credentials);
+      expect(execution.stdout).not.toMatch(credentials);
+      const stepSummary = readFileSync(env.GITHUB_STEP_SUMMARY, 'utf8');
+      expect(stepSummary).toContain('Failed: **Case A token=[REDACTED]**');
+      expect(stepSummary).not.toMatch(credentials);
       expect(execution.stderr).not.toMatch(credentials);
       expect(execution.stderr).toContain('Input    outcome: final-failure');
       expect(execution.stderr).toContain('caseLabel: Case A');
@@ -449,7 +453,11 @@ export default {
       const verbose = await runFailure([root, '--reporter', 'verbose'], env);
       expect(verbose.code).toBe(1);
       expect(verbose.stderr).toMatch(/^FAIL .*Case A token=\[REDACTED\]/m);
+      expect(verbose.stdout).not.toMatch(credentials);
       expect(verbose.stderr).not.toMatch(credentials);
+      expect(readFileSync(env.GITHUB_STEP_SUMMARY, 'utf8')).not.toMatch(
+        credentials,
+      );
     },
   );
 

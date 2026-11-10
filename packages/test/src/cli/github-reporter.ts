@@ -1,6 +1,9 @@
 import { appendFileSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
-import { redactDiagnosticMessage } from '@midscene/core/internal/test-runner';
+import {
+  redactCredentials,
+  redactDiagnosticMessage,
+} from '@midscene/core/internal/test-runner';
 import { renderTestBadgeLines } from '../report/badge';
 import { formatDuration } from './terminal-reporter';
 import type { TestProjectRunResult } from './types';
@@ -68,7 +71,7 @@ export function writeGitHubSummary(result: TestProjectRunResult): void {
     '',
     ...failedCases.map(
       (item) =>
-        `- Failed: **${markdown(item.name)}** — ${markdown(item.projectName)}/${code(item.sourcePath)}`,
+        `- Failed: **${markdown(redactCredentials(item.name))}** — ${markdown(item.projectName)}/${code(item.sourcePath)}`,
     ),
     ...(result.summary.collectionErrors
       ? [`- Collection errors: ${result.summary.collectionErrors}`]
