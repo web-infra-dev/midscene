@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { load } from 'js-yaml';
 import { parseWorkflowSource } from '../src/parser/source';
 
-afterEach(() => rs.unstubAllEnvs());
+afterEach(() => {
+  rs.unstubAllEnvs();
+});
 
 describe('workflow YAML source snapshot', () => {
   it('locates repeated steps, hook phases and aliases at their author positions', () => {

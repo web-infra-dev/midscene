@@ -1,5 +1,6 @@
 import { appendFileSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
+import { redactDiagnosticMessage } from '@midscene/core/internal/test-runner';
 import { renderTestBadgeLines } from '../report/badge';
 import { formatDuration } from './terminal-reporter';
 import type { TestProjectRunResult } from './types';
@@ -46,7 +47,7 @@ export function githubFailureAnnotation(
   const path = file
     ? relative(workspace, resolve(file)).split(sep).join('/')
     : undefined;
-  return `::error ${path ? `file=${escapeProperty(path)},` : ''}title=${escapeProperty(source)}::${escapeData(message)}`;
+  return `::error ${path ? `file=${escapeProperty(path)},` : ''}title=${escapeProperty(source)}::${escapeData(redactDiagnosticMessage(message))}`;
 }
 
 export function writeGitHubSummary(result: TestProjectRunResult): void {

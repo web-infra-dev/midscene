@@ -25,7 +25,9 @@ const step = (input: unknown): StepRunResult => ({
   durationMs: 0,
 });
 
-afterEach(() => rs.unstubAllEnvs());
+afterEach(() => {
+  rs.unstubAllEnvs();
+});
 
 describe('concise failure details', () => {
   it('shows resolved failing input, author location and application frame', () => {

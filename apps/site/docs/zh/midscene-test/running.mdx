@@ -86,7 +86,7 @@ MIDSCENE_RUN_DIR="./artifacts" pnpm exec midscene-test
 
 ### 报告脱敏
 
-报告默认对步骤输入输出、YAML 源码和错误信息中的凭据脱敏。调试时可用以下命令关闭本次运行的报告脱敏。
+报告默认遮盖步骤输入输出和 YAML 源码中可识别的凭据字段，以及错误文本中可识别的凭据。步骤摘要等自由文本和原始结果文件仍可能包含明文。调试时可用以下命令关闭本次运行的报告脱敏。
 
 ```bash
 MIDSCENE_TEST_REPORT_REDACT=false pnpm exec midscene-test

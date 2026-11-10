@@ -355,62 +355,84 @@ export default {
     expect(summary.summary.passedAfterRetry).toBe(1);
   });
 
-  it('prints concise source locations and resolved inputs for final failures', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'cli-failure-details-'));
-    temporaryDirectories.push(root);
-    const resultDir = join(root, 'results');
-    writeFileSync(
-      join(root, 'midscene.config.mjs'),
-      `export default {
+  it.each(['true', 'false'])(
+    'redacts CLI failures and GitHub annotations with report redaction set to %s',
+    async (redact) => {
+      const root = mkdtempSync(join(tmpdir(), 'cli-failure-details-'));
+      temporaryDirectories.push(root);
+      const resultDir = join(root, 'results');
+      writeFileSync(
+        join(root, 'midscene.config.mjs'),
+        `export default {
   projects: [{ name: 'headphones', retry: 1 }],
   nodes: [{ name: 'demo.outcome', execute({ input }) {
-    if (input.outcome === 'final-failure') throw new Error('Expected 36, received 24.');
+    if (input.outcome === 'final-failure') throw new Error('Expected 36, received 24. token=annotation-test-value');
   } }],
 };\n`,
-    );
-    writeFileSync(
-      join(root, 'cases.yaml'),
-      [
-        'cases:',
-        '  - name: Case A',
-        '    steps:',
-        '      - demo.outcome:',
-        '          outcome: success',
-        '          marker: unrelated input marker',
-        '      # Distinguish two occurrences of the same Node.',
-        '      - demo.outcome:',
-        '          outcome: final-failure',
-        '          caseLabel: Case A',
-        '          password: private-secret',
-        '      - demo.outcome:',
-        '          outcome: success',
-        '          marker: unexecuted input marker',
-        '',
-      ].join('\n'),
-    );
-    const execution = await runFailure([root, '--result-dir', resultDir]);
-    expect(execution.code).toBe(1);
-    expect(execution.stderr).toContain('FAIL [headphones] Case A');
-    expect(execution.stderr).toContain('Step     2/3 · demo.outcome');
-    expect(execution.stderr).toContain('Location cases.yaml:8');
-    expect(execution.stderr).toContain('Attempt  2/2');
-    expect(execution.stderr).toContain('Error: Expected 36, received 24.');
-    expect(execution.stderr).toContain('Input    outcome: final-failure');
-    expect(execution.stderr).toContain('caseLabel: Case A');
-    expect(execution.stderr).toContain('password: [REDACTED]');
-    expect(execution.stderr).toMatch(/at midscene\.config\.mjs:4:\d+/);
-    expect(execution.stderr).not.toMatch(
-      /private-secret|unrelated input marker|unexecuted input marker|node_modules|NodeExecutionError/,
-    );
-    expect(execution.stderr).not.toContain('\u001b');
-    const summary = JSON.parse(readFileSync(summaryPathFor(resultDir), 'utf8'));
-    const attempt = summary.projects[0].cases[0].attempts.at(-1);
-    const saved = JSON.parse(
-      readFileSync(join(runDirFor(resultDir), attempt.resultFile), 'utf8'),
-    );
-    expect(saved.steps[1].meta.sourceLocation).toEqual({ line: 8, column: 9 });
-    expect(saved.steps).toHaveLength(2);
-  });
+      );
+      writeFileSync(
+        join(root, 'cases.yaml'),
+        [
+          'cases:',
+          '  - name: Case A',
+          '    steps:',
+          '      - demo.outcome:',
+          '          outcome: success',
+          '          marker: unrelated input marker',
+          '      # Distinguish two occurrences of the same Node.',
+          '      - demo.outcome:',
+          '          outcome: final-failure',
+          '          caseLabel: Case A',
+          '          password: private-secret',
+          '      - demo.outcome:',
+          '          outcome: success',
+          '          marker: unexecuted input marker',
+          '',
+        ].join('\n'),
+      );
+      const execution = await runFailure([root, '--result-dir', resultDir], {
+        ...process.env,
+        GITHUB_ACTIONS: 'true',
+        MIDSCENE_TEST_REPORT_REDACT: redact,
+      });
+      expect(execution.code).toBe(1);
+      expect(execution.stderr).toContain('FAIL [headphones] Case A');
+      expect(execution.stderr).toContain('Step     2/3 · demo.outcome');
+      expect(execution.stderr).toContain('Location cases.yaml:8');
+      expect(execution.stderr).toContain('Attempt  2/2');
+      expect(execution.stderr).toContain(
+        'Error: Expected 36, received 24. token=[REDACTED]',
+      );
+      const annotations = execution.stdout
+        .split('\n')
+        .filter((line) => line.startsWith('::error '));
+      expect(annotations.join('\n')).toContain('token=[REDACTED]');
+      expect(annotations.join('\n')).not.toContain('annotation-test-value');
+      expect(execution.stderr).toContain('Input    outcome: final-failure');
+      expect(execution.stderr).toContain('caseLabel: Case A');
+      expect(execution.stderr).toContain('password: [REDACTED]');
+      expect(execution.stderr).toMatch(/at midscene\.config\.mjs:4:\d+/);
+      expect(execution.stderr).not.toMatch(
+        /private-secret|unrelated input marker|unexecuted input marker|node_modules|NodeExecutionError/,
+      );
+      expect(execution.stderr).not.toContain('\u001b');
+      const summary = JSON.parse(
+        readFileSync(summaryPathFor(resultDir), 'utf8'),
+      );
+      const attempt = summary.projects[0].cases[0].attempts.at(-1);
+      const saved = JSON.parse(
+        readFileSync(join(runDirFor(resultDir), attempt.resultFile), 'utf8'),
+      );
+      expect(saved.steps[1].meta.sourceLocation).toEqual({
+        line: 8,
+        column: 9,
+      });
+      expect(saved.steps).toHaveLength(2);
+      const expectedMessage =
+        redact === 'true' ? 'token=[REDACTED]' : 'token=annotation-test-value';
+      expect(saved.steps[1].error.cause.message).toContain(expectedMessage);
+    },
+  );
 
   it('defaults to concise Case results without losing structured steps', async () => {
     const projectRoot = join(__dirname, 'fixtures', 'test-project');

@@ -200,7 +200,15 @@ export function redactDiagnosticMessage(value: string): string {
 }
 
 export function sanitizeReportError(error: unknown): TestRunReportError {
-  const redactSecrets = isReportRedactionEnabled();
+  return serializeWorkflowError(error, {
+    redactSecrets: isReportRedactionEnabled(),
+  });
+}
+
+export function serializeWorkflowError(
+  error: unknown,
+  { redactSecrets }: { redactSecrets: boolean },
+): TestRunReportError {
   const messageText = redactSecrets
     ? redactDiagnosticMessage
     : sanitizeReportText;

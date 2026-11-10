@@ -5,7 +5,11 @@ import {
   WorkflowPublicationError,
   sanitizeReportError,
 } from '@midscene/core/internal/test-runner';
-import type { CaseRunResult, WorkflowDocumentRunResult } from '../engine/types';
+import type {
+  CaseRunResult,
+  StepRunResult,
+  WorkflowDocumentRunResult,
+} from '../engine/types';
 import type { PreparedExecutionProject } from './execution-plan';
 import type { TestProjectCollectionError, TestProjectRunResult } from './types';
 
@@ -74,15 +78,34 @@ export const collectionErrorPath = (
   return toPosix(join(projectId, 'collection-errors', `${id}.json`));
 };
 
+// Encode diagnostic errors before JSON.stringify invokes the SDK's redacted toJSON.
+const stepForResultFile = (step: StepRunResult) => ({
+  ...step,
+  error: step.error && sanitizeReportError(step.error),
+  ...(step.report?.collectionErrors && {
+    report: {
+      ...step.report,
+      collectionErrors: step.report.collectionErrors.map(sanitizeReportError),
+    },
+  }),
+});
+
 export const writeWorkflowDocumentResult = (
   runDir: string,
   result: WorkflowDocumentRunResult,
 ) => {
   const { documentRunId: _documentRunId, ...persistedResult } = result;
-  return writeJson(
-    join(runDir, workflowDocumentResultPath(result)),
-    persistedResult,
-  );
+  return writeJson(join(runDir, workflowDocumentResultPath(result)), {
+    ...persistedResult,
+    beforeAll: result.beforeAll.map(stepForResultFile),
+    afterAll: result.afterAll.map(stepForResultFile),
+    hostErrors: result.hostErrors?.map(({ phase, error }) => ({
+      phase,
+      error: sanitizeReportError(error),
+    })),
+    executionErrors: result.executionErrors?.map(sanitizeReportError),
+    teardownErrors: result.teardownErrors?.map(sanitizeReportError),
+  });
 };
 
 export const writeCaseAttemptResult = (
@@ -97,6 +120,11 @@ export const writeCaseAttemptResult = (
     {
       ...persistedResult,
       attemptId,
+      beforeEach: result.beforeEach.map(stepForResultFile),
+      steps: result.steps.map(stepForResultFile),
+      afterEach: result.afterEach.map(stepForResultFile),
+      executionErrors: result.executionErrors?.map(sanitizeReportError),
+      teardownErrors: result.teardownErrors?.map(sanitizeReportError),
     },
   );
 };
@@ -113,7 +141,11 @@ export const writeCollectionError = (
         collectionError.sourcePath,
       ),
     ),
-    { kind: 'collection-error', ...collectionError },
+    {
+      kind: 'collection-error',
+      ...collectionError,
+      error: sanitizeReportError(collectionError.error),
+    },
   );
 };
 

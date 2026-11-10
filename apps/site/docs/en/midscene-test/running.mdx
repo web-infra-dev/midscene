@@ -86,7 +86,7 @@ In CI:
 
 ### Report redaction
 
-Reports redact credentials in step inputs and outputs, YAML source, and error details by default. To turn off report redaction for one run, use the following command.
+By default, reports redact recognized credential fields in step inputs, outputs, and YAML source, and recognizable credentials in error text. Free text such as step summaries and raw result files can still contain plaintext credentials. To turn off report redaction for one run, use the following command.
 
 ```bash
 MIDSCENE_TEST_REPORT_REDACT=false pnpm exec midscene-test

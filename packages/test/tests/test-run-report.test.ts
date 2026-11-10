@@ -4,9 +4,9 @@ import { join } from 'node:path';
 import type { TestRunReportSourceIndex } from '@midscene/core';
 import { NodeExecutionError } from '@midscene/core/internal/test-runner';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
+import { WorkflowError } from '../src';
 import type { TestProjectRunResult } from '../src/cli/types';
 import type { StepRunResult } from '../src/engine/types';
-import { WorkflowError } from '../src/errors';
 import {
   buildTestRunReportDump,
   renderTestResultMarkdown,
@@ -145,7 +145,9 @@ const index: TestRunReportSourceIndex = {
   },
 };
 
-afterEach(() => rs.unstubAllEnvs());
+afterEach(() => {
+  rs.unstubAllEnvs();
+});
 
 describe('Midscene Test report manifest', () => {
   it('redacts and truncates arbitrary display data', () => {
@@ -219,6 +221,21 @@ describe('Midscene Test report manifest', () => {
     expect(manifest.metrics.modelTimeMs).toBe(500);
   });
 
+  it('redacts standalone SDK error JSON even with report redaction disabled', () => {
+    rs.stubEnv('MIDSCENE_TEST_REPORT_REDACT', 'false');
+    const error = new WorkflowError('token=sdk-credential', {
+      details: { password: 'sdk-credential' },
+      cause: new Error('Bearer sdk-credential'),
+    });
+    const json = JSON.stringify(error);
+    expect(JSON.parse(json)).toMatchObject({
+      message: 'token=[REDACTED]',
+      details: { value: { password: '[REDACTED]' } },
+      cause: { message: 'Bearer [REDACTED]' },
+    });
+    expect(json).not.toContain('sdk-credential');
+  });
+
   it('preserves report inputs, outputs and errors when redaction is disabled', () => {
     rs.stubEnv('MIDSCENE_TEST_REPORT_REDACT', 'false');
     const failed = step();
@@ -227,10 +244,7 @@ describe('Midscene Test report manifest', () => {
     failed.error = new WorkflowError(message, {
       details: { password: 'test-value' },
     });
-    const manifest = buildTestRunReportDump(
-      JSON.parse(JSON.stringify(result([failed]))),
-      index,
-    );
+    const manifest = buildTestRunReportDump(result([failed]), index);
     const reportStep =
       manifest.projects[0].documents[0].cases[0].attempts[0].steps[0];
     expect(reportStep.input).toEqual({ value: failed.input });
