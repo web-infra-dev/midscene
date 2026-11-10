@@ -12,7 +12,15 @@ export type { WebElementInfo };
 
 export type WebPageAgentOpt = AgentOpt & WebPageOpt;
 export type WebPageOpt = {
+  /**
+   * Timeout for the built-in check that the page's html element is available.
+   * Default: 5000ms; 0 skips the check. Does not guarantee application readiness.
+   */
   waitForNavigationTimeout?: number;
+  /**
+   * Timeout for Puppeteer's default post-action network-idle check.
+   * Default: 2000ms; 0 skips the check. Ignored for Playwright.
+   */
   waitForNetworkIdleTimeout?: number;
   forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
   enableTouchEventsInActionSpace?: boolean;
@@ -41,8 +49,8 @@ export type WebPageOpt = {
    * versions that do not support `appearance: base-select`).
    */
   forceChromeSelectRendering?: boolean;
-  beforeInvokeAction?: () => Promise<void>;
-  afterInvokeAction?: () => Promise<void>;
+  beforeInvokeAction?: (actionName: string, param: any) => Promise<void>;
+  afterInvokeAction?: (actionName: string, param: any) => Promise<void>;
   customActions?: DeviceAction<any>[];
 };
 

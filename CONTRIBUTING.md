@@ -86,7 +86,7 @@ git config user.email "SOME_EMAIL@example.com"
 - `packages/web-integration`: source for npm package `@midscene/web`;
   Playwright/Puppeteer integration and main web e2e coverage. The package name is `@midscene/web`.
 - `packages/shared`: shared utilities used across the monorepo. The package name is `@midscene/shared`.
-- `packages/test`: extensible YAML test runner and Node SDK. The package name is `@midscene/test`.
+- `packages/test`: Midscene Test, an extensible YAML testing framework and Node SDK. The package name is `@midscene/test`.
 - `packages/{android,ios,computer,harmony}`: platform runtimes. Matching
   `*-playground` packages live alongside them. The package names are `@midscene/android`, `@midscene/ios`, `@midscene/computer`, `@midscene/harmony`.
 - `packages/visualizer` and `apps/report`: report rendering and viewer UI.
@@ -222,12 +222,68 @@ OPENAI_API_KEY="your_token"
 MIDSCENE_MODEL_NAME="qwen3-vl-plus"
 ```
 
+### Report Development and Test Scope
+
+Prioritize Report's core user workflows and data correctness during development,
+review, and testing: loading reports, reading outcomes and metrics, filtering and
+sorting, navigating Cases and attempts, inspecting failures and evidence, and
+using replay and mobile navigation.
+
+Use final Report outcomes consistently: Passed, Failed and Not run. Recovery
+after an earlier failed attempt is diagnostic history within Passed, never a
+separate filter, navigation group or additional Case count. Keep earlier
+attempts and File/Project errors available for debugging.
+
+Keep e2e assertions concise and focused on observable functional outcomes. Use
+enough context to locate the intended control, while allowing the layout and
+visual design to evolve. Preserve AI interaction and assertion coverage; use
+JavaScript for deterministic browser integration such as history, focus, and
+value comparisons.
+
+Cosmetic details such as spacing, colors, borders, shadows, corner radii, icon
+appearance, and exact dimensions should not become default test or review gates.
+Do not replace brittle e2e style checks with equally brittle CSS or markup
+assertions in unit tests. Use unit tests for aggregation, serialization, state
+transitions, and other behavioral rules. Add targeted visual checks when an
+explicit design requirement calls for them.
+
+Treat content clipping, overlap, or scrolling and keyboard problems that hide
+important information or prevent an action as functional defects. Cover the
+affected workflow without locking in incidental styling.
+
+See the Report e2e guidelines in
+[English](./apps/report/e2e/README.md) or
+[中文](./apps/report/e2e/README.zh.md) for coverage and authoring guidance.
+
+### Artifact and logging conventions
+
+- Use `MIDSCENE_RUN_DIR` to choose the artifact root (default `midscene_run/`).
+  Keep reports in `report/`, results and diagnostic records in `test-results/`,
+  and logs in `log/`. Use `getMidsceneRunSubDir()` during execution and respect
+  the current run's root and explicit path overrides.
+- Default to self-contained single HTML. Native Test owns one integrated report;
+  its Agents contribute records. External reports must include their dependencies
+  and remain readable after moving the directory.
+- Freeze snapshot data and collection status together. Retain failure, timeout,
+  retry, and setup/teardown evidence before releasing execution references.
+- Clean only owned progress files after successful publication. Overwrite only
+  the selected output target, preserve diagnostic sources on failure, and
+  coordinate shared-report updates across processes.
+- Reuse existing report and image helpers. Deduplicate external and exported
+  images while preserving step associations; keep pending writes and retained
+  image data bounded.
+- Use `getDebug('module:topic')` for diagnostics,
+  `getDebug(topic, { console: true })` for user-visible warnings, and `logReport()`
+  for report paths. Keep required evidence in structured results; avoid secrets,
+  full dumps, and Base64 images in ordinary logs.
+- Cover affected report formats and consumers with focused tests, including
+  Agent, legacy YAML, Native Test, CLI append/export, and Playground where relevant.
 
 ### Add New Tests
 
 If you've fixed a bug or added code that should be tested, then add some tests.
 
-You can add unit test cases in the `<PACKAGE_DIR>/tests` folder. The test runner is based on [Vitest](https://vitest.dev/).
+You can add unit test cases in the `<PACKAGE_DIR>/tests` folder. The test runner is based on [Rstest](https://rstest.rs/).
 
 ### Run Unit Tests
 
@@ -272,6 +328,31 @@ If you need to run E2E tests for adb:
 ```sh
 cd packages/web-integration && pnpm run test:ai -- adb
 ```
+
+### Run native default-scroll regression tests
+
+The Android Emulator and iOS Simulator workflows run a model-free scroll regression before their existing smoke and AI tests. Native lists and pagers measure content offsets while the built SDK executes the `Scroll` action. Each platform runs 32 cases covering both orientations, all four directions, stability at top/bottom boundaries, and scrolling from the middle to the top/bottom. iOS also runs 36 bounded horizontal gesture cases: oversized distances from 15%, 50%, and 85% of the screen width, in both directions and orientations, with three trials per combination. These inspect the real WDA dispatch: preserve the chosen origin and 500 ms duration, clamp the endpoint, and prohibit reverse content motion. A clipped Scroll may settle on the same native page. An additional 16 iOS cases reject invalid distances through the Scroll action entry point, and 12 cases exercise explicit Swipe paging paths at three vertical positions in both directions and orientations. Eight more cases start in the middle of native horizontal pagers and non-paging scroll views and require scrollToLeft/scrollToRight to reach the measured content boundary in both orientations. The iOS runner executes 104 cases in total.
+
+A valid Scroll gesture does not guarantee a page transition: very short clipped paths can snap back, and system-reserved or non-interactive regions may ignore a touch. Do not move a located origin silently or infer a universal minimum paging distance from this fixture. For a paging interaction, use Swipe with an explicit path inside the target control and verify the resulting page. Clipping does not shorten the Scroll duration: accelerating the gesture can cause an ordinary scroll container to fling. Explicit Swipe controls its own duration.
+
+Build the target package first (`pnpm exec nx build @midscene/android` or `pnpm exec nx build @midscene/ios`). Then run from the repository root:
+
+```sh
+# Requires a booted Android emulator, adb, an Android SDK, and a JDK.
+# The fixture build downloads checksum-pinned AndroidX dependencies.
+ANDROID_HOME=/path/to/android-sdk MIDSCENE_ANDROID_SERIAL=emulator-5554 \
+  node scripts/mobile-scroll-regression.mjs android
+
+# Requires a booted iOS simulator and WDA serving that simulator.
+MIDSCENE_IOS_SIMULATOR_UDID=<simulator-udid> MIDSCENE_IOS_WDA_PORT=8100 \
+  node scripts/mobile-scroll-regression.mjs ios
+```
+
+The runner installs the disposable `dev.midscene.scrollprobe` fixture. Android runs replace any previous installation of that fixture and temporarily set the emulator resolution and density. The runner restores the original resolution, density, or orientation when it finishes.
+
+Vertical content must move between 60% and 95% of the visible list height, preserving overlap. A horizontal gesture must move exactly one native page within a 3% measurement tolerance. Boundary gestures must settle within one coordinate unit of the original boundary. Separate `scrollToTop` and `scrollToBottom` cases start inside the list and must reach its measured native boundary. These checks validate this fixture's behavior, not identical displacement in every application.
+
+Before/after screenshots, native offset traces, the source commit, and assertion results are written under `midscene_run/<platform>-scroll/scroll`. CI uses the platform diagnostics directory and uploads these files with the existing diagnostics artifact. A failed assertion fails the simulator workflow even if the later smoke or AI tests pass.
 
 ---
 
@@ -373,8 +454,14 @@ Repository maintainers can publish a new version of all packages to npm.
 
 Here are the steps to publish (we generally use CI for releases and avoid publishing npm packages locally):
 
-1. [Run the release action](https://github.com/web-infra-dev/midscene/actions/workflows/release.yml).
-2. [Generate the release notes](https://github.com/web-infra-dev/midscene/releases).
+1. Prepare bilingual highlights for the target version in [.github/release-notes](./.github/release-notes/README.md).
+   The `major` and `minor` inputs require both English and Chinese highlights;
+   patch highlights are optional but must be supplied as a pair.
+2. [Run the release action](https://github.com/web-infra-dev/midscene/actions/workflows/release.yml).
+   Stable releases generate bilingual version archives and update the website's
+   changelogs before committing the version bump and pushing its tag. Historical
+   changelog content outside the generated regions is preserved.
+3. The workflow publishes those same notes to [GitHub Releases](https://github.com/web-infra-dev/midscene/releases).
 
 Stable releases also attempt to submit the packaged Chrome extension to the Chrome Web Store from CI. Configure these repository secrets before running a stable release:
 

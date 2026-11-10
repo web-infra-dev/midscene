@@ -1,11 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import type { ResolvedExecutionProject } from '../src/cli/test-project';
 import { createProjectRuntime } from '../src/engine/project-runtime';
 
 const project = (): ResolvedExecutionProject<{ lease: string }> => ({
   projectId: 'project-0',
   name: 'android-smoke',
-  platform: 'android',
   tags: { include: [], exclude: [] },
   retry: 0,
   variables: {},
@@ -14,7 +13,7 @@ const project = (): ResolvedExecutionProject<{ lease: string }> => ({
 describe('project runtime', () => {
   it('runs setup once, exposes context only through the runtime, and tears down LIFO', async () => {
     const events: string[] = [];
-    const setup = vi.fn(({ onTeardown }) => {
+    const setup = rs.fn(({ onTeardown }) => {
       events.push('setup');
       onTeardown(() => {
         events.push('release-device');
@@ -26,7 +25,7 @@ describe('project runtime', () => {
     });
     const runtime = createProjectRuntime({
       project: project(),
-      setup: { name: 'dora-android', platform: 'android', setup },
+      setup: { name: 'dora-android', setup },
     });
 
     const started = await runtime.start();
@@ -97,7 +96,7 @@ describe('project runtime', () => {
   });
 
   it('does not acquire resources when already aborted', async () => {
-    const setup = vi.fn(() => ({ lease: 'never' }));
+    const setup = rs.fn(() => ({ lease: 'never' }));
     const controller = new AbortController();
     controller.abort(new Error('interrupted'));
     const runtime = createProjectRuntime({

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import {
   CaseRunner,
   NodeExecutionError,
@@ -10,20 +10,26 @@ import {
 } from '../src';
 
 afterEach(() => {
-  vi.useRealTimers();
+  rs.useRealTimers();
 });
 
 describe('CaseRunner', () => {
   it('runs nodes sequentially with normalized input and metadata', async () => {
     const calls: string[] = [];
-    const first = defineNode<{ value: number }, { doubled: number }>({
+    const first = defineNode<
+      { prompt: string; value: number },
+      { doubled: number }
+    >({
       name: 'first.node',
-      execute(ctx) {
-        calls.push(ctx.input.prompt ?? '');
-        expect(ctx.input).toEqual({ prompt: 'run first', value: 2 });
-        expect(ctx.$).toEqual({ continueOnError: false });
-        expect(ctx.signal.aborted).toBe(false);
-        return { summary: 'done', data: { doubled: ctx.input.value * 2 } };
+      execute(execution) {
+        calls.push(execution.input.prompt);
+        expect(execution.input).toEqual({ prompt: 'run first', value: 2 });
+        expect(execution.$).toEqual({ continueOnError: false });
+        expect(execution.signal.aborted).toBe(false);
+        return {
+          summary: 'done',
+          data: { doubled: execution.input.value * 2 },
+        };
       },
     });
     const second = defineNode({
@@ -56,7 +62,7 @@ describe('CaseRunner', () => {
   });
 
   it('records a failed step and continues when configured', async () => {
-    const next = vi.fn();
+    const next = rs.fn();
     const runner = new CaseRunner({
       nodes: [
         defineNode({
@@ -65,7 +71,11 @@ describe('CaseRunner', () => {
             throw new Error('boom');
           },
         }),
-        defineNode({ name: 'next.node', execute: next }),
+        defineNode({
+          name: 'next.node',
+          stringInputKey: 'prompt',
+          execute: next,
+        }),
       ],
     });
 
@@ -86,7 +96,7 @@ describe('CaseRunner', () => {
   });
 
   it('throws normalized errors and stops by default', async () => {
-    const next = vi.fn();
+    const next = rs.fn();
     const runner = new CaseRunner({
       nodes: [
         defineNode({
@@ -108,7 +118,7 @@ describe('CaseRunner', () => {
   });
 
   it('resolves every node before starting case side effects', async () => {
-    const first = vi.fn();
+    const first = rs.fn();
     const runner = new CaseRunner({
       nodes: [defineNode({ name: 'first.node', execute: first })],
     });
@@ -137,7 +147,7 @@ describe('CaseRunner', () => {
   });
 
   it('parses schema input before execution and passes the inferred output', async () => {
-    const execute = vi.fn();
+    const execute = rs.fn();
     const inputSchema = z.strictObject({
       count: z.coerce.number().int().default(1),
       label: z.string().transform((value) => value.toUpperCase()),
@@ -145,8 +155,8 @@ describe('CaseRunner', () => {
     const node = defineNode({
       name: 'schema.node',
       inputSchema,
-      execute(ctx) {
-        execute(ctx.input);
+      execute(execution) {
+        execute(execution.input);
       },
     });
     const runner = new CaseRunner({ nodes: [node] });
@@ -159,7 +169,7 @@ describe('CaseRunner', () => {
   });
 
   it('normalizes Zod issues without exposing the complete input', async () => {
-    const execute = vi.fn();
+    const execute = rs.fn();
     const node = defineNode({
       name: 'validated.node',
       inputSchema: z.strictObject({ count: z.number().positive() }),
@@ -195,7 +205,7 @@ describe('CaseRunner', () => {
   });
 
   it('supports asynchronous schema refinements', async () => {
-    const execute = vi.fn();
+    const execute = rs.fn();
     const node = defineNode({
       name: 'async-schema.node',
       inputSchema: z.strictObject({
@@ -212,12 +222,12 @@ describe('CaseRunner', () => {
   });
 
   it('aborts and fails a timed out node even if it never settles', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     let signal: AbortSignal | undefined;
     const node = defineNode({
       name: 'slow.node',
-      execute(ctx) {
-        signal = ctx.signal;
+      execute(execution) {
+        signal = execution.signal;
         return new Promise<void>(() => {});
       },
     });
@@ -232,7 +242,7 @@ describe('CaseRunner', () => {
       ],
     });
 
-    await vi.advanceTimersByTimeAsync(50);
+    await rs.advanceTimersByTimeAsync(50);
     const result = await execution;
 
     expect(signal?.aborted).toBe(true);
@@ -260,8 +270,8 @@ describe('CaseRunner', () => {
       nodes: [
         defineNode<unknown, unknown, { value: string }>({
           name: 'context.node',
-          execute(ctx) {
-            calls.push(`node:${ctx.context.value}`);
+          execute(execution) {
+            calls.push(`node:${execution.context.value}`);
           },
         }),
       ],

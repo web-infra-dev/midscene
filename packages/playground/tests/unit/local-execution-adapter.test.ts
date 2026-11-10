@@ -44,7 +44,8 @@ describe('LocalExecutionAdapter', () => {
         .mockReturnValue(JSON.stringify({ executions: [{}] })),
       reportHTMLString: rs.fn().mockReturnValue(''),
       writeOutActionDumps: rs.fn(),
-      resetDump: rs.fn(),
+      resetDump: rs.fn(async () => undefined),
+      finalizeReport: rs.fn(async () => undefined),
       addDumpUpdateListener: rs.fn(() => rs.fn()), // Returns a remove function
       removeDumpUpdateListener: rs.fn(),
     } as unknown as PlaygroundAgent;
@@ -198,6 +199,10 @@ describe('LocalExecutionAdapter', () => {
     it('should use the provided config without overriding global config', async () => {
       const aiConfig = { MIDSCENE_MODEL_NAME: 'test-model' };
       const modelConfig = { modelName: 'test-model' } as any;
+      const locateModelConfig = {
+        modelName: 'test-locate-model',
+        intent: 'locate',
+      } as any;
       const planningModelConfig = {
         modelName: 'test-planning-model',
         intent: 'planning',
@@ -209,10 +214,13 @@ describe('LocalExecutionAdapter', () => {
       const getModelConfig = rs
         .fn()
         .mockReturnValueOnce(modelConfig)
+        .mockReturnValueOnce(locateModelConfig)
         .mockReturnValueOnce(planningModelConfig)
         .mockReturnValueOnce(insightModelConfig);
       const result = {
         passed: true,
+        checks: [],
+        requestCount: 0,
       };
 
       rs.mocked(ModelConfigManager).mockImplementation(
@@ -230,6 +238,7 @@ describe('LocalExecutionAdapter', () => {
       expect(overrideAIConfig).not.toHaveBeenCalled();
       expect(runConnectivityTest).toHaveBeenCalledWith({
         defaultModelConfig: modelConfig,
+        locateModelConfig,
         planningModelConfig,
         insightModelConfig,
       });
@@ -263,8 +272,62 @@ describe('LocalExecutionAdapter', () => {
         'click',
         mockActionSpace,
         value,
-        options,
+        expect.objectContaining({
+          ...options,
+          abortSignal: expect.any(AbortSignal),
+        }),
       );
+      expect(mockAgent.resetDump).toHaveBeenCalledOnce();
+      expect(mockAgent.finalizeReport).toHaveBeenCalledOnce();
+      expect(mockAgent.reportHTMLString).toHaveBeenCalledBefore(
+        rs.mocked(mockAgent.finalizeReport),
+      );
+    });
+
+    it('waits for resetDump before executing and propagates reset errors', async () => {
+      let release!: () => void;
+      let resetting!: () => void;
+      const started = new Promise<void>((resolve) => {
+        resetting = resolve;
+      });
+      rs.mocked(mockAgent.resetDump).mockImplementationOnce(async () => {
+        resetting();
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        return {} as any;
+      });
+      const value: FormValue = { type: 'click', prompt: 'click button' };
+      const execution = adapter.executeAction('click', value, {});
+      await started;
+      expect(common.executeAction).not.toHaveBeenCalled();
+      release();
+      await execution;
+      expect(common.executeAction).toHaveBeenCalledOnce();
+
+      rs.mocked(mockAgent.resetDump).mockRejectedValueOnce(
+        new Error('reset failed'),
+      );
+      await expect(adapter.executeAction('click', value, {})).rejects.toThrow(
+        'reset failed',
+      );
+      expect(common.executeAction).toHaveBeenCalledOnce();
+    });
+
+    it('returns reporting failures alongside the captured execution data', async () => {
+      rs.mocked(mockAgent.finalizeReport).mockRejectedValueOnce(
+        new Error('finalization failed'),
+      );
+      const result = await adapter.executeAction(
+        'click',
+        { type: 'click' },
+        {},
+      );
+      expect(result).toMatchObject({
+        result: 'test result',
+        dump: expect.any(ReportActionDump),
+        error: 'finalization failed',
+      });
     });
 
     it('should use empty actionSpace when agent has no getActionSpace', async () => {
@@ -273,6 +336,7 @@ describe('LocalExecutionAdapter', () => {
         reportHTMLString: () => '',
         writeOutActionDumps: () => {},
         resetDump: () => {},
+        finalizeReport: async () => undefined,
       } as unknown as PlaygroundAgent;
       const localAdapter = new LocalExecutionAdapter(agentWithoutActionSpace);
 
@@ -286,7 +350,10 @@ describe('LocalExecutionAdapter', () => {
         'click',
         [],
         value,
-        options,
+        expect.objectContaining({
+          ...options,
+          abortSignal: expect.any(AbortSignal),
+        }),
       );
     });
 

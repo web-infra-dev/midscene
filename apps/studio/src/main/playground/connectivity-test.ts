@@ -21,6 +21,8 @@ export async function runConnectivityTest(
   if ('error' in resolvedWithConfig) {
     return {
       passed: false,
+      checks: [],
+      requestCount: 0,
       message: resolvedWithConfig.error,
     };
   }
@@ -29,6 +31,7 @@ export async function runConnectivityTest(
 
   return runCoreConnectivityTest({
     defaultModelConfig: modelConfigManager.getModelConfig('default'),
+    locateModelConfig: modelConfigManager.getModelConfig('locate'),
     planningModelConfig: modelConfigManager.getModelConfig('planning'),
     insightModelConfig: modelConfigManager.getModelConfig('insight'),
   });

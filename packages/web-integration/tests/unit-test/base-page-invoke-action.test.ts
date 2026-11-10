@@ -153,7 +153,7 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
     });
   });
 
-  describe('afterInvokeAction', () => {
+  describe('defaultActionWait and afterInvokeAction', () => {
     it('should wait for navigation with default timeout', async () => {
       const mockPage = {
         url: () => 'http://example.com',
@@ -165,7 +165,7 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
       } as any;
 
       const page = new Page(mockPage, 'puppeteer');
-      await page.afterInvokeAction('testAction', {});
+      await page.defaultActionWait('testAction', {});
 
       expect(mockPage.waitForSelector).toHaveBeenCalledTimes(1);
       expect(mockPage.waitForSelector).toHaveBeenCalledWith('html', {
@@ -184,7 +184,7 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
       } as any;
 
       const page = new Page(mockPage, 'puppeteer');
-      await page.afterInvokeAction('testAction', {});
+      await page.defaultActionWait('testAction', {});
 
       expect(mockPage.waitForNetworkIdle).toHaveBeenCalledTimes(1);
       expect(mockPage.waitForNetworkIdle).toHaveBeenCalledWith({
@@ -194,7 +194,7 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
       });
     });
 
-    it('should call the afterInvokeAction hook after waiting', async () => {
+    it('separates lifecycle callbacks from the default waits', async () => {
       const mockPage = {
         url: () => 'http://example.com',
         mouse: { move: rs.fn() },
@@ -224,17 +224,13 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
 
       await page.afterInvokeAction('testAction', { foo: 'bar' });
 
-      // Both wait methods should be called before the hook
-      expect(callOrder).toContain('waitForSelector');
-      expect(callOrder).toContain('waitForNetworkIdle');
-      expect(callOrder).toContain('afterHook');
-
-      const afterHookIndex = callOrder.indexOf('afterHook');
-      const waitSelectorIndex = callOrder.indexOf('waitForSelector');
-      const waitNetworkIndex = callOrder.indexOf('waitForNetworkIdle');
-
-      expect(waitSelectorIndex).toBeLessThan(afterHookIndex);
-      expect(waitNetworkIndex).toBeLessThan(afterHookIndex);
+      expect(callOrder).toEqual(['afterHook']);
+      await page.defaultActionWait('testAction', { foo: 'bar' });
+      expect(callOrder).toEqual([
+        'afterHook',
+        'waitForSelector',
+        'waitForNetworkIdle',
+      ]);
       expect(afterHook).toHaveBeenCalledWith('testAction', { foo: 'bar' });
     });
 
@@ -251,7 +247,7 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
       const page = new Page(mockPage, 'puppeteer', {
         waitForNavigationTimeout: 0,
       });
-      await page.afterInvokeAction('testAction', {});
+      await page.defaultActionWait('testAction', {});
 
       // waitForSelector should not be called when timeout is 0
       expect(mockPage.waitForSelector).not.toHaveBeenCalled();
@@ -270,7 +266,7 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
       const page = new Page(mockPage, 'puppeteer', {
         waitForNetworkIdleTimeout: 0,
       });
-      await page.afterInvokeAction('testAction', {});
+      await page.defaultActionWait('testAction', {});
 
       // waitForNetworkIdle should not be called when timeout is 0
       expect(mockPage.waitForNetworkIdle).not.toHaveBeenCalled();
@@ -289,7 +285,7 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
       const page = new Page(mockPage, 'puppeteer', {
         waitForNetworkIdleTimeout: 4321,
       });
-      await page.afterInvokeAction('testAction', {});
+      await page.defaultActionWait('testAction', {});
 
       expect(mockPage.waitForNetworkIdle).toHaveBeenCalledWith({
         idleTime: 200,
@@ -318,7 +314,7 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
 
       // Should not throw error when navigation times out
       await expect(
-        page.afterInvokeAction('testAction', {}),
+        page.defaultActionWait('testAction', {}),
       ).resolves.toBeUndefined();
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -348,7 +344,7 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
 
       // Should not throw error when network idle times out
       await expect(
-        page.afterInvokeAction('testAction', {}),
+        page.defaultActionWait('testAction', {}),
       ).resolves.toBeUndefined();
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -376,7 +372,7 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
       expect(mockPage.waitForSelector).not.toHaveBeenCalled();
     });
 
-    it('should work with playwright interface in afterInvokeAction', async () => {
+    it('skips network idle for playwright in defaultActionWait', async () => {
       const mockPage = {
         url: () => 'http://example.com',
         mouse: { move: rs.fn() },
@@ -386,7 +382,7 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
       } as any;
 
       const page = new Page(mockPage, 'playwright');
-      await page.afterInvokeAction('testAction', {});
+      await page.defaultActionWait('testAction', {});
 
       // Should call waitForSelector for playwright
       expect(mockPage.waitForSelector).toHaveBeenCalledWith('html', {

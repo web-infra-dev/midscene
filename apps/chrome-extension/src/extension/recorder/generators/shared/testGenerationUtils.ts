@@ -1,3 +1,4 @@
+import type { MessageContent } from '@midscene/core/ai-model';
 import type { ChromeRecordedEvent } from '@midscene/recorder-ui';
 import { recordLogger } from '../../logger';
 import type {
@@ -169,8 +170,8 @@ export const createMessageContent = (
   promptText: string,
   screenshots: string[] = [],
   includeScreenshots = true,
-): Array<string | Record<string, any>> => {
-  const messageContent: Array<string | Record<string, any>> = [
+): MessageContent[] => {
+  const messageContent: MessageContent[] = [
     {
       type: 'text',
       text: promptText,
@@ -186,10 +187,8 @@ export const createMessageContent = (
 
     screenshots.forEach((screenshot) => {
       messageContent.push({
-        type: 'image_url',
-        image_url: {
-          url: screenshot,
-        },
+        type: 'image',
+        url: screenshot,
       });
     });
   }

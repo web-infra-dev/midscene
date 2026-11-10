@@ -174,7 +174,9 @@ rs.mock('node:fs', () => {
 describe('AndroidDevice', () => {
   let device: AndroidDevice;
 
-  let mockAdb: Mocked<ADB>;
+  // Mapped mock types erase generic return types such as runInImeContext<T>.
+  // Retain the real ADB signatures alongside the mock controls.
+  let mockAdb: Mocked<ADB> & ADB;
 
   beforeEach(() => {
     rs.mocked(execFile).mockClear();
@@ -183,7 +185,7 @@ describe('AndroidDevice', () => {
       mockAdbInstance = createMockAdb();
     }
     // Create a new mock instance for each test
-    mockAdb = new (ADB as any)() as Mocked<ADB>;
+    mockAdb = new ADB() as Mocked<ADB> & ADB;
     mockAdb.executable.defaultArgs = [];
     // Disable buffer size validation for tests to allow small mock buffers
     // Disable scrcpy to avoid shell calls during normalizeScrcpyConfig
@@ -529,6 +531,32 @@ describe('AndroidDevice', () => {
   // Launch/Terminate on every mobile platform must expose the SAME `uri` field.
   // The shared tool-generator already rejects non-object schemas, but a future
   // author could still rename the field and silently break CLI ergonomics.
+  it('lets custom action readiness replace the extra scroll settling delay', async () => {
+    const scroll = rs
+      .spyOn(device as any, 'scrollDownRaw')
+      .mockResolvedValue(undefined);
+    const delay = rs.spyOn(CoreUtils, 'sleep').mockResolvedValue(undefined);
+    try {
+      const action = device
+        .actionSpace()
+        .find((item) => item.name === 'Scroll')!;
+      await action.call(
+        { direction: 'down', scrollType: 'singleAction', distance: 100 },
+        { task: {}, skipDefaultWait: true } as ExecutorContext,
+      );
+      expect(scroll).toHaveBeenCalledOnce();
+      expect(delay).not.toHaveBeenCalledWith(500);
+      await action.call(
+        { direction: 'down', scrollType: 'singleAction', distance: 100 },
+        { task: {} } as ExecutorContext,
+      );
+      expect(delay).toHaveBeenCalledWith(500);
+    } finally {
+      scroll.mockRestore();
+      delay.mockRestore();
+    }
+  });
+
   describe('actionSpace platform actions', () => {
     it('includes RunAdbShell by default', () => {
       const actionNames = device.actionSpace().map((action) => action.name);
@@ -2526,6 +2554,89 @@ Stdout:
       });
     });
 
+    describe('untargeted scroll gesture coordinates', () => {
+      beforeEach(() => {
+        rs.spyOn(device as any, 'adjustCoordinates').mockImplementation(
+          async (...args: unknown[]) => {
+            const [x, y] = args as [number, number];
+            return { x, y };
+          },
+        );
+        rs.spyOn(console, 'warn').mockImplementation(() => {});
+      });
+
+      it.each([
+        ['scrollDown', 'input swipe 540 1632 540 288 1000'],
+        ['scrollUp', 'input swipe 540 288 540 1632 1000'],
+        ['scrollRight', 'input swipe 918 960 162 960 1000'],
+        ['scrollLeft', 'input swipe 162 960 918 960 1000'],
+      ] as const)(
+        '%s keeps the default gesture within the central seventy percent of the screen',
+        async (method, command) => {
+          await device[method]();
+
+          expect(mockAdb.shell).toHaveBeenCalledWith(command);
+          expect(console.warn).not.toHaveBeenCalled();
+        },
+      );
+
+      it.each([
+        ['scrollUntilTop', 'input swipe 540 480 540 1920 100'],
+        ['scrollUntilBottom', 'input swipe 540 1440 540 0 100'],
+        ['scrollUntilLeft', 'input swipe 270 960 1080 960 100'],
+        ['scrollUntilRight', 'input swipe 810 960 0 960 100'],
+      ] as const)(
+        '%s repeats the corrected boundary gesture',
+        async (method, command) => {
+          await device[method]();
+          const swipes = mockAdb.shell.mock.calls.filter(([value]) =>
+            String(value).startsWith('input swipe'),
+          );
+          expect(swipes).toHaveLength(10);
+          for (const [value] of swipes) expect(value).toBe(command);
+        },
+      );
+
+      it.each([
+        ['scrollDown', 100, 'input swipe 540 1440 540 1340 1000'],
+        ['scrollUp', 100, 'input swipe 540 480 540 580 1000'],
+        ['scrollRight', 100, 'input swipe 810 960 710 960 1000'],
+        ['scrollLeft', 100, 'input swipe 270 960 370 960 1000'],
+        ['scrollDown', 600, 'input swipe 540 1440 540 840 1000'],
+        ['scrollUp', 600, 'input swipe 540 480 540 1080 1000'],
+        ['scrollRight', 600, 'input swipe 810 960 210 960 1000'],
+        ['scrollLeft', 600, 'input swipe 270 960 870 960 1000'],
+      ] as const)(
+        '%s preserves an explicit %ipx distance without clamping',
+        async (method, distance, command) => {
+          await device[method](distance);
+
+          expect(mockAdb.shell).toHaveBeenCalledWith(command);
+          expect(console.warn).not.toHaveBeenCalled();
+        },
+      );
+
+      it.each([
+        ['scrollDown', 'input swipe 960 918 960 162 1000'],
+        ['scrollUp', 'input swipe 960 162 960 918 1000'],
+        ['scrollRight', 'input swipe 1632 540 288 540 1000'],
+        ['scrollLeft', 'input swipe 288 540 1632 540 1000'],
+      ] as const)(
+        '%s uses the current landscape dimensions for the default gesture',
+        async (method, command) => {
+          rs.spyOn(device, 'size').mockResolvedValue({
+            width: 1920,
+            height: 1080,
+          });
+
+          await device[method]();
+
+          expect(mockAdb.shell).toHaveBeenCalledWith(command);
+          expect(console.warn).not.toHaveBeenCalled();
+        },
+      );
+    });
+
     it('scrollUp should call scroll with negative Y delta', async () => {
       const wheelSpy = rs
         .spyOn(device as any, 'scrollRaw')
@@ -2597,8 +2708,8 @@ Stdout:
           -1,
         )?.[0] as string;
 
-        expect(rightSwipeCmd).toBe('input swipe 270 480 0 480 1000');
-        expect(leftSwipeCmd).toBe('input swipe 810 480 1080 480 1000');
+        expect(rightSwipeCmd).toBe('input swipe 810 960 0 960 1000');
+        expect(leftSwipeCmd).toBe('input swipe 270 960 1080 960 1000');
         expect(console.warn).not.toHaveBeenCalled();
 
         adjustCoordinatesSpy.mockRestore();
@@ -2628,7 +2739,7 @@ Stdout:
 
         expect(console.warn).toHaveBeenCalledWith(
           '[Midscene]',
-          '[midscene] Android ADB swipe coordinates must stay within the screen bounds. The requested scroll distance (9999999px) exceeds the maximum single swipe distance (480px) from the current start point, so it will be clamped. If you want to scroll to the bottom, use scrollToBottom instead.',
+          '[midscene] Android ADB swipe coordinates must stay within the screen bounds. The requested scroll distance (9999999px) exceeds the maximum single swipe distance (1440px) from the current start point, so it will be clamped. If you want to scroll to the bottom, use scrollToBottom instead.',
         );
       });
 
@@ -2647,6 +2758,17 @@ Stdout:
     });
 
     describe('calculateScrollEndPoint', () => {
+      it.each([
+        [{ x: 0, y: 200 }, -100, 0],
+        [{ x: 1080, y: 200 }, 100, 0],
+        [{ x: 200, y: 0 }, 0, -100],
+        [{ x: 200, y: 1920 }, 0, 100],
+      ])('rejects a scroll with no space from %j', (start, dx, dy) => {
+        expect(() =>
+          (device as any).calculateScrollEndPoint(start, dx, dy, 1080, 1920),
+        ).toThrow('No space');
+      });
+
       it('should calculate end point for horizontal scroll within bounds', () => {
         const start = { x: 100, y: 200 };
         const deltaX = 50;
@@ -2831,58 +2953,31 @@ Stdout:
         expect(result).toEqual({ x: 400, y: 450 });
       });
 
-      it('should not modify coordinates when delta is zero', () => {
-        const start = { x: 500, y: 600 };
-        const deltaX = 0;
-        const deltaY = 0;
-        const maxWidth = 1080;
-        const maxHeight = 1920;
-
-        const result = (device as any).calculateScrollEndPoint(
-          start,
-          deltaX,
-          deltaY,
-          maxWidth,
-          maxHeight,
-        );
-
-        expect(result).toEqual({ x: 500, y: 600 });
+      it('rejects a stationary endpoint when both deltas are zero', () => {
+        expect(() =>
+          (device as any).calculateScrollEndPoint(
+            { x: 500, y: 600 },
+            0,
+            0,
+            1080,
+            1920,
+          ),
+        ).toThrow('Scroll distance is too small');
       });
 
-      it('should handle edge case when start point is at boundary', () => {
-        const start = { x: 0, y: 0 };
-        const deltaX = -50; // Trying to scroll left from left edge
-        const deltaY = -50; // Trying to scroll up from top edge
-        const maxWidth = 1080;
-        const maxHeight = 1920;
-
-        const result = (device as any).calculateScrollEndPoint(
-          start,
-          deltaX,
-          deltaY,
-          maxWidth,
-          maxHeight,
-        );
-
-        expect(result).toEqual({ x: 0, y: 0 }); // Should stay at boundary
-      });
-
-      it('should handle edge case when start point is at max boundary', () => {
-        const start = { x: 1080, y: 1920 };
-        const deltaX = 50; // Trying to scroll right from right edge
-        const deltaY = 50; // Trying to scroll down from bottom edge
-        const maxWidth = 1080;
-        const maxHeight = 1920;
-
-        const result = (device as any).calculateScrollEndPoint(
-          start,
-          deltaX,
-          deltaY,
-          maxWidth,
-          maxHeight,
-        );
-
-        expect(result).toEqual({ x: 1080, y: 1920 }); // Should stay at boundary
+      it.each([
+        [{ x: 0, y: 0 }, -50],
+        [{ x: 1080, y: 1920 }, 50],
+      ])('rejects a diagonal scroll out of corner %j', (start, delta) => {
+        expect(() =>
+          (device as any).calculateScrollEndPoint(
+            start,
+            delta,
+            delta,
+            1080,
+            1920,
+          ),
+        ).toThrow('No space');
       });
     });
 
@@ -2891,6 +2986,51 @@ Stdout:
         rs.spyOn(device as any, 'dragPoint').mockResolvedValue(undefined);
         rs.spyOn(console, 'warn').mockImplementation(() => {});
       });
+
+      it.each([Number.NaN, Number.POSITIVE_INFINITY, -1, 100000])(
+        'rejects invalid horizontal origin %s before a vertical drag',
+        async (left) => {
+          await expect(
+            device.scrollDown(100, { left, top: 100 }),
+          ).rejects.toThrow('origin');
+          expect((device as any).dragPoint).not.toHaveBeenCalled();
+        },
+      );
+
+      it('does not send a stationary drag when the origin is at the top edge', async () => {
+        await expect(
+          device.scrollDown(100, { left: 200, top: 0 }),
+        ).rejects.toThrow('No space');
+        expect((device as any).dragPoint).not.toHaveBeenCalled();
+      });
+
+      it.each(['scrollUp', 'scrollDown', 'scrollLeft', 'scrollRight'] as const)(
+        'rejects a positive distance that rounds to zero in %s',
+        async (method) => {
+          for (const distance of [0.1, 0.49]) {
+            await expect(
+              device[method](distance, { left: 200, top: 200 }),
+            ).rejects.toThrow('Scroll distance is too small');
+          }
+          expect((device as any).dragPoint).not.toHaveBeenCalled();
+        },
+      );
+
+      it.each([
+        ['scrollUp', 200, 201],
+        ['scrollDown', 200, 199],
+        ['scrollLeft', 201, 200],
+        ['scrollRight', 199, 200],
+      ] as const)(
+        'preserves the smallest rounded movement in %s',
+        async (method, x, y) => {
+          await device[method](0.5, { left: 200, top: 200 });
+          expect((device as any).dragPoint).toHaveBeenCalledWith(
+            { x: 200, y: 200 },
+            { x, y },
+          );
+        },
+      );
 
       it('scrollDown with startPoint should use calculateScrollEndPoint', async () => {
         const startPoint = { left: 100, top: 200 };
@@ -2907,7 +3047,7 @@ Stdout:
           { x: 100, y: 200 },
           0,
           -scrollDistance,
-          0,
+          1080,
           1920, // height from mocked size()
         );
       });
@@ -2927,7 +3067,7 @@ Stdout:
           { x: 100, y: 200 },
           0,
           scrollDistance,
-          0,
+          1080,
           1920, // height from mocked size()
         );
       });
@@ -2948,7 +3088,7 @@ Stdout:
           scrollDistance,
           0,
           1080, // width from mocked size()
-          0,
+          1920,
         );
       });
 
@@ -2968,7 +3108,7 @@ Stdout:
           -scrollDistance,
           0,
           1080, // width from mocked size()
-          0,
+          1920,
         );
       });
 
@@ -3055,7 +3195,7 @@ Stdout:
           { x: 100, y: 200 },
           0,
           -1920, // negative screen height for scrollDown
-          0,
+          1080,
           1920,
         );
       });

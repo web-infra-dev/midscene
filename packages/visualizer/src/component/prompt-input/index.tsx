@@ -34,6 +34,7 @@ import {
   isRunButtonEnabled as calculateIsRunButtonEnabled,
 } from '../../utils/playground-utils';
 import {
+  findActionForType,
   getAvailablePromptActionTypes,
   getInlineStructuredFieldConfig,
 } from '../../utils/prompt-input-utils';
@@ -124,6 +125,11 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     [history, selectedType],
   );
 
+  const selectedAction = useMemo(
+    () => findActionForType(actionSpace, selectedType),
+    [actionSpace, selectedType],
+  );
+
   const handleMinimalTypeGateReset = useCallback(() => {
     lastHistoryRef.current = null;
     setPromptValue('');
@@ -140,9 +146,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   const needsStructuredParams = useMemo(() => {
     if (actionSpace) {
       // Use actionSpace to determine if method needs structured params
-      const action = actionSpace.find(
-        (a) => a.interfaceAlias === selectedType || a.name === selectedType,
-      );
+      const action = selectedAction;
 
       if (!action?.paramSchema) return false;
 
@@ -158,15 +162,13 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       return true;
     }
     return false;
-  }, [selectedType, actionSpace]);
+  }, [selectedType, selectedAction, actionSpace]);
 
   // Check if current method needs any input (either prompt or parameters)
   const needsAnyInput = useMemo(() => {
     if (actionSpace && actionSpace.length > 0) {
       // Use actionSpace to determine if method needs any input
-      const action = actionSpace.find(
-        (a) => a.interfaceAlias === selectedType || a.name === selectedType,
-      );
+      const action = selectedAction;
 
       // If action exists in actionSpace, check if it has required parameters
       if (action) {
@@ -195,7 +197,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
     // Fallback when actionSpace is not loaded yet - assume most methods need input
     return true;
-  }, [selectedType, actionSpace]);
+  }, [selectedType, selectedAction, actionSpace]);
 
   // Check if current method supports data extraction options
   const showDataExtractionOptions = useMemo(() => {
@@ -218,9 +220,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
     if (actionSpace) {
       // Use actionSpace to determine if method supports deep locate
-      const action = actionSpace.find(
-        (a) => a.interfaceAlias === selectedType || a.name === selectedType,
-      );
+      const action = selectedAction;
 
       if (action?.paramSchema && isZodObjectSchema(action.paramSchema)) {
         const schema = action.paramSchema as ZodObjectSchema;
@@ -237,7 +237,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       return false;
     }
     return false;
-  }, [selectedType, actionSpace]);
+  }, [selectedType, selectedAction, actionSpace]);
 
   // Check if current method supports deep think option (for aiAct planning)
   const showDeepThinkOption = useMemo(() => {
@@ -373,9 +373,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     if (!needsStructuredParams || !actionSpace) {
       return {};
     }
-    const action = actionSpace.find(
-      (a) => a.interfaceAlias === selectedType || a.name === selectedType,
-    );
+    const action = selectedAction;
 
     if (action?.paramSchema && isZodObjectSchema(action.paramSchema)) {
       const defaultParams: FormParams = {};
@@ -398,7 +396,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       return defaultParams;
     }
     return {};
-  }, [selectedType, needsStructuredParams, actionSpace]);
+  }, [selectedType, needsStructuredParams, selectedAction, actionSpace]);
 
   // Initialize form with last selected type when component mounts
   useEffect(() => {
@@ -564,9 +562,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     if (!needsStructuredParams || !actionSpace) {
       return false;
     }
-    const action = actionSpace.find(
-      (a) => a.interfaceAlias === selectedType || a.name === selectedType,
-    );
+    const action = selectedAction;
 
     if (action?.paramSchema && isZodObjectSchema(action.paramSchema)) {
       const schema = action.paramSchema as ZodObjectSchema;
@@ -574,7 +570,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       return Object.keys(shape).length === 1;
     }
     return false;
-  }, [selectedType, needsStructuredParams, actionSpace]);
+  }, [selectedType, needsStructuredParams, selectedAction, actionSpace]);
 
   const minimalInlineFieldConfig = useMemo(
     () =>
@@ -591,15 +587,13 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         runButtonEnabled,
         !!needsStructuredParams,
         params,
-        actionSpace,
-        selectedType,
+        selectedAction,
         promptValue,
       ),
     [
       runButtonEnabled,
       needsStructuredParams,
-      selectedType,
-      actionSpace,
+      selectedAction,
       promptValue,
       params,
     ],
@@ -622,9 +616,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     // For structured params, create a display string for history - dynamically
     let historyPrompt = '';
     if (needsStructuredParams && values.params && actionSpace) {
-      const action = actionSpace.find(
-        (a) => a.interfaceAlias === selectedType || a.name === selectedType,
-      );
+      const action = selectedAction;
 
       if (action?.paramSchema && isZodObjectSchema(action.paramSchema)) {
         // Separate locate field from other fields for legacy format compatibility
@@ -696,6 +688,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     selectedType,
     clearPromptAfterRun,
     actionSpace,
+    selectedAction,
     getDefaultParams,
   ]);
 
@@ -751,9 +744,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
     // Try to get action from actionSpace first
     if (actionSpace) {
-      const action = actionSpace.find(
-        (a) => a.interfaceAlias === selectedType || a.name === selectedType,
-      );
+      const action = selectedAction;
 
       if (action?.paramSchema && isZodObjectSchema(action.paramSchema)) {
         const schema = action.paramSchema as ZodObjectSchema;
@@ -785,10 +776,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
             // Try to get from action's paramSchema directly
             if (actionSpace) {
-              const action = actionSpace.find(
-                (a) =>
-                  a.interfaceAlias === selectedType || a.name === selectedType,
-              );
+              const action = selectedAction;
               if (
                 action?.paramSchema &&
                 typeof action.paramSchema === 'object' &&
@@ -870,10 +858,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
             // Try to get from action's paramSchema directly
             if (actionSpace) {
-              const action = actionSpace.find(
-                (a) =>
-                  a.interfaceAlias === selectedType || a.name === selectedType,
-              );
+              const action = selectedAction;
               if (
                 action?.paramSchema &&
                 typeof action.paramSchema === 'object' &&
@@ -968,6 +953,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     selectedType,
     needsStructuredParams,
     actionSpace,
+    selectedAction,
     handleStructuredKeyDown,
   ]);
 

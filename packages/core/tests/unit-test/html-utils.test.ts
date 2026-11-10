@@ -8,15 +8,40 @@ import {
   generateAgentReportComment,
   generateImageScriptTag,
   streamImageScriptsToFile,
+  streamScanTags,
+  streamScanTagsAsync,
 } from '../../src/dump/html-utils';
 import { getTmpFile } from '../../src/utils';
 
 describe('html-utils', () => {
+  it('preserves UTF-8 content across streaming chunk boundaries', async () => {
+    const file = getTmpFile('html')!;
+    const content = '报告🧪'.repeat(30000);
+    writeFileSync(file, `<entry>${content}</entry>`);
+    try {
+      const sync: string[] = [];
+      const async: string[] = [];
+      streamScanTags(file, '<entry>', '</entry>', (value) => {
+        sync.push(value);
+        return false;
+      });
+      await streamScanTagsAsync(file, '<entry>', '</entry>', (value) => {
+        async.push(value);
+        return false;
+      });
+      expect(sync).toEqual([content]);
+      expect(async).toEqual([content]);
+    } finally {
+      unlinkSync(file);
+    }
+  });
   it('keeps report-bundled sources free of raw script close tokens', () => {
     const unsafeCloseTag = [String.fromCharCode(60), '/script>'].join('');
     const bundledSourceFiles = [
       join(__dirname, '../../src/dump/html-utils.ts'),
       join(__dirname, '../../src/utils.ts'),
+      join(__dirname, '../../src/report-generator.ts'),
+      join(__dirname, '../../src/report.ts'),
     ];
 
     for (const sourceFile of bundledSourceFiles) {

@@ -1,7 +1,27 @@
 import { z } from 'zod';
+import {
+  AGENT_AI_CONTEXT_KEYS,
+  type AgentAIContexts,
+  isAgentAIContextKey,
+} from './agent-context';
 
 export interface AgentBehaviorInitArgs {
+  /**
+   * Agent-level AI guidance. `default` is used only when neither the current
+   * call nor its API key provides a context. Values override rather than
+   * automatically merge.
+   */
+  aiContexts?: AgentAIContexts;
+  /**
+   * Compatibility alias for `aiContexts.aiAct`; that field wins when both
+   * exist.
+   * @deprecated Use `aiContexts.aiAct` instead.
+   */
   aiActContext?: string;
+  /**
+   * Older compatibility alias for `aiContexts.aiAct`.
+   * @deprecated Use `aiContexts.aiAct` instead.
+   */
   aiActionContext?: string;
   replanningCycleLimit?: number;
   waitAfterAction?: number;
@@ -14,11 +34,17 @@ type ExposedAgentBehaviorInitArgKey = Exclude<
 >;
 
 export const agentBehaviorInitArgShape = {
+  aiContexts: z
+    .record(z.enum(AGENT_AI_CONTEXT_KEYS), z.string())
+    .optional()
+    .describe(
+      'Additional AI guidance such as business facts, rules, constraints, or output requirements. aiContexts.default is used only when neither the call nor its API key provides a context. Values override rather than automatically merge.',
+    ),
   aiActContext: z
     .string()
     .optional()
     .describe(
-      'Background knowledge passed to aiAct. Default: no extra context.',
+      'Deprecated compatibility alias for aiContexts.aiAct. aiContexts.aiAct takes precedence when both are provided.',
     ),
   replanningCycleLimit: z
     .number()
@@ -51,7 +77,14 @@ export function extractAgentBehaviorInitArgs(
     return undefined;
   }
 
+  const aiContexts = Object.fromEntries(
+    Object.entries(extracted.aiContexts ?? {}).filter(
+      ([key, value]) => isAgentAIContextKey(key) && typeof value === 'string',
+    ),
+  ) as AgentAIContexts;
+
   const agentOptions: AgentBehaviorInitArgs = {
+    ...(Object.keys(aiContexts).length > 0 ? { aiContexts } : {}),
     ...(typeof extracted.aiActContext === 'string'
       ? { aiActContext: extracted.aiActContext }
       : {}),

@@ -1,4 +1,5 @@
 import type { DeviceAction, ExecutorContext } from '@midscene/core';
+import * as CoreUtils from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { WDAManager } from '@midscene/webdriver';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
@@ -42,6 +43,7 @@ describe('IOSDevice', () => {
       pinch: rs.fn().mockResolvedValue(undefined),
       typeText: rs.fn().mockResolvedValue(undefined),
       typeRawKeys: rs.fn().mockResolvedValue(undefined),
+      waitForInputFocus: rs.fn().mockResolvedValue(undefined),
       clearActiveElement: rs.fn().mockResolvedValue(true),
       pressKey: rs.fn().mockResolvedValue(undefined),
       pressHomeButton: rs.fn().mockResolvedValue(undefined),
@@ -90,6 +92,346 @@ describe('IOSDevice', () => {
     if (device) {
       await device.destroy();
     }
+  });
+
+  describe('Scroll action distance validation', () => {
+    it.each(['down', 'up', 'left', 'right'] as const)(
+      'rejects invalid %s distances before sending any gesture',
+      async (direction) => {
+        const scroll = device
+          .actionSpace()
+          .find(({ name }) => name === 'Scroll')!;
+        for (const distance of [
+          0,
+          Number.NaN,
+          -1,
+          Number.POSITIVE_INFINITY,
+          Number.NEGATIVE_INFINITY,
+        ]) {
+          await expect(
+            scroll.call(
+              { direction, distance, locate: { center: [188, 406] } },
+              mockExecutorContext,
+            ),
+          ).rejects.toThrow('Scroll distance must be positive and finite');
+        }
+        expect(mockWdaClient.swipe).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([undefined, null])(
+      'keeps the default scroll when distance is %s',
+      async (distance) => {
+        const scroll = device
+          .actionSpace()
+          .find(({ name }) => name === 'Scroll')!;
+        await scroll.call({ direction: 'down', distance }, mockExecutorContext);
+        expect(mockWdaClient.swipe).toHaveBeenCalledWith(
+          188,
+          690,
+          188,
+          122,
+          1420,
+        );
+      },
+    );
+  });
+
+  describe('scroll gesture bounds', () => {
+    it.each([
+      ['down', 319, 773, 319, 1, 500],
+      ['up', 100, 100, 100, 811, 500],
+      ['left', 100, 400, 374, 400, 500],
+      ['right', 300, 400, 1, 400, 500],
+    ] as const)(
+      'keeps an oversized %s scroll on screen without moving its touch origin',
+      async (direction, x, y, endX, endY, duration) => {
+        await device.connect();
+        const scroll = device
+          .actionSpace()
+          .find((action) => action.name === 'Scroll')!;
+        await scroll.call(
+          { direction, distance: 1000, locate: { center: [x, y] } },
+          mockExecutorContext,
+        );
+        expect(mockWdaClient.swipe).toHaveBeenCalledWith(
+          x,
+          y,
+          endX,
+          endY,
+          duration,
+        );
+      },
+    );
+  });
+
+  describe('horizontal scroll timing', () => {
+    it.each(['scrollRight', 'scrollLeft'] as const)(
+      '%s keeps the same pace on both sides of the clipping threshold',
+      async (method) => {
+        mockWdaClient.getWindowSize.mockResolvedValue({
+          width: 402,
+          height: 874,
+        });
+        for (const distance of [39, 100, 199, 200, 201, 1608]) {
+          await device[method](distance, { left: 201, top: 437 });
+          const endX =
+            method === 'scrollRight'
+              ? Math.max(1, 201 - distance)
+              : Math.min(401, 201 + distance);
+          expect(mockWdaClient.swipe).toHaveBeenLastCalledWith(
+            201,
+            437,
+            endX,
+            437,
+            500,
+          );
+        }
+      },
+    );
+
+    it('does not accelerate an extremely short clipped path', async () => {
+      await device.scrollRight(1000, { left: 40, top: 400 });
+      expect(mockWdaClient.swipe).toHaveBeenCalledWith(40, 400, 1, 400, 500);
+    });
+  });
+
+  describe('scroll origin validation', () => {
+    it('preserves a short scroll and its chosen origin', async () => {
+      await device.connect();
+      await device.scrollDown(100, { left: 319, top: 773 });
+      expect(mockWdaClient.swipe).toHaveBeenCalledWith(319, 773, 319, 673, 500);
+    });
+
+    it('rejects an off-screen origin instead of redirecting the gesture', async () => {
+      await device.connect();
+      await expect(
+        device.scrollDown(100, { left: -1, top: 400 }),
+      ).rejects.toThrow('origin');
+      expect(mockWdaClient.swipe).not.toHaveBeenCalled();
+    });
+
+    it('does not reverse direction at the screen edge', async () => {
+      await device.connect();
+      await expect(
+        device.scrollDown(100, { left: 100, top: 0 }),
+      ).rejects.toThrow('No room');
+      expect(mockWdaClient.swipe).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('horizontal boundary scroll origins', () => {
+    it.each([
+      ['scrollUntilLeft', 402, 80, 321],
+      ['scrollUntilRight', 402, 322, 81],
+      ['scrollUntilLeft', 874, 175, 699],
+      ['scrollUntilRight', 874, 699, 175],
+    ] as const)(
+      '%s leaves room for a full gesture on a %i-point viewport',
+      async (method, width, fromX, toX) => {
+        mockWdaClient.getWindowSize.mockResolvedValue({ width, height: 900 });
+        const failure = new Error('stop after first observed gesture');
+        mockWdaClient.swipe.mockRejectedValue(failure);
+        await expect(device[method]()).rejects.toThrow(failure);
+        expect(mockWdaClient.swipe).toHaveBeenCalledExactlyOnceWith(
+          fromX,
+          450,
+          toX,
+          450,
+          300,
+        );
+      },
+    );
+
+    it.each([
+      ['scrollUntilLeft', 300, 401],
+      ['scrollUntilRight', 100, 1],
+    ] as const)(
+      '%s preserves an explicitly selected origin',
+      async (method, fromX, toX) => {
+        mockWdaClient.getWindowSize.mockResolvedValue({
+          width: 402,
+          height: 874,
+        });
+        const failure = new Error('stop after first observed gesture');
+        mockWdaClient.swipe.mockRejectedValue(failure);
+        await expect(device[method]({ left: fromX, top: 200 })).rejects.toThrow(
+          failure,
+        );
+        expect(mockWdaClient.swipe).toHaveBeenCalledExactlyOnceWith(
+          fromX,
+          200,
+          toX,
+          200,
+          300,
+        );
+      },
+    );
+  });
+
+  describe('boundary scroll failures', () => {
+    it('rejects an invalid origin instead of reporting boundary success', async () => {
+      await device.connect();
+      await expect(
+        device.scrollUntilTop({ left: -1, top: 400 }),
+      ).rejects.toThrow('origin');
+      expect(mockWdaClient.swipe).not.toHaveBeenCalled();
+    });
+
+    it('propagates a failed gesture instead of treating unchanged content as success', async () => {
+      await device.connect();
+      const error = new Error('WDA connection lost');
+      mockWdaClient.swipe.mockRejectedValue(error);
+      await expect(device.scrollUntilBottom()).rejects.toThrow(error);
+      expect(mockWdaClient.swipe).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('default scroll coverage', () => {
+    it.each([
+      ['scrollDown', 375, 812, [188, 690, 188, 122, 1420]],
+      ['scrollUp', 375, 812, [188, 122, 188, 690, 1420]],
+      ['scrollRight', 375, 812, [319, 406, 56, 406, 1000]],
+      ['scrollLeft', 375, 812, [56, 406, 319, 406, 1000]],
+      ['scrollDown', 812, 375, [406, 319, 406, 56, 1000]],
+      ['scrollUp', 812, 375, [406, 56, 406, 319, 1000]],
+      ['scrollRight', 812, 375, [690, 188, 122, 188, 1420]],
+      ['scrollLeft', 812, 375, [122, 188, 690, 188, 1420]],
+    ] as const)(
+      '%s uses bounded endpoints and at least one second of distance-based timing on %ix%i',
+      async (method, width, height, expected) => {
+        mockWdaClient.getWindowSize.mockResolvedValue({ width, height });
+        await device[method]();
+        expect(mockWdaClient.swipe).toHaveBeenCalledWith(...expected);
+      },
+    );
+
+    it('preserves explicit distances and located starting points', async () => {
+      await device.scrollDown(100);
+      expect(mockWdaClient.swipe).toHaveBeenLastCalledWith(
+        188,
+        406,
+        188,
+        306,
+        500,
+      );
+      await device.scrollDown(undefined, { left: 80, top: 300 });
+      expect(mockWdaClient.swipe).toHaveBeenLastCalledWith(
+        80,
+        300,
+        80,
+        29,
+        500,
+      );
+    });
+  });
+
+  it('lets custom action readiness replace the extra scroll settling delay', async () => {
+    const scroll = rs
+      .spyOn(device as any, 'scrollDown')
+      .mockResolvedValue(undefined);
+    const delay = rs.spyOn(CoreUtils, 'sleep').mockResolvedValue(undefined);
+    try {
+      const action = device
+        .actionSpace()
+        .find((item) => item.name === 'Scroll')!;
+      await action.call(
+        { direction: 'down', scrollType: 'singleAction', distance: 100 },
+        { task: {}, skipDefaultWait: true } as ExecutorContext,
+      );
+      expect(scroll).toHaveBeenCalledOnce();
+      expect(delay).not.toHaveBeenCalledWith(500);
+      await action.call(
+        { direction: 'down', scrollType: 'singleAction', distance: 100 },
+        { task: {} } as ExecutorContext,
+      );
+      expect(delay).toHaveBeenCalledWith(500);
+    } finally {
+      scroll.mockRestore();
+      delay.mockRestore();
+    }
+  });
+
+  it('skips post-input settling while preserving keyboard preparation', async () => {
+    const delay = rs.spyOn(CoreUtils, 'sleep').mockResolvedValue(undefined);
+    try {
+      const action = device
+        .actionSpace()
+        .find((item) => item.name === 'Input')!;
+      await action.call(
+        { value: 'account', mode: 'typeOnly', autoDismissKeyboard: false },
+        { task: {}, skipDefaultWait: true } as ExecutorContext,
+      );
+      expect(mockWdaClient.typeText).toHaveBeenCalledWith('account');
+      expect(mockWdaClient.waitForInputFocus).toHaveBeenCalledOnce();
+      expect(delay).not.toHaveBeenCalledWith(300);
+      await action.call(
+        { value: 'password', mode: 'typeOnly', autoDismissKeyboard: false },
+        mockExecutorContext,
+      );
+      expect(delay).toHaveBeenCalledWith(300);
+    } finally {
+      delay.mockRestore();
+    }
+  });
+
+  describe('input readiness and replacement', () => {
+    it('waits before clearing a prefilled field and sends replacement text once', async () => {
+      let focused = false;
+      let text = 'old text';
+      const events: string[] = [];
+      mockWdaClient.waitForInputFocus.mockImplementation(async () => {
+        focused = true;
+        events.push('ready');
+      });
+      mockWdaClient.clearActiveElement.mockImplementation(async () => {
+        events.push('clear');
+        if (!focused) return false;
+        text = '';
+        return true;
+      });
+      mockWdaClient.typeText.mockImplementation(async (value: string) => {
+        events.push('type');
+        text += value;
+      });
+      await device.inputPrimitives.keyboard.typeText('new text', {
+        target: { center: [10, 20] },
+        replace: true,
+        autoDismissKeyboard: false,
+      });
+      expect(text).toBe('new text');
+      expect(events).toEqual(['ready', 'clear', 'ready', 'type']);
+      expect(mockWdaClient.typeText).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not type after an unconfirmed clear', async () => {
+      mockWdaClient.clearActiveElement.mockResolvedValue(false);
+      await expect(
+        device.inputPrimitives.keyboard.typeText('new text', {
+          target: { center: [10, 20] },
+          replace: true,
+        }),
+      ).rejects.toThrow('refusing to append text');
+      expect(mockWdaClient.typeText).not.toHaveBeenCalled();
+      expect(mockWdaClient.typeRawKeys).not.toHaveBeenCalled();
+    });
+
+    it.each([true, false])(
+      'does not send text when focus fails (replace=%s)',
+      async (replace) => {
+        mockWdaClient.waitForInputFocus.mockRejectedValue(
+          new Error('focus timed out'),
+        );
+        await expect(
+          device.inputPrimitives.keyboard.typeText('new text', {
+            target: { center: [10, 20] },
+            replace,
+          }),
+        ).rejects.toThrow('focus timed out');
+        expect(mockWdaClient.clearActiveElement).not.toHaveBeenCalled();
+        expect(mockWdaClient.typeText).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('Constructor', () => {
@@ -146,6 +488,36 @@ describe('IOSDevice', () => {
         host: 'custom-host',
         sessionId: 'external-session-id',
       });
+    });
+
+    it('passes the full WDA base URL to requests and readiness checks', () => {
+      new IOSDevice({
+        wdaBaseUrl: 'https://gateway.example/code/wda',
+      });
+      expect(MockedWdaClient).toHaveBeenCalledWith({
+        port: DEFAULT_WDA_PORT,
+        host: 'localhost',
+        baseUrl: 'https://gateway.example/code/wda',
+      });
+      expect(MockedWdaManager.getInstance).toHaveBeenCalledWith(
+        DEFAULT_WDA_PORT,
+        'localhost',
+        'https://gateway.example/code/wda',
+      );
+    });
+
+    it.each([
+      { wdaHost: 'localhost' },
+      { wdaPort: 8100 },
+      { wdaHost: 'localhost', wdaPort: 8100 },
+    ])('rejects a base URL combined with host or port: %j', (connection) => {
+      expect(
+        () =>
+          new IOSDevice({
+            wdaBaseUrl: 'https://gateway.example/code/wda',
+            ...connection,
+          }),
+      ).toThrow(/wdaBaseUrl cannot be used with wdaHost or wdaPort/);
     });
   });
 

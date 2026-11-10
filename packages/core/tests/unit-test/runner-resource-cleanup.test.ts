@@ -1,0 +1,685 @@
+import {
+  ResourceCleanupDeferredError,
+  assertResourceAvailable,
+  cleanupResources,
+  cleanupScopeResources,
+  createDocumentRuntime,
+  createProjectRuntime,
+  createResourceScope,
+  defineNode,
+  getResourceCleanupCompletion,
+  getResourceCleanupSnapshot,
+  linkResourceSignal,
+  recoverCancelledScopeResources,
+  retainResourceForScope,
+  runWorkflowDocument,
+  trackResourceOperation,
+} from '@/test-runner';
+import {
+  enterYamlAction,
+  runInYamlExecutionContext,
+} from '@/yaml/execution-session';
+import { ScriptPlayer } from '@/yaml/player';
+import { getLegacyYamlPlayerState } from '@/yaml/player-state';
+import { collectLegacyYamlDocument } from '@/yaml/test-runner-compat';
+import { afterEach, describe, expect, rs, test } from '@rstest/core';
+
+const deferred = <T = void>() => {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((yes, no) => {
+    resolve = yes;
+    reject = no;
+  });
+  return { promise, resolve, reject };
+};
+afterEach(() => {
+  rs.useRealTimers();
+});
+
+describe('continuation after a resource operation times out', () => {
+  test.each(['steps', 'beforeAll'] as const)(
+    'waits for the actual cancelled operation before continuing %s',
+    async (phase) => {
+      rs.useFakeTimers();
+      const resource = {};
+      const action = deferred();
+      const cancelled = deferred();
+      const events: string[] = [];
+      const document = collectLegacyYamlDocument({
+        tasks: [
+          {
+            name: 'recover',
+            flow: [{ javascript: 'first()' }, { javascript: 'next()' }],
+          },
+        ],
+      });
+      const steps = document.cases[0].definition.steps;
+      steps[0].meta = { timeoutMs: 20, continueOnError: true };
+      // Recovery has its own budget, so the next Step keeps its full 5ms timeout.
+      steps[1].meta = { timeoutMs: 5, continueOnError: false };
+      if (phase === 'beforeAll') {
+        document.lifecycle.beforeAll = steps;
+        document.cases = [];
+      }
+      let calls = 0;
+      const node = defineNode({
+        name: 'javascript',
+        async execute(ctx) {
+          assertResourceAvailable(resource, true, ctx.signal);
+          if (++calls === 1) {
+            ctx.signal.addEventListener('abort', () => cancelled.resolve(), {
+              once: true,
+            });
+            await trackResourceOperation(resource, action.promise, ctx.signal);
+            events.push('old finished');
+            ctx.signal.throwIfAborted();
+          } else events.push('next started');
+        },
+      });
+      const executing = runWorkflowDocument(document, {
+        resolveNode: () => node,
+      });
+      await rs.advanceTimersByTimeAsync(20);
+      await cancelled.promise;
+      await rs.advanceTimersByTimeAsync(100);
+      expect(events).toEqual([]);
+      action.resolve();
+      const result = await executing;
+      const results =
+        phase === 'steps'
+          ? result.cases[0].run!.steps
+          : result.document.beforeAll;
+      expect(results.map((step) => step.status)).toEqual(['failed', 'success']);
+      expect(results[0].error?.code).toBe('STEP_TIMEOUT');
+      expect(results[0].durationMs).toBe(20);
+      expect(results[1].durationMs).toBe(0);
+      expect(results[1].waitForPreviousOperationMs).toBeGreaterThanOrEqual(100);
+      expect(events).toEqual(['old finished', 'next started']);
+    },
+  );
+
+  test('bounds recovery and preserves the original timeout and resource quarantine', async () => {
+    rs.useFakeTimers();
+    const resource = {};
+    const action = deferred();
+    const document = collectLegacyYamlDocument({
+      tasks: [
+        {
+          name: 'hung resource',
+          flow: [{ javascript: 'first()' }, { javascript: 'next()' }],
+        },
+        { name: 'later case', flow: [{ javascript: 'later()' }] },
+      ],
+    });
+    const collected = document.cases[0];
+    collected.definition.steps[0].meta = {
+      timeoutMs: 20,
+      continueOnError: true,
+    };
+    const next = rs.fn();
+    const cleanup = rs.fn(async () => {});
+    let calls = 0;
+    const node = defineNode({
+      name: 'javascript',
+      async execute(ctx) {
+        if (++calls > 1) {
+          next();
+          return;
+        }
+        ctx.onTeardown(cleanup);
+        await trackResourceOperation(resource, action.promise, ctx.signal);
+      },
+    });
+    const running = runWorkflowDocument(document, {
+      resolveNode: () => node,
+      retry: 3,
+    });
+    await rs.advanceTimersByTimeAsync(32_020);
+    const result = await running;
+    const first = result.cases[0];
+    const run = first.run;
+    if (!run) throw new Error('Missing timed-out case run');
+    expect(first.attempts).toHaveLength(1);
+    expect(run.steps).toHaveLength(1);
+    expect(run.steps[0].error?.code).toBe('STEP_TIMEOUT');
+    expect(run.executionErrors?.[0].code).toBe('RESOURCE_RECOVERY_TIMEOUT');
+    expect(run.executionErrors?.[0]).toMatchObject({
+      details: {
+        graceMs: 30_000,
+        blockedByStepId: `${run.runId}:steps:0`,
+        blockingOperations: expect.arrayContaining([
+          expect.objectContaining({ stepId: `${run.runId}:steps:0` }),
+        ]),
+      },
+    });
+    expect(run.retryDecision).toMatchObject({
+      decision: 'stop',
+      reason: 'cleanup-pending',
+    });
+    expect(result.cases[1]).toMatchObject({
+      status: 'not-run',
+      notRunReason: 'cleanup-pending',
+    });
+    expect(next).not.toHaveBeenCalled();
+    expect(cleanup).not.toHaveBeenCalled();
+    expect(() => assertResourceAvailable(resource, true)).toThrow(
+      'cleanup is pending',
+    );
+    const snapshot = JSON.stringify(result);
+    action.resolve();
+    await rs.advanceTimersByTimeAsync(0);
+    expect(cleanup).toHaveBeenCalledOnce();
+    expect(() => assertResourceAvailable(resource, true)).not.toThrow();
+    expect(JSON.stringify(result)).toBe(snapshot);
+  });
+
+  test('interrupts recovery promptly without releasing the resource', async () => {
+    rs.useFakeTimers();
+    const controller = new AbortController();
+    const scope = createResourceScope(controller.signal);
+    const step = new AbortController();
+    linkResourceSignal(step.signal, scope.signal);
+    const resource = {};
+    const action = deferred();
+    trackResourceOperation(resource, action.promise, step.signal);
+    step.abort(new Error('step timeout'));
+    const pending = recoverCancelledScopeResources(scope.signal);
+    const stop = new Error('run interrupted');
+    const rejected = expect(pending).rejects.toBe(stop);
+    controller.abort(stop);
+    await rejected;
+    expect(rs.getTimerCount()).toBe(0);
+    expect(() => assertResourceAvailable(resource, true)).toThrow(
+      'overlapping',
+    );
+    action.resolve();
+    await action.promise;
+    scope.dispose();
+  });
+
+  test('waits only for cancelled work owned by the current scope', async () => {
+    rs.useFakeTimers();
+    const resource = {};
+    const first = createResourceScope();
+    const second = createResourceScope();
+    const old = deferred();
+    const own = deferred();
+    const oldSignal = new AbortController();
+    const ownSignal = new AbortController();
+    linkResourceSignal(oldSignal.signal, first.signal);
+    linkResourceSignal(ownSignal.signal, second.signal);
+    trackResourceOperation(resource, old.promise, oldSignal.signal);
+    trackResourceOperation(resource, own.promise, ownSignal.signal);
+    oldSignal.abort();
+    ownSignal.abort();
+    const recovered = recoverCancelledScopeResources(second.signal, 10);
+    own.resolve();
+    await recovered;
+    expect(rs.getTimerCount()).toBe(0);
+    // A different Case still owns the Agent; its mutual exclusion stays intact.
+    expect(() => assertResourceAvailable(resource, true)).toThrow(
+      'overlapping',
+    );
+    old.resolve();
+    await old.promise;
+    first.dispose();
+    second.dispose();
+  });
+});
+
+describe('resource-aware cancellation cleanup', () => {
+  test('waits for a shared resource discovered by a late acquisition before disposal', async () => {
+    const acquisition = deferred();
+    const action = deferred();
+    const resource = {};
+    const active = new AbortController();
+    trackResourceOperation(resource, action.promise, active.signal);
+    const scope = createResourceScope();
+    const acquiring = trackResourceOperation(
+      {},
+      acquisition.promise.then(() => {
+        retainResourceForScope(resource, scope.signal);
+      }),
+      scope.signal,
+      'acquisition',
+    );
+    const cleanup = rs.fn();
+    const completion = cleanupScopeResources(scope.signal, cleanup, {
+      onDeferredError() {},
+    });
+    acquisition.resolve();
+    await acquiring;
+    await Promise.resolve();
+    expect(cleanup).not.toHaveBeenCalled();
+    action.resolve();
+    await completion;
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    scope.dispose();
+  });
+  test('concurrent finish calls share one document and Project cleanup', async () => {
+    const gate = deferred();
+    const cleanup = rs.fn(() => gate.promise);
+    const project = {
+      projectId: 'project',
+      name: 'project',
+      platform: 'web' as const,
+      retry: 0,
+      tags: { include: [], exclude: [] },
+      variables: {},
+    };
+    const runtime = createProjectRuntime({
+      project,
+      setup: {
+        name: 'fixture',
+        setup({ onTeardown }) {
+          onTeardown(cleanup);
+        },
+      },
+    });
+    await runtime.start();
+    const first = runtime.finish();
+    const second = runtime.finish();
+    gate.resolve();
+    expect(await first).toBe(await second);
+    expect(cleanup).toHaveBeenCalledTimes(1);
+
+    const document = collectLegacyYamlDocument({ tasks: [] });
+    document.lifecycle.afterAll = [
+      { node: 'cleanup', input: {}, meta: { continueOnError: false } },
+    ];
+    const node = defineNode({ name: 'cleanup', execute: cleanup });
+    const documentRuntime = createDocumentRuntime(document, {
+      resolveNode: () => node,
+    });
+    await documentRuntime.start();
+    const documentFirst = documentRuntime.finish();
+    const documentSecond = documentRuntime.finish();
+    expect(await documentFirst).toBe(await documentSecond);
+    expect(cleanup).toHaveBeenCalledTimes(2);
+  });
+  test('quarantines a canceled resource and reports bounded cleanup deferral', async () => {
+    const action = deferred();
+    const resource = {};
+    const controller = new AbortController();
+    trackResourceOperation(resource, action.promise, controller.signal);
+    controller.abort();
+    expect(() => assertResourceAvailable(resource)).toThrow('Cannot reuse');
+    const cleanup = rs.fn(async () => {});
+    const error = await cleanupResources([resource], cleanup, {
+      graceMs: 5,
+      onDeferredError: rs.fn(),
+    }).catch((error) => error);
+    expect(error).toBeInstanceOf(ResourceCleanupDeferredError);
+    expect(error.code).toBe('RESOURCE_CLEANUP_DEFERRED');
+    expect(cleanup).not.toHaveBeenCalled();
+    expect(() => assertResourceAvailable(resource)).toThrow(
+      'cleanup is pending',
+    );
+    action.resolve();
+    await getResourceCleanupCompletion(resource);
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(() => assertResourceAvailable(resource)).not.toThrow();
+  });
+
+  test.each([false, true])(
+    'keeps an asynchronous disposer quarantined with a pending operation: %s',
+    async (hasPendingOperation) => {
+      const action = deferred();
+      const destruction = deferred();
+      const destructionStarted = deferred();
+      const resource = {};
+      const signal = new AbortController().signal;
+      if (hasPendingOperation)
+        trackResourceOperation(resource, action.promise, signal);
+      const cleanup = cleanupResources(
+        [resource],
+        async () => {
+          destructionStarted.resolve();
+          await destruction.promise;
+        },
+        { onDeferredError: rs.fn() },
+      );
+      action.resolve();
+      await destructionStarted.promise;
+      expect(() => assertResourceAvailable(resource, true)).toThrow(
+        'cleanup is pending',
+      );
+      destruction.resolve();
+      await cleanup;
+      expect(() => assertResourceAvailable(resource, true)).not.toThrow();
+    },
+  );
+
+  test('cleanup hooks can use their retiring resource only after it is idle', async () => {
+    const action = deferred();
+    const resource = {};
+    const resourceScope = createResourceScope();
+    const scope = resourceScope.signal;
+    const sibling = new AbortController().signal;
+    linkResourceSignal(sibling, scope);
+    trackResourceOperation(resource, action.promise, scope);
+    const cleanup = cleanupScopeResources(scope, async () => {}, {
+      onDeferredError: rs.fn(),
+      beforeCleanup: async (cleanupSignal) => {
+        const stepSignal = new AbortController().signal;
+        linkResourceSignal(stepSignal, cleanupSignal);
+        expect(() =>
+          assertResourceAvailable(resource, true, stepSignal),
+        ).toThrow('cannot execute overlapping');
+        expect(() => assertResourceAvailable(resource, true, scope)).toThrow(
+          'cleanup is pending',
+        );
+        expect(() => assertResourceAvailable(resource, true, sibling)).toThrow(
+          'cleanup is pending',
+        );
+        action.resolve();
+        await action.promise;
+        expect(() =>
+          assertResourceAvailable(resource, true, stepSignal),
+        ).not.toThrow();
+        // Agent.destroy() can nest inside scope cleanup without releasing the
+        // surrounding owner's protection.
+        await cleanupResources([resource], async () => {}, {
+          onDeferredError: rs.fn(),
+        });
+        expect(() => assertResourceAvailable(resource, true)).toThrow(
+          'cleanup is pending',
+        );
+      },
+    });
+    await cleanup;
+    resourceScope.dispose();
+  });
+
+  test.each([false, true])(
+    'bounds a stalled disposer and observes its late failure: %s',
+    async (failsLate) => {
+      rs.useFakeTimers();
+      const resource = {};
+      const scope = createResourceScope();
+      await trackResourceOperation(resource, Promise.resolve(), scope.signal);
+      const destruction = deferred();
+      const reportFailure = rs.fn();
+      const cleanup = cleanupScopeResources(
+        scope.signal,
+        () => destruction.promise,
+        { onDeferredError: reportFailure },
+      ).catch((error) => error);
+      await rs.advanceTimersByTimeAsync(10_000);
+      const error = await cleanup;
+      expect(error).toBeInstanceOf(ResourceCleanupDeferredError);
+      expect(error.details.graceMs).toBe(10_000);
+      const snapshot = getResourceCleanupSnapshot(scope.signal);
+      expect(snapshot.status).toBe('pending');
+      expect(() => assertResourceAvailable(resource, true)).toThrow(
+        'cleanup is pending',
+      );
+      const completion = getResourceCleanupCompletion(scope.signal)!;
+      if (failsLate) {
+        const failure = new Error('late disposer failure');
+        destruction.reject(failure);
+        await expect(completion).rejects.toBe(failure);
+        expect(reportFailure).toHaveBeenCalledWith(failure);
+      } else {
+        destruction.resolve();
+        await completion;
+        expect(reportFailure).not.toHaveBeenCalled();
+      }
+      expect(getResourceCleanupSnapshot(scope.signal).status).toBe(
+        failsLate ? 'failed' : 'completed',
+      );
+      expect(snapshot.status).toBe('pending');
+      expect(() => assertResourceAvailable(resource, true)).not.toThrow();
+      scope.dispose();
+    },
+  );
+
+  test('completed child scopes do not quarantine their old resources during parent cleanup', async () => {
+    const parent = createResourceScope();
+    const child = createResourceScope(parent.signal);
+    const resource = {};
+    await trackResourceOperation(resource, Promise.resolve(), child.signal);
+    child.dispose();
+    await cleanupScopeResources(
+      parent.signal,
+      async () => {
+        expect(() => assertResourceAvailable(resource, true)).not.toThrow();
+      },
+      { onDeferredError: rs.fn() },
+    );
+    parent.dispose();
+  });
+
+  test.each(['afterEach', 'afterAll'] as const)(
+    'waits for an actual %s action before disposing its resource',
+    async (phase) => {
+      rs.useFakeTimers();
+      const action = deferred();
+      const resource = {};
+      const calls: string[] = [];
+      const document = collectLegacyYamlDocument({
+        tasks: [{ name: 'case', flow: [{ javascript: 'run' }] }],
+      });
+      const step = document.cases[0].definition.steps[0];
+      document.lifecycle[phase] = [step];
+      if (phase === 'afterAll') document.lifecycle.beforeAll = [step];
+      const node = defineNode({
+        name: 'javascript',
+        async execute(ctx) {
+          const currentPhase =
+            ctx.scope === 'case' ? ctx.case.phase : ctx.document.phase;
+          if (currentPhase === phase) {
+            assertResourceAvailable(resource, true, ctx.signal);
+            calls.push('hook:start');
+            await trackResourceOperation(resource, action.promise, ctx.signal);
+            calls.push('hook:finished');
+          } else if (
+            (phase === 'afterEach' && currentPhase === 'steps') ||
+            (phase === 'afterAll' && currentPhase === 'beforeAll')
+          ) {
+            ctx.onTeardown(() => {
+              calls.push('dispose');
+            });
+            await trackResourceOperation(
+              resource,
+              Promise.resolve(),
+              ctx.signal,
+            );
+          }
+        },
+      });
+      const execution = runWorkflowDocument(document, {
+        resolveNode: () => node,
+        defaultTimeoutMs: 10,
+      });
+      await rs.advanceTimersByTimeAsync(1100);
+      const result = await execution;
+      const owner =
+        phase === 'afterEach' ? result.cases[0].run! : result.document;
+      expect(owner.cleanup?.status).toBe('pending');
+      expect(owner.teardownErrors).toBeUndefined();
+      expect(calls).toEqual(['hook:start']);
+      expect(() => assertResourceAvailable(resource, true)).toThrow(
+        'cleanup is pending',
+      );
+      const snapshot = JSON.stringify(result);
+      action.resolve();
+      await rs.waitFor(() =>
+        expect(calls).toEqual(['hook:start', 'hook:finished', 'dispose']),
+      );
+      expect(calls).toEqual(['hook:start', 'hook:finished', 'dispose']);
+      expect(JSON.stringify(result)).toBe(snapshot);
+    },
+  );
+
+  test('observes late operation rejection and late cleanup failure without unhandled rejection', async () => {
+    const action = deferred();
+    const resource = {};
+    const controller = new AbortController();
+    trackResourceOperation(resource, action.promise, controller.signal);
+    controller.abort();
+    const failure = new Error('late cleanup failed');
+    const reportFailure = rs.fn();
+    await cleanupResources(
+      [resource],
+      async () => {
+        throw failure;
+      },
+      { graceMs: 5, onDeferredError: reportFailure },
+    ).catch((error) => error);
+    action.reject(new Error('late action failed'));
+    await expect(getResourceCleanupCompletion(resource)).rejects.toBe(failure);
+    expect(reportFailure).toHaveBeenCalledWith(failure);
+  });
+
+  test('parents wait for deferred child cleanup, not just the original operation', async () => {
+    const action = deferred();
+    const childCleanup = deferred();
+    const parentSignal = new AbortController().signal;
+    const childSignal = new AbortController().signal;
+    linkResourceSignal(childSignal, parentSignal);
+    trackResourceOperation({}, action.promise, childSignal);
+    await cleanupScopeResources(childSignal, () => childCleanup.promise, {
+      graceMs: 5,
+      onDeferredError: rs.fn(),
+    }).catch((error) => error);
+    const closeParent = rs.fn(async () => {});
+    await cleanupScopeResources(parentSignal, closeParent, {
+      graceMs: 5,
+      onDeferredError: rs.fn(),
+    }).catch((error) => error);
+    action.resolve();
+    await Promise.resolve();
+    expect(closeParent).not.toHaveBeenCalled();
+    childCleanup.resolve();
+    await getResourceCleanupCompletion(childSignal);
+    await getResourceCleanupCompletion(parentSignal);
+    expect(closeParent).toHaveBeenCalledTimes(1);
+  });
+
+  test.each(['steps', 'afterEach'] as const)(
+    'Case, document and Project cleanup remain ordered after %s defers them',
+    async (phase) => {
+      rs.useFakeTimers();
+      const action = deferred();
+      const resource = {};
+      const calls: string[] = [];
+      const project = {
+        projectId: 'project',
+        name: 'project',
+        platform: 'web' as const,
+        retry: 0,
+        tags: { include: [], exclude: [] },
+        variables: {},
+      };
+      const runtime = createProjectRuntime({
+        project,
+        setup: {
+          name: 'fixture',
+          setup({ onTeardown }) {
+            onTeardown(() => {
+              calls.push('project');
+            });
+          },
+        },
+      });
+      await runtime.start();
+      const document = collectLegacyYamlDocument({
+        tasks: [{ name: 'case', flow: [{ javascript: 'wait' }] }],
+      });
+      const step = document.cases[0].definition.steps[0];
+      document.lifecycle.afterAll = [step];
+      if (phase === 'afterEach') document.lifecycle.afterEach = [step];
+      const node = defineNode({
+        name: 'javascript',
+        execute(ctx) {
+          if (ctx.scope === 'document') {
+            assertResourceAvailable(resource, true, ctx.signal);
+            calls.push('document');
+            return;
+          }
+          if (ctx.case.phase === 'steps') {
+            ctx.onTeardown(() => {
+              calls.push('case');
+            });
+            if (phase === 'afterEach') {
+              runtime.abort(new Error('interrupted'));
+              return;
+            }
+          }
+          return trackResourceOperation(resource, action.promise, ctx.signal);
+        },
+      });
+      const execution = runWorkflowDocument(document, {
+        resolveNode: () => node,
+        signal: runtime.signal,
+        defaultTimeoutMs: 10,
+      });
+      await rs.advanceTimersByTimeAsync(2100);
+      const result = await execution;
+      expect(result.cases[0].run?.cleanup?.status).toBe('pending');
+      expect(result.document.cleanup?.status).toBe('pending');
+      expect(result.cases[0].run?.teardownErrors).toBeUndefined();
+      expect(result.document.teardownErrors).toBeUndefined();
+      const finish = runtime.finish('failed');
+      await rs.advanceTimersByTimeAsync(1100);
+      const projectResult = await finish;
+      expect(projectResult.cleanup?.status).toBe('pending');
+      expect(projectResult.teardownErrors).toBeUndefined();
+      expect(result.document.afterAll[0]).toMatchObject({
+        status: 'failed',
+        error: { code: 'RESOURCE_OPERATION_PENDING' },
+      });
+      expect(calls).toEqual([]);
+      const snapshot = JSON.stringify(result);
+      action.resolve();
+      await getResourceCleanupCompletion(runtime.signal);
+      expect(calls).toEqual(['case', 'project']);
+      expect(JSON.stringify(result)).toBe(snapshot);
+    },
+  );
+
+  test('ScriptPlayer returns a failed record on deferral and frees only after the action settles', async () => {
+    rs.useFakeTimers();
+    const action = deferred();
+    const cleanup = rs.fn(async () => {});
+    const agent = {
+      getActionSpace: async () => [],
+      evaluateJavaScript: () => action.promise,
+    };
+    const player = new ScriptPlayer(
+      { tasks: [{ name: 'case', flow: [{ javascript: 'wait' }] }] },
+      async () => ({
+        agent: agent as any,
+        freeFn: [{ name: 'resource', fn: cleanup }],
+      }),
+    );
+    player.output = undefined;
+    const controller = new AbortController();
+    // Nested YAML inherits its owning Node's signal without public run options.
+    const execution = runInYamlExecutionContext(async () => {
+      const leaveAction = enterYamlAction(agent, controller.signal);
+      try {
+        return await player.run();
+      } finally {
+        leaveAction();
+      }
+    }).catch((error) => error);
+    await rs.advanceTimersByTimeAsync(10);
+    controller.abort(new Error('owning Node timed out'));
+    await rs.advanceTimersByTimeAsync(1100);
+    const error = await execution;
+    expect(error).toBeInstanceOf(ResourceCleanupDeferredError);
+    expect(getLegacyYamlPlayerState(player).executionRecord).toMatchObject({
+      status: 'failed',
+      cleanupErrors: [{ code: 'RESOURCE_CLEANUP_DEFERRED' }],
+    });
+    expect(getResourceCleanupCompletion(player)).toBeInstanceOf(Promise);
+    expect(error).not.toHaveProperty('completion');
+    expect(cleanup).not.toHaveBeenCalled();
+    action.resolve();
+    await getResourceCleanupCompletion(player);
+    expect(cleanup).toHaveBeenCalledTimes(1);
+  });
+});

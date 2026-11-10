@@ -15,11 +15,13 @@ const doubaoBboxCoordinatesMeta = {
   shape: 'bbox',
   order: 'xy',
   normalizedBy: 1000,
+  rounding: 'round',
 } as const;
 const doubaoPointCoordinatesMeta = {
   shape: 'point',
   order: 'xy',
   normalizedBy: 1000,
+  rounding: 'round',
 } as const;
 
 /**

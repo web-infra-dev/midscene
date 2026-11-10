@@ -1,14 +1,13 @@
-target:
-  serve: ./dist
-  url: demo.html
-tasks:
-  - name: timeline is visible
-    flow:
-      - sleep: 2000
-      - aiAssert: A timeline or "Record" section is visible on the page with screenshot thumbnails or a time axis
+beforeAll:
+  - report.open:
+      path: demo.html
 
-  - name: click timeline screenshot to navigate
-    flow:
-      - aiTap: a screenshot thumbnail in the timeline area
-      - sleep: 2000
-      - aiAssert: The sidebar highlights a task row and the detail panel shows information for the selected task
+cases:
+  - name: inspect Agent evidence from a legacy YAML Case timeline
+    steps:
+      - aiAssert: The Test Report overview shows the web Project and a File with 2 passed Cases.
+      - aiTap: Expand the only File in the web Project's Files table
+      - aiTap: the login to sauce demo Case
+      - aiAssert: The Case has execution steps and a screenshot timeline.
+      - aiTap: a screenshot in the Case timeline above the execution steps
+      - aiAssert: The corresponding aiAct Step is selected and its Record evidence is available.

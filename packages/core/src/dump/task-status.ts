@@ -55,8 +55,9 @@ export function deriveTaskStatus(task: TaskStatusFields): DerivedTaskStatus {
     return 'warning';
   }
 
-  // An `Assert` that finished with a falsy result is a failure. This is a
-  // legacy fallback: modern asserts throw and are caught above.
+  // An `Assert` that finished with a false result is a failure. Callers using
+  // `keepRawResponse` (including the YAML player) receive `{ pass: false }`
+  // and throw at the orchestration layer after this task has been recorded.
   if (task.subType === 'Assert' && isFinished && task.output === false) {
     return 'failed';
   }

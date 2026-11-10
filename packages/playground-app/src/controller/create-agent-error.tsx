@@ -3,7 +3,7 @@ import React, { type ReactNode, useState } from 'react';
 
 // Keep this in sync with apps/studio/package.json. The test verifies the
 // relationship so a Puppeteer upgrade cannot leave users with a stale command.
-export const STUDIO_PUPPETEER_VERSION = '24.6.0';
+export const STUDIO_PUPPETEER_VERSION = '24.43.1';
 const INSTALL_CHROME_COMMAND = `npx puppeteer@${STUDIO_PUPPETEER_VERSION} browsers install chrome`;
 const PUPPETEER_CONFIGURATION_URL = 'https://pptr.dev/guides/configuration';
 const CHROME_MISSING_RE = /could not find (?:google )?chrome/;

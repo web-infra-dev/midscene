@@ -1,5 +1,6 @@
 import './App.less';
 
+import { InfoCircleOutlined } from '@ant-design/icons';
 import {
   Alert,
   App as AntdApp,
@@ -14,13 +15,13 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import {
   GroupedActionDump,
   type IReportActionDump,
+  type TestRunReportDump,
   dedupeExecutionsKeepLatest,
   reportToMarkdown,
   restoreImageReferences,
 } from '@midscene/core';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import {
-  Logo,
   Player,
   globalThemeConfig,
   useGlobalPreference,
@@ -29,10 +30,12 @@ import AgentScreenshotView from './components/agent-screenshot-view';
 import DetailPanel from './components/detail-panel';
 import DetailSide from './components/detail-side';
 import GlobalHoverPreview from './components/global-hover-preview';
+import { Logo } from './components/logo';
 import { useMarkdownScrollSync } from './components/markdown-scroll-sync';
 import Sidebar from './components/sidebar';
 import { type DumpStoreType, useExecutionDump } from './components/store';
 import { useTaskHashAnchor } from './components/store/use-task-hash-anchor';
+import TestRunnerReport from './components/test-runner';
 import Timeline from './components/timeline';
 import RecordVideocameraIcon from './icons/record-videocamera.svg?react';
 import ThemeDarkIcon from './icons/theme-dark.svg?react';
@@ -44,6 +47,7 @@ import type {
   VisualizerProps,
 } from './types';
 import { prepareAnimatedWebpFrames } from './utils/animated-webp';
+import { hydrateDirectoryReport } from './utils/directory-report';
 import {
   downloadMarkdownZip,
   getReportMarkdownView,
@@ -55,6 +59,10 @@ import {
   getEmptyDumpDescription,
   parseDumpAttributes,
 } from './utils/report-dump';
+import { parseTestRunReportDump } from './utils/test-run-report';
+
+const MOBILE_REPORT_MEDIA_QUERY =
+  '(max-width: 640px), (max-width: 932px) and (max-height: 500px) and (pointer: coarse)';
 
 // Shared image cache across all test cases — resolved images are cached by id
 const imageCache = new Map<string, string>();
@@ -86,9 +94,17 @@ function resolveImageFromDom(
 let globalRenderCount = 1;
 const SIDEBAR_WIDTH_KEY = 'midscene-sidebar-width';
 const DEFAULT_SIDEBAR_WIDTH = 280;
+const MIN_SIDEBAR_WIDTH = 200;
+const MIN_PLAYER_WIDTH = 320;
+const SIDEBAR_KEYBOARD_STEP = 24;
+
+const clampSidebarWidth = (width: number, layoutWidth: number): number => {
+  const maxWidth = Math.max(MIN_SIDEBAR_WIDTH, layoutWidth - MIN_PLAYER_WIDTH);
+  return Math.min(maxWidth, Math.max(MIN_SIDEBAR_WIDTH, width));
+};
 
 function Visualizer(props: VisualizerProps): JSX.Element {
-  const { dumps } = props;
+  const { dumps, embedded = false } = props;
 
   const executionDump = useExecutionDump((store: DumpStoreType) => store.dump);
   const executionDumpLoadId = useExecutionDump(
@@ -116,11 +132,24 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const reset = useExecutionDump((store) => store.reset);
   const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
-    const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
-    return saved ? Number(saved) : DEFAULT_SIDEBAR_WIDTH;
+    const savedWidth = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY));
+    return Number.isFinite(savedWidth) && savedWidth > 0
+      ? Math.max(MIN_SIDEBAR_WIDTH, savedWidth)
+      : DEFAULT_SIDEBAR_WIDTH;
   });
   const dump = useExecutionDump((store) => store.dump);
-  const [timelineCollapsed, setTimelineCollapsed] = useState(false);
+  const [timelineCollapsed, setTimelineCollapsed] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia(MOBILE_REPORT_MEDIA_QUERY).matches,
+  );
+  const [mobilePane, setMobilePane] = useState<'steps' | 'player'>('steps');
+  const [isMobileReport, setIsMobileReport] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia(MOBILE_REPORT_MEDIA_QUERY).matches,
+  );
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [reportViewMode, setReportViewMode] = useState<ReportViewMode>('human');
   const [selectedMarkdownImagePath, setSelectedMarkdownImagePath] = useState<
     string | null
@@ -140,13 +169,13 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   // (nav, sidebar, timeline, detail side) and keeps just the Player; in that
   // mode `play-control=1` shows the control bar. `auto-play` is independent of
   // player-only and applies to every report player (on by default, `=0` off).
-  const { playerOnly, playControl, autoPlay } = useMemo(
-    () => getPlayerViewOptions(),
-    [],
-  );
+  const { playerOnly, playControl, autoPlay } = useMemo(() => {
+    const options = getPlayerViewOptions();
+    return { ...options, playerOnly: embedded ? false : options.playerOnly };
+  }, [embedded]);
 
   // Keep the URL hash in sync with the selected sidebar task (deep-linking).
-  useTaskHashAnchor();
+  useTaskHashAnchor({ namespaced: embedded });
 
   useEffect(() => {
     document.documentElement.setAttribute(
@@ -154,6 +183,24 @@ function Visualizer(props: VisualizerProps): JSX.Element {
       isDarkMode ? 'dark' : 'light',
     );
   }, [isDarkMode]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(MOBILE_REPORT_MEDIA_QUERY);
+    const updateMobileReport = () => setIsMobileReport(mediaQuery.matches);
+    updateMobileReport();
+    mediaQuery.addEventListener('change', updateMobileReport);
+    return () => mediaQuery.removeEventListener('change', updateMobileReport);
+  }, []);
+
+  useEffect(() => {
+    if (!mobileDetailOpen) return;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileDetailOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [mobileDetailOpen]);
 
   useEffect(() => {
     if (dumps && dumps.length > 0) {
@@ -262,6 +309,10 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     setSelectedMarkdownImagePath(markdownPath);
     setSelectedMarkdownImageRequestId((current) => current + 1);
   };
+  const openMobilePlayer = () => {
+    setMobileDetailOpen(false);
+    setMobilePane('player');
+  };
 
   useMarkdownScrollSync({
     enabled: reportViewMode === 'markdown' && Boolean(readyReportMarkdown),
@@ -296,19 +347,34 @@ function Visualizer(props: VisualizerProps): JSX.Element {
       );
     }
     return (
-      <PanelGroup autoSaveId="page-detail-layout-v2" direction="horizontal">
-        <Panel defaultSize={75} maxSize={95}>
-          <div className="main-content-container">
-            <DetailPanel autoPlay={autoPlay} />
-          </div>
-        </Panel>
-        <PanelResizeHandle className="resize-handle" />
-        <Panel maxSize={95}>
-          <div className="main-side">
-            <DetailSide />
-          </div>
-        </Panel>
-      </PanelGroup>
+      <>
+        <PanelGroup
+          autoSaveId="page-detail-layout-v2"
+          className="desktop-detail-layout"
+          direction="horizontal"
+        >
+          <Panel className="player-panel" defaultSize={75} maxSize={95}>
+            <div className="main-content-container">
+              <DetailPanel autoPlay={autoPlay} />
+            </div>
+          </Panel>
+          <PanelResizeHandle className="resize-handle" />
+          <Panel className="information-panel" maxSize={95}>
+            <div className="main-side">
+              <DetailSide />
+            </div>
+          </Panel>
+        </PanelGroup>
+        <dialog
+          id="mobile-detail-drawer"
+          className={`mobile-detail-drawer ${mobileDetailOpen ? 'is-open' : ''}`}
+          open={mobileDetailOpen}
+          aria-label="Step information"
+          aria-hidden={!mobileDetailOpen}
+        >
+          <DetailSide onClose={() => setMobileDetailOpen(false)} />
+        </dialog>
+      </>
     );
   };
 
@@ -343,11 +409,42 @@ function Visualizer(props: VisualizerProps): JSX.Element {
       </div>
     );
   } else {
-    const content = renderContent();
+    // On phones the Player must not mount behind the Steps pane. In
+    // particular, autoPlay starts inside the Player hook and display:none
+    // cannot pause its requestAnimationFrame loop.
+    const shouldMountPlayerPane = !isMobileReport || mobilePane === 'player';
+    const content = shouldMountPlayerPane ? renderContent() : null;
 
     mainContent = (
       <div className="main-layout">
-        <div className="page-side" style={{ width: sidebarWidth }}>
+        <nav className="mobile-report-tabs" aria-label="Report view">
+          <button
+            type="button"
+            className={mobilePane === 'steps' ? 'is-active' : ''}
+            aria-pressed={mobilePane === 'steps'}
+            onClick={() => {
+              setMobileDetailOpen(false);
+              setMobilePane('steps');
+            }}
+          >
+            Steps
+          </button>
+          <button
+            type="button"
+            className={mobilePane === 'player' ? 'is-active' : ''}
+            aria-pressed={mobilePane === 'player'}
+            onClick={() => {
+              setMobileDetailOpen(false);
+              setMobilePane('player');
+            }}
+          >
+            Player
+          </button>
+        </nav>
+        <div
+          className={`page-side ${mobilePane === 'player' ? 'mobile-pane-hidden' : ''}`}
+          style={{ width: sidebarWidth }}
+        >
           <Sidebar
             dumps={dumps}
             proModeEnabled={proModeEnabled}
@@ -365,17 +462,34 @@ function Visualizer(props: VisualizerProps): JSX.Element {
               void handleDownloadReportMarkdownZip()
             }
             onReportCaseChange={resetMarkdownImageSelection}
+            onOpenPlayer={openMobilePlayer}
           />
         </div>
         <div
           className="resize-handle"
+          role="separator"
+          aria-label="Resize report sidebar"
+          aria-orientation="vertical"
+          aria-valuemin={MIN_SIDEBAR_WIDTH}
+          aria-valuemax={Math.max(
+            MIN_SIDEBAR_WIDTH,
+            window.innerWidth - MIN_PLAYER_WIDTH,
+          )}
+          aria-valuenow={Math.round(sidebarWidth)}
+          tabIndex={0}
           onMouseDown={(e) => {
             e.preventDefault();
             const startX = e.clientX;
             const startWidth = sidebarWidth;
+            const layoutWidth =
+              e.currentTarget.parentElement?.getBoundingClientRect().width ??
+              window.innerWidth;
             let latestWidth = startWidth;
             const onMouseMove = (ev: MouseEvent) => {
-              latestWidth = Math.max(200, startWidth + ev.clientX - startX);
+              latestWidth = clampSidebarWidth(
+                startWidth + ev.clientX - startX,
+                layoutWidth,
+              );
               setSidebarWidth(latestWidth);
             };
             const onMouseUp = () => {
@@ -387,33 +501,79 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             document.addEventListener('mousemove', onMouseMove);
             document.addEventListener('mouseup', onMouseUp);
           }}
+          onKeyDown={(event) => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key))
+              return;
+            event.preventDefault();
+            const layoutWidth =
+              event.currentTarget.parentElement?.getBoundingClientRect()
+                .width ?? window.innerWidth;
+            const maximumWidth = Math.max(
+              MIN_SIDEBAR_WIDTH,
+              layoutWidth - MIN_PLAYER_WIDTH,
+            );
+            const nextWidth =
+              event.key === 'Home'
+                ? MIN_SIDEBAR_WIDTH
+                : event.key === 'End'
+                  ? maximumWidth
+                  : clampSidebarWidth(
+                      sidebarWidth +
+                        (event.key === 'ArrowLeft'
+                          ? -SIDEBAR_KEYBOARD_STEP
+                          : SIDEBAR_KEYBOARD_STEP),
+                      layoutWidth,
+                    );
+            setSidebarWidth(nextWidth);
+            localStorage.setItem(SIDEBAR_WIDTH_KEY, String(nextWidth));
+            setMainLayoutChangeFlag((previous) => previous + 1);
+          }}
         />
-        <div className="main-right">
-          {reportViewMode === 'markdown' ? (
-            <AgentScreenshotView
-              markdownView={reportMarkdownView}
-              selectedMarkdownImagePath={selectedMarkdownImagePath}
-              selectedMarkdownImageRequestId={selectedMarkdownImageRequestId}
-              scrollContainerRef={screenshotScrollRef}
-            />
-          ) : (
-            <>
-              <button
-                type="button"
-                className="main-right-header"
-                aria-expanded={!timelineCollapsed}
-                onClick={() => setTimelineCollapsed((collapsed) => !collapsed)}
-              >
-                <RecordVideocameraIcon
-                  aria-hidden="true"
-                  className="main-right-header-icon"
-                />
-                <span>Record</span>
-              </button>
-              {!timelineCollapsed && <Timeline key={mainLayoutChangeFlag} />}
-              <div className="main-content">{content}</div>
-            </>
-          )}
+        <div
+          className={`main-right ${mobilePane === 'steps' ? 'mobile-pane-hidden' : ''}`}
+        >
+          {shouldMountPlayerPane &&
+            (reportViewMode === 'markdown' ? (
+              <AgentScreenshotView
+                markdownView={reportMarkdownView}
+                selectedMarkdownImagePath={selectedMarkdownImagePath}
+                selectedMarkdownImageRequestId={selectedMarkdownImageRequestId}
+                scrollContainerRef={screenshotScrollRef}
+              />
+            ) : (
+              <>
+                <div className="main-right-toolbar">
+                  <button
+                    type="button"
+                    className="main-right-header"
+                    aria-expanded={!timelineCollapsed}
+                    onClick={() =>
+                      setTimelineCollapsed((collapsed) => !collapsed)
+                    }
+                  >
+                    <RecordVideocameraIcon
+                      aria-hidden="true"
+                      className="main-right-header-icon"
+                    />
+                    <span>Record</span>
+                  </button>
+                  {!replayAllMode && (
+                    <button
+                      type="button"
+                      className="mobile-detail-trigger"
+                      aria-controls="mobile-detail-drawer"
+                      aria-expanded={mobileDetailOpen}
+                      onClick={() => setMobileDetailOpen(true)}
+                    >
+                      <InfoCircleOutlined aria-hidden="true" />
+                      <span>Information</span>
+                    </button>
+                  )}
+                </div>
+                {!timelineCollapsed && <Timeline key={mainLayoutChangeFlag} />}
+                <div className="main-content">{content}</div>
+              </>
+            ))}
         </div>
       </div>
     );
@@ -421,6 +581,10 @@ function Visualizer(props: VisualizerProps): JSX.Element {
 
   const [containerHeight, setContainerHeight] = useState('100%');
   useEffect(() => {
+    if (embedded) {
+      setContainerHeight('100%');
+      return;
+    }
     const ifInRspressPage = document.querySelector('.rspress-nav');
 
     const navHeightKey = '--rp-nav-height';
@@ -442,7 +606,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
         );
       }
     };
-  }, []);
+  }, [embedded]);
 
   useEffect(() => {
     return () => {
@@ -488,7 +652,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     >
       <AntdApp component={false}>
         <div
-          className={`page-container${playerOnly ? ' player-only' : ''}`}
+          className={`page-container${playerOnly ? ' player-only' : ''}${embedded ? ' embedded' : ''}`}
           key={`render-${globalRenderCount}`}
           style={{ height: containerHeight }}
           data-theme={isDarkMode ? 'dark' : 'light'}
@@ -497,27 +661,29 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             <div className="player-only-content">{playerOnlyContent}</div>
           ) : (
             <>
-              <div className="page-nav">
-                <div className="page-nav-left">
-                  <Logo />
-                  <div className="page-nav-title">Report</div>
-                </div>
-                <div className="page-nav-right">
-                  <div className="page-nav-version">
-                    {sdkVersion ? `v${sdkVersion}` : 'unknown version'}
-                    {modelBriefText ? ` | ${modelBriefText}` : ''}
+              {!embedded && (
+                <div className="page-nav">
+                  <div className="page-nav-left">
+                    <Logo />
+                    <div className="page-nav-title">Report</div>
                   </div>
-                  <div className="theme-divider" />
-                  <button
-                    type="button"
-                    className="theme-toggle-button"
-                    onClick={() => setIsDarkMode(!isDarkMode)}
-                    aria-label="Toggle theme"
-                  >
-                    {isDarkMode ? <ThemeDarkIcon /> : <ThemeLightIcon />}
-                  </button>
+                  <div className="page-nav-right">
+                    <div className="page-nav-version">
+                      {sdkVersion ? `v${sdkVersion}` : 'unknown version'}
+                      {modelBriefText ? ` | ${modelBriefText}` : ''}
+                    </div>
+                    <div className="theme-divider" />
+                    <button
+                      type="button"
+                      className="theme-toggle-button"
+                      onClick={() => setIsDarkMode(!isDarkMode)}
+                      aria-label="Toggle theme"
+                    >
+                      {isDarkMode ? <ThemeDarkIcon /> : <ThemeLightIcon />}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
               {mainContent}
             </>
           )}
@@ -570,8 +736,12 @@ export function App() {
     const result: PlaywrightTasks[] = [];
 
     // Process grouped dump tags — merge into one PlaywrightTasks per group
-    for (const [, elements] of groupMap) {
+    for (const [groupId, elements] of groupMap) {
       const attributes = parseAttributesFromElement(elements[0]);
+      const reportIdAttribute = elements[0].getAttribute('data-report-id');
+      const runnerScopeAttribute = elements[0].getAttribute(
+        'data-runner-scope-id',
+      );
       let cachedJsonContent: GroupedActionDump | null = null;
       let isParsed = false;
 
@@ -609,6 +779,12 @@ export function App() {
           return cachedJsonContent!;
         },
         attributes,
+        reportId: reportIdAttribute
+          ? decodeURIComponent(reportIdAttribute)
+          : groupId,
+        ...(runnerScopeAttribute
+          ? { runnerScopeId: decodeURIComponent(runnerScopeAttribute) }
+          : {}),
       });
     }
 
@@ -616,6 +792,7 @@ export function App() {
   }
 
   const [reportDump, setReportDump] = useState<PlaywrightTasks[]>([]);
+  const [runnerDump, setRunnerDump] = useState<TestRunReportDump | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const dumpsLoadedRef = useRef(false);
@@ -648,10 +825,34 @@ export function App() {
       setError(null);
       const dumpElements = getDumpElements();
       setReportDump(dumpElements);
+      const runnerElements = document.querySelectorAll(
+        'script[type="midscene_test_run_dump"]',
+      );
+      if (runnerElements.length > 1) {
+        throw new Error('The report contains multiple Midscene Test dumps.');
+      }
+      if (runnerElements.length === 1) {
+        const content = runnerElements[0].textContent;
+        if (!content)
+          throw new Error('The Midscene Test report dump is empty.');
+        setRunnerDump(parseTestRunReportDump(content));
+      } else {
+        setRunnerDump(null);
+      }
     };
 
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const loadDumps = async () => {
       console.time('loading_dump');
+      try {
+        await hydrateDirectoryReport(document, fetch, controller.signal);
+      } catch (error) {
+        if (!controller.signal.aborted)
+          setError(error instanceof Error ? error.message : String(error));
+        console.timeEnd('loading_dump');
+        return;
+      }
       try {
         const animation = await prepareAnimatedWebpFrames();
         for (const [id, url] of animation.frameUrls) {
@@ -672,7 +873,12 @@ export function App() {
           error,
         );
       }
-      loadDumpElements();
+      try {
+        if (controller.signal.aborted) return;
+        loadDumpElements();
+      } catch (error) {
+        setError(error instanceof Error ? error.message : String(error));
+      }
       console.timeEnd('loading_dump');
     };
 
@@ -682,13 +888,15 @@ export function App() {
       document.readyState === 'interactive'
     ) {
       // Use a small timeout to ensure all scripts are parsed
-      setTimeout(loadDumps, 0);
+      timer = setTimeout(loadDumps, 0);
     } else {
       // Wait for DOM content to be fully loaded
       document.addEventListener('DOMContentLoaded', loadDumps);
     }
 
     return () => {
+      controller.abort();
+      clearTimeout(timer);
       document.removeEventListener('DOMContentLoaded', loadDumps);
     };
   }, []);
@@ -712,5 +920,15 @@ export function App() {
       </div>
     );
   }
-  return <Visualizer dumps={reportDump} />;
+  return runnerDump ? (
+    <TestRunnerReport
+      dump={runnerDump}
+      reports={reportDump}
+      renderAgentReport={(reports) => <Visualizer embedded dumps={reports} />}
+    />
+  ) : (
+    <Visualizer dumps={reportDump} />
+  );
 }
+
+export { Visualizer };

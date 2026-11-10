@@ -1,0 +1,23 @@
+.home-feature--toolkit .home-feature__header {
+  display: block;
+  min-height: 0;
+}
+
+.home-toolkit-visual {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: #0555ff;
+  text-align: center;
+}
+
+.dark .home-toolkit-visual {
+  color: rgb(128 168 255);
+}
+
+.home-toolkit-visual span {
+  color: var(--card-text);
+  font-family: var(--rp-font-family-mono, monospace);
+  font-size: 13px;
+}

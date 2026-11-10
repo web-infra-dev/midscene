@@ -1,0 +1,136 @@
+# 创建 Midscene Test E2E 项目
+
+本指南将带你使用脚手架创建测试项目、运行内置的 TodoMVC 示例，并动手修改一条测试用例。下文以 Web 平台为例；如果你测试的是移动端或桌面端应用，只需在创建项目时选择对应的平台模板即可。
+
+如果是第一次在某个平台上运行，可以使用[开始使用](../get-started?scene=test)。它会按你选择的平台和模型接入方式，依次列出设备、模型和项目的配置步骤，直到示例运行通过。
+
+## 创建项目
+
+### 1. 生成项目文件并安装依赖
+
+请确保本地已安装 Node.js（`^20.19.0 || ^22.12.0 || >=24.0.0`）和 `pnpm`，然后在终端运行：
+
+```bash
+pnpm dlx @midscene/test create my-tests --platform web --package-manager pnpm
+cd my-tests
+```
+
+执行过程中按终端提示安装依赖即可。如果你想通过交互式菜单选择平台，可以直接运行 `pnpm dlx @midscene/test create`，创建完成后再进入项目目录。完整的命令行参数请参阅文末的[创建命令参考](#创建命令参考)。
+
+<span id="project-structure" />
+
+生成的项目结构如下：
+
+```text
+my-tests/
+├── cases/todo.yaml             # TodoMVC 用例
+├── nodes/todo.ts               # Web 自定义 Node：初始化、数据校验与状态采集
+├── midscene.config.ts          # 平台配置与 Node 注册
+├── midscene-node-spec.web.md   # 安装依赖后自动生成的 Node 说明书
+├── package.json
+├── tsconfig.json
+├── .env.example
+├── README.md
+└── README.zh.md
+```
+
+本步骤仅生成项目文件与说明书，不会实际运行测试，因此无需配置模型 API Key、浏览器或测试设备。生成的项目根目录下也包含 `README.md`（及 `README.zh.md`），其中提供了关于特定平台环境配置的详细说明。
+
+### 2. 配置模型与运行环境
+
+将 `.env.example` 复制为 `.env`，按照[使用模型 API Key](../model-api-setup)填写模型名称、服务地址和 API Key。如果使用 ChatGPT 订阅，请按[使用 ChatGPT 订阅](../chatgpt-subscription#cli--sdk)完成一次登录，然后设置 `MIDSCENE_MODEL_AUTH_MODE`、`MIDSCENE_MODEL_NAME` 和 `MIDSCENE_MODEL_FAMILY`，服务地址和 API Key 留空。
+
+运行测试前，可以先验证模型连通性是否正常：
+
+```bash
+pnpm exec midscene-test model verify
+pnpm exec midscene-test model verify --help
+```
+
+该命令会自动读取当前工作目录下的 `.env` 文件（优先级高于当前终端中已有的同名环境变量），验证过程无需启动浏览器或连接设备。详见[高级配置与调试](../model-config#verify-model-connectivity)。
+
+Web 项目还需要安装 Chromium 浏览器：
+
+```bash
+pnpm exec playwright install chromium
+```
+
+如果你在第一步创建的是非 Web 平台的项目，请在运行测试前完成相应的运行环境准备：
+
+| 平台 | 参数值 | 运行前准备 | 环境配置指南 |
+| --- | --- | --- | --- |
+| Android | `android` | 连接设备，可通过 `ANDROID_DEVICE_ID` 指定设备。 | [配置指南](../platforms/android) |
+| iOS | `ios` | 启动 WebDriverAgent。本地直连可配置 `WDA_HOST` 与 `WDA_PORT`，通过网关转发可配置 `WDA_BASE_URL`；视频流直连使用 `WDA_MJPEG_PORT`，远程视频流使用 `WDA_MJPEG_URL`。 | [配置指南](../platforms/ios) |
+| HarmonyOS | `harmony` | 运行 `hdc list targets` 检查设备连接，可通过 `HARMONY_DEVICE_ID` 指定设备；若 `PATH` 中未配置 HDC，需设置 `HDC_HOME`。 | [配置指南](../platforms/harmonyos) |
+| 桌面端 | `computer` | 安装系统依赖并授予相应权限，可通过 `COMPUTER_DISPLAY_ID` 指定显示器。无界面 Linux 环境还需安装 Xvfb 并开启 `MIDSCENE_COMPUTER_HEADLESS_LINUX`。 | [配置指南](../platforms/desktop) |
+
+### 3. 运行示例并查看结果
+
+```bash
+pnpm test
+```
+
+示例用例会访问在线的 React TodoMVC 页面，请确保测试机或设备能够访问该网站。运行结束后，终端会输出测试结果以及 `Report:` 报告路径（默认保存在 `midscene_run/report/` 目录下）。在浏览器中打开该 HTML 报告，即可点击具体用例和步骤，查看界面截图、输入输出参数及错误信息。
+
+如遇报错：依赖缺失可重新执行 `pnpm install`；模型校验失败请先参考前文排查模型配置；设备连接异常请查阅上表中的平台配置指南。关于测试运行参数与报告分享，请参阅[运行测试](./running)。
+
+## 修改一个用例
+
+打开 `cases/todo.yaml`。Web 模板的 `beforeEach` 钩子会重置页面并预先创建三条待办事项。请保留文件中的 `beforeEach` 和 `afterEach` 钩子，将 `cases` 部分替换为以下内容：
+
+```yaml
+cases:
+  - name: Complete a todo
+    steps:
+      - aiAct: Mark the Todo named "Learn JS today" as completed.
+      - aiAssert: The Todo named "Learn JS today" has a checked checkbox and strikethrough text.
+```
+
+再次运行 `pnpm test`，在报告中确认该用例执行通过。其中 `aiAct` 用于描述界面操作，`aiAssert` 用于验证预期结果。移动端和桌面端模板的数据准备方式与 Web 不同，修改用例时请先查看项目中的 `README.zh.md`，保留原有的初始化步骤。
+
+## 从示例到自己的测试
+
+YAML 用例中的每一种操作都对应一个 Node。安装依赖时自动生成的 `midscene-node-spec.web.md`（其他平台为对应后缀的文件）列出了当前项目所有可调用的 Node 及其参数说明。后续如果新增了自定义 Node 或修改了项目配置，可以运行 `pnpm run nodes` 重新生成这份说明书。
+
+编写自己的业务用例时，你可以让 AI 编程助手先读取项目中的 Node 说明书和 `cases/todo.yaml`，再告诉它目标页面、操作流程和预期结果，让它基于已注册的 Node 编写 YAML 用例。如果现有 Node 无法满足业务需求，可以先用 TypeScript 实现并注册自定义 Node，重新生成说明书后再编写用例。
+
+接下来可按需阅读：
+
+- [编写 YAML 用例](./writing)：了解调用参数、变量、标签、钩子与用例组织方式。
+- [配置测试工程](./configuration)：管理运行环境、Node 注册、用例匹配与执行项目。
+- [开发自定义 Node](./extend)：封装业务接口与测试数据操作。
+- [运行测试](./running)：指定运行目标、查看诊断输出与结果文件。
+- [在 GitHub Actions 中运行](./running#在-github-actions-中运行)：将测试项目接入 CI 流程。
+
+## 创建命令参考
+
+<details>
+<summary>展开创建参数与更多示例</summary>
+
+可用参数如下：
+
+| 参数 | 说明 |
+| --- | --- |
+| `[directory]` | 项目目录，支持相对路径或绝对路径（`.` 表示当前目录）。省略时会交互提示输入；已存在的文件不会被覆盖。 |
+| `--platform <value>` | 目标平台：可选 `web`（Playwright）、`android`、`ios`、`harmony`（HarmonyOS）或 `computer`（桌面端）。省略时会交互提示选择。 |
+| `--package-manager <value>` | 包管理器：可选 `npm` 或 `pnpm`。省略时，交互式终端会提示选择；非交互式环境会自动检测调用命令的包管理器，无法识别时默认使用 `npm`。 |
+| `--yes`、`-y` | 跳过交互提示并自动安装依赖。需同时指定项目目录和 `--platform`；若与 `--skip-install` 同时传入，则仅生成项目文件。 |
+| `--skip-install` | 仅生成项目文件，跳过依赖安装与 Node 说明书生成。后续手动安装依赖时会自动生成说明书。 |
+| `--help`、`-h` | 查看命令帮助与用法示例。 |
+
+每个平台目前提供一个起步模板，通过 `--platform` 选择，生成的用例均采用 `cases` / `steps` 结构的 Midscene Test YAML 格式。在 CI 等非交互式环境中，必须显式传入项目目录和 `--platform`；除非指定 `--skip-install`，否则会自动安装依赖。
+
+常用示例：
+
+```bash
+# 创建 iOS 项目并安装依赖，全程不询问
+pnpm dlx @midscene/test create my-ios-tests --platform ios --package-manager pnpm --yes
+
+# 仅生成 Web 项目文件，暂不安装依赖
+pnpm dlx @midscene/test create my-web-tests --platform web --package-manager pnpm --skip-install
+
+# 查看完整参数说明
+pnpm dlx @midscene/test create --help
+```
+
+</details>

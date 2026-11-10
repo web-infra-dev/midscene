@@ -17,10 +17,15 @@ const enableAiTest = Boolean(process.env.AITEST);
 const basicTest = ['tests/unit-test/**/*.test.ts'];
 
 export default defineConfig({
+  name: '@midscene/shared',
   coverage: createCoverageConfig(__dirname),
   include: enableAiTest ? ['tests/ai/**/*.test.ts', ...basicTest] : basicTest,
   resolve: {
     alias: {
+      '#console-context': path.resolve(
+        __dirname,
+        'src/console-context.node.ts',
+      ),
       '@': path.resolve(__dirname, 'src'),
     },
   },

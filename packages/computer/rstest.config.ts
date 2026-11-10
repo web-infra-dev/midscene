@@ -30,6 +30,7 @@ const testFiles = (() => {
 })();
 
 export default defineConfig({
+  name: '@midscene/computer',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

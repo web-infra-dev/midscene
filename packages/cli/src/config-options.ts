@@ -8,6 +8,7 @@ export const defaultConfig = {
   continueOnError: false,
   retry: 0,
   shareBrowserContext: false,
+  reusePage: false,
   headed: false,
   keepWindow: false,
   dotenvOverride: false,

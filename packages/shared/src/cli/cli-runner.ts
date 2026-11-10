@@ -295,7 +295,7 @@ export async function runToolsCLI(
   }
   const parsedArgs = {
     ...positionalArgs,
-    ...parseCliArgs(restArgs.slice(optionStartIndex)),
+    ...parseCliArgs(restArgs.slice(optionStartIndex), match.def),
   };
   if (parsedArgs.help === true) {
     debug('showing command help for: %s', match.name);

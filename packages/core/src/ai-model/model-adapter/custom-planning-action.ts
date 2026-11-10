@@ -1,4 +1,5 @@
-import type { LocateResultPoint, PixelBbox, PlanningAction } from '@/types';
+import type { LocateResultPoint, PlanningAction } from '@/types';
+import type { PixelLocateResult } from '../shared/model-locate-result';
 
 // AutoGLM and UI-TARS both produce point coordinates before normalization.
 type PreNormalizedPlanningLocateParam = {
@@ -31,22 +32,22 @@ export type DragAndDropPlanningAction = PlanningAction<{
   type: 'DragAndDrop';
 };
 
-type TapPlanningActionWithLocatedPixelBbox = PlanningAction<{
+type TapPlanningActionWithLocatedPixelResult = PlanningAction<{
   locate: {
-    locatedPixelBbox: PixelBbox;
+    locatedPixelResult: PixelLocateResult;
   };
 }>;
 
-export function getTapLocatedPixelBbox(
+export function getTapLocatedPixelResult(
   actions: PlanningAction[],
-): PixelBbox | undefined {
+): PixelLocateResult | undefined {
   for (const action of actions) {
     if (action.type !== 'Tap') {
       continue;
     }
 
-    return (action as TapPlanningActionWithLocatedPixelBbox).param.locate
-      .locatedPixelBbox;
+    return (action as TapPlanningActionWithLocatedPixelResult).param.locate
+      .locatedPixelResult;
   }
 
   return undefined;

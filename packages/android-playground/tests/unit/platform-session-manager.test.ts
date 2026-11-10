@@ -77,6 +77,27 @@ describe('androidPlaygroundPlatform session manager', () => {
     expect(connectMock).toHaveBeenCalled();
   });
 
+  test.each(['127.0.0.1', '192.168.1.100', '0.0.0.0', '::1'])(
+    'includes the Scrcpy bind host %s before and after device connection',
+    async (host) => {
+      const { androidPlaygroundPlatform } = await import('../../src/platform');
+      const scrcpyServer = {
+        host,
+        currentDeviceId: null,
+        launch: rs.fn(async () => {}),
+        close: rs.fn(),
+      };
+      const prepared = await androidPlaygroundPlatform.prepare({
+        scrcpyServer,
+      });
+      expect(prepared.preview?.custom).toMatchObject({ scrcpyHost: host });
+      const session = await prepared.sessionManager!.createSession({
+        deviceId: 'SERIAL123',
+      });
+      expect(session.preview?.custom).toMatchObject({ scrcpyHost: host });
+    },
+  );
+
   test('keeps the setup schema usable when adb discovery fails', async () => {
     getConnectedDevicesWithDetailsMock
       .mockRejectedValueOnce(new Error('adb executable not found'))

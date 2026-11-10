@@ -1,9 +1,4 @@
 import { resolveBrowserAgentRuntimeOptions } from '@/common/browser-agent';
-import {
-  PlaywrightAgent,
-  PlaywrightBrowserAgent,
-  type PlaywrightWebPage,
-} from '@/playwright/index';
 import type { WebPageAgentOpt } from '@/web-element';
 import type { Cache } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
@@ -16,6 +11,11 @@ import { getDebug } from '@midscene/shared/logger';
 import { replaceIllegalPathCharsAndSpace, uuid } from '@midscene/shared/utils';
 import { type TestInfo, type TestType, test } from '@playwright/test';
 import type { Page as OriginPlaywrightPage } from 'playwright';
+import {
+  PlaywrightAgent,
+  PlaywrightBrowserAgent,
+  type PlaywrightWebPage,
+} from './agent';
 import { buildPlaywrightReportTag } from './report-filename';
 export type APITestType = Pick<TestType<any, any>, 'step'>;
 

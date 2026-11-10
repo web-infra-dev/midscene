@@ -106,6 +106,55 @@ describe('service.locate deepLocate routing', () => {
     expect(AiLocateSection).not.toHaveBeenCalled();
   });
 
+  it('falls back to the center for point-only planning and retains the fine result', async () => {
+    const service = new Service(createFakeContext());
+    const result = await service.locate(
+      { prompt: 'target', deepLocate: true },
+      { planLocatedElement: { center: [10.25, 20.75], description: 'coarse' } },
+      modelRuntime,
+    );
+    expect(buildSearchAreaConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseRect: { left: 10, top: 21, width: 1, height: 1 },
+      }),
+    );
+    expect(
+      rs.mocked(buildSearchAreaConfig).mock.calls[0][0],
+    ).not.toHaveProperty('basePoint');
+    expect(result.element?.center).toEqual([120, 220]);
+    expect(result.element?.rect).toEqual({
+      left: 100,
+      top: 200,
+      width: 40,
+      height: 40,
+    });
+  });
+
+  it('uses a point-only first pass without synthesizing bbox metadata', async () => {
+    const service = new Service(createFakeContext());
+    rs.mocked(AiLocateElement).mockResolvedValueOnce({
+      parseResult: {
+        element: { center: [10.25, 20.75], description: 'coarse' },
+        errors: [],
+      },
+      rawResponse: '{}',
+    });
+    const result = await service.locate(
+      { prompt: 'target', deepLocate: true },
+      {},
+      getModelRuntime({ ...modelConfig, modelFamily: 'auto-glm' }),
+    );
+    expect(buildSearchAreaConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseRect: { left: 10, top: 21, width: 1, height: 1 },
+      }),
+    );
+    expect(
+      rs.mocked(buildSearchAreaConfig).mock.calls[0][0],
+    ).not.toHaveProperty('basePoint');
+    expect(result.element?.center).toEqual([120, 220]);
+  });
+
   it('uses AiLocateSection to build search area when the model supports it', async () => {
     const service = new Service(createFakeContext());
 
@@ -126,9 +175,13 @@ describe('service.locate deepLocate routing', () => {
 
   it('records search-area model data when section locate fails', async () => {
     const service = new Service(createFakeContext());
-    const rawChoiceMessage = {
-      content: '{"bbox":["invalid bbox"]}',
-      role: 'assistant',
+    const rawAssistantOutput = {
+      type: 'chat-completion' as const,
+      rawValue: {
+        content: '{"bbox":["invalid bbox"]}',
+        role: 'assistant' as const,
+        refusal: null,
+      },
     };
     const usage: AIUsageInfo = {
       prompt_tokens: 12,
@@ -147,7 +200,7 @@ describe('service.locate deepLocate routing', () => {
       searchAreaConfig: undefined,
       error: 'invalid bbox data',
       rawResponse: '{"bbox":["invalid bbox"]}',
-      rawChoiceMessage,
+      rawAssistantOutput,
       usage,
     });
 
@@ -167,7 +220,7 @@ describe('service.locate deepLocate routing', () => {
       error: 'cannot find search area for "target": invalid bbox data',
       taskInfo: {
         searchAreaRawResponse: '{"bbox":["invalid bbox"]}',
-        searchAreaRawChoiceMessage: rawChoiceMessage,
+        searchAreaRawChoiceMessage: rawAssistantOutput,
         searchAreaUsage: usage,
       },
     });

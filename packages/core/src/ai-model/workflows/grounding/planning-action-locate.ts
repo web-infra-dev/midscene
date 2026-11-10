@@ -1,4 +1,5 @@
 import type { DeviceAction } from '@/device';
+import type { RawAssistantOutput } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { z } from 'zod';
@@ -75,7 +76,7 @@ export function resolvePlanningTapLocator<TParsed>(
     let errors: string[] = [];
     let reasoningContent = '';
     let rawResponse = '';
-    let rawChoiceMessage: unknown;
+    let rawAssistantOutput: RawAssistantOutput | undefined;
     let usage: LocateModelResponse['usage'];
 
     try {
@@ -88,24 +89,24 @@ export function resolvePlanningTapLocator<TParsed>(
       );
 
       rawResponse = planningResponse.rawResponse ?? '';
-      rawChoiceMessage = planningResponse.rawChoiceMessage;
+      rawAssistantOutput = planningResponse.rawAssistantOutput;
       usage = planningResponse.usage;
       reasoningContent = planningResponse.log;
 
       debugGrounding('planning-tap-locator rawResponse:', rawResponse);
 
-      const locatedPixelBbox = definition.getLocatedPixelBbox(
+      const locatedPixelResult = definition.getLocatedPixelResult(
         planningResponse.actions ?? [],
       );
 
-      if (!locatedPixelBbox) {
-        throw new Error('No locatedPixelBbox found in planner response');
+      if (!locatedPixelResult) {
+        throw new Error('No locatedPixelResult found in planner response');
       }
 
       return {
-        locatedPixelBbox,
+        locatedPixelResult,
         rawResponse,
-        rawChoiceMessage,
+        rawAssistantOutput,
         usage,
         reasoningContent,
       };
@@ -114,7 +115,7 @@ export function resolvePlanningTapLocator<TParsed>(
         error instanceof Error ? error.message : String(error);
       if (error instanceof AIResponseParseError) {
         rawResponse = error.rawResponse;
-        rawChoiceMessage = error.rawChoiceMessage;
+        rawAssistantOutput = error.rawAssistantOutput;
         usage = error.usage;
       }
       errors = [
@@ -125,7 +126,7 @@ export function resolvePlanningTapLocator<TParsed>(
 
     return {
       rawResponse,
-      rawChoiceMessage,
+      rawAssistantOutput,
       usage,
       reasoningContent,
       errors,

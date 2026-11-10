@@ -1,0 +1,43 @@
+.test-runner-report {
+  font-size: 14px;
+  line-height: 1.5;
+  /* Reserve the compact size for spatially constrained supporting information. */
+  .runner-detail-timeline-axis span,
+  .runner-detail-timeline-frame > span,
+  .runner-detail-timeline-preview-callout small,
+  .runner-detail-step-tail time {
+    font-size: 12px;
+  }
+
+  .runner-detail-timeline-frame > span {
+    width: 24px;
+    height: 24px;
+    line-height: 20px;
+  }
+
+  .runner-detail-step-tail time {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .runner-detail-evidence-heading,
+  .runner-detail-timeline-toolbar,
+  .runner-detail-timeline-toolbar > span {
+    flex-wrap: wrap;
+  }
+
+  .runner-detail-timeline-toolbar {
+    gap: 8px;
+    padding-block: 10px;
+  }
+
+  .runner-detail-evidence-heading .runner-detail-step-description {
+    flex: 1 0 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .runner-detail-evidence-heading {
+    row-gap: 10px;
+  }
+}

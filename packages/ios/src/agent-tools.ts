@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { z } from '@midscene/core';
 import {
   type AgentBehaviorInitArgs,
@@ -13,10 +14,17 @@ import type { ToolDefinition } from '@midscene/shared/agent-tools/types';
 import { getDebug } from '@midscene/shared/logger';
 import { type IOSAgent, agentFromWebDriverAgent } from './agent';
 import { IOSDevice, type IOSDeviceOpt } from './device';
+import { assertWdaConnectionOptions } from './wda-options';
 
 const debug = getDebug('agent-tools:ios');
 
 const iosInitArgShape = {
+  wdaBaseUrl: z
+    .string()
+    .optional()
+    .describe(
+      'Full WebDriverAgent API base URL, including gateway path prefix',
+    ),
   wdaHost: z
     .string()
     .optional()
@@ -30,6 +38,10 @@ const iosInitArgShape = {
     .number()
     .optional()
     .describe('WebDriverAgent MJPEG streaming port'),
+  wdaMjpegUrl: z
+    .string()
+    .optional()
+    .describe('Full HTTP(S) WebDriverAgent MJPEG stream URL'),
   wdaMjpegFrameSource: z
     .object({ enabled: z.boolean().optional() })
     .optional()
@@ -42,10 +54,25 @@ const iosInitArgShape = {
 type IOSInitArgs = AgentBehaviorInitArgs &
   Pick<
     IOSDeviceOpt,
-    'wdaHost' | 'wdaPort' | 'sessionId' | 'wdaMjpegPort' | 'wdaMjpegFrameSource'
+    | 'wdaBaseUrl'
+    | 'wdaHost'
+    | 'wdaPort'
+    | 'sessionId'
+    | 'wdaMjpegPort'
+    | 'wdaMjpegUrl'
+    | 'wdaMjpegFrameSource'
   >;
 
 function getTargetIdentity(initArgs?: IOSInitArgs): string {
+  if (initArgs?.wdaBaseUrl || initArgs?.wdaMjpegUrl) {
+    const fingerprint = createHash('sha256')
+      .update(
+        `${initArgs.wdaBaseUrl ?? ''}\0${initArgs.wdaMjpegUrl ?? ''}\0${initArgs.sessionId ?? ''}`,
+      )
+      .digest('hex')
+      .slice(0, 12);
+    return `wda-${fingerprint}`;
+  }
   if (initArgs?.wdaHost || initArgs?.wdaPort || initArgs?.sessionId) {
     const wdaHost = initArgs.wdaHost ?? 'localhost';
     const wdaPort = initArgs.wdaPort ?? 'default';
@@ -85,6 +112,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
   }
 
   protected async ensureAgent(opts?: IOSInitArgs): Promise<IOSAgent> {
+    assertWdaConnectionOptions(opts);
     const nextSignature = getAgentInitArgsSignature(opts);
 
     if (
@@ -103,7 +131,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
       return this.agent;
     }
 
-    debug('Creating iOS agent with WebDriverAgent options:', opts || {});
+    debug('Creating iOS agent with WebDriverAgent options');
     const reportOptions = this.readCliReportAgentOptions();
     this.agent = await agentFromWebDriverAgent({
       autoDismissKeyboard: false,
@@ -126,6 +154,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
         cli: this.getAgentInitArgCliMetadata(),
         handler: async (args: Record<string, unknown>) => {
           const initArgs = this.extractAgentInitParam(args);
+          assertWdaConnectionOptions(initArgs);
           const identity = getTargetIdentity(initArgs);
           const reportSession = this.createNewCliReportSession(identity);
           this.commitCliReportSession(reportSession);

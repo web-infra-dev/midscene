@@ -5,6 +5,9 @@ on:
     paths:
       - 'apps/studio/**'
       - '.github/workflows/studio-headless-linux.yml'
+      - '.github/actions/**'
+      - '!**/*.md'
+      - '!**/*.mdx'
       - 'scripts/report-template-utils.mjs'
       - 'scripts/validate-core-report-template.mjs'
   workflow_dispatch:
@@ -17,6 +20,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   studio-startup:
@@ -46,6 +53,8 @@ jobs:
       uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: '24.13.0'
+        cache: pnpm
+        cache-dependency-path: pnpm-lock.yaml
 
     - name: Cache pnpm store
       id: pnpm-cache
@@ -116,18 +125,24 @@ jobs:
       run: node scripts/validate-core-report-template.mjs
 
     - name: Run Studio startup smoke test
-      run: xvfb-run -a --server-args="-screen 0 1920x1080x24" pnpm --dir apps/studio run test:smoke
+      uses: ./.github/actions/ai-ci
+      with:
+        command: xvfb-run -a --server-args="-screen 0 1920x1080x24" pnpm --dir apps/studio run test:smoke
       env:
         MIDSCENE_STUDIO_RUN_STARTUP_SMOKE: '1'
 
     - name: Run Studio Web preview e2e test
-      run: xvfb-run -a --server-args="-screen 0 1920x1080x24" pnpm --dir apps/studio run test:smoke:web-preview
+      uses: ./.github/actions/ai-ci
+      with:
+        command: xvfb-run -a --server-args="-screen 0 1920x1080x24" pnpm --dir apps/studio run test:smoke:web-preview
       timeout-minutes: 10
       env:
         MIDSCENE_STUDIO_RUN_WEB_PREVIEW_E2E: '1'
 
     - name: Run Studio Midscene startup test
-      run: xvfb-run -a --server-args="-screen 0 1920x1080x24" pnpm --dir apps/studio run test:smoke:ai
+      uses: ./.github/actions/ai-ci
+      with:
+        command: xvfb-run -a --server-args="-screen 0 1920x1080x24" pnpm --dir apps/studio run test:smoke:ai
       timeout-minutes: 25
       id: test-ai
       continue-on-error: true

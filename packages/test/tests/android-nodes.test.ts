@@ -1,6 +1,17 @@
-import { describe, expect, it, vi } from 'vitest';
+import type { AndroidAgent as PlatformAgent } from '@midscene/android';
+import type { MidsceneUIAgent } from '../src/midscene';
+import { createMockMidsceneAgent } from './mock-midscene-agent';
+type AndroidRunnerAgent = MidsceneUIAgent &
+  Pick<
+    PlatformAgent,
+    'launch' | 'terminate' | 'runAdbShell' | 'back' | 'home' | 'recentApps'
+  >;
+import { createRequire } from 'node:module';
+import { createMidsceneNodes } from '../src/midscene';
+const { AndroidAgent } = createRequire(import.meta.url)('@midscene/android');
+import { describe, expect, it, rs } from '@rstest/core';
 import { NodeRegistry } from '../src';
-import { createAndroidNodes } from '../src/android';
+
 import { runCollectedCase } from '../src/engine/run-collected-case';
 import type { CollectedCase } from '../src/parser/types';
 
@@ -14,24 +25,76 @@ const collected = (
   definition: { name: 'android nodes', steps },
 });
 
-describe('createAndroidNodes', () => {
-  it('runs ADB shell commands and maps timeoutMs to the Agent option', async () => {
-    const runAdbShell = vi.fn(async () => 'package:com.example.app');
+const androidAgent = (
+  overrides: Partial<AndroidRunnerAgent> = {},
+): AndroidRunnerAgent => ({
+  ...createMockMidsceneAgent(),
+  launch: rs.fn(async () => undefined),
+  terminate: rs.fn(async () => undefined),
+  runAdbShell: rs.fn(async () => ''),
+  back: rs.fn(async () => undefined),
+  home: rs.fn(async () => undefined),
+  recentApps: rs.fn(async () => undefined),
+  ...overrides,
+});
+
+describe('AndroidAgent Nodes', () => {
+  it('namespaces platform and common Nodes while preserving Agent method names', async () => {
+    const agent = androidAgent();
     const registry = new NodeRegistry(
-      createAndroidNodes({
-        getAgent: () => ({
-          launch: vi.fn(async () => undefined),
-          terminate: vi.fn(async () => undefined),
-          runAdbShell,
-        }),
+      createMidsceneNodes({
+        namespace: 'mobile',
+        agentClass: AndroidAgent,
+        getAgent: () => agent,
       }),
     );
-    expect(registry.names()).toEqual(['launch', 'terminate', 'runAdbShell']);
+    expect(registry.names()).toEqual(
+      expect.arrayContaining(['mobile.launch', 'mobile.aiAct', 'mobile.wait']),
+    );
+    expect(registry.get('launch')).toBeUndefined();
+    const result = await runCollectedCase(
+      collected([
+        {
+          node: 'mobile.launch',
+          input: { uri: 'com.example.app' },
+          meta: { continueOnError: false },
+        },
+      ]),
+      { resolveNode: registry.require.bind(registry) },
+    );
+
+    expect(result.status).toBe('success');
+    expect(agent.launch).toHaveBeenCalledWith('com.example.app');
+  });
+
+  it('preserves the Agent runAdbShell options object', async () => {
+    const runAdbShell = rs.fn(async () => 'package:com.example.app');
+    const registry = new NodeRegistry(
+      createMidsceneNodes({
+        agentClass: AndroidAgent,
+        getAgent: () => androidAgent({ runAdbShell }),
+      }),
+    );
+    expect(registry.names()).toEqual(
+      expect.arrayContaining([
+        'aiAct',
+        'wait',
+        'launch',
+        'terminate',
+        'runAdbShell',
+        'back',
+        'home',
+        'recentApps',
+      ]),
+    );
     const result = await runCollectedCase(
       collected([
         {
           node: 'runAdbShell',
-          input: { command: 'pm list packages', timeoutMs: 5_000 },
+          input: {
+            command: 'pm list packages',
+            options: { timeout: 5_000 },
+          },
           meta: { continueOnError: false },
         },
       ]),
@@ -47,35 +110,32 @@ describe('createAndroidNodes', () => {
     });
   });
 
-  it('supports string shorthand and rejects adb-prefixed commands', async () => {
-    const runAdbShell = vi.fn(async () => 'ok');
+  it('accepts canonical command input and rejects adb-prefixed commands', async () => {
+    const runAdbShell = rs.fn(async () => 'ok');
     const registry = new NodeRegistry(
-      createAndroidNodes({
-        getAgent: () => ({
-          launch: vi.fn(async () => undefined),
-          terminate: vi.fn(async () => undefined),
-          runAdbShell,
-        }),
+      createMidsceneNodes({
+        agentClass: AndroidAgent,
+        getAgent: () => androidAgent({ runAdbShell }),
       }),
     );
     const shorthand = await runCollectedCase(
       collected([
         {
           node: 'runAdbShell',
-          input: { prompt: 'dumpsys battery' },
+          input: { command: 'dumpsys battery' },
           meta: { continueOnError: false },
         },
       ]),
       { resolveNode: registry.require.bind(registry), context: undefined },
     );
     expect(shorthand.status).toBe('success');
-    expect(runAdbShell).toHaveBeenCalledWith('dumpsys battery', {});
+    expect(runAdbShell).toHaveBeenCalledWith('dumpsys battery', undefined);
 
     const prefixed = await runCollectedCase(
       collected([
         {
           node: 'runAdbShell',
-          input: { prompt: 'adb shell dumpsys battery' },
+          input: { command: 'adb shell dumpsys battery' },
           meta: { continueOnError: false },
         },
       ]),
@@ -87,15 +147,12 @@ describe('createAndroidNodes', () => {
   });
 
   it('owns and delegates Android lifecycle nodes', async () => {
-    const launch = vi.fn(async () => undefined);
-    const terminate = vi.fn(async () => undefined);
+    const launch = rs.fn(async () => undefined);
+    const terminate = rs.fn(async () => undefined);
     const registry = new NodeRegistry(
-      createAndroidNodes({
-        getAgent: () => ({
-          launch,
-          terminate,
-          runAdbShell: vi.fn(async () => ''),
-        }),
+      createMidsceneNodes({
+        agentClass: AndroidAgent,
+        getAgent: () => androidAgent({ launch, terminate }),
       }),
     );
     const result = await runCollectedCase(
@@ -107,7 +164,7 @@ describe('createAndroidNodes', () => {
         },
         {
           node: 'terminate',
-          input: { prompt: 'com.example.app' },
+          input: { uri: 'com.example.app' },
           meta: { continueOnError: false },
         },
       ]),
@@ -119,12 +176,12 @@ describe('createAndroidNodes', () => {
     expect(terminate).toHaveBeenCalledWith('com.example.app');
   });
 
-  it('validates factory options and Agent capability', async () => {
-    expect(() => createAndroidNodes({} as never)).toThrow(
-      'createAndroidNodes() requires getAgent()',
-    );
+  it('validates Agent capability', async () => {
     const registry = new NodeRegistry(
-      createAndroidNodes({ getAgent: () => ({}) as never }),
+      createMidsceneNodes({
+        agentClass: AndroidAgent,
+        getAgent: () => ({}) as never,
+      }),
     );
     const result = await runCollectedCase(
       collected([

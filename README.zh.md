@@ -1,81 +1,133 @@
 <p align="center">
-  <img alt="Midscene.js"  width="260" src="https://github.com/user-attachments/assets/f60de3c1-dd6f-4213-97a1-85bf7c6e79e4">
+  <img alt="Midscene.js" width="180" src="https://github.com/user-attachments/assets/f60de3c1-dd6f-4213-97a1-85bf7c6e79e4"><br />
+  <strong>像人一样看懂界面，用自然语言完成 E2E 测试</strong><br />
+  将 AI 视觉引入 E2E 测试，配套全新设计的测试框架，支持 Web、移动端和桌面应用。
 </p>
-
-<h1 align="center">Midscene.js</h1>
 
 <p align="center">
-  <strong>面向 E2E 测试的 GUI Agent</strong><br />
-  AI 视觉驱动。全平台覆盖。开箱即用。
+  <a href="https://midscenejs.com/zh/">官网</a> · <a href="./README.md">English</a> / 简体中文
 </p>
-
-<div align="center">
-
-[English](./README.md) | 简体中文
-
-<strong>官网</strong>：<a href="https://midscenejs.com/">https://midscenejs.com/</a>
-
-<a href="https://trendshift.io/repositories/12524" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12524" alt="web-infra-dev%2Fmidscene | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-
-</div>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@midscene/web"><img src="https://img.shields.io/npm/v/@midscene/web?style=flat-square&color=00a8f0" alt="npm version" /></a>
-  <a href="https://huggingface.co/ByteDance-Seed/UI-TARS-1.5-7B"><img src="https://img.shields.io/badge/UI%20TARS%20Models-yellow" alt="hugging face model" /></a>
   <a href="https://npm-compare.com/@midscene/web/#timeRange=THREE_YEARS"><img src="https://img.shields.io/npm/dm/@midscene/web.svg?style=flat-square&color=00a8f0" alt="downloads" /></a>
   <a href="https://github.com/web-infra-dev/midscene/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" /></a>
-  <a href="https://discord.gg/2JyBHxszE4"><img src="https://img.shields.io/discord/1328277792730779648?style=flat-square&color=7289DA&label=Discord&logo=discord&logoColor=white" alt="discord" /></a>
-  <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai?style=flat-square" alt="twitter" /></a>
-  <a href="https://deepwiki.com/web-infra-dev/midscene">
-    <img alt="Ask DeepWiki.com" src="https://devin.ai/assets/deepwiki-badge.png" style="height: 18px; vertical-align: middle;" />
-  </a>
+  <a href="https://midscenejs.com/zh/"><img src="https://badge.midscenejs.com/by-midscene" alt="E2E by Midscene.js" /></a>
+  <a href="https://trendshift.io/repositories/12524"><img src="https://img.shields.io/badge/GitHub_Trending-featured-00a8f0?style=flat-square&logo=github" alt="Featured on GitHub Trending" /></a>
 </p>
 
-## 📣 Midscene Skills 已上线
+## 用自然语言编写测试
 
-使用 [Midscene Skills](https://github.com/web-infra-dev/midscene-skills) 搭配 [OpenClaw](https://github.com/OpenClaw/OpenClaw)，测试并自动化 Web、移动端和桌面端界面。
+Midscene.js 将 AI 视觉引入 E2E 测试。用自然语言描述界面操作和预期结果，视觉 GUI Agent 会执行这些步骤，并验证用户看到的效果。你可以通过 Midscene Test 组织测试，也可以将 Agent API 接入现有测试框架。
 
-## 案例
+### 使用 Midscene Test 编写 YAML 用例
 
-* [Web 自动化 - 在浏览器中自动注册 GitHub 表单并通过所有字段校验](https://midscenejs.com/zh/showcases#web)
-* [iOS 自动化 - 美团下单咖啡](https://midscenejs.com/zh/showcases#ios)
-* [iOS 自动化 - 自动点赞 @midscene_ai 的第一条推文](https://midscenejs.com/zh/showcases#ios)
-* [Android 自动化 - 懂车帝：查看小米 SU7 参数](https://midscenejs.com/zh/showcases#android)
-* [Android 自动化 - 预订圣诞节酒店](https://midscenejs.com/zh/showcases#android)
-* [车机测试中的机械臂 + 视觉 + 语音方案](https://midscenejs.com/zh/showcases#community-showcases)
+[创建 Midscene Test 项目](https://midscenejs.com/zh/midscene-test/use)，配置好模型和 Web 运行环境后，就可以编写下面这样的用例。请将示例网址替换为你的应用地址：
 
-## 💡 为什么选择 Midscene
+```yaml
+beforeEach:
+  - gotoUrl: https://your-shop.example
 
-大多数 UI 自动化都依赖页面结构，包括读取 DOM 或无障碍树的 AI 工具。页面结构既脆弱又不完整：选择器一重构就失效；缺少语义化标注的元素，如纯图标按钮、自定义控件和 `<canvas>`，对它们是“看不见”的；原生应用与跨域 iframe 也难以触达；页面结构还无法判断界面实际看起来是否正确。
+cases:
+  - name: 筛选 100 美元以下的耳机
+    steps:
+      - aiAct: 搜索耳机，然后将结果筛选为价格低于 100 美元
+      - aiWaitFor: 筛选后的搜索结果已显示
+      - aiAssert: 搜索结果中有商品，且每件商品价格都低于 100 美元
+```
 
-Midscene 仅凭截图工作。你只需用自然语言描述每一步：
+### 在现有测试中使用 JavaScript
 
-- **更低的维护成本**：UI 变化时，无需再追着改选择器。
-- **触达每个元素与界面**：只要人眼能看到，Midscene 就能定位。即使元素没有语义化标注，或位于 `<canvas>`、原生应用、跨域 iframe 上，也可以定位。
-- **校验用户真正看到的效果**：验证颜色、高亮、布局与渲染状态，而不只是判断 DOM 节点是否存在。
-- **两种测试方式**：接入你的 [Playwright](https://midscenejs.com/zh/integrate-with-playwright) / Vitest 测试，或让 AI Agent 通过 [Skills](https://midscenejs.com/zh/skills) 自主测试。
+你也可以在已有测试中直接使用 Agent。配置好模型，并在 Playwright `page` 中打开应用后，用代码描述同样的步骤：
 
-Midscene 首先为 UI 测试而生，但同一套视觉驱动引擎也能胜任任意 UI 自动化任务。
+```javascript
+import { PlaywrightAgent } from '@midscene/web/playwright';
 
-## 💡 能自动化什么
+const agent = new PlaywrightAgent(page);
 
-只要能截图，Midscene 就能工作。Web 浏览器、Android、iOS、HarmonyOS、桌面应用，以及[任意自定义界面](https://midscenejs.com/zh/integrate-with-any-interface)，全部通过同一套 API。
+await agent.aiAct('搜索耳机，然后将结果筛选为价格低于 100 美元');
+await agent.aiWaitFor('筛选后的搜索结果已显示');
+await agent.aiAssert('搜索结果中有商品，且每件商品价格都低于 100 美元');
+```
 
-你可以用 JavaScript SDK 或 YAML 编写自动化，也可以通过 [Skills](https://midscenejs.com/zh/skills) 交给 AI Agent。所有方法都可以在 [API 参考](https://midscenejs.com/zh/reference/#common) 中查阅，包括 `aiAct`、`aiQuery` 和 `aiAssert`。
+移动端和桌面端应用可以通过 [Rstest](https://midscenejs.com/zh/sdk/rstest) 或 [Vitest](https://midscenejs.com/zh/sdk/vitest) 使用对应平台的 Agent。打开生成的 HTML 报告，即可查看截图、元素定位、AI 决策过程，以及操作和断言结果。
+
+## 👁️ 像人一样观察、操作并验证结果
+
+E2E 测试的初衷是从用户视角验证完整流程，所以 Midscene 按用户的方式来测：**观察屏幕，根据看到的内容操作，再验证界面呈现的结果**。
+
+### 根据截图定位与操作
+
+Midscene 根据元素的外观和位置进行定位，再通过点击、输入、滚动等操作完成你的指令。无需维护选择器或添加语义化标注，就能定位纯图标按钮、自定义控件、`<canvas>` 和跨域 iframe 中的元素。
+
+### 验证用户看到的结果
+
+用自然语言描述预期外观，就能检查颜色、选中高亮、布局和视觉反馈，也适用于 `<canvas>` 绘制的内容和原生应用界面。
+
+```javascript
+await agent.aiAssert('选中的套餐带有蓝色边框和勾选标记');
+await agent.aiAssert('邮箱输入框下方显示了错误提示');
+```
+
+## 🌐 一套 API，覆盖不同平台
+
+视觉定位不依赖界面渲染结构，同一套 Agent API 可以用于各个平台：
+
+| 平台 | 接入方式 |
+| --- | --- |
+| Web | [Playwright](https://midscenejs.com/zh/integrate-with-playwright)、[Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer) 或[桌面 Chrome](https://midscenejs.com/zh/bridge-mode) |
+| Android | [通过 ADB 连接真机或模拟器](https://midscenejs.com/zh/platforms/android) |
+| iOS | [通过 WebDriverAgent 连接真机或模拟器](https://midscenejs.com/zh/platforms/ios) |
+| HarmonyOS | [通过 HDC 连接 HarmonyOS NEXT](https://midscenejs.com/zh/platforms/harmonyos) |
+| 桌面 | [macOS、Windows、Linux，支持远程 RDP](https://midscenejs.com/zh/platforms/desktop) |
+| 自定义界面 | [提供截图与操作能力，即可接入](https://midscenejs.com/zh/integrate-with-any-interface) |
+
+## 📊 模型、成本与 Benchmark
+
+### 按效果与预算选择模型
+
+基于截图的 UI 操作无需向模型发送庞大的 DOM 树。在 AppControlBench 评测中，Midscene 搭配豆包 Seed 2.1 Turbo，**60 项任务通过 58 项，模型调用总费用为 0.59 美元**。[评测报告](https://midscenejs.com/zh/app-control-bench-report)提供了逐任务费用与不同模型的对比。
+
+Midscene 支持豆包 Seed、千问 Qwen、DeepSeek、Gemini、GPT、Kimi 等模型，也包括可自托管的开源选项。通过[模型选择指南](https://midscenejs.com/zh/model-selection)选择适合的模型，再按照[模型配置指南](https://midscenejs.com/zh/model-api-setup)完成配置。
+
+### Benchmark
+
+| Benchmark | Pass@1 | 对应评测使用的模型 |
+| --- | --- | --- |
+| [AndroidWorld](https://midscenejs.com/zh/android-world-benchmark-report) | 93.1% | Gemini-3.5-Flash |
+| [MobileWorld](https://midscenejs.com/zh/mobile-world-benchmark-report) | 78.6% | Gemini-3.6-Flash |
+| [AppControlBench](https://midscenejs.com/zh/app-control-bench-report) | 96.7% | Doubao Seed 2.1 Turbo |
+
+各报告包含运行配置与任务结果；AndroidWorld 报告还说明了环境与校验器的调整。查看[跨平台案例](https://midscenejs.com/zh/showcases)，了解 Web 表单校验、移动端操作流程，以及社区构建的车机测试方案。
+
+## 🧩 Midscene Test：面向自然语言的 E2E 测试框架
+
+[Midscene Test](https://midscenejs.com/zh/midscene-test/overview)（`@midscene/test`）是面向自然语言的 E2E 测试框架。用 YAML 描述操作和预期，需要精确控制的逻辑交给 TypeScript。
+
+### 让人和 AI 共同维护测试用例
+
+- **用 YAML 描述测试用例**：组合界面操作、断言与业务操作，表达测试流程和预期结果。
+- **用 TypeScript Node 复用业务能力**：将数据准备、接口调用与清理封装为 Node，供不同用例复用。例如，一条退款用例可以先通过 API 准备订单，再通过 UI 申请退款并验证结果。
+- **为开发者和 AI Agent 生成 Node 说明书**：将已注册的 Node 及其参数导出为 Markdown，双方都无需阅读 TypeScript 就能编写用例。
+
+### 测试框架能力
+
+- **生命周期钩子与资源清理**：`setup`、`fileSetup`、`beforeAll`、`beforeEach` 及对应的清理钩子；超时或按下 Ctrl+C 后清理照常执行。
+- **失败重试与超时**：用例重试、步骤超时、`continue-on-error` 和 `bail`。
+- **并发与隔离**：`maxConcurrentFiles` 控制并发，`fileSetup` 为每个文件准备独立的页面、Agent 或设备。
+- **精确到步骤的报告**：每个步骤的截图、输入、输出和 Agent 回放，`#runner-step=last-error` 深度链接，以及供脚本和 AI Agent 读取的 `summary.json`。
+
+从[创建和使用测试项目](https://midscenejs.com/zh/midscene-test/use)开始，再了解如何[编写自定义 Node](https://midscenejs.com/zh/midscene-test/extend)，以及如何控制[生命周期与并发](https://midscenejs.com/zh/midscene-test/execution)。
+
+报告、Test 结果、缓存和日志保存在 `midscene_run/`。路径配置与 CI 归档方式见[产物目录](https://midscenejs.com/zh/midscene-test/running#统一产物根与迁移)。
 
 ## 🚀 开始使用
 
-- **在 Chrome 中体验 Midscene**：通过[快速开始](https://midscenejs.com/zh/quick-start)配置模型、安装 Chrome Extension，并运行第一条自然语言指令。
-- **编写第一个脚本**：按照 [Playwright](https://midscenejs.com/zh/integrate-with-playwright) 或 [Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer) 集成指南创建 Agent，并运行完整的浏览器脚本。
-- **其他平台**：[Android](https://midscenejs.com/zh/platforms/android)、[iOS](https://midscenejs.com/zh/platforms/ios)、[HarmonyOS](https://midscenejs.com/zh/platforms/harmonyos) 与[桌面端](https://midscenejs.com/zh/platforms/desktop) 的上手指南。
-
-## ✨ 多模态模型驱动
-
-Midscene 在 UI 操作上完全采用纯视觉路线：元素定位仅基于截图。它支持 `Qwen3.x`、`Doubao-Seed-2.1`、`GLM-4.6V`、`gemini-3.5-flash`、`UI-TARS` 等具备极强 UI 定位能力的多模态模型，也包括可自托管的开源选项。在数据提取与页面理解场景中，你仍可按需选择携带 DOM。
-
-阅读更多：[模型策略](https://midscenejs.com/zh/model-strategy)。
-
-
+- **编写 YAML 测试用例**：[创建 Midscene Test 项目](https://midscenejs.com/zh/midscene-test/use)。
+- **为现有测试引入视觉能力**：Web 应用接入 [Playwright](https://midscenejs.com/zh/integrate-with-playwright)，移动端和桌面端应用接入 [Rstest](https://midscenejs.com/zh/sdk/rstest) 或 [Vitest](https://midscenejs.com/zh/sdk/vitest)。
+- **编写测试前先体验**：使用 [Chrome 插件](https://midscenejs.com/zh/get-started?scene=playground&platform=web)或[移动端、桌面端 Playground](https://midscenejs.com/zh/platforms)。
+- **运行独立的自动化脚本**：使用 [JavaScript SDK](https://midscenejs.com/zh/sdk/standalone)。
+- **让 AI Agent 操作界面**：安装 [Midscene Skills](https://midscenejs.com/zh/skills)。
 
 ## 📄 资源
 
@@ -130,17 +182,12 @@ Midscene 在 UI 操作上完全采用纯视觉路线：元素定位仅基于截�
 }
 ```
 
-## ✨ Star 历史
+## ⭐ 为 Midscene 点个 Star
+
+如果 Midscene 对你有帮助，欢迎点个 Star。
 
 [![Star History Chart](https://api.star-history.com/svg?repos=web-infra-dev/midscene&type=Date)](https://www.star-history.com/#web-infra-dev/midscene&Date)
-
 
 ## 📝 许可协议
 
 Midscene.js 采用 [MIT 许可证](https://github.com/web-infra-dev/midscene/blob/main/LICENSE)。
-
----
-
-<div align="center">
-  如果这个项目对你有帮助或启发，欢迎点个 Star
-</div>

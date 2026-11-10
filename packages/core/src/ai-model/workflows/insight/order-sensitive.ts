@@ -1,9 +1,9 @@
+import type {
+  ConversationSystemMessage,
+  ConversationUserMessage,
+} from '@/ai-model/service-caller/types';
 import type { AIUsageInfo } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
-import type {
-  ChatCompletionSystemMessageParam,
-  ChatCompletionUserMessageParam,
-} from 'openai/resources/index';
 import type { ModelRuntime } from '../../models';
 import {
   orderSensitiveJudgePrompt,
@@ -11,10 +11,7 @@ import {
 } from '../../prompt/order-sensitive-judge';
 import { callAIWithObjectResponse } from '../../service-caller/index';
 
-type InsightAIArgs = [
-  ChatCompletionSystemMessageParam,
-  ...ChatCompletionUserMessageParam[],
-];
+type InsightAIArgs = [ConversationSystemMessage, ...ConversationUserMessage[]];
 
 const debugInsight = getDebug('ai:insight');
 

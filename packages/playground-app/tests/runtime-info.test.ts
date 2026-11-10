@@ -90,7 +90,7 @@ describe('playground app runtime info helpers', () => {
       deviceId: 'SERIAL123',
       type: 'scrcpy',
       scrcpyPort: 6501,
-      scrcpyUrl: 'http://localhost:6501/',
+      scrcpyUrl: 'http://127.0.0.1:6501/',
     });
   });
 
@@ -115,6 +115,41 @@ describe('playground app runtime info helpers', () => {
       scrcpyUrl: 'https://midscene.example.com:7700/',
     });
   });
+
+  test.each([
+    ['192.168.1.100', 'http://localhost:5800', 'http://192.168.1.100:7700/'],
+    ['192.168.1.100', 'http://127.0.0.1:5800', 'http://192.168.1.100:7700/'],
+    ['127.0.0.1', 'http://localhost:5800', 'http://127.0.0.1:7700/'],
+    ['0.0.0.0', 'http://localhost:5800', 'http://127.0.0.1:7700/'],
+    ['0.0.0.0', 'http://192.168.1.100:5800', 'http://192.168.1.100:7700/'],
+    ['::1', 'http://localhost:5800', 'http://[::1]:7700/'],
+    ['::', 'http://localhost:5800', 'http://[::1]:7700/'],
+    ['2001:db8::1', 'http://localhost:5800', 'http://[2001:db8::1]:7700/'],
+    [
+      '192.168.1.100',
+      'https://midscene.example.com:5800',
+      'https://midscene.example.com:7700/',
+    ],
+  ])(
+    'resolves Scrcpy host %s from runtime URL %s',
+    (scrcpyHost, serverUrl, expected) => {
+      expect(
+        resolvePreviewConnectionInfo(
+          {
+            interface: { type: 'android' },
+            preview: {
+              kind: 'scrcpy',
+              capabilities: [],
+              custom: { scrcpyPort: 7700, scrcpyHost },
+            },
+            executionUxHints: [],
+            metadata: {},
+          },
+          serverUrl,
+        ).scrcpyUrl,
+      ).toBe(expected);
+    },
+  );
 
   test('falls back to screenshot polling for remote android devices', () => {
     expect(

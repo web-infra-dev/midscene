@@ -9,7 +9,10 @@ import { useExecutionDump } from './index';
  * - When the active task changes, reflect it into the hash via `replaceState`
  *   (no extra history entries, and it does not re-trigger the hash listener).
  */
-export function useTaskHashAnchor(): void {
+export function useTaskHashAnchor(
+  options: { namespaced?: boolean } = {},
+): void {
+  const namespaced = options.namespaced ?? false;
   const dump = useExecutionDump((store) => store.dump);
   const activeTask = useExecutionDump((store) => store.activeTask);
   const replayAllMode = useExecutionDump((store) => store.replayAllMode);
@@ -20,7 +23,9 @@ export function useTaskHashAnchor(): void {
     if (!dump) return;
 
     const applyHash = () => {
-      const hash = window.location.hash;
+      const hash = namespaced
+        ? new URLSearchParams(window.location.hash.slice(1)).get('task') || ''
+        : window.location.hash;
       if (!hash || hash === '#') return;
       const task = findTaskByAnchor(dump, hash);
       if (!task) return;
@@ -28,7 +33,7 @@ export function useTaskHashAnchor(): void {
       // Scroll the matching row into view once it has been rendered.
       requestAnimationFrame(() => {
         document
-          .getElementById(hash.slice(1))
+          .getElementById(hash.replace(/^#/, ''))
           ?.scrollIntoView({ block: 'nearest' });
       });
     };
@@ -36,15 +41,22 @@ export function useTaskHashAnchor(): void {
     applyHash();
     window.addEventListener('hashchange', applyHash);
     return () => window.removeEventListener('hashchange', applyHash);
-  }, [dump, setActiveTask]);
+  }, [dump, namespaced, setActiveTask]);
 
   // Active task -> hash. Skip while replaying all so the play-all view keeps
   // whatever anchor was last shared.
   useEffect(() => {
     if (!dump || replayAllMode || !activeTask) return;
-    const target = `#${anchorIdForTask(activeTask)}`;
-    if (window.location.hash !== target) {
+    const anchor = anchorIdForTask(activeTask);
+    const target = `#${anchor}`;
+    if (namespaced) {
+      const params = new URLSearchParams(window.location.hash.slice(1));
+      if (params.get('task') !== anchor) {
+        params.set('task', anchor);
+        window.history.replaceState(null, '', `#${params.toString()}`);
+      }
+    } else if (window.location.hash !== target) {
       window.history.replaceState(null, '', target);
     }
-  }, [dump, activeTask, replayAllMode]);
+  }, [dump, activeTask, namespaced, replayAllMode]);
 }

@@ -53,6 +53,8 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '24.13.0'
+          cache: ${{ runner.environment == 'github-hosted' && 'pnpm' || '' }}
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Cache pnpm store
         id: pnpm-cache
@@ -175,6 +177,10 @@ jobs:
 
       - name: Build Studio and Nx dependencies
         run: npx nx build studio
+
+      - name: Prepare macOS notarization network
+        if: ${{ matrix.platform == 'darwin' }}
+        uses: ./.github/actions/macos-notarization-network
 
       - name: Package Midscene Studio
         run: pnpm --dir apps/studio run package:release -- --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --version=${{ env.STUDIO_PACKAGE_VALIDATION_VERSION }}

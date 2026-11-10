@@ -1,0 +1,72 @@
+import { ChromeExtensionButton } from '@theme';
+
+# Web 环境配置
+
+Midscene 可以在三种浏览器中操作网页：Midscene Chrome 插件、由 Playwright 或 Puppeteer 启动的浏览器，以及通过 [Chrome Bridge](../bridge-mode) 连接的桌面 Chrome。本文分别介绍它们的准备方式，只需准备你打算使用的那一种。
+
+## Chrome 插件 {#chrome-extension}
+
+插件在桌面版 Chrome 中运行 Playground，不需要工程或 Node.js。
+
+1. 从 Chrome Web Store 安装 Midscene：
+
+   <ChromeExtensionButton linkLabel="从 Chrome Web Store 安装 Midscene 插件" />
+
+2. 在 Chrome 的扩展列表中打开 **Midscene**，浏览器右侧会出现 Midscene 侧边栏。
+
+插件中保存的模型配置只存在于浏览器内，测试和脚本不会读取它，需要单独配置模型。
+
+## Playwright {#playwright}
+
+安装 Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` 和 pnpm。在项目目录中，如果还没有 `package.json`，先执行 `pnpm init`，然后安装依赖及 Chromium：
+
+```bash
+pnpm add -D @midscene/web playwright
+pnpm exec playwright install chromium
+```
+
+Midscene Test 的 Web 项目已经依赖 Playwright，在该项目中只需执行 `pnpm exec playwright install chromium`。
+
+## Puppeteer {#puppeteer}
+
+```bash
+pnpm add -D @midscene/web puppeteer
+```
+
+安装过程中需允许 Puppeteer 下载自带的浏览器。若使用本地已安装的浏览器或远程浏览器，请确保可执行文件路径或 CDP 调试地址可以访问。连接参数请参阅[接入 Puppeteer](../integrate-with-puppeteer)。
+
+## Chrome Bridge {#chrome-bridge}
+
+如需复用桌面 Chrome 已有的标签页、登录状态或扩展程序，请先安装 [Chrome 插件](#chrome-extension)，再按照 [Chrome Bridge 环境配置](../bridge-mode)确认脚本可以通过插件控制 Chrome。
+
+## 验证 {#verify}
+
+在 Playground 中验证 Chrome 插件。打开[开始使用](../get-started?platform=web&scene=playground)，页面已为你选好 Web 和 Playground，选择模型接入方式后，按步骤执行一次 `aiAct` 操作和一次 `aiAssert` 断言。断言通过即表示插件和模型调用都正常。
+
+Playground 在插件中运行，不使用 Playwright 或 Puppeteer 的浏览器。如需验证这类浏览器，请在同一页面选择「创建 Midscene Test 项目」或「接入 JavaScript 测试工程」，按步骤第一次运行测试时就会用到这类浏览器。Chrome Bridge 请执行[连接检查](../bridge-mode#verify-connection)。
+
+## 常见问题
+
+<span id="chrome-extension-faq" />
+
+### 是否可以手动安装 Chrome 插件？
+
+如果无法访问 Chrome Web Store，可以从 [GitHub Releases 页面](https://github.com/web-infra-dev/midscene/releases) 下载安装包并手动安装。但这种方式无法获得自动更新。
+
+### 运行失败，提示 `Cannot access a chrome-extension:// URL of different extension`
+
+这通常由其他 Chrome 插件与 Midscene 冲突引起。例如，其他插件可能已经向页面注入 `<iframe />` 或 `<script />`。
+
+按照以下步骤查找发生冲突的插件：
+
+1. 打开页面的开发者工具，找到 URL 以 `chrome-extension://` 开头的 `<iframe />` 或 `<script />`，并复制 URL 中的扩展 ID。
+2. 打开 `chrome://extensions/`，根据扩展 ID 找到并禁用对应的插件。
+3. 刷新页面并重试。
+
+### 在插件中使用 Ollama 模型时出现 403 错误
+
+设置环境变量 `OLLAMA_ORIGINS="*"`，允许 Chrome 插件访问 Ollama 模型。
+
+### 测试或脚本无法打开页面
+
+请确认已安装 Playwright 或 Puppeteer 的浏览器，并且运行测试的机器可以访问目标 URL。Playwright 或 Puppeteer 启动的浏览器使用全新的用户配置，无法使用桌面 Chrome 中的登录状态。如需复用登录状态，请使用 [Chrome Bridge](#chrome-bridge)。

@@ -86,7 +86,7 @@
 }
 `}</style>
 
-本文是 Midscene 针对 MobileWorld benchmark 的测试报告。本次测试覆盖 117 个任务，Midscene 取得了 **Pass@1 78.63%（92/117）** 的结果。
+本文是 Midscene 针对 MobileWorld benchmark 的测试报告。本次测试仅覆盖 117 个 `GUI-ONLY` 任务，Midscene 取得了 **Pass@1 78.63%（92/117）** 的结果。
 
 :::info 关于 MobileWorld
 
@@ -102,6 +102,7 @@
 | Model Name | `Gemini-3.6-Flash` |
 | Midscene version | `1.10.3` |
 | Device | `DockerEmulator` |
+| 任务范围 | 仅 `GUI-ONLY` 任务 |
 | 任务数量 | 117 |
 | `MIDSCENE_REPLANNING_CYCLE_LIMIT` | 50 |
 | MobileWorld 工程 | MobileWorld 使用 Midscene benchmark 适配层，通过 Midscene RPC 执行 Agent，同时保留 MobileWorld 的任务初始化和验证流程。 |
@@ -117,7 +118,7 @@
 
 ## 报告文件
 
-以下为本轮 117 个任务的详细报告。报告均为压缩后的自包含 HTML，点击“报告”会在新页面打开对应执行记录。
+以下为本轮全部 117 个 `GUI-ONLY` 任务的详细报告。报告均为压缩后的自包含 HTML，点击“报告”会在新页面打开对应执行记录。
 
 <details open className="benchmark-round">
 <summary>Round 1（117 份报告 · 92 PASS · 25 FAIL）</summary>

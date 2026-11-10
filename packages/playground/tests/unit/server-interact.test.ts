@@ -227,9 +227,10 @@ describe('PlaygroundServer manual interaction APIs', () => {
       interface: {
         actionSpace: () => [{ name: 'aiAct', description: 'act' }],
       },
-      resetDump: rs.fn(() => {
+      resetDump: rs.fn(async () => {
         dump.executions = [];
       }),
+      finalizeReport: rs.fn(async () => `${process.cwd()}/package.json`),
       callActionInActionSpace: rs.fn(async () => {
         appendExecution({ id: 'login', logTime: 300, name: 'Act - login' });
         return { ok: true };
@@ -287,6 +288,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(agent.resetDump).toHaveBeenCalledBefore(
       agent.callActionInActionSpace,
     );
+    expect(agent.finalizeReport).toHaveBeenCalledOnce();
     expect(body.dump).toBeNull();
     expect(body.reportHTML).toBeNull();
     expect(body.report).toMatchObject({
@@ -325,7 +327,8 @@ describe('PlaygroundServer manual interaction APIs', () => {
       interface: {
         actionSpace: () => [],
       },
-      resetDump: rs.fn(),
+      resetDump: rs.fn(async () => {}),
+      finalizeReport: rs.fn(async () => `${process.cwd()}/package.json`),
       aiAct: rs.fn(async (_prompt: string, options: any) => {
         capturedSignal = options.abortSignal;
         (agent as any).onDumpUpdate?.('', {
@@ -418,6 +421,10 @@ describe('PlaygroundServer manual interaction APIs', () => {
   });
 
   test('report replay and screenshot routes stream compact persisted data', async () => {
+    const directory = await mkdtemp(
+      join(tmpdir(), 'playground-inline-replay-'),
+    );
+    const reportPath = join(directory, 'report.html');
     const webpReferenceImage = 'data:image/webp;base64,V0VCUA==';
     const dump = {
       sdkVersion: 'test',
@@ -459,6 +466,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
       ],
     };
     const reportHTML = `<html></html>\n<script type="midscene-image" data-id="shot-1">${VALID_PNG_BASE64}</script>\n<script type="midscene-image" data-id="reference-1">${webpReferenceImage}</script>\n<script type="midscene_web_dump">${JSON.stringify(dump)}</script>`;
+    await writeFile(reportPath, reportHTML);
     rs.mocked(createReadStream).mockImplementation(
       () =>
         ({
@@ -473,9 +481,10 @@ describe('PlaygroundServer manual interaction APIs', () => {
       interface: {
         actionSpace: () => [{ name: 'aiAct', description: 'act' }],
       },
-      resetDump: rs.fn(),
+      resetDump: rs.fn(async () => {}),
+      finalizeReport: rs.fn(async () => reportPath),
       callActionInActionSpace: rs.fn(async () => ({ ok: true })),
-      reportFile: `${process.cwd()}/package.json`,
+      reportFile: reportPath,
     };
     const server = new PlaygroundServer(agent as any);
 
@@ -535,6 +544,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
       );
     } finally {
       await server.close();
+      await rm(directory, { recursive: true, force: true });
     }
   });
 
@@ -554,7 +564,8 @@ describe('PlaygroundServer manual interaction APIs', () => {
       interface: {
         actionSpace: () => [{ name: 'aiAct', description: 'act' }],
       },
-      resetDump: rs.fn(),
+      resetDump: rs.fn(async () => {}),
+      finalizeReport: rs.fn(async () => reportPath),
       callActionInActionSpace: rs.fn(async () => ({ ok: true })),
       reportFile: reportPath,
     };
@@ -747,6 +758,49 @@ describe('PlaygroundServer manual interaction APIs', () => {
     );
   });
 
+  test('POST /interact falls back to pointer-backed Swipe', async () => {
+    const pointerSwipe = rs.fn(async () => {});
+    const inputPrimitives = makeInputPrimitiveStub({
+      pointer: {
+        tap: rs.fn(async () => {}),
+        swipe: pointerSwipe,
+      },
+      touch: undefined,
+    });
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'computer',
+        actionSpace: () => [],
+        inputPrimitives,
+      },
+    } as any);
+
+    await server.launch(6111);
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    const response = createMockResponse();
+    await interactHandler(
+      {
+        body: {
+          actionType: 'Swipe',
+          x: 10,
+          y: 20,
+          endX: 110,
+          endY: 220,
+          duration: 500,
+          repeat: 2,
+        },
+      },
+      response,
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(pointerSwipe).toHaveBeenCalledWith(
+      { x: 10, y: 20 },
+      { x: 110, y: 220 },
+      { duration: 500, repeat: 2 },
+    );
+  });
+
   test('POST /interact forwards Scroll to input primitives', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
     const server = new PlaygroundServer({
@@ -905,7 +959,14 @@ describe('PlaygroundServer manual interaction APIs', () => {
         centerDistance: 0,
       },
     }));
+    const getModelConfig = rs.fn((intent: 'insight' | 'locate') => ({
+      modelName: `${intent}-model`,
+      modelDescription: intent,
+      intent,
+      slot: intent,
+    }));
     const server = new PlaygroundServer({
+      modelConfigManager: { getModelConfig },
       interface: {
         interfaceType: 'ios',
         actionSpace: () => [],
@@ -980,6 +1041,20 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(assetResponse.statusCode).toBe(200);
 
     const describeResponse = await describeRecorderEvent(server, rawEvents[0]);
+    expect(getModelConfig.mock.calls.map(([intent]) => intent)).toEqual([
+      'insight',
+      'locate',
+    ]);
+    expect(
+      rs.mocked(coreDescribeElementAtPoint).mock.calls[0][0],
+    ).toMatchObject({
+      locateModelRuntime: {
+        config: { modelName: 'locate-model', intent: 'locate' },
+      },
+      describeModelRuntime: {
+        config: { modelName: 'insight-model', intent: 'insight' },
+      },
+    });
     expect(describeResponse.body).toMatchObject({
       ok: true,
       trace: {

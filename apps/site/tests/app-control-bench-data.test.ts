@@ -12,8 +12,8 @@ const EXPECTED_SUMMARIES = {
     passCount: 58,
     partialCount: 1,
     failCount: 1,
-    totalUsd: 1.563245,
-    totalCny: 10.630066,
+    totalUsd: 0.591189,
+    totalCny: 4.020089,
   },
   'qwen-20260825': {
     averageDurationSeconds: 53.990117,

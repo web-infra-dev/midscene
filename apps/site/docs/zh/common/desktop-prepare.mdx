@@ -1,0 +1,13 @@
+- **macOS**：需要为启动 Playground 或运行脚本的终端 / IDE（如 Terminal、iTerm2、VS Code、Cursor、WebStorm 等）授予两项独立的系统权限：
+  1. **辅助功能权限**（用于控制鼠标与键盘）：前往「系统设置 > 隐私与安全性 > 辅助功能」开启对应应用的开关（详见 [nut.js macOS 配置说明](https://github.com/nut-tree/nut.js#macos)）。
+  2. **屏幕录制权限**（用于截取桌面画面）：前往「系统设置 > 隐私与安全性 > 屏幕录制」开启对应应用的开关。**授权后请完全退出并重启该终端或 IDE**，再启动 Playground。
+- **Windows**：操作常规权限的桌面程序无需额外配置。但受 Windows 用户界面特权隔离（UIPI）机制限制，未提权的普通进程**无法**向「以管理员身份运行」的高权限窗口注入鼠标点击或按键事件（光标仍能移动到目标位置，但点击和按键会被系统静默丢弃）。建议优先以普通权限启动被测程序；若被测程序必须以管理员身份运行，请**同样以管理员身份启动运行 Midscene 的终端或 Node.js 进程**（详见下方[常见问题](../platforms/desktop#windows点击对某些程序不生效)）。
+- **Linux（图形桌面）**：需安装 [ImageMagick](https://imagemagick.org/script/download.php) 以提供截图能力。
+- **Linux（无头服务器 / CI 环境）**：在没有物理显示器的 Linux 服务器（如 GitHub Actions）上运行时，需安装 Xvfb 与 ImageMagick，并开启无头（Headless）模式自动创建虚拟显示器：
+
+```bash
+# 安装依赖
+sudo apt-get install -y xvfb x11-xserver-utils imagemagick
+```
+
+使用 Xvfb 时，请确保被测应用同样启动在该虚拟显示器环境中（本机带有物理显示器时无需开启此项）。

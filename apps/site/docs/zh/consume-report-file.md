@@ -4,6 +4,8 @@ Midscene 的 HTML 报告文件记录了单个 Agent 运行过程中的完整信�
 
 从 v1.7.0 开始，你可以把报告文件中的原始截图和 JSON 数据提取出来，或者把报告转录为 Markdown，方便其他工具继续消费这些内容。
 
+`split` 和 `to-markdown` 会将图片导出到 `screenshots/`，自动复用重复图片。使用导出结果中的图片路径即可。
+
 ## 示例
 
 你可以把报告文件解析为这样一份 Markdown 文件：
@@ -21,12 +23,12 @@ Midscene 的 HTML 报告文件记录了单个 Agent 运行过程中的完整信�
 - Cost(ms): 10451
 - Screen size: 2880 x 1536
 
-![task-1](./screenshots/execution-1-task-1-f9fc3bf9-bdf6-48dd-abea-f8f29874d8c1.jpeg)
+![task-1](./screenshots/<image-1>.jpeg)
 
 ### Recorder
 - #1 type=screenshot, ts=2026-04-08T02:13:15.296Z, timing=after-calling
 
-![task-1](./screenshots/execution-1-task-1-c521b130-5037-4ed2-b70f-705e181d981a.jpeg)
+![task-1](./screenshots/<image-2>.jpeg)
 
 ## 2. Locate - 顶部带有“李维刚的日常”占位文字的搜索输入框
 - Status: finished

@@ -1,22 +1,16 @@
 import { type TUserPrompt, userPromptToMultimodalPrompt } from '@/common';
-import type {
-  ChatCompletionContentPart,
-  ChatCompletionSystemMessageParam,
-  ChatCompletionUserMessageParam,
-} from 'openai/resources/index';
 import {
   type ImagePreprocessPolicy,
   type PreparedModelImage,
   prepareModelImage,
 } from '../../model-adapter/image-preprocess';
-import type { LocateUserMessageContentOrder } from '../../model-adapter/types';
+import {
+  type LocateMessages,
+  type LocatePromptOrder,
+  buildLocateMessages,
+} from '../../model-adapter/locate-prompt-order';
 import type { ModelRuntime } from '../../models';
-import { multimodalPromptToChatMessages } from '../../shared/multimodal-prompt';
-
-export type GroundingAIArgs = [
-  ChatCompletionSystemMessageParam,
-  ...ChatCompletionUserMessageParam[],
-];
+import { multimodalPromptToMessages } from '../../shared/multimodal-prompt';
 
 export async function prepareLocateModelInput({
   locateImage,
@@ -24,7 +18,7 @@ export async function prepareLocateModelInput({
   systemPrompt,
   userPrompt,
   imagePreprocess,
-  userMessageContentOrder,
+  promptOrder,
 }: {
   locateImage: {
     imageBase64: string;
@@ -35,9 +29,9 @@ export async function prepareLocateModelInput({
   systemPrompt: string;
   userPrompt: string;
   imagePreprocess: ImagePreprocessPolicy;
-  userMessageContentOrder: LocateUserMessageContentOrder;
+  promptOrder: LocatePromptOrder;
 }): Promise<{
-  messages: GroundingAIArgs;
+  messages: LocateMessages;
   preparedImage: PreparedModelImage;
 }> {
   const preparedImage = await prepareModelImage({
@@ -46,34 +40,17 @@ export async function prepareLocateModelInput({
     height: locateImage.height,
     policy: imagePreprocess,
   });
-  const referenceImageMessages = await multimodalPromptToChatMessages(
+  const referenceImageMessages = await multimodalPromptToMessages(
     userPromptToMultimodalPrompt(targetDescription),
   );
-  const imageContent: ChatCompletionContentPart = {
-    type: 'image_url',
-    image_url: {
-      url: preparedImage.imageBase64,
-      detail: 'high',
-    },
-  };
-  const promptContent: ChatCompletionContentPart = {
-    type: 'text',
-    text: userPrompt,
-  };
-
   return {
     preparedImage,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      {
-        role: 'user',
-        content:
-          userMessageContentOrder === 'prompt-first'
-            ? [promptContent, imageContent]
-            : [imageContent, promptContent],
-      },
-      ...referenceImageMessages,
-    ],
+    messages: buildLocateMessages(promptOrder, {
+      instructions: systemPrompt,
+      screenshot: preparedImage.imageBase64,
+      task: userPrompt,
+      references: referenceImageMessages,
+    }),
   };
 }
 

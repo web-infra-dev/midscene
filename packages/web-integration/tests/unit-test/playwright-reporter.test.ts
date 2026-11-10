@@ -8,12 +8,22 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import MidsceneReporter from '@/playwright/reporter';
+import {
+  ExecutionDump,
+  ReportGenerator,
+  ReportImageStore,
+  ScreenshotItem,
+} from '@midscene/core';
 import * as agentActual from '@midscene/core/agent' with {
   rstest: 'importActual',
 };
-import { ReportMergingTool } from '@midscene/core/report';
+import {
+  ReportMergingTool,
+  readReportActionDump,
+  readReportDumpScripts,
+} from '@midscene/core/report';
 import * as sharedUtils from '@midscene/shared/utils';
 import type { TestCase, TestResult } from '@playwright/test/reporter';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
@@ -26,6 +36,8 @@ rs.mock('@midscene/core/agent', () => ({
   ...agentActual,
   printReportMsg: rs.fn(),
 }));
+const png =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
 
 describe('MidsceneReporter', () => {
   let tempDir: string;
@@ -46,10 +58,44 @@ describe('MidsceneReporter', () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  function createReportFile(name: string, content = 'report-data'): string {
+  async function createReportFile(
+    name: string,
+    content = 'report-data',
+    format: 'inline' | 'directory' = 'inline',
+  ): Promise<string> {
     mkdirSync(outputDir, { recursive: true });
-    const reportPath = join(outputDir, `${name}.html`);
-    writeFileSync(reportPath, content, 'utf-8');
+    const reportPath =
+      format === 'directory'
+        ? join(outputDir, name, 'index.html')
+        : join(outputDir, `${name}.html`);
+    const generator = new ReportGenerator({
+      reportPath,
+      screenshotMode: format,
+      autoPrint: false,
+    });
+    generator.onExecutionUpdate(
+      new ExecutionDump({
+        id: name,
+        name: content,
+        logTime: 0,
+        tasks: [
+          {
+            taskId: name,
+            type: 'Log',
+            status: 'finished',
+            param: {},
+            recorder: [0, 1].map((ts) => ({
+              type: 'screenshot',
+              ts,
+              screenshot: ScreenshotItem.create(png, ts),
+            })),
+            executor: async () => {},
+          },
+        ],
+      }),
+      { sdkVersion: '1.17.2', groupName: name, modelBriefs: [] },
+    );
+    await generator.finalize();
     return reportPath;
   }
 
@@ -79,6 +125,73 @@ describe('MidsceneReporter', () => {
   });
 
   describe('report collection', () => {
+    it.each(
+      (['inline', 'directory'] as const).flatMap((source) =>
+        (['merged', 'separate'] as const).flatMap((mode) =>
+          (['single-html', 'html-and-external-assets'] as const).map(
+            (outputFormat) => ({ source, mode, outputFormat }),
+          ),
+        ),
+      ),
+    )(
+      'keeps timeout status, retry metadata and images: $source -> $mode/$outputFormat',
+      async ({ source, mode, outputFormat }) => {
+        const reporter = new MidsceneReporter({ type: mode, outputFormat });
+        const reportPath = await createReportFile(
+          'source',
+          'successful Agent actions',
+          source,
+        );
+        reporter.onTestEnd(
+          {
+            id: 'host',
+            title: 'host times out',
+            parent: { title: 'suite' },
+            annotations: [
+              { type: 'MIDSCENE_DUMP_ANNOTATION', description: reportPath },
+            ],
+          } as TestCase,
+          { status: 'timedOut', duration: 500, retry: 1 } as TestResult,
+        );
+        await reporter.onEnd();
+        expect(existsSync(reportPath)).toBe(false);
+        const [name] = readdirSync(outputDir);
+        const output = join(
+          outputDir,
+          name,
+          outputFormat === 'single-html' ? '' : 'index.html',
+        );
+        const [{ openTag, content }] = readReportDumpScripts(output);
+        const attributes = Object.fromEntries(
+          [...openTag.matchAll(/([^\s=]+)="([^"]*)"/g)].map(
+            ([, key, value]) => [key, decodeURIComponent(value)],
+          ),
+        );
+        expect(attributes).toMatchObject({
+          playwright_test_status: 'timedOut',
+          playwright_test_duration: '500',
+          playwright_test_id: 'host(retry #1)',
+          playwright_test_title: 'host times out(retry #1)',
+        });
+        const dump = JSON.parse(content);
+        expect(dump.executions[0].name).toBe('successful Agent actions');
+        const refs = dump.executions[0].tasks[0].recorder.map(
+          (item: any) => item.screenshot,
+        );
+        expect(refs.map((ref: any) => ref.capturedAt)).toEqual([0, 1]);
+        const images = new ReportImageStore({
+          reportPath: output,
+          mode: outputFormat === 'single-html' ? 'inline' : 'directory',
+        });
+        const bytes = refs.map((ref: any) => images.loadDataUri(ref));
+        expect(bytes).toEqual([png, png]);
+        if (outputFormat === 'html-and-external-assets')
+          expect(
+            readdirSync(join(dirname(output), 'screenshots')),
+          ).toHaveLength(1);
+      },
+    );
+
     it('should ignore tests without Midscene annotations', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
       const mergeSpy = rs.spyOn<any, any>(
@@ -102,7 +215,7 @@ describe('MidsceneReporter', () => {
 
     it('should finalize a single report in merged mode and remove the source', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
-      const reportPath = createReportFile(
+      const reportPath = await createReportFile(
         'single-report',
         'single-report-data',
       );
@@ -127,17 +240,19 @@ describe('MidsceneReporter', () => {
       const [mergedFileName] = reportFiles;
       const mergedPath = join(outputDir, mergedFileName);
       expect(existsSync(mergedPath)).toBe(true);
-      expect(readFileSync(mergedPath, 'utf-8')).toBe('single-report-data');
+      expect((await readReportActionDump(mergedPath)).executions[0].name).toBe(
+        'single-report-data',
+      );
       expect(existsSync(reportPath)).toBe(false);
     });
 
     it('should merge multiple reports in merged mode and remove the sources', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
-      const reportPathA = createReportFile(
+      const reportPathA = await createReportFile(
         'report-a',
         '<!doctype html><html><body><script type="midscene_web_dump" data-group-id="a">{"groupName":"a","executions":[]}</script></body></html>',
       );
-      const reportPathB = createReportFile(
+      const reportPathB = await createReportFile(
         'report-b',
         '<!doctype html><html><body><script type="midscene_web_dump" data-group-id="b">{"groupName":"b","executions":[]}</script></body></html>',
       );
@@ -173,7 +288,10 @@ describe('MidsceneReporter', () => {
 
     it('should finalize a single report in separate mode and remove the source', async () => {
       const reporter = new MidsceneReporter({ type: 'separate' });
-      const reportPath = createReportFile('separate-report', 'separate-data');
+      const reportPath = await createReportFile(
+        'separate-report',
+        'separate-data',
+      );
 
       reporter.onTestEnd(
         {
@@ -194,11 +312,11 @@ describe('MidsceneReporter', () => {
 
     it('should merge multiple page reports in separate mode and remove the sources', async () => {
       const reporter = new MidsceneReporter({ type: 'separate' });
-      const reportPathA = createReportFile(
+      const reportPathA = await createReportFile(
         'separate-page-a',
         '<!doctype html><html><body><script type="midscene_web_dump" data-group-id="a">{"groupName":"a","executions":[]}</script></body></html>',
       );
-      const reportPathB = createReportFile(
+      const reportPathB = await createReportFile(
         'separate-page-b',
         '<!doctype html><html><body><script type="midscene_web_dump" data-group-id="b">{"groupName":"b","executions":[]}</script></body></html>',
       );
@@ -224,8 +342,14 @@ describe('MidsceneReporter', () => {
 
     it('should keep reports distinct when tests in different suites share a title', async () => {
       const reporter = new MidsceneReporter({ type: 'separate' });
-      const reportPathA = createReportFile('same-title-suite-a', 'suite-a');
-      const reportPathB = createReportFile('same-title-suite-b', 'suite-b');
+      const reportPathA = await createReportFile(
+        'same-title-suite-a',
+        'suite-a',
+      );
+      const reportPathB = await createReportFile(
+        'same-title-suite-b',
+        'suite-b',
+      );
 
       for (const [id, suiteTitle, reportPath] of [
         ['test-id-suite-a', 'suite a', reportPathA],
@@ -250,11 +374,14 @@ describe('MidsceneReporter', () => {
         fileName.endsWith('.html'),
       );
       expect(outputFiles).toHaveLength(2);
-      expect(
-        outputFiles.map((fileName) =>
-          readFileSync(join(outputDir, fileName), 'utf-8'),
+      const names = await Promise.all(
+        outputFiles.map(
+          async (fileName) =>
+            (await readReportActionDump(join(outputDir, fileName)))
+              .executions[0].name,
         ),
-      ).toEqual(expect.arrayContaining(['suite-a', 'suite-b']));
+      );
+      expect(names).toEqual(expect.arrayContaining(['suite-a', 'suite-b']));
       expect(existsSync(reportPathA)).toBe(false);
       expect(existsSync(reportPathB)).toBe(false);
     });
@@ -265,9 +392,11 @@ describe('MidsceneReporter', () => {
         outputFormat: 'html-and-external-assets',
       });
       const sourceDir = join(outputDir, 'directory-report');
-      const reportPath = join(sourceDir, 'index.html');
-      mkdirSync(sourceDir, { recursive: true });
-      writeFileSync(reportPath, 'directory-report-data', 'utf-8');
+      const reportPath = await createReportFile(
+        'directory-report',
+        'directory-report-data',
+        'directory',
+      );
 
       reporter.onTestEnd(
         {
@@ -293,8 +422,8 @@ describe('MidsceneReporter', () => {
 
     it('should preserve source reports when final report generation fails', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
-      const reportPathA = createReportFile('failed-merge-source-a');
-      const reportPathB = createReportFile('failed-merge-source-b');
+      const reportPathA = await createReportFile('failed-merge-source-a');
+      const reportPathB = await createReportFile('failed-merge-source-b');
       rs.spyOn(
         ReportMergingTool.prototype,
         'mergeReports',
@@ -331,7 +460,10 @@ describe('MidsceneReporter', () => {
         } as any,
         {} as any,
       );
-      const reportPath = createReportFile('project-report', 'project-data');
+      const reportPath = await createReportFile(
+        'project-report',
+        'project-data',
+      );
 
       reporter.onTestEnd(
         {
@@ -363,7 +495,7 @@ describe('MidsceneReporter', () => {
           type: 'separate',
           outputFormat,
         });
-        const reportPath = createReportFile(
+        const reportPath = await createReportFile(
           `long-title-report-${outputFormat}`,
           'long-title-data',
         );

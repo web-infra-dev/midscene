@@ -413,8 +413,8 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
       let replayInfo = null;
       let counter = replayCounter;
 
-      // Generate replay info for all APIs (including noReplayAPIs)
-      // This allows noReplayAPIs to display both output and report
+      // Generate replay info for all APIs so eligible APIs can display their
+      // return value alongside the report.
       const info = replayInfoFromExecutionResult(result, deviceType);
       if (info) {
         setReplayCounter((c) => c + 1);

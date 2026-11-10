@@ -1,11 +1,15 @@
-import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { sep } from 'node:path';
-import { JSON_SCHEMA, load as loadYaml } from 'js-yaml';
+import { classifyWorkflowDocumentFormat } from '@midscene/core/internal/test-runner';
 import type { JsonValue } from '../cli/test-project';
 import { WorkflowParseError } from '../errors';
 import type { NodeDefinition } from '../node/types';
+import {
+  createCaseInvocationId,
+  createDocumentInvocationId,
+} from './identifiers';
 import { normalizeSteps } from './normalize';
+import { parseWorkflowSource } from './source';
 import type {
   CollectedCase,
   CollectedWorkflowDocument,
@@ -21,6 +25,25 @@ export interface CollectWorkflowDocumentOptions {
 
 const isMapping = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+
+export class NativeWorkflowFormatError extends WorkflowParseError {
+  readonly actualFormat: 'legacy' | 'legacy-batch' | 'mixed';
+
+  constructor(
+    actualFormat: 'legacy' | 'legacy-batch' | 'mixed',
+    sourcePath: string,
+  ) {
+    super(
+      actualFormat === 'legacy'
+        ? `Legacy tasks/flow YAML is not supported by midscene-test: ${sourcePath}. Run it with \`midscene ${sourcePath}\`, or migrate the file to cases/steps.`
+        : actualFormat === 'legacy-batch'
+          ? `Legacy YAML batch configuration is not a midscene-test workflow document: ${sourcePath}. Run it with \`midscene --config ${sourcePath}\`, or migrate it to a native project config.`
+          : `A workflow file cannot mix legacy tasks/flow with native cases/steps or lifecycle hooks: ${sourcePath}. Keep the formats in separate files and run each file with its matching command.`,
+      { sourcePath, actualFormat, expectedFormat: 'native' },
+    );
+    this.actualFormat = actualFormat;
+  }
+}
 
 const rejectUnknownKeys = (
   value: Record<string, unknown>,
@@ -41,28 +64,20 @@ export const createCaseId = (
   projectId: string,
   sourcePath: string,
   caseIndex: number,
-): string =>
-  createHash('sha256')
-    .update(JSON.stringify([projectId, sourcePath, caseIndex]))
-    .digest('hex');
+): string => createCaseInvocationId(projectId, sourcePath, caseIndex);
 
 export const createWorkflowDocumentId = (
   projectId: string,
   sourcePath: string,
-): string =>
-  createHash('sha256')
-    .update(JSON.stringify([projectId, sourcePath]))
-    .digest('hex');
+): string => createDocumentInvocationId(projectId, sourcePath);
 
 export function collectWorkflowDocument(
   source: WorkflowDocumentSource,
   options: CollectWorkflowDocumentOptions,
 ): CollectedWorkflowDocument {
-  let parsed: unknown;
+  let snapshot: ReturnType<typeof parseWorkflowSource>;
   try {
-    parsed = loadYaml(readFileSync(source.absolutePath, 'utf8'), {
-      schema: JSON_SCHEMA,
-    });
+    snapshot = parseWorkflowSource(readFileSync(source.absolutePath, 'utf8'));
   } catch (error) {
     throw new WorkflowParseError(
       `Failed to parse workflow document "${source.sourcePath}".`,
@@ -70,9 +85,14 @@ export function collectWorkflowDocument(
       error,
     );
   }
+  const { parsed, sourceYaml } = snapshot;
 
   if (!isMapping(parsed)) {
     throw new WorkflowParseError('Workflow document must be a mapping.');
+  }
+  const format = classifyWorkflowDocumentFormat(parsed);
+  if (format === 'legacy' || format === 'legacy-batch' || format === 'mixed') {
+    throw new NativeWorkflowFormatError(format, source.sourcePath);
   }
   rejectUnknownKeys(
     parsed,
@@ -93,6 +113,15 @@ export function collectWorkflowDocument(
     caseIndex?: number,
   ) => ({
     ...step,
+    meta: {
+      ...step.meta,
+      sourceLocation: snapshot.locate(
+        phase === 'steps'
+          ? ['cases', caseIndex!, 'steps', stepIndex]
+          : [phase, stepIndex],
+      ),
+    },
+    templateInput: step.input,
     input: resolveWorkflowVariables(step.input, {
       variables: options.variables,
       env: options.env ?? process.env,
@@ -116,16 +145,18 @@ export function collectWorkflowDocument(
         { phase },
       );
     }
-    return normalizeSteps(value).map((normalized, stepIndex) => {
-      const resolved = options.resolveNode(normalized.node);
-      if (!resolved) {
-        throw new WorkflowParseError(
-          `Workflow document ${phase} step ${stepIndex + 1} references unknown node "${normalized.node}".`,
-          { phase, stepIndex, node: normalized.node },
-        );
-      }
-      return resolveStepVariables(normalized, phase, stepIndex);
-    });
+    return normalizeSteps(value, options.resolveNode).map(
+      (normalized, stepIndex) => {
+        const resolved = options.resolveNode(normalized.node);
+        if (!resolved) {
+          throw new WorkflowParseError(
+            `Workflow document ${phase} step ${stepIndex + 1} references unknown node "${normalized.node}".`,
+            { phase, stepIndex, node: normalized.node },
+          );
+        }
+        return resolveStepVariables(normalized, phase, stepIndex);
+      },
+    );
   };
   const lifecycle = {
     beforeAll: normalizeLifecycle('beforeAll'),
@@ -171,7 +202,7 @@ export function collectWorkflowDocument(
       );
     }
 
-    const steps = normalizeSteps(definition.steps).map(
+    const steps = normalizeSteps(definition.steps, options.resolveNode).map(
       (normalized, stepIndex) => {
         if (!options.resolveNode(normalized.node)) {
           throw new WorkflowParseError(
@@ -207,6 +238,7 @@ export function collectWorkflowDocument(
     documentId: createWorkflowDocumentId(source.projectId, sourcePath),
     projectId: source.projectId,
     sourcePath,
+    sourceYaml,
     lifecycle,
     cases,
   } satisfies CollectedWorkflowDocument;

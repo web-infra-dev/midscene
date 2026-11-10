@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 /**
- * @vitest-environment jsdom
+ * @rstest-environment jsdom
  */
 import { act } from 'react';
 import type React from 'react';
@@ -133,6 +133,7 @@ describe('BrowserExtensionPlayground', () => {
       'chrome-extension-playground playground-conversation-skin',
     );
     expect(universalPlaygroundProps.at(-1)?.envConfigReminderProps).toEqual({
+      modelConfigActions: expect.anything(),
       agentOptions,
       configModalClassName: 'chrome-extension-model-env-config-modal',
       configModalWidth: 360,

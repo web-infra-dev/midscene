@@ -1,6 +1,7 @@
 import { describe, expect, test } from '@rstest/core';
 import { isLocateField } from '../src/types';
 import {
+  findActionForType,
   getAvailablePromptActionTypes,
   getInlineStructuredFieldConfig,
   shouldOffsetEmptyStateForPromptInput,
@@ -65,6 +66,23 @@ describe('isLocateField', () => {
     expect(
       isLocateField(makeMidsceneLocationField('The position to be dragged')),
     ).toBe(true);
+  });
+});
+
+describe('findActionForType', () => {
+  test('preserves the first-match semantics when names and aliases collide', () => {
+    const firstAction = {
+      name: 'shared',
+      interfaceAlias: 'first',
+    };
+    const laterAction = {
+      name: 'second',
+      interfaceAlias: 'shared',
+    };
+
+    expect(findActionForType([firstAction, laterAction] as any, 'shared')).toBe(
+      firstAction,
+    );
   });
 });
 

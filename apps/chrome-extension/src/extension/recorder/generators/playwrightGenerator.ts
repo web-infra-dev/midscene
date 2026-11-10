@@ -5,7 +5,6 @@ import type {
   StreamingAIResponse,
   StreamingCodeGenerationOptions,
 } from '@midscene/core';
-// Note: Streaming support will be added once the core package exports are updated
 import { generatePlaywrightTestStream as coreGeneratePlaywrightTestStream } from '@midscene/core/ai-model';
 import type { IModelConfig } from '@midscene/shared/env';
 import { recordLogger } from '../logger';

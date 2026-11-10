@@ -17,12 +17,14 @@ const deepSeekPointCoordinates = {
   shape: 'point',
   order: 'xy',
   normalizedBy: 1000,
+  rounding: 'round',
 } as const;
 
 const deepSeekBboxCoordinates = {
   shape: 'bbox',
   order: 'xy',
   normalizedBy: 1000,
+  rounding: 'round',
 } as const;
 
 function parseDeepSeekCoordinateValues(

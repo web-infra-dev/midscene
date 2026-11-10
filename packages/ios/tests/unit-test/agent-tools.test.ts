@@ -1,3 +1,7 @@
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { setMidsceneRunDir } from '@midscene/shared/common';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { agentFromWebDriverAgent } from '../../src/agent';
 import { IOSMidsceneTools } from '../../src/agent-tools';
@@ -49,8 +53,8 @@ describe('IOSMidsceneTools', () => {
 
     await takeScreenshotTool?.handler({
       ios: {
-        'wda-host': '127.0.0.1',
-        'wda-port': 8100,
+        'wda-base-url': 'https://gateway.example/code/wda',
+        'wda-mjpeg-url': 'https://stream.example/live/mjpeg',
         sessionId: 'external-session-id',
         waitAfterAction: 650,
         replanningCycleLimit: 12,
@@ -62,8 +66,8 @@ describe('IOSMidsceneTools', () => {
     expect(agentFromWebDriverAgent).toHaveBeenCalledWith(
       expect.objectContaining({
         autoDismissKeyboard: false,
-        wdaHost: '127.0.0.1',
-        wdaPort: 8100,
+        wdaBaseUrl: 'https://gateway.example/code/wda',
+        wdaMjpegUrl: 'https://stream.example/live/mjpeg',
         sessionId: 'external-session-id',
         waitAfterAction: 650,
         replanningCycleLimit: 12,
@@ -71,6 +75,42 @@ describe('IOSMidsceneTools', () => {
         screenshotShrinkFactor: 2,
       }),
     );
+  });
+
+  it('rejects conflicting WDA connection options before creating an agent', async () => {
+    const tools = new IOSMidsceneTools();
+    await tools.initTools();
+    const connectTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'ios_connect');
+
+    await expect(
+      connectTool?.handler({
+        ios: {
+          wdaBaseUrl: 'https://gateway.example/code/wda',
+          wdaHost: 'localhost',
+        },
+      }),
+    ).rejects.toThrow(/wdaBaseUrl cannot be used with wdaHost or wdaPort/);
+    expect(agentFromWebDriverAgent).not.toHaveBeenCalled();
+  });
+
+  it('rejects conflicting MJPEG connection options before creating an agent', async () => {
+    const tools = new IOSMidsceneTools();
+    await tools.initTools();
+    const connectTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'ios_connect');
+
+    await expect(
+      connectTool?.handler({
+        ios: {
+          wdaMjpegUrl: 'https://stream.example/live/mjpeg',
+          wdaMjpegPort: 9100,
+        },
+      }),
+    ).rejects.toThrow(/wdaMjpegUrl cannot be used with wdaMjpegPort/);
+    expect(agentFromWebDriverAgent).not.toHaveBeenCalled();
   });
 
   it('passes top-level ios aliases to act', async () => {
@@ -104,6 +144,32 @@ describe('IOSMidsceneTools', () => {
     });
   });
 
+  it('keeps gateway path identifiers out of persisted report identities', async () => {
+    const tools = new IOSMidsceneTools();
+    await tools.initTools();
+    const createReportSession = rs
+      .spyOn(tools as any, 'createNewCliReportSession')
+      .mockReturnValue({});
+    rs.spyOn(tools as any, 'commitCliReportSession').mockImplementation(
+      () => {},
+    );
+
+    const connectTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'ios_connect');
+    await connectTool?.handler({
+      ios: {
+        wdaBaseUrl: 'https://gateway.example/secret-code/wda',
+        wdaMjpegUrl: 'https://stream.example/live/mjpeg?token=stream-secret',
+      },
+    });
+
+    const identity = createReportSession.mock.calls[0][0] as string;
+    expect(identity).toMatch(/^wda-[a-f0-9]{12}$/);
+    expect(identity).not.toContain('secret-code');
+    expect(identity).not.toContain('stream-secret');
+  });
+
   it('exposes ios init args on action and common tool schemas', async () => {
     const tools = new IOSMidsceneTools();
     await tools.initTools();
@@ -119,6 +185,8 @@ describe('IOSMidsceneTools', () => {
       expect.objectContaining({
         'ios.wdaHost': expect.anything(),
         'ios.wdaPort': expect.anything(),
+        'ios.wdaBaseUrl': expect.anything(),
+        'ios.wdaMjpegUrl': expect.anything(),
         'ios.sessionId': expect.anything(),
         'ios.waitAfterAction': expect.anything(),
         'ios.replanningCycleLimit': expect.anything(),
@@ -129,6 +197,8 @@ describe('IOSMidsceneTools', () => {
       expect.objectContaining({
         'ios.wdaHost': expect.anything(),
         'ios.wdaPort': expect.anything(),
+        'ios.wdaBaseUrl': expect.anything(),
+        'ios.wdaMjpegUrl': expect.anything(),
         'ios.sessionId': expect.anything(),
         'ios.waitAfterAction': expect.anything(),
       }),
@@ -248,5 +318,43 @@ describe('IOSMidsceneTools', () => {
         sessionId: 'session-B',
       }),
     );
+  });
+});
+
+// These adapters share the CLI writer tested with real subprocesses in Core.
+// Here we verify that each real platform adapter forwards the session identity.
+describe('IOSMidsceneTools report sessions', () => {
+  it('reuses the report across tool instances and rotates it on connect', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'ios-report-session-'));
+    setMidsceneRunDir(root);
+    const factory = rs.mocked(agentFromWebDriverAgent);
+    factory.mockResolvedValue(createMockAgent() as any);
+    const call = async (command: string) => {
+      const tools = new IOSMidsceneTools();
+      await tools.initTools();
+      const tool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === command)!;
+      try {
+        await tool.handler({ prompt: 'continue recording' });
+      } finally {
+        await tools.destroy();
+      }
+      return factory.mock.calls.at(-1)![0]!;
+    };
+    try {
+      const first = await call('ios_connect');
+      expect(first).toMatchObject({
+        reportFileName: expect.stringContaining('midscene-ios'),
+        reportAttributes: { 'data-group-id': first.reportFileName },
+      });
+      expect(await call('act')).toEqual(first);
+      const next = await call('ios_connect');
+      expect(next.reportFileName).not.toBe(first.reportFileName);
+      expect(await call('act')).toEqual(next);
+    } finally {
+      setMidsceneRunDir(undefined);
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

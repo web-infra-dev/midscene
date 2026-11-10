@@ -1,24 +1,102 @@
 import type { TModelFamily } from '@midscene/shared/env';
 import type {
+  BuildResponsesParams,
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
-  ImageDetail,
+  CodexAppServerCallInput,
+  CodexAppServerParamsResult,
   ModelAdapterDefinition,
+  ReasoningInput,
+  ResolveImageDetail,
 } from '../model-adapter/types';
 import { isLocateIntent } from './utils/intent';
 
-const originalImageDetailForDefaultIntent = (
-  input: ChatCompletionCallContext,
-): ImageDetail | undefined =>
+const originalImageDetailForLocateIntent: ResolveImageDetail = (input) =>
   isLocateIntent(input.intent) || input.requiresOriginalImageDetail
     ? 'original'
-    : undefined;
+    : (input.imageDetail ?? 'high');
+
+const resolveGpt5ReasoningEffort = ({
+  reasoningEnabled,
+  reasoningEffort,
+}: ReasoningInput): string | undefined => {
+  if (reasoningEnabled === 'default') return undefined;
+  return reasoningEnabled === true ? (reasoningEffort ?? 'medium') : 'none';
+};
+
+// Astra cannot disable reasoning; use its lowest effort when disabled.
+const resolveGpt6ReasoningEffort = ({
+  reasoningEnabled,
+  reasoningEffort,
+}: ReasoningInput): string | undefined => {
+  if (reasoningEnabled === 'default') return undefined;
+  return reasoningEnabled === true ? (reasoningEffort ?? 'medium') : 'low';
+};
+
+const buildGpt5CodexAppServerParams = (
+  input: CodexAppServerCallInput,
+): CodexAppServerParamsResult => ({
+  config: { effort: resolveGpt5ReasoningEffort(input.userConfig ?? {}) },
+});
+
+const buildGpt6CodexAppServerParams = (
+  input: CodexAppServerCallInput,
+): CodexAppServerParamsResult => ({
+  config: { effort: resolveGpt6ReasoningEffort(input.userConfig ?? {}) },
+});
+
+const buildGpt5ResponsesParams: BuildResponsesParams = (input) => {
+  const { midsceneDefaults, userConfig, expectedJsonObjectResponse } = input;
+  const commonOverrideConfig: Record<string, unknown> = {};
+
+  if (userConfig.temperature !== undefined) {
+    commonOverrideConfig.temperature = userConfig.temperature;
+  }
+
+  if (userConfig.responseFormat !== 'none' && expectedJsonObjectResponse) {
+    commonOverrideConfig.text = { format: { type: 'json_object' } };
+  }
+
+  const effectiveReasoningEffort = resolveGpt5ReasoningEffort(userConfig);
+
+  return {
+    config: {
+      ...midsceneDefaults,
+      ...commonOverrideConfig,
+      // Use current-turn reasoning only. Switching to all_turns requires
+      // responses.replayRawAssistantOutput to preserve reasoning history.
+      reasoning: { effort: effectiveReasoningEffort, context: 'current_turn' },
+    },
+  };
+};
+
+const buildGpt6ResponsesParams: BuildResponsesParams = (input) => {
+  const { midsceneDefaults, userConfig, expectedJsonObjectResponse } = input;
+  const { responseFormat } = userConfig;
+  const commonOverrideConfig: Record<string, unknown> = {};
+  // GPT-6 does not support temperature; omit it from the serialized request.
+  commonOverrideConfig.temperature = undefined;
+  if (responseFormat !== 'none' && expectedJsonObjectResponse) {
+    commonOverrideConfig.text = { format: { type: 'json_object' } };
+  }
+
+  const effectiveReasoningEffort = resolveGpt6ReasoningEffort(userConfig);
+
+  return {
+    config: {
+      ...midsceneDefaults,
+      ...commonOverrideConfig,
+      // Use current-turn reasoning only. Switching to all_turns requires
+      // responses.replayRawAssistantOutput to preserve reasoning history.
+      reasoning: { effort: effectiveReasoningEffort, context: 'current_turn' },
+    },
+  };
+};
 
 const buildGpt5ChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
   const { midsceneDefaults, userConfig } = input;
-  const { reasoningEnabled, reasoningEffort } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
 
   if (userConfig.temperature !== undefined) {
@@ -34,8 +112,30 @@ const buildGpt5ChatCompletionParams = (
     commonOverrideConfig.response_format = { type: 'json_object' };
   }
 
-  const effectiveReasoningEffort =
-    reasoningEnabled === true ? (reasoningEffort ?? 'medium') : 'none';
+  const effectiveReasoningEffort = resolveGpt5ReasoningEffort(userConfig);
+
+  return {
+    config: {
+      ...midsceneDefaults,
+      ...commonOverrideConfig,
+      reasoning_effort: effectiveReasoningEffort,
+    },
+  };
+};
+
+const buildGpt6ChatCompletionParams = (
+  input: ChatCompletionCallContext,
+): ChatCompletionParamsResult => {
+  const { midsceneDefaults, userConfig, expectedJsonObjectResponse } = input;
+  const { responseFormat } = userConfig;
+  const commonOverrideConfig: Record<string, unknown> = {};
+  // GPT-6 does not support temperature; omit it from the serialized request.
+  commonOverrideConfig.temperature = undefined;
+  if (responseFormat !== 'none' && expectedJsonObjectResponse) {
+    commonOverrideConfig.response_format = { type: 'json_object' };
+  }
+
+  const effectiveReasoningEffort = resolveGpt6ReasoningEffort(userConfig);
 
   return {
     config: {
@@ -48,17 +148,60 @@ const buildGpt5ChatCompletionParams = (
 
 export const gptAdapters = {
   'gpt-5': {
+    supportedProtocols: ['openai-chat', 'openai-responses'],
+    resolveImageDetail: originalImageDetailForLocateIntent,
+    responses: {
+      replayRawAssistantOutput: false,
+      unsupportedUserConfig: ['reasoningBudget'],
+      buildResponsesParams: buildGpt5ResponsesParams,
+    },
+    buildCodexAppServerParams: buildGpt5CodexAppServerParams,
     chatCompletion: {
       unsupportedUserConfig: ['reasoningBudget'],
       buildChatCompletionParams: buildGpt5ChatCompletionParams,
-      resolveImageDetail: originalImageDetailForDefaultIntent,
     },
     locate: {
       element: {
         resultFormat: {
-          coordinates: { shape: 'bbox', order: 'xy' },
+          // GPT can return image width/height as bbox endpoints (issue #3351).
+          // Accept image-edge coordinates without assuming all variants do so.
+          coordinates: {
+            shape: 'bbox',
+            order: 'xy',
+            boundsType: 'left-closed-right-open',
+          },
         },
       },
     },
   },
-} satisfies Pick<Record<TModelFamily, ModelAdapterDefinition>, 'gpt-5'>;
+  'gpt-6': {
+    supportedProtocols: ['openai-chat', 'openai-responses'],
+    resolveImageDetail: originalImageDetailForLocateIntent,
+    responses: {
+      replayRawAssistantOutput: false,
+      unsupportedUserConfig: ['temperature', 'reasoningBudget'],
+      buildResponsesParams: buildGpt6ResponsesParams,
+    },
+    buildCodexAppServerParams: buildGpt6CodexAppServerParams,
+    chatCompletion: {
+      unsupportedUserConfig: ['temperature', 'reasoningBudget'],
+      buildChatCompletionParams: buildGpt6ChatCompletionParams,
+    },
+    locate: {
+      element: {
+        resultFormat: {
+          // GPT can return image width/height as bbox endpoints (issue #3351).
+          // Accept image-edge coordinates without assuming all variants do so.
+          coordinates: {
+            shape: 'bbox',
+            order: 'xy',
+            boundsType: 'left-closed-right-open',
+          },
+        },
+      },
+    },
+  },
+} satisfies Pick<
+  Record<TModelFamily, ModelAdapterDefinition>,
+  'gpt-5' | 'gpt-6'
+>;

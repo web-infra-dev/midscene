@@ -68,6 +68,132 @@ describe('TaskBuilder', () => {
     expect(plan.param).not.toHaveProperty('deepThink');
   });
 
+  it.each([
+    { prompt: 'target icon', inheritImages: true },
+    { prompt: { prompt: 'target icon' }, inheritImages: true },
+    {
+      prompt: {
+        prompt: 'target icon',
+        images: [{ name: 'local', url: 'https://example.com/local.png' }],
+        convertHttpImage2Base64: false,
+      },
+      inheritImages: false,
+    },
+  ])(
+    'preserves locator prompts while inheriting reference images: %j',
+    async ({ prompt, inheritImages }) => {
+      const mockInterface = new MockInterface([]);
+      const locate = rs.fn().mockResolvedValue({
+        element: {
+          center: [50, 50],
+          rect: { left: 40, top: 40, width: 20, height: 20 },
+          description: 'target icon',
+        },
+      });
+      const taskBuilder = new TaskBuilder({
+        getDefaultModelRuntime: () => mockModelRuntime,
+        interfaceInstance: mockInterface,
+        service: { locate } as unknown as Service,
+        actionSpace: [],
+      });
+      const multimodalPrompt = {
+        images: [
+          { name: 'reference', url: 'https://example.com/reference.png' },
+        ],
+        convertHttpImage2Base64: true,
+      };
+      const { tasks } = await taskBuilder.build(
+        [locatePlanForLocate({ prompt })],
+        mockModelRuntime,
+        mockModelRuntime,
+        { multimodalPrompt },
+      );
+      await tasks[0].executor({
+        task: { timing: {} },
+        uiContext: { shrunkShotToLogicalRatio: 1, deprecatedDpr: 1 },
+      } as any);
+
+      expect(locate).toHaveBeenCalledWith(
+        {
+          prompt: inheritImages
+            ? { prompt: 'target icon', ...multimodalPrompt }
+            : prompt,
+        },
+        expect.any(Object),
+        mockModelRuntime,
+        undefined,
+      );
+    },
+  );
+
+  it.each([false, true])(
+    'reuses planner coordinates with or without a dedicated Locate model: %s',
+    async (separateLocate) => {
+      const locateRuntime = getModelRuntime({
+        ...mockModelRuntime.config,
+        intent: 'locate',
+        slot: separateLocate ? 'locate' : 'default',
+        modelName: 'locator',
+      });
+      const locate = rs.fn().mockResolvedValue({
+        element: { center: [80, 80], description: 'button' },
+      });
+      const builder = new TaskBuilder({
+        getDefaultModelRuntime: () => mockModelRuntime,
+        interfaceInstance: new MockInterface([]),
+        service: { locate } as unknown as Service,
+        actionSpace: [],
+      });
+      const { tasks } = await builder.build(
+        [
+          locatePlanForLocate({
+            prompt: 'button',
+            locatedPixelResult: { center: [20, 20] },
+          } as any),
+        ],
+        mockModelRuntime,
+        locateRuntime,
+      );
+      const result = await tasks[0].executor({
+        task: { timing: {} },
+        uiContext: { shrunkShotToLogicalRatio: 1 },
+      } as any);
+      expect(locate).not.toHaveBeenCalled();
+      expect((result as any).output.element.center).toEqual([20, 20]);
+    },
+  );
+
+  it('accepts coordinate-only planning with an explicit Locate model', async () => {
+    const locate = rs.fn();
+    const runtime = getModelRuntime({
+      ...mockModelRuntime.config,
+      intent: 'locate',
+      slot: 'locate',
+    });
+    const builder = new TaskBuilder({
+      getDefaultModelRuntime: () => mockModelRuntime,
+      interfaceInstance: new MockInterface([]),
+      service: { locate } as unknown as Service,
+      actionSpace: [],
+    });
+    const { tasks } = await builder.build(
+      [
+        locatePlanForLocate({
+          locatedPixelResult: { center: [20, 20] },
+        } as any),
+      ],
+      mockModelRuntime,
+      runtime,
+    );
+    await expect(
+      tasks[0].executor({
+        task: { timing: {} },
+        uiContext: { shrunkShotToLogicalRatio: 1 },
+      } as any),
+    ).resolves.toMatchObject({ output: { element: { center: [20, 20] } } });
+    expect(locate).not.toHaveBeenCalled();
+  });
+
   it('dispatches plans using handler registry', async () => {
     const actionSchema = z.object({
       locate: getMidsceneLocationSchema().describe('element to locate'),
@@ -77,6 +203,7 @@ describe('TaskBuilder', () => {
       name: 'Tap',
       description: 'mock tap action',
       paramSchema: actionSchema,
+      planningFeedbackMaxLength: 123,
       call: rs.fn(),
     };
 
@@ -88,6 +215,7 @@ describe('TaskBuilder', () => {
     } as unknown as Service;
 
     const taskBuilder = new TaskBuilder({
+      getDefaultModelRuntime: () => mockModelRuntime,
       interfaceInstance: mockInterface,
       service: insightService,
       actionSpace: mockInterface.actionSpace(),
@@ -129,6 +257,7 @@ describe('TaskBuilder', () => {
       ['Planning', 'Locate'],
       ['Action Space', 'Tap'],
     ]);
+    expect(tasks.at(-1)?.planningFeedbackMaxLength).toBe(123);
   });
 
   it('uses promptDisplay for the located element passed to an action', async () => {
@@ -166,6 +295,7 @@ describe('TaskBuilder', () => {
       })),
     } as unknown as Service;
     const taskBuilder = new TaskBuilder({
+      getDefaultModelRuntime: () => mockModelRuntime,
       interfaceInstance: mockInterface,
       service: insightService,
       actionSpace: mockInterface.actionSpace(),
@@ -209,6 +339,7 @@ describe('TaskBuilder', () => {
       locate: rs.fn(),
     } as unknown as Service;
     const taskBuilder = new TaskBuilder({
+      getDefaultModelRuntime: () => mockModelRuntime,
       interfaceInstance: mockInterface,
       service: insightService,
       actionSpace: mockInterface.actionSpace(),
@@ -262,12 +393,14 @@ describe('TaskBuilder', () => {
     } as unknown as Service;
 
     const defaultTaskBuilder = new TaskBuilder({
+      getDefaultModelRuntime: () => mockModelRuntime,
       interfaceInstance: defaultInterface,
       service: insightService,
       actionSpace: defaultInterface.actionSpace(),
     });
 
     const fastTaskBuilder = new TaskBuilder({
+      getDefaultModelRuntime: () => mockModelRuntime,
       interfaceInstance: fastInterface,
       service: insightService,
       actionSpace: fastInterface.actionSpace(),
@@ -338,6 +471,7 @@ describe('TaskBuilder', () => {
       locate: rs.fn(),
     } as unknown as Service;
     const taskBuilder = new TaskBuilder({
+      getDefaultModelRuntime: () => mockModelRuntime,
       interfaceInstance: mockInterface,
       service: insightService,
       actionSpace: mockInterface.actionSpace(),

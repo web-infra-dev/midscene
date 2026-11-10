@@ -32,7 +32,19 @@ function detectFormat(base64: string): 'png' | 'jpeg' {
  * After persistence, memory is released but the screenshot can be recovered
  * on-demand from disk, making it safe to release memory at any time.
  */
+const screenshotItemKey = Symbol.for('@midscene/core/screenshot-item');
+
 export class ScreenshotItem {
+  private readonly [screenshotItemKey] = true;
+
+  /** Config loaders and SDK entry points may load distinct class instances. */
+  static isScreenshotItem(value: unknown): value is ScreenshotItem {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      Reflect.get(value, screenshotItemKey) === true
+    );
+  }
   private _id: string;
   private _base64: string | null;
   private _format: 'png' | 'jpeg';

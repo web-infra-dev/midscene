@@ -1,6 +1,10 @@
-import { existsSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { getMidsceneRunBaseDir } from '@midscene/shared/common';
+import {
+  getMidsceneRunBaseDir,
+  setMidsceneRunDir,
+} from '@midscene/shared/common';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { agentForRDPComputer, agentFromComputer } from '../../src/agent';
 import { ComputerMidsceneTools } from '../../src/agent-tools';
@@ -67,6 +71,8 @@ describe('ComputerMidsceneTools', () => {
         'display-id': 'display-2',
         headless: true,
         'keyboard-type-delay': 80,
+        'keyboard-modifier-delay': 50,
+        'keyboard-layout': 'en-US',
         'input-strategy': 'sequential',
       },
     });
@@ -75,6 +81,8 @@ describe('ComputerMidsceneTools', () => {
       displayId: 'display-2',
       headless: true,
       keyboardTypeDelay: 80,
+      keyboardModifierDelay: 50,
+      keyboardLayout: 'en-US',
       inputStrategy: 'sequential',
     });
   });
@@ -171,6 +179,8 @@ describe('ComputerMidsceneTools', () => {
         'computer.headless': expect.anything(),
         'computer.inputStrategy': expect.anything(),
         'computer.keyboardTypeDelay': expect.anything(),
+        'computer.keyboardModifierDelay': expect.anything(),
+        'computer.keyboardLayout': expect.anything(),
         'computer.waitAfterAction': expect.anything(),
         'computer.replanningCycleLimit': expect.anything(),
         'computer.screenshotShrinkFactor': expect.anything(),
@@ -183,6 +193,8 @@ describe('ComputerMidsceneTools', () => {
         'computer.host': expect.anything(),
         'computer.inputStrategy': expect.anything(),
         'computer.keyboardTypeDelay': expect.anything(),
+        'computer.keyboardModifierDelay': expect.anything(),
+        'computer.keyboardLayout': expect.anything(),
         'computer.waitAfterAction': expect.anything(),
         'computer.port': expect.anything(),
         'computer.username': expect.anything(),
@@ -213,6 +225,8 @@ describe('ComputerMidsceneTools', () => {
       'ignore-certificate': true,
       'input-strategy': 'sequential',
       'keyboard-type-delay': 80,
+      'keyboard-modifier-delay': 50,
+      'keyboard-layout': 'en-US',
     });
 
     expect(agentForRDPComputer).toHaveBeenCalledWith(
@@ -227,6 +241,12 @@ describe('ComputerMidsceneTools', () => {
         inputStrategy: 'sequential',
         keyboardTypeDelay: 80,
       }),
+    );
+    expect(rs.mocked(agentForRDPComputer).mock.calls[0][0]).not.toHaveProperty(
+      'keyboardModifierDelay',
+    );
+    expect(rs.mocked(agentForRDPComputer).mock.calls[0][0]).not.toHaveProperty(
+      'keyboardLayout',
     );
     expect(agentFromComputer).not.toHaveBeenCalled();
   });
@@ -385,4 +405,50 @@ describe('ComputerMidsceneTools', () => {
     expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
     expect(agentFromComputer).toHaveBeenLastCalledWith(undefined);
   });
+});
+
+describe('ComputerMidsceneTools report sessions', () => {
+  it.each(['local', 'rdp'] as const)(
+    'forwards the same report identity across %s calls and rotates on connect',
+    async (mode) => {
+      const root = mkdtempSync(join(tmpdir(), 'computer-report-session-'));
+      setMidsceneRunDir(root);
+      const factory =
+        mode === 'local'
+          ? rs.mocked(agentFromComputer)
+          : rs.mocked(agentForRDPComputer);
+      factory.mockResolvedValue(createMockAgent() as any);
+      const args =
+        mode === 'rdp'
+          ? { computer: { host: 'fixture.invalid', username: 'fixture' } }
+          : {};
+      const call = async (command: string) => {
+        const tools = new ComputerMidsceneTools();
+        await tools.initTools();
+        try {
+          await tools
+            .getToolDefinitions()
+            .find((tool) => tool.name === command)!
+            .handler({ ...args, prompt: 'continue recording' });
+        } finally {
+          await tools.destroy();
+        }
+        return factory.mock.calls.at(-1)![0]!;
+      };
+      try {
+        const first = await call('computer_connect');
+        expect(first).toMatchObject({
+          reportFileName: expect.stringContaining('midscene-computer'),
+          reportAttributes: { 'data-group-id': first.reportFileName },
+        });
+        expect(await call('act')).toEqual(first);
+        const next = await call('computer_connect');
+        expect(next.reportFileName).not.toBe(first.reportFileName);
+        expect(await call('act')).toEqual(next);
+      } finally {
+        setMidsceneRunDir(undefined);
+        rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
 });

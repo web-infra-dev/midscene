@@ -8,6 +8,13 @@ on:
       - 'packages/android/**'
       - 'packages/core/**'
       - 'packages/shared/**'
+      - 'scripts/mobile-scroll-regression.mjs'
+      - 'scripts/install-android-system-image.mjs'
+      - 'scripts/retry.mjs'
+      - '.github/actions/ai-ci/**'
+      - '.github/actions/**'
+      - '!**/*.md'
+      - '!**/*.mdx'
       - 'scripts/report-template-utils.mjs'
       - 'scripts/validate-core-report-template.mjs'
       - 'nx.json'
@@ -26,7 +33,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: android-emulator-${{ github.event.pull_request.number || inputs.branch || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -134,16 +141,28 @@ jobs:
       - name: Run Android unit tests
         id: unit-tests
         continue-on-error: true
-        shell: bash
-        run: |
-          set -o pipefail
-          pnpm exec nx test @midscene/android --skip-nx-cache 2>&1 |
-            tee "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR/unit-tests.log"
+        uses: ./.github/actions/ai-ci
+        with:
+          shell: bash
+          command: |
+            set -o pipefail
+            pnpm exec nx test @midscene/android --skip-nx-cache 2>&1 |
+              tee "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR/unit-tests.log"
 
-      - name: Run Android Emulator smoke and TodoMVC tests
+      - name: Prepare Android AI CI environment
+        id: ai-ci
+        uses: ./.github/actions/ai-ci
+
+      - name: Download Android system image
+        shell: bash
+        run: node scripts/install-android-system-image.mjs 'system-images;android-35;google_apis;x86_64'
+
+      - name: Run Android default scroll, smoke, and TodoMVC tests
         id: emulator-tests
         continue-on-error: true
         timeout-minutes: 35
+        env:
+          NODE_OPTIONS: ${{ steps.ai-ci.outputs.node-options }}
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: 35

@@ -1,4 +1,3 @@
-import { Buffer } from 'node:buffer';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
 
 // A 1x1 PNG, base64-encoded, as PowerShell's CopyFromScreen path would print
@@ -20,11 +19,10 @@ rs.mock('node:child_process', () => ({
   spawnSync: rs.fn(),
 }));
 
-/** Decode the -EncodedCommand argument back to the PowerShell script. */
-function decodeEncodedCommand(call: [string, string[], unknown?]): string {
+function readCommand(call: [string, string[], unknown?]): string {
   const args = call[1];
-  const idx = args.indexOf('-EncodedCommand');
-  return Buffer.from(args[idx + 1], 'base64').toString('utf16le');
+  const commandIndex = args.indexOf('-Command');
+  return commandIndex >= 0 ? args[commandIndex + 1] : '';
 }
 
 describe('Windows screenshot via PowerShell (issue #2150)', () => {
@@ -47,15 +45,18 @@ describe('Windows screenshot via PowerShell (issue #2150)', () => {
     expect(execFileSync.mock.calls[0][0]).toBe('powershell.exe');
     expect(base64).toBe(`data:image/png;base64,${FAKE_PNG_BASE64}`);
 
-    // ExecutionPolicy only gates .ps1 files, not -EncodedCommand input, so it
-    // must not be passed.
+    // Use the transport verified on the affected host. That host silently
+    // discards -EncodedCommand payloads with a zero exit code.
     const args = execFileSync.mock.calls[0][1] as string[];
+    expect(args.slice(0, 2)).toEqual(['-NoProfile', '-Command']);
+    expect(args).not.toContain('-EncodedCommand');
+    expect(args).not.toContain('-NonInteractive');
     expect(args).not.toContain('-ExecutionPolicy');
     expect(args).not.toContain('Bypass');
 
     // Without a displayId the script falls back to the primary screen and
     // never does a lookup that could fail.
-    const script = decodeEncodedCommand(execFileSync.mock.calls[0]);
+    const script = readCommand(execFileSync.mock.calls[0]);
     expect(script).toContain('CopyFromScreen');
     expect(script).toContain('PrimaryScreen');
     expect(script).not.toContain('Requested display not found');
@@ -75,7 +76,7 @@ describe('Windows screenshot via PowerShell (issue #2150)', () => {
     const device = new ComputerDevice({ displayId: '\\\\.\\DISPLAY2' });
     await device.screenshotBase64();
 
-    const script = decodeEncodedCommand(execFileSync.mock.calls[0]);
+    const script = readCommand(execFileSync.mock.calls[0]);
     expect(script).toContain('DeviceName -eq $dn');
     expect(script).toContain("$dn = '\\\\.\\DISPLAY2'");
     // A requested-but-missing display must throw, not fall back to primary.

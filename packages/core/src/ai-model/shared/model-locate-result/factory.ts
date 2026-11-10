@@ -1,71 +1,19 @@
-import { finalizePixelBbox } from './bbox';
-import { parseNumericLocateResult } from './parse';
-import { mapLocateResultToPixelBboxByCoordinates } from './pixel-bbox-mapper';
+import { resolveLocateResultCoordinates } from './coordinates';
+import { createLocateResultValue, parseNumericLocateResult } from './parse';
+import {
+  clampPixelPointToSize,
+  mapLocateResultToPixelPoint,
+  mapLocateResultToPixelRect,
+} from './pixel-mapper';
 import { createLocateResultPromptSpec } from './prompt-spec';
-import type {
-  LocateResultCodec,
-  LocateResultContext,
-  LocateResultCoordinates,
-  LocateResultFormatDefinition,
-  LocateResultValue,
-  ResolvedLocateResultCoordinates,
-} from './types';
+import { isBboxLocateResultValue } from './types';
+import type { LocateResultCodec, LocateResultFormatDefinition } from './types';
+import {
+  assertLocateResultCoordinateRangeAndOrder,
+  assertLocateResultStructure,
+} from './validation';
 
-export function resolveLocateResultCoordinates(
-  coordinates: LocateResultCoordinates,
-): ResolvedLocateResultCoordinates {
-  const order = coordinates.order ?? 'xy';
-  if (coordinates.normalizedBy !== undefined && coordinates.normalizedBy <= 0) {
-    throw new Error(
-      `locate result coordinates normalizedBy must be positive: ${coordinates.normalizedBy}`,
-    );
-  }
-  return {
-    shape: coordinates.shape,
-    order,
-    normalizedBy: coordinates.normalizedBy,
-  };
-}
-
-function assertValidParsedLocateResult(result: LocateResultValue): void {
-  if (!result || typeof result !== 'object') {
-    throw new Error(
-      `invalid parsed locate result: expected object, got ${JSON.stringify(
-        result,
-      )}`,
-    );
-  }
-
-  const coordinatesMeta = result.coordinatesMeta;
-  const expectedLength =
-    coordinatesMeta?.shape === 'bbox'
-      ? 4
-      : coordinatesMeta?.shape === 'point'
-        ? 2
-        : 0;
-  if (!expectedLength) {
-    throw new Error(
-      `invalid parsed locate result: unsupported coordinatesMeta.shape ${JSON.stringify(
-        coordinatesMeta?.shape,
-      )}`,
-    );
-  }
-
-  const coordinates = result.coordinates;
-  if (
-    !Array.isArray(coordinates) ||
-    coordinates.length !== expectedLength ||
-    !coordinates.every(
-      (value) => typeof value === 'number' && Number.isFinite(value),
-    )
-  ) {
-    throw new Error(
-      `invalid parsed locate result: ${coordinatesMeta.shape} coordinates must be ${expectedLength} finite numbers, got ${JSON.stringify(
-        coordinates,
-      )}`,
-    );
-  }
-}
+export { resolveLocateResultCoordinates } from './coordinates';
 
 export function createLocateResultCodec(
   config: LocateResultFormatDefinition,
@@ -76,19 +24,40 @@ export function createLocateResultCodec(
   const parseRawLocateValue =
     config.parseRawLocateValue ??
     ((input) => parseNumericLocateResult(resolvedCoordinates, input));
-  const mapLocateResultToPixelBbox =
-    config.mapLocateResultToPixelBbox ??
-    ((result, ctx) => mapLocateResultToPixelBboxByCoordinates(result, ctx));
-
-  const toPixelBbox = (rawResult: unknown, context: LocateResultContext) => {
-    const parsedResult = parseRawLocateValue(rawResult);
-    assertValidParsedLocateResult(parsedResult);
-    const pixelBbox = mapLocateResultToPixelBbox(parsedResult, context);
-    return finalizePixelBbox(pixelBbox, rawResult, context);
-  };
-
   return {
-    promptSpec: createLocateResultPromptSpec(resolvedCoordinates),
-    toPixelBbox,
+    promptSpec: createLocateResultPromptSpec(resolvedCoordinates, {
+      resultKey: config.resultKey,
+      resultKeyAliases: config.resultKeyAliases,
+    }),
+    toPixelResult: (rawResult, context) => {
+      const parsed = parseRawLocateValue(rawResult);
+      assertLocateResultStructure(parsed);
+      const result = createLocateResultValue(
+        parsed.coordinatesMeta,
+        parsed.coordinates,
+      );
+      const { preparedSize, contentSize = preparedSize } = context;
+      const leftClosedRightOpenBounds =
+        isBboxLocateResultValue(result) &&
+        result.coordinatesMeta.boundsType === 'left-closed-right-open';
+      assertLocateResultCoordinateRangeAndOrder(
+        result,
+        preparedSize.width - (leftClosedRightOpenBounds ? 0 : 1),
+        preparedSize.height - (leftClosedRightOpenBounds ? 0 : 1),
+      );
+      // Clamp the mapped center independently from the optional bbox so padding
+      // removal cannot change the target by recomputing a clipped box's center.
+      const center = clampPixelPointToSize(
+        mapLocateResultToPixelPoint(result, preparedSize),
+        contentSize,
+      );
+      // Preserve an original bbox as region metadata for DeepLocate search areas
+      // and aiLocate's return value. Point-only results leave rect undefined;
+      // click coordinates always use the independently calculated center.
+      const rect = isBboxLocateResultValue(result)
+        ? mapLocateResultToPixelRect(result, context)
+        : undefined;
+      return { center, rect };
+    },
   };
 }

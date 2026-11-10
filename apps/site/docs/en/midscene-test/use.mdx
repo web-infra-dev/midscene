@@ -1,0 +1,134 @@
+# Create a Midscene Test E2E project
+
+Create a project, run the TodoMVC example, then change a case. This guide follows the Web starter; mobile and desktop users can select their platform template.
+
+For a first run on a specific platform, [Get started](../get-started?scene=test) walks you through device, model, and project setup for your combination and ends with a passing example.
+
+## Create a project
+
+### 1. Generate the project and install dependencies
+
+Prepare Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` and pnpm, then run:
+
+```bash
+pnpm dlx @midscene/test create my-tests --platform web --package-manager pnpm
+cd my-tests
+```
+
+Follow the installation prompt. To choose a platform interactively, run `pnpm dlx @midscene/test create`, then enter the selected directory. See the [create command reference](#create-command-reference) for other options.
+
+<span id="project-structure" />
+
+The main files are:
+
+```text
+my-tests/
+├── cases/todo.yaml             # TodoMVC cases
+├── nodes/todo.ts               # Web custom Nodes for setup, checks, and capture
+├── midscene.config.ts          # Platform configuration and Node registration
+├── midscene-node-spec.web.md    # Node Spec generated after installation
+├── package.json
+├── tsconfig.json
+├── .env.example
+├── README.md
+└── README.zh.md
+```
+
+This step only generates project files and the spec file without running any tests, so you do not need a model API Key, browser, or device yet. The generated README in the project folder provides more details on platform-specific setup.
+
+### 2. Configure the model and runtime environment
+
+Copy `.env.example` to `.env` and follow [Use a model API key](../model-api-setup) to set your model name, service URL, and API Key. To use a ChatGPT subscription instead, follow [Use a ChatGPT subscription](../chatgpt-subscription#cli--sdk): sign in once, then set `MIDSCENE_MODEL_AUTH_MODE`, `MIDSCENE_MODEL_NAME`, and `MIDSCENE_MODEL_FAMILY` and leave the base URL and API Key empty.
+
+Verify model connectivity and Midscene compatibility before running tests:
+
+```bash
+pnpm exec midscene-test model verify
+pnpm exec midscene-test model verify --help
+```
+
+The command reads `.env` from the current working directory and overrides existing shell environment variables. It does not require a browser or device. See [Model advanced configuration and debugging](../model-config#verify-model-connectivity) for details.
+
+For Web, also install Chromium:
+
+```bash
+pnpm exec playwright install chromium
+```
+
+If you targeted a platform other than Web during project creation, please complete its respective runtime prerequisites below before running your tests:
+
+| Platform | Argument value | Runtime prerequisites | Environment setup guide |
+| --- | --- | --- | --- |
+| Android | `android` | Connect a device. Optionally select it with `ANDROID_DEVICE_ID`. | [Setup guide](../platforms/android) |
+| iOS | `ios` | Start WebDriverAgent. Use `WDA_HOST` and `WDA_PORT` for direct access, or `WDA_BASE_URL` for a gateway. Set `WDA_MJPEG_URL` for a remote video stream, or `WDA_MJPEG_PORT` for a direct connection. | [Setup guide](../platforms/ios) |
+| HarmonyOS | `harmony` | Check the connection with `hdc list targets`. Optionally set `HARMONY_DEVICE_ID`; set `HDC_HOME` if HDC is not on PATH. | [Setup guide](../platforms/harmonyos) |
+| Desktop | `computer` | Install dependencies and grant permissions. Optionally set `COMPUTER_DISPLAY_ID`. Headless Linux also requires Xvfb and `MIDSCENE_COMPUTER_HEADLESS_LINUX`. | [Setup guide](../platforms/desktop) |
+
+### 3. Run the example and inspect results
+
+```bash
+pnpm test
+```
+
+The example uses the public React TodoMVC page, which must be reachable from the browser or device. The terminal prints results and a `Report:` path. Open that HTML report and select a case and step to inspect screenshots, inputs, outputs, and errors. Reports default to `midscene_run/report/`.
+
+If installation fails, retry `pnpm install`. Resolve model verification errors before testing; use the platform guides above for device connection issues. For test execution options and report sharing, see [Run tests](./running).
+
+## Change a case
+
+Open `cases/todo.yaml`. The Web starter resets and seeds three todos in `beforeEach`. Keep the setup and cleanup hooks, and replace `cases` with:
+
+```yaml
+cases:
+  - name: Complete a todo
+    steps:
+      - aiAct: Mark the Todo named "Learn JS today" as completed.
+      - aiAssert: The Todo named "Learn JS today" has a checked checkbox and strikethrough text.
+```
+
+Run `pnpm test` again and confirm that the case passes in the report. `aiAct` describes the operation; `aiAssert` explicitly checks its result. Mobile and desktop starters prepare state differently. Preserve their initial-state requirements and follow the generated README when editing those examples.
+
+## Move from the example to your own tests
+
+Each YAML operation is a Node. Installation generates `midscene-node-spec.web.md`, listing the operations and inputs available in this project; other platforms use their own filenames. After adding operations or changing configuration, run `pnpm run nodes` to refresh the Spec.
+
+An AI assistant can read the current Node Spec and `cases/todo.yaml`, then use your target page, actions, and expected results to draft cases using registered Nodes. Review its steps, assertions, and test data before running them and checking the report. If an operation is missing, implement and register a Node, then regenerate the Spec.
+
+Continue according to your task:
+
+- [Write YAML cases](./writing): inputs, variables, tags, hooks, and case design.
+- [Configure test projects](./configuration): runtime resources, Nodes, files, and execution projects.
+- [Develop custom Nodes](./extend): business APIs and test data operations.
+- [Run tests and CLI reference](./running): targets, diagnostics, and result files.
+- [Run in GitHub Actions](./running#run-in-github-actions): connect the project to CI.
+
+## Create command reference
+
+<details>
+<summary>Show creation options and more examples</summary>
+
+| Argument | Description |
+| --- | --- |
+| `[directory]` | Project directory, relative to the current directory or an absolute path. Use `.` for the current directory. If omitted, the command prompts for it. Existing files are not overwritten. |
+| `--platform <value>` | Platform: `web` (Playwright), `android`, `ios`, `harmony` (HarmonyOS), or `computer` (desktop). If omitted, the command prompts for it. |
+| `--package-manager <value>` | Package manager: `npm` or `pnpm`. If omitted, the command prompts in an interactive terminal; otherwise, it detects the invoking package manager and falls back to `npm`. |
+| `--yes`, `-y` | Disable prompts and install dependencies. You must supply the directory and `--platform`. Combine with `--skip-install` to generate files only. |
+| `--skip-install` | Generate files without installing dependencies or generating a Node Spec. Run the install command later to generate the Spec. |
+| `--help`, `-h` | Show command help and examples. |
+
+Each platform currently has one starter, selected with `--platform`. All starters use native `cases/steps` Test files. In a non-interactive environment such as CI, you must supply the directory and `--platform`; dependencies are installed unless `--skip-install` is set.
+
+Common examples:
+
+```bash
+# Create an iOS project and install dependencies without prompts
+pnpm dlx @midscene/test create my-ios-tests --platform ios --package-manager pnpm --yes
+
+# Generate Web project files only
+pnpm dlx @midscene/test create my-web-tests --platform web --package-manager pnpm --skip-install
+
+# Show all arguments
+pnpm dlx @midscene/test create --help
+```
+
+</details>

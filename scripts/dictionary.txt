@@ -25,6 +25,7 @@ crossorigin
 datauri
 deepmerge
 docgen
+dongchedi
 dppx
 envinfo
 estree

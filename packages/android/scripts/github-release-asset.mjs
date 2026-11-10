@@ -41,11 +41,15 @@ export async function getGitHubReleaseAssetApiUrl({
   owner,
   repo,
   version,
+  githubToken,
 }) {
   const metadataUrl = getGitHubReleaseMetadataUrl({ owner, repo, version });
   const response = await fetchImpl(metadataUrl, {
     ...(dispatcher ? { dispatcher } : {}),
-    headers: { Accept: 'application/vnd.github+json' },
+    headers: {
+      Accept: 'application/vnd.github+json',
+      ...(githubToken ? { Authorization: `Bearer ${githubToken}` } : {}),
+    },
   });
 
   if (!response.ok) {
@@ -63,6 +67,10 @@ export async function getGitHubReleaseAssetApiUrl({
     );
   }
 
+  if (new URL(asset.url).origin !== 'https://api.github.com') {
+    throw new Error('Release asset API URL must use https://api.github.com');
+  }
+
   return asset.url;
 }
 
@@ -71,6 +79,7 @@ export async function downloadGitHubReleaseAssetWithApiFallback({
   destinationPath,
   directUrl,
   dispatcher,
+  githubToken = process.env.GITHUB_TOKEN || process.env.GH_TOKEN,
   fetchImpl = fetch,
   fsApi = fs,
   owner,
@@ -92,6 +101,7 @@ export async function downloadGitHubReleaseAssetWithApiFallback({
       assetApiUrl = await getGitHubReleaseAssetApiUrl({
         assetName,
         dispatcher,
+        githubToken,
         fetchImpl,
         owner,
         repo,
@@ -111,7 +121,10 @@ export async function downloadGitHubReleaseAssetWithApiFallback({
         dispatcher,
         fetchImpl,
         fsApi,
-        headers: { Accept: 'application/octet-stream' },
+        headers: {
+          Accept: 'application/octet-stream',
+          ...(githubToken ? { Authorization: `Bearer ${githubToken}` } : {}),
+        },
         url: assetApiUrl,
       });
     } catch (fallbackError) {

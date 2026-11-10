@@ -18,7 +18,7 @@ function ConfirmDialog() {
   useEffect(() => {
     // Get server URL from URL params
     const params = new URLSearchParams(window.location.search);
-    const url = params.get('serverUrl') || 'ws://localhost:3766';
+    const url = params.get('serverUrl') || 'ws://127.0.0.1:3766';
     setServerUrl(url);
 
     // Start countdown timer

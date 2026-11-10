@@ -1,17 +1,15 @@
+import type { TestRunReportMetrics } from '@midscene/core';
 import type {
   CaseRunOutcome,
   ProjectRuntimeResult,
   WorkflowDocumentRunResult,
 } from '../engine/types';
 import type { WorkflowError } from '../errors';
-import type {
-  TestFileSelection,
-  TestPlatform,
-  TestTagSelection,
-} from './test-project';
+import type { TestFileSelection, TestTagSelection } from './test-project';
 
 export type TestProjectCaseRunResult = CaseRunOutcome & {
   documentId: string;
+  documentRunId?: string;
 };
 
 export interface TestProjectCollectionError {
@@ -26,6 +24,9 @@ export interface TestProjectRunSummary {
   passed: number;
   failed: number;
   notRun: number;
+  passedAfterRetry: number;
+  finalPassRate: number;
+  firstPassRate: number;
   filtered: number;
   collectionErrors: number;
   documentFailures: number;
@@ -35,7 +36,7 @@ export interface TestProjectRunSummary {
 export interface TestExecutionProjectRunResult {
   projectId: string;
   name: string;
-  platform: TestPlatform;
+  platform?: string;
   status: 'success' | 'failed';
   retry: number;
   fileSelection: TestFileSelection;
@@ -45,11 +46,15 @@ export interface TestExecutionProjectRunResult {
   filteredCaseCount: number;
   lifecycle?: ProjectRuntimeResult;
   cases: readonly TestProjectCaseRunResult[];
+  plans?: readonly import('@midscene/core').TestRunReportDocumentPlan[];
   documents: readonly WorkflowDocumentRunResult[];
   collectionErrors: readonly TestProjectCollectionError[];
 }
 
 export interface TestProjectRunResult {
+  /** Shared report usage, including every attempt and lifecycle phase. */
+  metrics?: TestRunReportMetrics;
+  operationLog?: { path: string; snapshotAt: string };
   schemaVersion: 3;
   runId: string;
   startedAt: string;
@@ -59,10 +64,16 @@ export interface TestProjectRunResult {
   exitCode: 0 | 1;
   resultDir: string;
   summaryPath: string;
+  /** Absolute path to the generated per-run result.md. */
+  markdownPath?: string;
   reportDir: string;
+  /** Absolute path to the unified Midscene Test HTML report. */
+  reportPath?: string;
   summary: TestProjectRunSummary;
   projects: readonly TestExecutionProjectRunResult[];
   cases: readonly TestProjectCaseRunResult[];
   documents: readonly WorkflowDocumentRunResult[];
   collectionErrors: readonly TestProjectCollectionError[];
+  /** Infrastructure/publication failures; completed Case results stay intact. */
+  errors?: readonly WorkflowError[];
 }

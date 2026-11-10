@@ -82,7 +82,9 @@ describe('ComputerDevice', () => {
     expect(actionNames).toContain('Hover');
     expect(actionNames).toContain('DoubleClick');
     expect(actionNames).toContain('RightClick');
+    expect(actionNames).toContain('MiddleClick');
     expect(actionNames).toContain('DragAndDrop');
+    expect(actionNames).toContain('Swipe');
 
     console.log('Available actions:', actionNames);
   });

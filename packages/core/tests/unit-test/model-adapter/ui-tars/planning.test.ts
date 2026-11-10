@@ -4,6 +4,7 @@ import { getModelRuntime } from '@/ai-model/models';
 import { uiTarsAdapters } from '@/ai-model/models/ui-tars/adapter';
 import { createUiTarsPlanner } from '@/ai-model/models/ui-tars/planning';
 import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
+import { toChatMessages } from '@/ai-model/service-caller/openai/chat-completion/utils';
 import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
 import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
@@ -71,6 +72,9 @@ async function runUiTarsPlanning(
   );
 }
 
+const resolveImageDetail = new ResolvedModelAdapter({}, 'test')
+  .resolveImageDetail;
+
 describe('createUiTarsPlanner', () => {
   beforeEach(() => {
     rs.mocked(callAIWithStringResponse).mockReset();
@@ -102,7 +106,7 @@ Action: click(start_box='(500,500)')`,
         param: {
           locate: {
             prompt: 'Click submit',
-            locatedPixelBbox: [490, 392, 509, 407],
+            locatedPixelResult: { center: [500, 400] },
           },
         },
       },
@@ -139,7 +143,10 @@ Action: click(start_box='(500,500)')`,
       content: `Thought: Click submit
 Action: click(start_box='(500,500)')`,
       usage: { total_tokens: 33 } as any,
-      rawChoiceMessage: { role: 'assistant', content: 'raw choice' } as any,
+      rawAssistantOutput: {
+        type: 'chat-completion',
+        rawValue: { role: 'assistant', content: 'raw choice' },
+      } as any,
     });
 
     const result = await runUiTarsPlanning(
@@ -153,7 +160,8 @@ Action: click(start_box='(500,500)')`,
         ],
       },
       createPlanOptions({
-        actionContext: 'prefer the primary submit button',
+        actionContext:
+          '<CONTEXT>\nprefer the primary submit button\n</CONTEXT>',
         conversationHistory,
         abortSignal: abortController.signal,
       }),
@@ -170,7 +178,7 @@ Action: click(start_box='(500,500)')`,
     expect(messages[0]).toMatchObject({
       role: 'user',
       content: expect.stringContaining(
-        '<high_priority_knowledge>prefer the primary submit button</high_priority_knowledge>\n',
+        '<CONTEXT>\nprefer the primary submit button\n</CONTEXT>\n',
       ),
     });
     expect(messages).toEqual(
@@ -178,20 +186,22 @@ Action: click(start_box='(500,500)')`,
         expect.objectContaining({
           role: 'user',
           content: expect.arrayContaining([
-            expect.objectContaining({ type: 'image_url' }),
+            expect.objectContaining({ type: 'image' }),
           ]),
         }),
       ]),
     );
     expect(conversationHistory.snapshot()).toHaveLength(2);
-    expect(conversationHistory.snapshot()[1]).toMatchObject({
+    expect(
+      toChatMessages(conversationHistory.snapshot(), resolveImageDetail)[1],
+    ).toMatchObject({
       role: 'assistant',
       content: expect.stringContaining('Click submit'),
     });
     expect(result.usage).toEqual({ total_tokens: 33 });
-    expect(result.rawChoiceMessage).toEqual({
-      role: 'assistant',
-      content: 'raw choice',
+    expect(result.rawAssistantOutput).toEqual({
+      type: 'chat-completion',
+      rawValue: { role: 'assistant', content: 'raw choice' },
     });
   });
 
@@ -199,7 +209,10 @@ Action: click(start_box='(500,500)')`,
     rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content: 'Thought: I know what to do, but no action line.',
       usage: { total_tokens: 5 } as any,
-      rawChoiceMessage: { role: 'assistant', content: 'bad response' } as any,
+      rawAssistantOutput: {
+        type: 'chat-completion',
+        rawValue: { role: 'assistant', content: 'bad response' },
+      } as any,
     });
 
     await expect(
@@ -211,7 +224,10 @@ Action: click(start_box='(500,500)')`,
     ).rejects.toMatchObject({
       name: 'AIResponseParseError',
       rawResponse: '"Thought: I know what to do, but no action line."',
-      rawChoiceMessage: { role: 'assistant', content: 'bad response' },
+      rawAssistantOutput: {
+        type: 'chat-completion',
+        rawValue: { role: 'assistant', content: 'bad response' },
+      },
       usage: { total_tokens: 5 },
     });
   });

@@ -1,13 +1,36 @@
 import { createHash } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, sep } from 'node:path';
+import {
+  WorkflowPublicationError,
+  sanitizeReportError,
+} from '@midscene/core/internal/test-runner';
 import type { CaseRunResult, WorkflowDocumentRunResult } from '../engine/types';
+import type { PreparedExecutionProject } from './execution-plan';
 import type { TestProjectCollectionError, TestProjectRunResult } from './types';
 
-const writeJson = (path: string, value: unknown) => {
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, JSON.stringify(value, null, 2));
+const writeJson = async (path: string, value: unknown) => {
+  try {
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(path, JSON.stringify(value, null, 2));
+  } catch (error) {
+    throw new WorkflowPublicationError('write-result', path, error);
+  }
 };
+
+export const writeTestRunPlan = (
+  runDir: string,
+  projects: readonly PreparedExecutionProject[],
+) =>
+  writeJson(join(runDir, 'plan.json'), {
+    schemaVersion: 1,
+    createdAt: new Date().toISOString(),
+    projects: projects.map((item) => ({
+      projectId: item.project.projectId,
+      name: item.project.name,
+      documents: item.plans ?? [],
+    })),
+  });
 
 const toPosix = (value: string): string => value.split(sep).join('/');
 
@@ -31,7 +54,14 @@ export const workflowDocumentResultPath = (
   result: WorkflowDocumentRunResult,
 ): string =>
   toPosix(
-    join(result.projectId, 'documents', result.documentId, 'document.json'),
+    join(
+      result.projectId,
+      'documents',
+      result.documentId,
+      result.attemptIndex === undefined
+        ? 'document.json'
+        : `${result.documentRunId}.json`,
+    ),
   );
 
 export const collectionErrorPath = (
@@ -49,7 +79,10 @@ export const writeWorkflowDocumentResult = (
   result: WorkflowDocumentRunResult,
 ) => {
   const { documentRunId: _documentRunId, ...persistedResult } = result;
-  writeJson(join(runDir, workflowDocumentResultPath(result)), persistedResult);
+  return writeJson(
+    join(runDir, workflowDocumentResultPath(result)),
+    persistedResult,
+  );
 };
 
 export const writeCaseAttemptResult = (
@@ -59,7 +92,7 @@ export const writeCaseAttemptResult = (
   result: CaseRunResult,
 ) => {
   const { runId: attemptId, ...persistedResult } = result;
-  writeJson(
+  return writeJson(
     join(runDir, caseAttemptResultPath(projectId, documentId, result)),
     {
       ...persistedResult,
@@ -72,7 +105,7 @@ export const writeCollectionError = (
   runDir: string,
   collectionError: TestProjectCollectionError,
 ) => {
-  writeJson(
+  return writeJson(
     join(
       runDir,
       collectionErrorPath(
@@ -89,10 +122,7 @@ const relativeToSummary = (summaryPath: string, target: string): string => {
   return toPosix(value || '.');
 };
 
-const errorJson = (error: unknown) =>
-  error instanceof Error && 'toJSON' in error
-    ? (error as Error & { toJSON(): unknown }).toJSON()
-    : error;
+const errorJson = sanitizeReportError;
 
 export interface TestProjectResultFileOptions {
   projectRoot: string;
@@ -106,7 +136,7 @@ export const writeTestProjectRunResult = (
   const { result } = options;
   const fact = (path: string) => toPosix(path);
 
-  writeJson(result.summaryPath, {
+  return writeJson(result.summaryPath, {
     schemaVersion: result.schemaVersion,
     runId: result.runId,
     startedAt: result.startedAt,
@@ -114,15 +144,34 @@ export const writeTestProjectRunResult = (
     durationMs: result.durationMs,
     status: result.status,
     exitCode: result.exitCode,
+    ...(result.errors?.length ? { errors: result.errors.map(errorJson) } : {}),
     projectRoot: options.projectRoot,
     ...(options.configPath ? { configPath: options.configPath } : {}),
     factsRoot: '.',
+    plan: 'plan.json',
+    ...(result.operationLog
+      ? {
+          operationLog: {
+            ...result.operationLog,
+            path: relativeToSummary(
+              result.summaryPath,
+              result.operationLog.path,
+            ),
+          },
+        }
+      : {}),
     reportDir: relativeToSummary(result.summaryPath, result.reportDir),
+    ...(result.reportPath
+      ? { report: relativeToSummary(result.summaryPath, result.reportPath) }
+      : {}),
+    ...(result.markdownPath
+      ? { markdown: relativeToSummary(result.summaryPath, result.markdownPath) }
+      : {}),
     summary: result.summary,
+    ...(result.metrics ? { metrics: result.metrics } : {}),
     projects: result.projects.map((project) => ({
       projectId: project.projectId,
       name: project.name,
-      platform: project.platform,
       status: project.status,
       retry: project.retry,
       fileSelection: project.fileSelection,
@@ -137,6 +186,12 @@ export const writeTestProjectRunResult = (
               startedAt: project.lifecycle.startedAt,
               endedAt: project.lifecycle.endedAt,
               durationMs: project.lifecycle.durationMs,
+              ...(project.lifecycle.cleanup
+                ? { cleanup: project.lifecycle.cleanup }
+                : {}),
+              ...(project.lifecycle.pendingOperations
+                ? { pendingOperations: project.lifecycle.pendingOperations }
+                : {}),
               ...(project.lifecycle.setupError
                 ? { setupError: errorJson(project.lifecycle.setupError) }
                 : {}),
@@ -150,6 +205,9 @@ export const writeTestProjectRunResult = (
           }
         : {}),
       cases: project.cases.map((outcome) => ({
+        ...(outcome.documentRunId
+          ? { documentRunId: outcome.documentRunId }
+          : {}),
         documentId: outcome.documentId,
         caseId: outcome.caseId,
         sourcePath: outcome.sourcePath,
@@ -163,6 +221,16 @@ export const writeTestProjectRunResult = (
                 attemptId: attempt.runId,
                 attemptIndex: attempt.attemptIndex,
                 status: attempt.status,
+                ...(attempt.cleanup ? { cleanup: attempt.cleanup } : {}),
+                ...(attempt.pendingOperations
+                  ? { pendingOperations: attempt.pendingOperations }
+                  : {}),
+                ...(attempt.executionStatus
+                  ? { executionStatus: attempt.executionStatus }
+                  : {}),
+                ...(attempt.retryDecision
+                  ? { retryDecision: attempt.retryDecision }
+                  : {}),
                 resultFile: fact(
                   caseAttemptResultPath(
                     project.projectId,
@@ -183,8 +251,24 @@ export const writeTestProjectRunResult = (
       })),
       documents: project.documents.map((document) => ({
         documentId: document.documentId,
+        ...(document.attemptIndex === undefined
+          ? {}
+          : {
+              attemptIndex: document.attemptIndex,
+              documentRunId: document.documentRunId,
+            }),
         sourcePath: document.sourcePath,
         status: document.status,
+        ...(document.cleanup ? { cleanup: document.cleanup } : {}),
+        ...(document.pendingOperations
+          ? { pendingOperations: document.pendingOperations }
+          : {}),
+        ...(document.executionStatus
+          ? { executionStatus: document.executionStatus }
+          : {}),
+        ...(document.retryDecision
+          ? { retryDecision: document.retryDecision }
+          : {}),
         resultFile: fact(workflowDocumentResultPath(document)),
         ...(document.reportPaths?.length
           ? {

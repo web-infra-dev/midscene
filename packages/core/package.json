@@ -1,21 +1,31 @@
 {
   "name": "@midscene/core",
   "description": "Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML. See https://midscenejs.com/ for details.",
-  "version": "1.12.3",
+  "version": "1.17.7",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
   "module": "./dist/es/index.mjs",
   "imports": {
-    "#proxy-deps": {
+    "#yaml-execution-context": {
       "node": {
-        "import": "./dist/es/ai-model/service-caller/proxy-deps.node.mjs",
-        "require": "./dist/lib/ai-model/service-caller/proxy-deps.node.js"
+        "import": "./dist/es/yaml/execution-context.node.mjs",
+        "require": "./dist/lib/yaml/execution-context.node.js"
       },
       "default": {
-        "import": "./dist/es/ai-model/service-caller/proxy-deps.stub.mjs",
-        "require": "./dist/lib/ai-model/service-caller/proxy-deps.stub.js"
+        "import": "./dist/es/yaml/execution-context.stub.mjs",
+        "require": "./dist/lib/yaml/execution-context.stub.js"
+      }
+    },
+    "#proxy-deps": {
+      "node": {
+        "import": "./dist/es/ai-model/service-caller/proxy/proxy-deps.node.mjs",
+        "require": "./dist/lib/ai-model/service-caller/proxy/proxy-deps.node.js"
+      },
+      "default": {
+        "import": "./dist/es/ai-model/service-caller/proxy/proxy-deps.stub.mjs",
+        "require": "./dist/lib/ai-model/service-caller/proxy/proxy-deps.stub.js"
       }
     }
   },
@@ -30,6 +40,11 @@
       "types": "./dist/types/utils.d.ts",
       "import": "./dist/es/utils.mjs",
       "require": "./dist/lib/utils.js"
+    },
+    "./siwc": {
+      "types": "./dist/types/siwc.d.ts",
+      "import": "./dist/es/siwc.mjs",
+      "require": "./dist/lib/siwc.js"
     },
     "./ai-model": {
       "types": "./dist/types/ai-model/index.d.ts",
@@ -61,6 +76,11 @@
       "import": "./dist/es/agent/index.mjs",
       "require": "./dist/lib/agent/index.js"
     },
+    "./agent/test": {
+      "types": "./dist/types/agent/test-runner-nodes.d.ts",
+      "import": "./dist/es/agent/test-runner-nodes.mjs",
+      "require": "./dist/lib/agent/test-runner-nodes.js"
+    },
     "./yaml": {
       "types": "./dist/types/yaml/index.d.ts",
       "import": "./dist/es/yaml/index.mjs",
@@ -76,6 +96,16 @@
       "import": "./dist/es/report-stats.mjs",
       "require": "./dist/lib/report-stats.js"
     },
+    "./internal/test-runner": {
+      "types": "./dist/types/test-runner/index.d.ts",
+      "import": "./dist/es/test-runner/index.mjs",
+      "require": "./dist/lib/test-runner/index.js"
+    },
+    "./internal/yaml-runtime": {
+      "types": "./dist/types/yaml-runtime.d.ts",
+      "import": "./dist/es/yaml-runtime.mjs",
+      "require": "./dist/lib/yaml-runtime.js"
+    },
     "./skill": {
       "types": "./dist/types/skill/index.d.ts",
       "import": "./dist/es/skill/index.mjs",
@@ -86,13 +116,17 @@
     "*": {
       ".": ["./dist/types/index.d.ts"],
       "utils": ["./dist/types/utils.d.ts"],
+      "siwc": ["./dist/types/siwc.d.ts"],
       "ai-model": ["./dist/types/ai-model.d.ts"],
       "tree": ["./dist/types/tree.d.ts"],
       "device": ["./dist/types/device.d.ts"],
       "dump": ["./dist/types/dump/index.d.ts"],
       "dump/task-service-dump": ["./dist/types/dump/task-service-dump.d.ts"],
       "report-stats": ["./dist/types/report-stats.d.ts"],
+      "internal/test-runner": ["./dist/types/test-runner/index.d.ts"],
+      "internal/yaml-runtime": ["./dist/types/yaml-runtime.d.ts"],
       "agent": ["./dist/types/agent.d.ts"],
+      "agent/test": ["./dist/types/agent/test-runner-nodes.d.ts"],
       "yaml": ["./dist/types/yaml.d.ts"],
       "skill": ["./dist/types/skill/index.d.ts"]
     }
@@ -131,28 +165,29 @@
     "dayjs": "^1.11.11",
     "dotenv": "^16.4.5",
     "fetch-socks": "^1.3.0",
-    "js-yaml": "4.1.0",
+    "jose": "5.9.6",
+    "js-yaml": "4.3.2",
     "jsonrepair": "3.15.0",
     "mdast-util-from-markdown": "^2.0.2",
     "mdast-util-to-markdown": "^2.1.2",
     "openai": "6.3.0",
-    "semver": "7.5.2",
-    "undici": "^6.0.0",
+    "semver": "7.8.6",
+    "undici": "^7.30.1",
     "zod": "^3.25.1"
   },
   "devDependencies": {
-    "@rslib/core": "^0.18.3",
-    "@rstest/core": "0.11.5",
+    "@rslib/core": "~0.19.6",
+    "@rstest/core": "0.12.0",
     "@types/js-yaml": "4.0.9",
     "@types/node": "^18.0.0",
     "@types/node-fetch": "2.6.11",
     "@types/semver": "7.7.0",
-    "langsmith": "^0.3.74",
-    "sharp": "^0.34.3",
+    "langsmith": "^0.11.8",
+    "sharp": "^0.35.5",
     "typescript": "^5.8.3"
   },
   "engines": {
-    "node": ">=18.19.0"
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
   },
   "publishConfig": {
     "access": "public",
