@@ -84,6 +84,16 @@ In CI:
 - With the [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action), set `run-directory` or `MIDSCENE_RUN_DIR`. Execution and artifact collection use the same directory.
 - Collect files using the printed `Summary:` / `Report:` paths or the SDK's `summaryPath`, `markdownPath`, and `reportPath`. See below for sharing reports.
 
+### Report redaction
+
+Midscene Test masks credential fields such as `password` and `apiKey` in saved step inputs, outputs, and YAML source. It also masks credentials it recognizes in error messages and stack traces. To keep these values for a debugging run, set the environment variable before starting the test:
+
+```bash
+MIDSCENE_TEST_REPORT_REDACT=false pnpm exec midscene-test
+```
+
+Reports and saved diagnostics from this run can contain plaintext credentials. The switch affects values available to the runner when it writes the report. If a Node or model already returned a placeholder, the report keeps that placeholder.
+
 ### Exit codes
 
 You can determine the overall outcome of a test run from the CLI exit code:

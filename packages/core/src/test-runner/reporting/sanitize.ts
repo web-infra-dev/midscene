@@ -1,3 +1,6 @@
+import { getBasicEnvValue } from '@midscene/shared/env/basic';
+import { MIDSCENE_TEST_REPORT_REDACT } from '@midscene/shared/env/types';
+import { ifInNode } from '@midscene/shared/utils';
 import type {
   TestRunReportError,
   TestRunReportValue,
@@ -23,6 +26,9 @@ const normalizedSecretKeys = [
 const normalizedKey = (key: string): string =>
   key.toLowerCase().replace(/[^a-z0-9]/g, '');
 
+export const isReportRedactionEnabled = (): boolean =>
+  !ifInNode || getBasicEnvValue(MIDSCENE_TEST_REPORT_REDACT) !== 'false';
+
 export const isReportSecretKey = (key: string): boolean => {
   const normalized = normalizedKey(key);
   return normalizedSecretKeys.some((secret) => normalized.includes(secret));
@@ -46,7 +52,10 @@ export function sanitizeReportText(
 }
 
 /** Convert arbitrary Node input/output to a bounded, JSON-safe display value. */
-export function sanitizeReportValue(value: unknown): TestRunReportValue {
+export function sanitizeReportValue(
+  value: unknown,
+  { redactSecrets = isReportRedactionEnabled() } = {},
+): TestRunReportValue {
   const truncatedPaths = new Set<string>();
   const redactedPaths = new Set<string>();
   const ancestors = new WeakSet<object>();
@@ -143,7 +152,7 @@ export function sanitizeReportValue(value: unknown): TestRunReportValue {
     for (const key of keys.slice(0, MAX_OBJECT_KEYS)) {
       const childPath = objectPath(path, key);
       if (!consume(childPath, key)) break;
-      if (isReportSecretKey(key)) {
+      if (redactSecrets && isReportSecretKey(key)) {
         output[key] = '[REDACTED]';
         redactedPaths.add(childPath);
       } else {
@@ -176,16 +185,25 @@ export function sanitizeReportValue(value: unknown): TestRunReportValue {
   };
 }
 
+function redactCredentials(value: string): string {
+  return value
+    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]')
+    .replace(/(https?:\/\/)[^\s/@]+:[^\s/@]+@/gi, '$1[REDACTED]@')
+    .replace(
+      /(["']?\b(?:password|passwd|secret|token|authorization|cookie|api[_-]?key)\b["']?\s*[:=]\s*)(?:\[REDACTED\]|"[^"]*"|'[^']*'|[^\s,;}\]]+)/gi,
+      '$1[REDACTED]',
+    );
+}
+
+export function redactDiagnosticMessage(value: string): string {
+  return sanitizeReportText(redactCredentials(value));
+}
+
 export function sanitizeReportError(error: unknown): TestRunReportError {
-  const redactText = (value: string) =>
-    value
-      .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]')
-      .replace(/(https?:\/\/)[^\s/@]+:[^\s/@]+@/gi, '$1[REDACTED]@')
-      .replace(
-        /(["']?\b(?:password|passwd|secret|token|authorization|cookie|api[_-]?key)\b["']?\s*[:=]\s*)(?:\[REDACTED\]|"[^"]*"|'[^']*'|[^\s,;}\]]+)/gi,
-        '$1[REDACTED]',
-      );
-  const messageText = (value: string) => sanitizeReportText(redactText(value));
+  const redactSecrets = isReportRedactionEnabled();
+  const messageText = redactSecrets
+    ? redactDiagnosticMessage
+    : sanitizeReportText;
   const ancestors = new WeakSet<object>();
   let remainingBytes = MAX_SERIALIZED_BYTES - 1024;
   let nodes = 0;
@@ -244,6 +262,7 @@ export function sanitizeReportError(error: unknown): TestRunReportError {
           : undefined;
       const details = sanitizeReportValue(
         encodedDetails ? encodedDetails.value : source.details,
+        { redactSecrets },
       );
       for (const field of ['redactedPaths', 'truncatedPaths'] as const) {
         const paths = encodedDetails?.[field];
@@ -286,7 +305,9 @@ export function sanitizeReportError(error: unknown): TestRunReportError {
     if (typeof source.stack === 'string' && source.stack) {
       // Keep the runtime stack, including user frames beyond the message limit.
       // Allocate after causes so the original failure has priority over wrappers.
-      let stack = redactText(source.stack);
+      let stack = redactSecrets
+        ? redactCredentials(source.stack)
+        : source.stack;
       const budget = Math.max(0, remainingBytes - 128);
       if (stringByteLength(JSON.stringify(stack)) > budget) {
         const suffix = '\n… [truncated: stack trace size limit]';

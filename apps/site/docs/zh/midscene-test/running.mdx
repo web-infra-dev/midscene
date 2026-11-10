@@ -84,6 +84,16 @@ MIDSCENE_RUN_DIR="./artifacts" pnpm exec midscene-test
 - 使用 [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action) 时，通过 `run-directory` 或 `MIDSCENE_RUN_DIR` 指定目录，执行与产物收集共用该目录。
 - 按终端打印的 `Summary:` / `Report:`，或 SDK 返回的 `summaryPath`、`markdownPath`、`reportPath` 收集文件。分享报告的方式见下文。
 
+### 报告脱敏
+
+Midscene Test 默认会遮盖步骤输入、输出及 YAML 源码中的 `password`、`apiKey` 等凭据字段，也会遮盖错误消息和堆栈中识别到的凭据。需要在一次调试运行中保留这些值时，可以在启动测试前设置环境变量：
+
+```bash
+MIDSCENE_TEST_REPORT_REDACT=false pnpm exec midscene-test
+```
+
+这次运行生成的报告和诊断文件可能包含明文凭据。开关作用于 Runner 写入报告时拿到的数据。如果 Node 或模型返回的已经是占位符，报告里也会保留该占位符。
+
 ### 退出码
 
 你可以根据 CLI 退出码判断整次测试运行是否成功：

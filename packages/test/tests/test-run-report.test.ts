@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { TestRunReportSourceIndex } from '@midscene/core';
 import { NodeExecutionError } from '@midscene/core/internal/test-runner';
-import { describe, expect, it } from '@rstest/core';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import type { TestProjectRunResult } from '../src/cli/types';
 import type { StepRunResult } from '../src/engine/types';
 import { WorkflowError } from '../src/errors';
@@ -145,6 +145,8 @@ const index: TestRunReportSourceIndex = {
   },
 };
 
+afterEach(() => rs.unstubAllEnvs());
+
 describe('Midscene Test report manifest', () => {
   it('redacts and truncates arbitrary display data', () => {
     const cyclic: Record<string, unknown> = {
@@ -215,6 +217,39 @@ describe('Midscene Test report manifest', () => {
       accessToken: '[REDACTED]',
     });
     expect(manifest.metrics.modelTimeMs).toBe(500);
+  });
+
+  it('preserves report inputs, outputs and errors when redaction is disabled', () => {
+    rs.stubEnv('MIDSCENE_TEST_REPORT_REDACT', 'false');
+    const failed = step();
+    failed.status = 'failed';
+    const message = 'Bearer demo-token';
+    failed.error = new WorkflowError(message, {
+      details: { password: 'test-value' },
+    });
+    const manifest = buildTestRunReportDump(
+      JSON.parse(JSON.stringify(result([failed]))),
+      index,
+    );
+    const reportStep =
+      manifest.projects[0].documents[0].cases[0].attempts[0].steps[0];
+    expect(reportStep.input).toEqual({ value: failed.input });
+    expect(reportStep.output?.data).toEqual({ value: failed.output?.data });
+    expect(reportStep.error).toMatchObject({
+      message,
+      stack: expect.stringContaining(message),
+      details: { value: { password: 'test-value' } },
+    });
+    expect(
+      sanitizeReportValue({ token: 'x'.repeat(3000) }).truncatedPaths,
+    ).toEqual(['$.token']);
+  });
+
+  it('requires an explicit false to disable redaction', () => {
+    rs.stubEnv('MIDSCENE_TEST_REPORT_REDACT', 'typo');
+    expect(sanitizeReportValue({ password: 'private' }).redactedPaths).toEqual([
+      '$.password',
+    ]);
   });
 
   it('does not guess when a trace cannot be resolved', () => {

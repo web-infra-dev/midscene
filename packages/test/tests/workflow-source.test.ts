@@ -1,6 +1,8 @@
-import { describe, expect, it } from '@rstest/core';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { load } from 'js-yaml';
 import { parseWorkflowSource } from '../src/parser/source';
+
+afterEach(() => rs.unstubAllEnvs());
 
 describe('workflow YAML source snapshot', () => {
   it('locates repeated steps, hook phases and aliases at their author positions', () => {
@@ -86,6 +88,12 @@ describe('workflow YAML source snapshot', () => {
       });
     },
   );
+
+  it('preserves YAML anchors and aliases when report redaction is disabled', () => {
+    rs.stubEnv('MIDSCENE_TEST_REPORT_REDACT', 'false');
+    const source = 'shared: &credential "private"\npassword: *credential\n';
+    expect(parseWorkflowSource(source).sourceYaml).toEqual({ value: source });
+  });
 
   it('redacts anchor definitions when a secret field uses an alias', () => {
     const source =

@@ -1,6 +1,6 @@
 import { runInNewContext } from 'node:vm';
 import { NodeExecutionError } from '@midscene/core/internal/test-runner';
-import { describe, expect, it } from '@rstest/core';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import {
   firstBusinessFrame,
   formatFailureDetails,
@@ -24,6 +24,8 @@ const step = (input: unknown): StepRunResult => ({
   endedAt: '',
   durationMs: 0,
 });
+
+afterEach(() => rs.unstubAllEnvs());
 
 describe('concise failure details', () => {
   it('shows resolved failing input, author location and application frame', () => {
@@ -55,6 +57,16 @@ describe('concise failure details', () => {
         '  at midscene.config.ts:112:13',
       ].join('\n'),
     );
+  });
+
+  it('keeps terminal failures redacted when report redaction is disabled', () => {
+    rs.stubEnv('MIDSCENE_TEST_REPORT_REDACT', 'false');
+    const detail = formatFailureDetails('case', new Error('token=test-value'), {
+      step: step({ apiKey: 'test-value' }),
+    });
+    expect(detail.body.join('\n')).toContain('token=[REDACTED]');
+    expect(detail.body.join('\n')).toContain('apiKey: [REDACTED]');
+    expect(detail.body.join('\n')).not.toContain('test-value');
   });
 
   it('redacts credentials and limits failed input fields and lengths', () => {

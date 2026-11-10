@@ -1,5 +1,6 @@
 import type { TestRunReportValue } from '@midscene/core';
 import {
+  isReportRedactionEnabled,
   isReportSecretKey,
   sanitizeReportText,
 } from '@midscene/core/internal/test-runner';
@@ -28,6 +29,7 @@ export function parseWorkflowSource(source: string): {
   const redactedPaths = new Set<string>();
   // js-yaml removes the BOM before reporting source positions.
   const sourceOffset = source.charCodeAt(0) === 0xfeff ? 1 : 0;
+  const redactSecrets = isReportRedactionEnabled();
   const parsed = load(source, {
     schema: JSON_SCHEMA,
     listener(event, state) {
@@ -47,7 +49,7 @@ export function parseWorkflowSource(source: string): {
       node.kind = state.kind;
       stack.at(-1)?.children.push(node);
       nodes.push(node);
-      if (state.kind !== 'mapping') return;
+      if (!redactSecrets || state.kind !== 'mapping') return;
       for (let index = 0; index < node.children.length; index += 2) {
         const key = node.children[index].value;
         const value = node.children[index + 1];

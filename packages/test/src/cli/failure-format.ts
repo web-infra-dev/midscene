@@ -2,7 +2,7 @@ import { isAbsolute, relative, win32 } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inspect, stripVTControlCharacters } from 'node:util';
 import {
-  sanitizeReportError,
+  redactDiagnosticMessage,
   sanitizeReportValue,
 } from '@midscene/core/internal/test-runner';
 import type { StepRunResult } from '@midscene/core/internal/test-runner';
@@ -115,26 +115,25 @@ export function firstBusinessFrame(
   return `${display.replace(/\\/g, '/')}:${match[2]}:${match[3]}`;
 }
 
-/** A few resolved input fields, with the same redaction policy as saved reports. */
+/** A few resolved input fields for the terminal failure summary. */
 export function formatFailureInput(input: unknown): string[] {
   if (input === undefined) return [];
-  const value = sanitizeReportValue(input).value;
+  const value = sanitizeReportValue(input, { redactSecrets: true }).value;
   const render = (value: unknown) =>
     shorten(
-      sanitizeReportError({
-        message:
-          typeof value === 'string'
-            ? value
-            : inspect(value, {
-                colors: false,
-                depth: 2,
-                maxArrayLength: 4,
-                maxStringLength: 180,
-                breakLength: Number.POSITIVE_INFINITY,
-                customInspect: false,
-                getters: false,
-              }),
-      }).message,
+      redactDiagnosticMessage(
+        typeof value === 'string'
+          ? value
+          : inspect(value, {
+              colors: false,
+              depth: 2,
+              maxArrayLength: 4,
+              maxStringLength: 180,
+              breakLength: Number.POSITIVE_INFINITY,
+              customInspect: false,
+              getters: false,
+            }),
+      ),
       160,
     );
   if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -184,9 +183,7 @@ export function formatFailureDetails(
     if (attempt && (attempt.total > 1 || attempt.index > 0))
       field(label, `${attempt.index + 1}/${attempt.total}`);
   if (body.length) body.push('');
-  const safeMessage = sanitizeReportError({
-    message: formatConciseError(error),
-  }).message;
+  const safeMessage = redactDiagnosticMessage(formatConciseError(error));
   const lines = stripVTControlCharacters(safeMessage).split(/\r?\n/);
   body.push(
     `  Error: ${shorten(lines[0], 320)}`,
