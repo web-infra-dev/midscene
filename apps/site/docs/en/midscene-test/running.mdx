@@ -29,7 +29,7 @@ They share the configured Nodes, Execution Projects, and default output location
 | Default config | Search cwd only for `midscene.config.ts` or `midscene.config.mjs`. |
 | `--config` | Resolve relative paths from cwd; absolute paths are also supported. |
 | Test root | Use the config directory, or cwd when no config is found. |
-| File or directory argument | Resolve from cwd. Filter configured cases when a config exists; otherwise run the selected file or directory. |
+| File or directory argument | Resolve from cwd. Filter configured cases when a config exists; otherwise discover and collect cases from the selected file or directory. |
 | Paths in config | Resolve `files.include`, `files.exclude`, and `output.reportDir` from the test root. |
 | `--result-dir` | Resolve relative paths from cwd. |
 
@@ -42,7 +42,7 @@ pnpm exec midscene-test ./order.yaml --config ../midscene.config.ts
 
 The parent directory containing the config becomes the test root. Default output remains in that directory's `midscene_run`.
 
-Without a config, a file argument runs that YAML directly, and a directory argument discovers YAML files in that directory. Paths outside cwd are supported. With no argument, discovery starts at cwd. Configs beside the selected input are not loaded. Default artifacts stay under `cwd/midscene_run`.
+Without a config, a file argument collects the selected YAML, and a directory argument discovers YAML files in that directory. Paths outside cwd are supported. With no argument, discovery starts at cwd. Configs beside the selected input are not loaded. Default artifacts stay under `cwd/midscene_run`.
 
 Without a config, no Nodes are registered. YAML that references Nodes still needs a config that registers them. Legacy `tasks/flow` YAML is run with `midscene`, not `midscene-test`.
 
@@ -67,6 +67,36 @@ The SDK accepts these options:
 - `configPath`: an explicit config, resolved relative to `cwd`. Its directory becomes the test root.
 
 These rules apply to test runs. The `nodes` subcommand retains its existing directory and config resolution rules.
+
+### Migrate config discovery
+
+Default config discovery checks the current working directory (cwd) only. It does not search parent directories or switch configs when you specify a test directory.
+
+If an existing command relies on a directory argument to load another project's config:
+
+```bash
+pnpm exec midscene-test ./other-project
+```
+
+Select that config explicitly:
+
+```bash
+pnpm exec midscene-test --config ./other-project/midscene.config.ts
+```
+
+Alternatively, change into `other-project` and run `pnpm exec midscene-test`. To run one file from the original working directory:
+
+```bash
+pnpm exec midscene-test ./other-project/cases/order.yaml --config ./other-project/midscene.config.ts
+```
+
+Check these paths when upgrading:
+
+- `files.include`, `files.exclude`, and `output.reportDir` resolve from the config directory. For example, with sibling `config/` and `cases/` directories and a config inside `config/`, use `../cases/**/*.yaml`.
+- Default artifacts go to `midscene_run` inside the config directory. Update CI artifact collection paths, or move the config to the project root.
+- Relative `--config`, test input, and `--result-dir` paths still resolve from cwd.
+
+Without a config, YAML discovery and collection remain available, but referenced Nodes must be registered through a config. This does not enable arbitrary YAML execution without configuration.
 
 ### Filter execution targets and configuration files
 

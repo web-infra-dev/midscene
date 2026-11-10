@@ -29,7 +29,7 @@ pnpm exec midscene-test ./cases/smoke
 | 默认配置 | 仅查找当前工作目录。支持 `midscene.config.ts` 和 `midscene.config.mjs`。 |
 | `--config` | 相对路径以当前工作目录为基准，也支持绝对路径。 |
 | 测试根目录 | 使用配置所在目录。无配置时，使用当前工作目录。 |
-| 文件或目录参数 | 以当前工作目录为基准。有配置时筛选项目用例；无配置时运行指定文件或目录。 |
+| 文件或目录参数 | 以当前工作目录为基准。有配置时筛选项目用例；无配置时查找、收集指定文件或目录中的用例。 |
 | 配置中的路径 | `files.include`、`files.exclude` 和 `output.reportDir` 均以测试根目录为基准。 |
 | `--result-dir` | 相对路径以当前工作目录为基准。 |
 
@@ -42,7 +42,7 @@ pnpm exec midscene-test ./order.yaml --config ../midscene.config.ts
 
 此时，测试根目录是配置所在的父目录。默认输出仍位于父目录的 `midscene_run`。
 
-没有配置时，文件参数直接运行该 YAML，目录参数用于查找该目录下的 YAML，也支持当前工作目录之外的路径。省略参数时，从当前工作目录查找用例。不会加载目标文件或目录旁的配置。默认产物保存在当前工作目录的 `midscene_run` 中。
+没有配置时，文件参数用于收集指定 YAML，目录参数用于查找该目录下的 YAML。也支持当前工作目录之外的路径。省略参数时，从当前工作目录查找用例。不会加载目标文件或目录旁的配置。默认产物保存在当前工作目录的 `midscene_run` 中。
 
 无配置时，不会注册任何 Node。YAML 如果引用了 Node，仍需通过配置注册。旧版 `tasks/flow` YAML 请使用 `midscene` 命令运行。
 
@@ -67,6 +67,36 @@ SDK 使用以下参数：
 - `configPath`：显式选择配置。相对路径以 `cwd` 为基准，测试根目录为配置所在目录。
 
 以上规则适用于测试运行。`nodes` 子命令保留原有的目录和配置解析规则。
+
+### 配置查找行为迁移
+
+默认配置只从当前工作目录（cwd）加载。框架不会向上查找父目录，也不会因指定用例目录而切换配置。
+
+如果旧命令依靠目录参数加载另一个项目的配置：
+
+```bash
+pnpm exec midscene-test ./other-project
+```
+
+请改为显式指定配置：
+
+```bash
+pnpm exec midscene-test --config ./other-project/midscene.config.ts
+```
+
+也可以先进入 `other-project`，再运行 `pnpm exec midscene-test`。仅运行其中一个文件时，在原工作目录执行：
+
+```bash
+pnpm exec midscene-test ./other-project/cases/order.yaml --config ./other-project/midscene.config.ts
+```
+
+升级时，请检查以下路径：
+
+- `files.include`、`files.exclude` 和 `output.reportDir` 以配置所在目录为基准。例如，配置位于 `config/`，用例位于同级的 `cases/` 时，匹配规则应为 `../cases/**/*.yaml`。
+- 默认产物写入配置目录下的 `midscene_run`。请同步调整 CI 的产物收集路径，或将配置移到项目根目录。
+- `--config`、用例路径和 `--result-dir` 的相对路径仍以 cwd 为基准。
+
+无配置时仍可查找、收集 YAML，但引用的 Node 必须通过配置注册。这不等于可以零配置执行任意 YAML。
 
 ### 过滤执行项目与指定配置文件
 
