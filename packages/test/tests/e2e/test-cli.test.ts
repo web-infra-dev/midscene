@@ -461,17 +461,19 @@ export default {
     },
   );
 
-  it.each(['true', 'false'])(
+  it.each([undefined, 'false'])(
     'redacts snapshot warnings while the saved diagnostic follows report redaction=%s',
     async (redact) => {
       const root = mkdtempSync(join(tmpdir(), 'cli-snapshot-warning-'));
       temporaryDirectories.push(root);
+      writeFileSync(join(root, 'broken-agent.json'), 'token=dump-sample');
       writeFileSync(
         join(root, 'midscene.config.mjs'),
         `export default {nodes: [{
         name: 'demo.snapshot',
         execute({report}) {
           report.onSnapshot(() => { throw new Error('token=snapshot-sample'); });
+          report.onSnapshot(() => ({sourcePath: 'agent.html', dumpPath: 'broken-agent.json'}));
         },
       }]};`,
       );
@@ -490,18 +492,31 @@ export default {
       );
       const terminal = stdout + stderr;
       expect(terminal).toMatch(/WARN[^\n]*token=\[REDACTED\]/);
-      expect(terminal).not.toContain('snapshot-sample');
+      expect(terminal).not.toMatch(/snapshot-sample|dump-sample/);
       const summaryPath = summaryPathFor(resultDir);
       const summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
       const dump = readReportRunnerDump(
         resolve(dirname(summaryPath), summary.report),
       );
-      const diagnostic = dump?.diagnostics?.find(
-        (item) => item.code === 'agent-source-unavailable',
+      const messages = dump?.diagnostics
+        ?.filter((item) => item.code === 'agent-source-unavailable')
+        .map((item) => item.message);
+      const captureError = messages?.find((message) =>
+        message.startsWith('Report collection for demo.snapshot:'),
       );
-      expect(diagnostic?.message).toContain(
+      expect(captureError).toContain(
         redact === 'false' ? 'token=snapshot-sample' : 'token=[REDACTED]',
       );
+      const parseError = messages?.find((message) =>
+        message.includes('SyntaxError'),
+      );
+      expect(parseError).toContain(
+        redact === 'false' ? 'token=dump-sample' : 'token=[REDACTED]',
+      );
+      expect(dump?.metrics.collection?.reasons).toContain(parseError);
+      if (redact !== 'false') {
+        expect(JSON.stringify(dump)).not.toMatch(/snapshot-sample|dump-sample/);
+      }
     },
   );
 
