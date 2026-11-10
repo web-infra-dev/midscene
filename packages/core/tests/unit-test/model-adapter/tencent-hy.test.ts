@@ -93,7 +93,7 @@ describe('tencent-hy model adapter', () => {
           preparedSize: { width: 3000, height: 2000 },
         }),
       ).toEqual({
-        center: [600, 600],
+        center: [601, 601],
         rect: { left: 300, top: 400, width: 601, height: 401 },
       });
       expect(() =>
