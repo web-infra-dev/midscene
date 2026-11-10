@@ -436,7 +436,9 @@ describe('plan XML parse retry', () => {
     async (ratio) => {
       const rawResponse = `<action-type>Swipe</action-type>
 <action-param-json>{"direction":"up","distance":90,"duration":500}</action-param-json>`;
-      rs.mocked(callAI).mockResolvedValue(mockAIResponse(rawResponse));
+      rs.mocked(callGenerativeAI).mockResolvedValue(
+        mockAIResponse(rawResponse),
+      );
       const call = rs.fn();
       const action: DeviceAction = {
         name: 'Swipe',
@@ -466,6 +468,7 @@ describe('plan XML parse retry', () => {
         'pixels of the current screenshot',
       );
       const builder = new TaskBuilder({
+        getDefaultModelRuntime: () => runtime,
         interfaceInstance: {} as any,
         service: {} as any,
         actionSpace: [action],
