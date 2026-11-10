@@ -81,6 +81,15 @@ describe('getUITarsModelVersion', () => {
 });
 
 describe('validateModelFamily', () => {
+  it('accepts tencent-hy through model config parsing', () => {
+    expect(
+      parseOpenaiSdkConfig({
+        keys: DEFAULT_MODEL_CONFIG_KEYS,
+        provider: { MIDSCENE_MODEL_FAMILY: 'tencent-hy' },
+      }).modelFamily,
+    ).toBe('tencent-hy');
+  });
+
   it('should not throw on valid model families', () => {
     expect(() => validateModelFamily('qwen3-vl')).not.toThrow();
     expect(() => validateModelFamily('qwen3')).not.toThrow();
