@@ -48,8 +48,10 @@ export class CliModelUsage {
 }
 
 export function formatTokenCount(value: number): string {
-  if (value < 1000) return String(Math.round(value));
-  if (value < 1_000_000) return `${(value / 1000).toFixed(1)}k`;
+  // Round before choosing the unit, so 999,950 reads 1.0m rather than 1000.0k.
+  if (Math.round(value) < 1000) return String(Math.round(value));
+  const thousands = Math.round(value / 100) / 10;
+  if (thousands < 1000) return `${thousands.toFixed(1)}k`;
   return `${(value / 1_000_000).toFixed(1)}m`;
 }
 

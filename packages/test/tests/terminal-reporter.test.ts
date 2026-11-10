@@ -8,7 +8,7 @@ import type { ConsoleLogEntry } from '@midscene/shared/logger';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import stringWidth from 'string-width';
 import { formatConciseError } from '../src/cli/error-format';
-import { TerminalReporter } from '../src/cli/terminal-reporter';
+import { TerminalReporter, formatDuration } from '../src/cli/terminal-reporter';
 import { parseTestCliArgs } from '../src/cli/test-command';
 import type {
   TestExecutionProjectRunResult,
@@ -1567,5 +1567,21 @@ describe('terminal reporter', () => {
     expect(() => parseTestCliArgs(['nodes', '--reporter', 'default'])).toThrow(
       'not supported',
     );
+  });
+});
+
+describe('formatDuration', () => {
+  it.each([
+    [0, '0ms'],
+    [999.4, '999ms'],
+    [999.5, '1.0s'],
+    [1000, '1.0s'],
+    [59_949, '59.9s'],
+    [59_950, '1m 0s'],
+    [60_000, '1m 0s'],
+    [90_400, '1m 30s'],
+    [119_600, '2m 0s'],
+  ])('formats %dms as %s', (ms, expected) => {
+    expect(formatDuration(ms)).toBe(expected);
   });
 });

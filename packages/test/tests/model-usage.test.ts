@@ -5,6 +5,7 @@ import {
   CliModelUsage,
   configuredModelNames,
   formatModelUsage,
+  formatTokenCount,
   formatTokenUsage,
 } from '../src/cli/model-usage';
 import type { StepRunResult } from '../src/engine/types';
@@ -127,5 +128,23 @@ describe('CLI model usage', () => {
     expect(formatModelUsage(sumTestRunReportMetrics([]))).toEqual([
       '— · 0 (no model calls)',
     ]);
+  });
+});
+
+describe('formatTokenCount', () => {
+  it.each([
+    [0, '0'],
+    [999, '999'],
+    [999.4, '999'],
+    [999.5, '1.0k'],
+    [1000, '1.0k'],
+    [1049, '1.0k'],
+    [1050, '1.1k'],
+    [999_949, '999.9k'],
+    [999_950, '1.0m'],
+    [1_000_000, '1.0m'],
+    [12_345_678, '12.3m'],
+  ])('formats %d tokens as %s', (value, expected) => {
+    expect(formatTokenCount(value)).toBe(expected);
   });
 });
