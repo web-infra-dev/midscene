@@ -8,9 +8,65 @@
  * must be shrinkable for the timeline to own the remaining scrollable space.
  */
 .chrome-extension-playground {
+  --midscene-timeline-connector: rgba(31, 35, 41, 0.2);
+
   height: 100%;
   min-height: 0;
   flex: 1 1 auto;
+
+  .system-message-icon {
+    rect,
+    path {
+      fill: var(--midscene-accent, #2b83ff);
+    }
+  }
+
+  .prompt-input-wrapper {
+    .mode-radio-group-wrapper .mode-radio-group {
+      .ant-radio-button-wrapper.ant-radio-button-wrapper-checked,
+      .more-apis-button.selected-from-dropdown {
+        background: var(--midscene-accent, #2b83ff);
+        color: #fff;
+
+        &:hover {
+          background: var(--midscene-accent-hover, #1a6fe6);
+          color: #fff;
+        }
+      }
+    }
+
+    .form-controller-wrapper .ant-btn-primary {
+      background: var(--midscene-accent, #2b83ff);
+      border-color: var(--midscene-accent, #2b83ff);
+
+      &:not(:disabled):hover,
+      &:not(:disabled):focus {
+        background: var(--midscene-accent-hover, #1a6fe6);
+        border-color: var(--midscene-accent-hover, #1a6fe6);
+      }
+
+      &:disabled,
+      &.ant-btn-loading {
+        background: var(--midscene-accent, #2b83ff);
+        border-color: transparent;
+        color: rgba(255, 255, 255, 0.72);
+      }
+    }
+  }
+
+  .middle-dialog-area .scroll-to-bottom-button {
+    right: 8px;
+    bottom: 8px;
+    background: var(--midscene-accent, #2b83ff);
+    border-color: var(--midscene-accent, #2b83ff);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    color: #fff;
+
+    &:not(:disabled):hover {
+      background: var(--midscene-accent-hover, #1a6fe6);
+      border-color: var(--midscene-accent-hover, #1a6fe6);
+    }
+  }
 
   .command-form,
   .playground-timeline-region,
@@ -67,7 +123,7 @@
   // own internal spacing instead of inheriting that outer inset.
   &.playground-conversation-skin {
     .middle-dialog-area .info-list-container {
-      padding: 0;
+      padding: 16px 0 0;
     }
 
     .bottom-input-section {
@@ -158,34 +214,53 @@
     .clear-button-container {
       position: absolute;
       top: 16px;
-      right: -6px;
+      right: 12px;
       z-index: 20;
+
+      .clear-button {
+        box-sizing: border-box;
+        width: 32px;
+        height: 32px;
+        border: 1px solid var(--midscene-border-strong, rgba(0, 0, 0, 0.08));
+        border-radius: 8px;
+        background: var(--midscene-surface-elevated, #fff);
+        color: var(--midscene-text-secondary, #777);
+        opacity: 1;
+
+        &:hover {
+          background: var(--midscene-surface-muted, #f1f2f3);
+          color: var(--midscene-text-primary, #1f2329);
+        }
+      }
     }
 
-    .middle-dialog-area .info-list-container {
-      .list-item:has(.progress-row) > div:has(> .progress-row) {
-        position: relative;
-      }
-
-      .list-item:has(.progress-row) > div:has(> .progress-row)::after {
-        position: absolute;
-        top: 30px;
-        bottom: 0;
-        left: 8px;
-        width: 1px;
-        background: var(--extension-timeline-connector, #d9d9d9);
-        content: '';
-      }
-
-      .list-item:has(.progress-row-last) > div:has(> .progress-row)::after {
-        display: none;
-      }
+    // The clear control occupies the timeline's right edge. Reserve its
+    // 32px hit area plus the 12px edge inset and an 8px content gap so a
+    // right-aligned user bubble never sits underneath it.
+    .user-message-container {
+      box-sizing: border-box;
+      padding-right: 52px;
     }
   }
 }
 
 [data-theme='dark'] .chrome-extension-playground {
-  --extension-timeline-connector: #444;
+  // The shared conversation skin owns connector geometry. The extension only
+  // supplies its dark-theme color so a second pseudo-element cannot obscure
+  // the high-contrast line.
+  --midscene-timeline-connector: #d9d9d9;
+
+  // Ant Design assigns `rgba(0, 0, 0, 0.88)` directly to list items. That
+  // bypasses the playground root's dark foreground token and makes any
+  // currentColor-based timeline affordance render black. Override it at the
+  // actual list-item element, rather than relying on inheritance.
+  .chrome-extension-execution-timeline-skin
+    .middle-dialog-area
+    .info-list-container
+    .ant-list
+    .ant-list-item {
+    color: var(--midscene-text-primary);
+  }
 
   .system-message-header .system-message-title {
     color: var(--midscene-text-primary);
@@ -225,10 +300,8 @@
     }
   }
 
-  // The shared dark theme restores this overflow fade with `!important`.
-  // It is intentionally disabled in the extension because it covers visible
-  // mode buttons beside the toolbar icons.
+  // The overflow fade covers visible mode buttons in the narrow side panel.
   &.playground-conversation-skin .mode-radio-group-wrapper .action-icons {
-    background: transparent !important;
+    background: transparent;
   }
 }

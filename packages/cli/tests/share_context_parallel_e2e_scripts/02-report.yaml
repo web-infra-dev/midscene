@@ -1,0 +1,7 @@
+tasks:
+  - name: Verify report tab isolation and setup state
+    flow:
+      - javascript: verifyParallelYamlCase('report')
+      - javascript: openParallelYamlPopup('report')
+      - sleep: 500
+      - javascript: verifyParallelYamlPopup('report')

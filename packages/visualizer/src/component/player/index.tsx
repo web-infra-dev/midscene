@@ -78,6 +78,8 @@ export function Player(props?: {
   autoPlay?: boolean;
   /** Hide the bottom playback control bar entirely. Defaults to false. */
   hideControls?: boolean;
+  /** Hide the fullscreen control for hosts that cannot support it. */
+  hideFullscreenControl?: boolean;
   presentation?: PlayerPresentation;
 }) {
   const { message } = AntdApp.useApp();
@@ -759,9 +761,11 @@ export function Player(props?: {
                 </div>
               </Dropdown>
 
-              <div className="status-icon" onClick={toggleFullscreen}>
-                {isFullscreen ? <CompressOutlined /> : <ExpandOutlined />}
-              </div>
+              {!props?.hideFullscreenControl && (
+                <div className="status-icon" onClick={toggleFullscreen}>
+                  {isFullscreen ? <CompressOutlined /> : <ExpandOutlined />}
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -1,0 +1,98 @@
+name: Badge service
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/badge/**'
+      - '.github/workflows/badge.yml'
+      - '.github/actions/setup-node-pnpm/**'
+      - '.github/actions/cache/**'
+      - 'scripts/rstest-coverage.ts'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+  pull_request:
+    paths:
+      - 'apps/badge/**'
+      - '.github/workflows/badge.yml'
+      - '.github/actions/setup-node-pnpm/**'
+      - '.github/actions/cache/**'
+      - 'scripts/rstest-coverage.ts'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: badge-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify-token:
+    if: github.repository == 'web-infra-dev/midscene' && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - name: Verify Cloudflare badge access without deploying
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_BADGE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node <<'JS'
+          const token = process.env.CLOUDFLARE_API_TOKEN;
+          const account = process.env.CLOUDFLARE_ACCOUNT_ID;
+          if (!token || !account) throw new Error('Missing Cloudflare token or account ID');
+          async function check(path, label) {
+            const response = await fetch(`https://api.cloudflare.com/client/v4${path}`, {
+              headers: { Authorization: `Bearer ${token}` },
+              signal: AbortSignal.timeout(30000),
+            });
+            const body = await response.json();
+            if (!response.ok || !body.success) {
+              throw new Error(`${label}: HTTP ${response.status}; ${JSON.stringify(body.errors)}`);
+            }
+            console.log(`${label}: access confirmed`);
+            return body.result;
+          }
+          (async () => {
+            await check(`/accounts/${account}/workers/services/midscene-badge`, 'Badge Worker');
+            const zones = await check(`/zones?name=midscenejs.com&account.id=${account}`, 'Zone lookup');
+            if (zones.length !== 1) throw new Error('Expected exactly one midscenejs.com zone');
+            await check(`/zones/${zones[0].id}/workers/routes`, 'Worker routes');
+            console.log('Read access verified. Write permissions require an actual deployment to validate.');
+          })().catch(error => { console.error(error.message); process.exitCode = 1; });
+          JS
+
+  validate:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: ./.github/actions/setup-node-pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm exec nx test @midscene/badge
+      - run: pnpm --filter @midscene/badge typecheck
+      - run: pnpm --filter @midscene/badge exec wrangler deploy --dry-run
+
+  deploy:
+    needs: validate
+    if: github.repository == 'web-infra-dev/midscene' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: ./.github/actions/setup-node-pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Deploy badge Worker
+        run: pnpm --filter @midscene/badge run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_BADGE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Check public endpoints
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 --max-time 30 https://badge.midscenejs.com/ -o /dev/null
+          curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 --max-time 30 'https://badge.midscenejs.com/e2e?pass=42&fail=3' -o /dev/null

@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import {
   assertMacNativeCodeArchitectures,
   assertPortablePackagedNodeModules,
@@ -29,7 +29,6 @@ import {
   getStudioElectronVersion,
   loadAppDmg,
   normalizeReleaseVersion,
-  packagedAsarOptions,
   parseBooleanLike,
   pathContainsReportTemplatePlaceholder,
   pruneAntdUmdBundles,
@@ -49,6 +48,7 @@ import {
   shouldUseShellForCommand,
   slimStageNodeModules,
 } from '../scripts/package-electron.mjs';
+import { packagedAsarOptions } from '../scripts/packaged-asar-resources.mjs';
 
 const createThinMacMachOBuffer = (arch) => {
   const cpuTypes = {
@@ -294,21 +294,6 @@ describe('package-electron helpers', () => {
       platform: 'darwin',
       prune: false,
     });
-  });
-
-  it('keeps native modules and helper binaries outside app.asar', () => {
-    expect(packagedAsarOptions.unpack).toContain('*.{node,dll,dylib,so,exe}');
-    expect(packagedAsarOptions.unpackDir).toContain('node_modules/sharp');
-    expect(packagedAsarOptions.unpackDir).toContain('node_modules/@img');
-    expect(packagedAsarOptions.unpackDir).toContain(
-      path.join('node_modules', '@computer-use', 'libnut'),
-    );
-    expect(packagedAsarOptions.unpackDir).toContain(
-      path.join('node_modules', '@ffmpeg-installer'),
-    );
-    expect(packagedAsarOptions.unpackDir).toContain(
-      path.join('node_modules', '@midscene', 'computer', 'bin'),
-    );
   });
 
   it('copies the Inter OFL into the packaged app staging directory', async () => {
@@ -1448,15 +1433,16 @@ describe('package-electron helpers', () => {
   });
 
   it('detects unresolved report template placeholders in runtime output only', async () => {
+    const reportTemplatePlaceholderFixture = 'REPLACE_ME_WITH_REPORT_HTML';
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'midscene-report-'));
     try {
       await fs.writeFile(
         path.join(root, 'guard.js'),
-        "if (html.includes('REPLACE_ME_WITH_REPORT_HTML')) reportHTML = null;",
+        `if (html.includes('${reportTemplatePlaceholderFixture}')) reportHTML = null;`,
       );
       await fs.writeFile(
         path.join(root, 'bundle.js.map'),
-        '{"sourcesContent":["const reportTpl = \'REPLACE_ME_WITH_REPORT_HTML\';"]}',
+        `{"sourcesContent":["const reportTpl = '${reportTemplatePlaceholderFixture}';"]}`,
       );
 
       await expect(pathContainsReportTemplatePlaceholder(root)).resolves.toBe(
@@ -1465,7 +1451,7 @@ describe('package-electron helpers', () => {
 
       await fs.writeFile(
         path.join(root, 'utils.js'),
-        "const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';",
+        `const reportTpl = '${reportTemplatePlaceholderFixture}';`,
       );
 
       await expect(pathContainsReportTemplatePlaceholder(root)).resolves.toBe(

@@ -1,21 +1,47 @@
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import {
+  collectImageScriptIds,
   extractImageByIdSync,
   extractLastDumpScriptSync,
   generateAgentReportComment,
   generateImageScriptTag,
   streamImageScriptsToFile,
+  streamScanTags,
+  streamScanTagsAsync,
 } from '../../src/dump/html-utils';
 import { getTmpFile } from '../../src/utils';
 
 describe('html-utils', () => {
+  it('preserves UTF-8 content across streaming chunk boundaries', async () => {
+    const file = getTmpFile('html')!;
+    const content = '报告🧪'.repeat(30000);
+    writeFileSync(file, `<entry>${content}</entry>`);
+    try {
+      const sync: string[] = [];
+      const async: string[] = [];
+      streamScanTags(file, '<entry>', '</entry>', (value) => {
+        sync.push(value);
+        return false;
+      });
+      await streamScanTagsAsync(file, '<entry>', '</entry>', (value) => {
+        async.push(value);
+        return false;
+      });
+      expect(sync).toEqual([content]);
+      expect(async).toEqual([content]);
+    } finally {
+      unlinkSync(file);
+    }
+  });
   it('keeps report-bundled sources free of raw script close tokens', () => {
     const unsafeCloseTag = [String.fromCharCode(60), '/script>'].join('');
     const bundledSourceFiles = [
       join(__dirname, '../../src/dump/html-utils.ts'),
       join(__dirname, '../../src/utils.ts'),
+      join(__dirname, '../../src/report-generator.ts'),
+      join(__dirname, '../../src/report.ts'),
     ];
 
     for (const sourceFile of bundledSourceFiles) {
@@ -285,6 +311,26 @@ test
     });
   });
 
+  it('collects inline image IDs asynchronously across streaming chunks', async () => {
+    const htmlPath = getTmpFile('html');
+    if (!htmlPath) throw new Error('Failed to create temp html file');
+    const chunkBoundaryPadding = 'x'.repeat(64 * 1024 - 20);
+    writeFileSync(
+      htmlPath,
+      [
+        chunkBoundaryPadding,
+        generateImageScriptTag('first-image', 'data:image/png;base64,AAA'),
+        generateImageScriptTag('second-image', 'data:image/png;base64,BBB'),
+      ].join('\n'),
+      'utf8',
+    );
+
+    await expect(collectImageScriptIds(htmlPath)).resolves.toEqual(
+      new Set(['first-image', 'second-image']),
+    );
+    unlinkSync(htmlPath);
+  });
+
   describe('streamImageScriptsToFile', () => {
     it('should stream image scripts from source to destination', () => {
       const srcPath = getTmpFile('html');
@@ -326,6 +372,42 @@ ${imageTag2}
       expect(destContent).toContain('BBB');
 
       unlinkSync(srcPath);
+      unlinkSync(destPath);
+    });
+
+    it('should deduplicate image IDs across streamed reports', () => {
+      const firstSrcPath = getTmpFile('html');
+      const secondSrcPath = getTmpFile('html');
+      const destPath = getTmpFile('html');
+      if (!firstSrcPath || !secondSrcPath || !destPath) {
+        throw new Error('Failed to create temp files');
+      }
+
+      const sharedImage = generateImageScriptTag(
+        'shared-image',
+        'data:image/png;base64,AAA',
+      );
+      const uniqueImage = generateImageScriptTag(
+        'unique-image',
+        'data:image/png;base64,BBB',
+      );
+      writeFileSync(firstSrcPath, sharedImage, 'utf8');
+      writeFileSync(secondSrcPath, `${sharedImage}\n${uniqueImage}`, 'utf8');
+      writeFileSync(destPath, '', 'utf8');
+
+      const writtenImageIds = new Set<string>();
+      streamImageScriptsToFile(firstSrcPath, destPath, writtenImageIds);
+      streamImageScriptsToFile(secondSrcPath, destPath, writtenImageIds);
+
+      const destContent = readFileSync(destPath, 'utf8');
+      expect(destContent.split('data-id="shared-image"')).toHaveLength(2);
+      expect(destContent.split('data-id="unique-image"')).toHaveLength(2);
+      expect(writtenImageIds).toEqual(
+        new Set(['shared-image', 'unique-image']),
+      );
+
+      unlinkSync(firstSrcPath);
+      unlinkSync(secondSrcPath);
       unlinkSync(destPath);
     });
 

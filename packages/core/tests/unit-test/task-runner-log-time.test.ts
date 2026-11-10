@@ -1,7 +1,7 @@
 import { ScreenshotItem } from '@/screenshot-item';
 import { TaskRunner } from '@/task-runner';
 import type { UIContext } from '@/types';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const fakeUIContextBuilder = async () => {
   const screenshot = ScreenshotItem.create('', Date.now());

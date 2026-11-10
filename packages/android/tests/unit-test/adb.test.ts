@@ -1,14 +1,14 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const mocks = vi.hoisted(() => ({
-  adbConstructor: vi.fn(),
-  createADB: vi.fn(),
-  getEnvConfigValue: vi.fn(),
-  getSdkRootFromEnv: vi.fn(),
-  warnAdb: vi.fn(),
+const mocks = rs.hoisted(() => ({
+  adbConstructor: rs.fn(),
+  createADB: rs.fn(),
+  getEnvConfigValue: rs.fn(),
+  getSdkRootFromEnv: rs.fn(),
+  warnAdb: rs.fn(),
 }));
 
-vi.mock('@midscene/shared/env', () => ({
+rs.mock('@midscene/shared/env', () => ({
   MIDSCENE_ADB_PATH: 'MIDSCENE_ADB_PATH',
   MIDSCENE_ADB_REMOTE_HOST: 'MIDSCENE_ADB_REMOTE_HOST',
   MIDSCENE_ADB_REMOTE_PORT: 'MIDSCENE_ADB_REMOTE_PORT',
@@ -17,11 +17,11 @@ vi.mock('@midscene/shared/env', () => ({
   },
 }));
 
-vi.mock('@midscene/shared/logger', () => ({
-  getDebug: vi.fn(() => mocks.warnAdb),
+rs.mock('@midscene/shared/logger', () => ({
+  getDebug: rs.fn(() => mocks.warnAdb),
 }));
 
-vi.mock('appium-adb', () => {
+rs.mock('appium-adb', () => {
   class MockADB {
     static createADB = mocks.createADB;
 
@@ -40,7 +40,7 @@ import { createAndroidAdb } from '../../src/adb';
 
 describe('createAndroidAdb', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     mocks.getEnvConfigValue.mockReturnValue(undefined);
     mocks.getSdkRootFromEnv.mockReturnValue('/android/sdk');
   });

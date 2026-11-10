@@ -1,6 +1,6 @@
 import { PuppeteerAgent } from '@/puppeteer';
 import { sleep } from '@midscene/core/utils';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { DEFAULT_TEST_TIMEOUT, createTestContext } from './test-utils';
 import { launchPage } from './utils';
 
@@ -14,9 +14,9 @@ describe(
         'https://www.saucedemo.com/',
       );
       ctx.resetFn = reset;
-      const onTaskStartTip = vi.fn();
-      const beforeInvokeAction = vi.fn();
-      const afterInvokeAction = vi.fn();
+      const onTaskStartTip = rs.fn();
+      const beforeInvokeAction = rs.fn();
+      const afterInvokeAction = rs.fn();
       ctx.agent = new PuppeteerAgent(originPage, {
         cacheId: 'puppeteer(Sauce Demo by Swag Lab)',
         onTaskStartTip,

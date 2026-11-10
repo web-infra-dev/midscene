@@ -1,0 +1,9 @@
+| Category | Representative methods | Description |
+| --- | --- | --- |
+| Auto-planning | `aiAct` | Describe a goal in natural language and let the Agent plan and execute multiple steps. |
+| Direct interaction | `aiTap`, `aiInput` | Locate a UI element by description and perform a single specified action without multi-step planning. |
+| Data extraction | `aiQuery`, `aiString`, `aiNumber`, `aiBoolean` | Extract structured or primitive data from the current UI for further processing in code. |
+| Assertions | `aiAssert` | Verify that the current UI meets an expectation; throws an error if it does not. |
+| Waiting | `aiWaitFor` | Wait until the UI meets a specified condition; throws an error on timeout. |
+
+In practice, you typically perform actions with `aiAct` or direct interaction methods and then verify the outcome with `aiAssert`—completing an action does not guarantee that the expected UI state was reached. For full parameter and return value details, see the [Agent API reference](/reference/#interaction-methods).

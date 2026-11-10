@@ -2,6 +2,7 @@ import type { DeviceType } from '../types';
 
 export interface DeviceCapabilities {
   supportsImeStrategy: boolean;
+  supportsScreenshotStrategy: boolean;
   supportsKeyboardDismissStrategy: boolean;
   supportsAutoDismissKeyboard: boolean;
   supportsAlwaysRefreshScreenInfo: boolean;
@@ -12,6 +13,7 @@ export function getDeviceCapabilities(
 ): DeviceCapabilities {
   return {
     supportsImeStrategy: deviceType === 'android',
+    supportsScreenshotStrategy: deviceType === 'android',
     supportsKeyboardDismissStrategy:
       deviceType === 'android' || deviceType === 'harmony',
     supportsAutoDismissKeyboard:

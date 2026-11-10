@@ -1,5 +1,5 @@
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import type { IOSWebDriverClient as IOSWebDriverClientType } from '../../src/ios-webdriver-client';
 
 describe('IOSWebDriverClient - Simple Tests', () => {
@@ -45,6 +45,8 @@ describe('IOSWebDriverClient - Simple Tests', () => {
         'pressHomeButton',
         'activateApp',
         'terminateApp',
+        'dismissKeyboard',
+        'isKeyboardVisible',
       ] as const satisfies readonly (keyof IOSWebDriverClientType)[];
 
       for (const method of expectedMethods) {

@@ -1,5 +1,5 @@
 import { runSkillCLI } from '@/skill/index';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('runSkillCLI', () => {
   it('should be a function', () => {

@@ -1,13 +1,13 @@
 import { runToolsCLI } from '@midscene/shared/cli';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { agentFromWebDriverAgent } from '../../src/agent';
 import { IOSMidsceneTools } from '../../src/agent-tools';
 
 // Mock the agent entry point only. IOSDevice is intentionally NOT mocked so
 // that the real actionSpace (including Launch/Terminate) reaches the tool
 // generator — this is what drives the CLI surface we need to verify.
-vi.mock('../../src/agent', () => ({
-  agentFromWebDriverAgent: vi.fn(),
+rs.mock('../../src/agent', () => ({
+  agentFromWebDriverAgent: rs.fn(),
 }));
 
 const validPngBase64 =
@@ -16,28 +16,28 @@ const validPngBase64 =
 function createMockAgent() {
   return {
     page: {
-      screenshotBase64: vi.fn().mockResolvedValue(validPngBase64),
+      screenshotBase64: rs.fn().mockResolvedValue(validPngBase64),
     },
-    callActionInActionSpace: vi.fn().mockResolvedValue(undefined),
-    destroy: vi.fn(),
+    callActionInActionSpace: rs.fn().mockResolvedValue(undefined),
+    destroy: rs.fn(),
   };
 }
 
 describe('midscene-ios CLI argv path for launch/terminate (issue #2313)', () => {
-  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
-  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+  let consoleLogSpy: ReturnType<typeof rs.spyOn>;
+  let consoleErrorSpy: ReturnType<typeof rs.spyOn>;
   let capturedStdout: string;
   let capturedStderr: string;
 
   beforeEach(() => {
     capturedStdout = '';
     capturedStderr = '';
-    consoleLogSpy = vi
+    consoleLogSpy = rs
       .spyOn(console, 'log')
       .mockImplementation((...args: unknown[]) => {
         capturedStdout += `${args.join(' ')}\n`;
       });
-    consoleErrorSpy = vi
+    consoleErrorSpy = rs
       .spyOn(console, 'error')
       .mockImplementation((...args: unknown[]) => {
         capturedStderr += `${args.join(' ')}\n`;
@@ -47,12 +47,12 @@ describe('midscene-ios CLI argv path for launch/terminate (issue #2313)', () => 
   afterEach(() => {
     consoleLogSpy.mockRestore();
     consoleErrorSpy.mockRestore();
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('routes `launch --uri <bundle>` through to callActionInActionSpace with { uri }', async () => {
     const mockAgent = createMockAgent();
-    vi.mocked(agentFromWebDriverAgent).mockResolvedValue(mockAgent as any);
+    rs.mocked(agentFromWebDriverAgent).mockResolvedValue(mockAgent as any);
 
     await runToolsCLI(new IOSMidsceneTools(), 'midscene-ios', {
       stripPrefix: 'ios_',
@@ -68,7 +68,7 @@ describe('midscene-ios CLI argv path for launch/terminate (issue #2313)', () => 
   });
 
   it('passes external WDA session args through `connect`', async () => {
-    vi.mocked(agentFromWebDriverAgent).mockResolvedValue(
+    rs.mocked(agentFromWebDriverAgent).mockResolvedValue(
       createMockAgent() as any,
     );
 
@@ -98,7 +98,7 @@ describe('midscene-ios CLI argv path for launch/terminate (issue #2313)', () => 
 
   it('routes `terminate --uri <bundle>` through to callActionInActionSpace with { uri }', async () => {
     const mockAgent = createMockAgent();
-    vi.mocked(agentFromWebDriverAgent).mockResolvedValue(mockAgent as any);
+    rs.mocked(agentFromWebDriverAgent).mockResolvedValue(mockAgent as any);
 
     await runToolsCLI(new IOSMidsceneTools(), 'midscene-ios', {
       stripPrefix: 'ios_',
@@ -113,7 +113,7 @@ describe('midscene-ios CLI argv path for launch/terminate (issue #2313)', () => 
   });
 
   it('rejects an unknown option like `--bundleId` with a clear error', async () => {
-    vi.mocked(agentFromWebDriverAgent).mockResolvedValue(
+    rs.mocked(agentFromWebDriverAgent).mockResolvedValue(
       createMockAgent() as any,
     );
 
@@ -127,7 +127,7 @@ describe('midscene-ios CLI argv path for launch/terminate (issue #2313)', () => 
   });
 
   it('`launch --help` lists --uri and no ZodString prototype leak', async () => {
-    vi.mocked(agentFromWebDriverAgent).mockResolvedValue(
+    rs.mocked(agentFromWebDriverAgent).mockResolvedValue(
       createMockAgent() as any,
     );
 
@@ -152,7 +152,7 @@ describe('midscene-ios CLI argv path for launch/terminate (issue #2313)', () => 
   });
 
   it('`terminate --help` lists --uri and no ZodString prototype leak', async () => {
-    vi.mocked(agentFromWebDriverAgent).mockResolvedValue(
+    rs.mocked(agentFromWebDriverAgent).mockResolvedValue(
       createMockAgent() as any,
     );
 

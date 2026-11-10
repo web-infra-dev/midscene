@@ -47,8 +47,22 @@ export interface WebElementInfo extends ElementInfo {
 
 export type LocateResultElement = {
   description: string; // the description of the element
+  /**
+   * Authoritative target point in original screenshot coordinates.
+   * For model results, first take the midpoint of the raw bbox (or use the raw
+   * point), then map that point to the original screenshot. Normalized coordinates
+   * are rounded during pixel mapping. Never derive it from the mapped rect: minimizing coordinate
+   * conversions avoids unnecessary precision loss. Convert this center to
+   * device coordinates when computing the final click point.
+   */
   center: [number, number];
-  rect: Rect;
+  /**
+   * Preserves the mapped original model bbox or an intermediate bbox from the
+   * DeepLocate pipeline. Used only as region metadata for DeepLocate cropping;
+   * never use it to compute a click point or recompute center. Click coordinates
+   * must be calculated directly from the already resolved center.
+   */
+  rect?: Rect;
   /**
    * Web-only compatibility field returned by `Agent.aiLocate()`.
    * It is the ratio between physical screenshot pixels and logical CSS pixels.

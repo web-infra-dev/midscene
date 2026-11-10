@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { getLastProgressItemIdsByGroup } from '../src/component/universal-playground/progress-groups';
 import type { InfoListItem } from '../src/types';
 

@@ -7,7 +7,7 @@
  */
 import path from 'node:path';
 import { sleep } from '@midscene/core/utils';
-import { beforeAll, describe, it, vi } from 'vitest';
+import { beforeAll, describe, it, rs } from '@rstest/core';
 import { type ComputerAgent, agentFromComputer } from '../../src';
 import {
   bringPageToFront,
@@ -15,11 +15,12 @@ import {
   findPageTargetByUrlPrefix,
   injectExtensionConfig,
   launchChromeWithExtension,
+  openExtensionSidePanel,
   readExtensionId,
   reloadViaWebSocket,
 } from './chrome-extension-helpers';
 
-vi.setConfig({ testTimeout: 600 * 1000 });
+rs.setConfig({ testTimeout: 600 * 1000 });
 
 const SIDE_PANEL =
   'the Midscene side panel on the right side of the browser window';
@@ -56,12 +57,7 @@ describe('chrome extension playground advanced tests', () => {
   }
 
   it('open side panel and configure', async () => {
-    await agent.aiAct(
-      'Click the puzzle piece icon (Extensions button) in the top-right area of the Chrome toolbar',
-    );
-    await sleep(1000);
-    await agent.aiAct('Click "Midscene.js" in the extensions dropdown list');
-    await sleep(3000);
+    await openExtensionSidePanel(agent, extId);
     await agent.aiAssert(
       'The browser shows a side panel on the right side containing Midscene or Playground UI, and the TodoMVC page is still visible on the left',
     );
@@ -72,6 +68,39 @@ describe('chrome extension playground advanced tests', () => {
       await reloadViaWebSocket(target.webSocketDebuggerUrl);
       await sleep(3000);
     }
+  });
+
+  it('action type switching changes the composer placeholder', async () => {
+    await agent.aiTap(`the "Query" action type button in ${SIDE_PANEL}`);
+    await sleep(500);
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows an input area with placeholder text containing "query"`,
+    );
+
+    await agent.aiTap(`the "Assert" action type button in ${SIDE_PANEL}`);
+    await sleep(500);
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows an input area with placeholder text containing "assert"`,
+    );
+
+    // Selecting Assert scrolls the narrow mode selector to the right, which can
+    // move Action outside the viewport. Select the visible Tap radio first,
+    // then focus it explicitly before using native keyboard navigation. The
+    // composer textarea has autoFocus and otherwise receives the ArrowLeft.
+    await agent.aiTap(`the "Tap" action type button in ${SIDE_PANEL}`);
+    await sleep(500);
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows an input area with placeholder text containing "tap"`,
+    );
+
+    await agent.aiKeyboardPress(
+      `the selected "Tap" action type button in ${SIDE_PANEL}`,
+      { keyName: 'ArrowLeft' },
+    );
+    await sleep(500);
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows an input area with placeholder text "What do you want to do?"`,
+    );
   });
 
   it('aiQuery: extract page title and verify result', async () => {

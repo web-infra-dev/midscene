@@ -7,7 +7,7 @@ export type ComputerInterface = ComputerDevice | RDPDevice;
 
 type ComputerAgentSharedDeviceOpt = Pick<
   ComputerDeviceOpt,
-  'customActions' | 'keyboardTypeDelay'
+  'customActions' | 'inputStrategy' | 'keyboardTypeDelay'
 >;
 
 export type BaseComputerAgentOpt = AgentOpt & ComputerAgentSharedDeviceOpt;
@@ -30,9 +30,13 @@ function createLocalComputerDevice(
     displayId: opts?.displayId,
     customActions: opts?.customActions,
     keyboardTypeDelay: opts?.keyboardTypeDelay,
+    inputStrategy: opts?.inputStrategy,
     keyboardDriver: opts?.keyboardDriver,
+    keyboardModifierDelay: opts?.keyboardModifierDelay,
+    keyboardLayout: opts?.keyboardLayout,
     headless: opts?.headless,
     xvfbResolution: opts?.xvfbResolution,
+    keepXvfbAliveUntilProcessExit: opts?.keepXvfbAliveUntilProcessExit,
   });
 }
 
@@ -52,6 +56,7 @@ function createRDPComputerDevice(opts: RDPComputerAgentOpt): RDPDevice {
     backend: opts.backend,
     customActions: opts.customActions,
     keyboardTypeDelay: opts.keyboardTypeDelay,
+    inputStrategy: opts.inputStrategy,
   });
 }
 

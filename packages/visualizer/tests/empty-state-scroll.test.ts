@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from '@rstest/core';
 import { calculateEmptyStatePromptScrollTop } from '../src/utils/empty-state-scroll';
 
 describe('calculateEmptyStatePromptScrollTop', () => {

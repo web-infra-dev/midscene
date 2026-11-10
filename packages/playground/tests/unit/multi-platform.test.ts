@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, rs, test } from '@rstest/core';
 import { prepareMultiPlatformPlayground } from '../../src/multi-platform';
 
 function createAgent(interfaceType: string) {
@@ -8,13 +8,13 @@ function createAgent(interfaceType: string) {
       describe: () => `${interfaceType} interface`,
       actionSpace: () => [],
     },
-    destroy: vi.fn(),
+    destroy: rs.fn(),
   } as any;
 }
 
 describe('prepareMultiPlatformPlayground', () => {
   test('exposes platform registry metadata and routes child sessions', async () => {
-    const childGetSetupSchema = vi.fn(async () => ({
+    const childGetSetupSchema = rs.fn(async () => ({
       title: 'Connect Android',
       fields: [
         {
@@ -24,7 +24,7 @@ describe('prepareMultiPlatformPlayground', () => {
         },
       ],
     }));
-    const childCreateSession = vi.fn(
+    const childCreateSession = rs.fn(
       async (input?: Record<string, unknown>) => ({
         agent: createAgent('android'),
         displayName: String(input?.deviceId),

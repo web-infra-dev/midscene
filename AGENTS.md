@@ -17,16 +17,32 @@ should point here instead of duplicating rules.
 ## Default Workflow
 
 - NEVER force push anything unless you are explicitly told to do so.
-- Use `pnpm` only. The workspace requires Node `>=18.19.0` and pnpm
+- Use `pnpm` only. The workspace requires Node
+  `^20.19.0 || ^22.12.0 || >=24.0.0` and pnpm
   `>=9.3.0`.
 - Read `CONTRIBUTING.md` before local development. Dev/build workflows,
   app-local dev servers, and report rebuild troubleshooting are maintained
   there to avoid duplication.
+- When changing artifact paths, recording, publication, exports, or logging, read
+  [the artifact and logging conventions](./CONTRIBUTING.md#artifact-and-logging-conventions).
 - Before creating a commit or updating a PR, run `pnpm run lint` from the
   repository root.
 - For code changes, run the smallest relevant Nx target for each touched
   project instead of defaulting to full monorepo validation.
 - AI tests require some environment variables like `MIDSCENE_MODEL_BASE_URL` to be set.
+
+## AI CI Workflows
+
+- Run CI test commands that call real models through
+  `./.github/actions/ai-ci`. Keep the Node connection policy centralized in
+  that action instead of duplicating it in workflows. Use `shell: pwsh` for
+  Windows commands and `shell: bash` for Linux/macOS commands.
+- When a third-party action launches model tests (such as the Android emulator
+  runner), run the AI CI action first without a command and explicitly pass its
+  `node-options` output to the third-party action's `NODE_OPTIONS` environment
+  variable.
+- When adding or updating path filters for AI workflows, include
+  `.github/actions/ai-ci/**` so changes to the shared action trigger those tests.
 
 ## Change Rules That Actually Matter
 
@@ -40,6 +56,11 @@ should point here instead of duplicating rules.
   `apps/report/e2e/report-single.yaml`, keep the report loading assertions on
   `aiAssert`; if they are flaky, improve the prompt, timing, or fixture while
   preserving `aiAssert` coverage.
+- Follow the Report development and test scope in
+  `CONTRIBUTING.md#report-development-and-test-scope`: prioritize core workflows
+  and data correctness, and avoid making incidental visual details default
+  test or review gates. Usability defects that block those workflows still need
+  coverage.
 - Do not hand-edit generated output under `dist/` or `apps/site/doc_build/`.
 - When changing shared packages or exported entry points, run a focused build
   for the affected project before finishing.
@@ -72,23 +93,26 @@ should point here instead of duplicating rules.
 
 ### Upgrading recommended models
 
-`apps/site/docs/{en,zh}/model-strategy.mdx` and
-`apps/site/docs/{en,zh}/model-common-config.mdx` are the source of truth for
+`apps/site/docs/{en,zh}/model-selection.mdx` and
+`apps/site/docs/{en,zh}/model-api-setup.mdx` are the source of truth for
 which models we recommend and the exact model/family strings. When the
 recommended models or their versions change (e.g. `qwen3-vl` → `qwen3.x`,
 `gemini-3-flash` → `gemini-3.5-flash`), update the strategy/config docs first,
 then propagate the new model names to every place that markets the supported
 model list:
 
-- `README.md` and `README.zh.md` (the "Driven by Visual Language Model"
-  section).
-- `apps/site/docs/en/introduction.mdx` and
-  `apps/site/docs/zh/introduction.mdx` (same section).
+- `README.md` and `README.zh.md` (the model list in the "Choose models for
+  your needs and budget" section).
+- The homepage model option card: `modelSupportedDesc` in
+  `apps/site/theme/i18n/enUS.ts` and `apps/site/theme/i18n/zhCN.ts`.
+- The Get started model picker: `llms` and `llmLabels` in
+  `apps/site/theme/components/get-started-plan.ts`, plus the shared cards
+  under `apps/site/docs/{en,zh}/common/model-cards/`.
 
-Keep all four spots in sync and consistent with the strategy/config docs.
+Keep these spots in sync and consistent with the strategy/config docs.
 Leave historical references in `changelog.mdx` alone, and keep illustrative
 "newer beats older" comparisons in `faq.md` intact. Remember README and
-introduction are bilingual: update the en/zh counterparts in the same change.
+homepage are bilingual: update the en/zh counterparts in the same change.
 
 ## Validation Guidance
 

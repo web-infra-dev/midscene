@@ -1,9 +1,10 @@
 import type { RecordingSession } from '../store';
 
 const DB_NAME = 'midscene-recorder';
-const DB_VERSION = 2;
 const SESSIONS_STORE = 'recording-sessions';
 const CONFIG_STORE = 'config';
+const SESSION_METADATA_KEY = 'recording-session-metadata';
+const LEGACY_SESSION_METADATA_STORE = 'recording-session-metadata';
 
 // Session limit configuration
 const MAX_SESSIONS = 5;
@@ -18,6 +19,23 @@ interface DBConfig {
   lastRecordingSessionId?: string;
   lastNavigationTime?: number;
 }
+
+type RecordingSessionMetadata = Omit<
+  RecordingSession,
+  'events' | 'eventCount'
+> & {
+  eventCount: number;
+};
+
+export const toRecordingSessionMetadata = (
+  session: RecordingSession,
+): RecordingSessionMetadata => {
+  const { events, eventCount, ...metadata } = session;
+  return {
+    ...metadata,
+    eventCount: eventCount ?? events.length,
+  };
+};
 
 class IndexedDBManager {
   private db: IDBDatabase | null = null;
@@ -69,7 +87,10 @@ class IndexedDBManager {
 
   private async _doInit(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      // Open the existing database at its current version. This keeps the
+      // corrected build compatible with both v2 databases and any local v3
+      // database opened by the short-lived metadata-store implementation.
+      const request = indexedDB.open(DB_NAME);
 
       request.onerror = () => {
         console.error('IndexedDB open error:', request.error);
@@ -82,6 +103,11 @@ class IndexedDBManager {
         // Add database error handling
         this.db.onerror = (event) => {
           console.error('IndexedDB error:', event);
+        };
+        this.db.onversionchange = () => {
+          this.db?.close();
+          this.db = null;
+          this.isInitialized = false;
         };
 
         resolve();
@@ -178,6 +204,129 @@ class IndexedDBManager {
   }
 
   // Session management
+  async getSessionSummaries(): Promise<RecordingSession[]> {
+    return this.safeDBOperation(async () => {
+      const db = await this.ensureDB();
+      const [cachedMetadata, legacyMetadata, sessionKeys] = await Promise.all([
+        this.getCachedSessionMetadata(db),
+        this.getLegacySessionMetadata(db),
+        this.getSessionKeys(db),
+      ]);
+
+      let metadata = cachedMetadata || legacyMetadata;
+      const cacheMatchesSessions =
+        metadata?.length === sessionKeys.length &&
+        metadata.every(
+          (session, index) =>
+            session.id === sessionKeys[index]?.id &&
+            session.updatedAt === sessionKeys[index]?.updatedAt,
+        );
+
+      if (!cacheMatchesSessions) {
+        if (sessionKeys.length === 0) {
+          metadata = [];
+        } else {
+          const sessions = await this.getAllSessions();
+          metadata = sessions
+            .slice(0, MAX_SESSIONS)
+            .map(toRecordingSessionMetadata);
+        }
+      }
+
+      if (metadata !== cachedMetadata) {
+        await this.setCachedSessionMetadata(db, metadata || []);
+      }
+
+      return (metadata || []).map((session) => ({
+        ...session,
+        events: [],
+      }));
+    }, []);
+  }
+
+  private async getCachedSessionMetadata(
+    db: IDBDatabase,
+  ): Promise<RecordingSessionMetadata[] | null> {
+    return this.createTimeoutPromise((resolve, reject) => {
+      const transaction = db.transaction([CONFIG_STORE], 'readonly');
+      const request = transaction
+        .objectStore(CONFIG_STORE)
+        .get(SESSION_METADATA_KEY);
+      request.onsuccess = () => resolve(request.result?.value || null);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  private async getLegacySessionMetadata(
+    db: IDBDatabase,
+  ): Promise<RecordingSessionMetadata[] | null> {
+    if (!db.objectStoreNames.contains(LEGACY_SESSION_METADATA_STORE)) {
+      return null;
+    }
+
+    return this.createTimeoutPromise((resolve, reject) => {
+      const transaction = db.transaction(
+        [LEGACY_SESSION_METADATA_STORE],
+        'readonly',
+      );
+      const request = transaction
+        .objectStore(LEGACY_SESSION_METADATA_STORE)
+        .index('updatedAt')
+        .openCursor(null, 'prev');
+      const metadata: RecordingSessionMetadata[] = [];
+
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor || metadata.length >= MAX_SESSIONS) {
+          resolve(metadata);
+          return;
+        }
+        metadata.push(cursor.value);
+        cursor.continue();
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  private async setCachedSessionMetadata(
+    db: IDBDatabase,
+    metadata: RecordingSessionMetadata[],
+  ): Promise<void> {
+    return this.createTimeoutPromise((resolve, reject) => {
+      const transaction = db.transaction([CONFIG_STORE], 'readwrite');
+      const request = transaction.objectStore(CONFIG_STORE).put({
+        key: SESSION_METADATA_KEY,
+        value: metadata,
+      });
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  private async getSessionKeys(
+    db: IDBDatabase,
+  ): Promise<Array<{ id: IDBValidKey; updatedAt: IDBValidKey }>> {
+    return this.createTimeoutPromise((resolve, reject) => {
+      const transaction = db.transaction([SESSIONS_STORE], 'readonly');
+      const request = transaction
+        .objectStore(SESSIONS_STORE)
+        .index('updatedAt')
+        .openKeyCursor(null, 'prev');
+      const keys: Array<{ id: IDBValidKey; updatedAt: IDBValidKey }> = [];
+
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor || keys.length >= MAX_SESSIONS) {
+          resolve(keys);
+          return;
+        }
+        keys.push({ id: cursor.primaryKey, updatedAt: cursor.key });
+        cursor.continue();
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   async getAllSessions(): Promise<RecordingSession[]> {
     return this.safeDBOperation(async () => {
       const db = await this.ensureDB();
@@ -261,27 +410,36 @@ class IndexedDBManager {
 
   async addSession(session: RecordingSession): Promise<void> {
     const db = await this.ensureDB();
+    const summaries = await this.getSessionSummaries();
+    const metadata = [
+      toRecordingSessionMetadata(session),
+      ...summaries
+        .filter(({ id }) => id !== session.id)
+        .map(toRecordingSessionMetadata),
+    ]
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, MAX_SESSIONS);
+    const retainedSessionIds = new Set(metadata.map(({ id }) => id));
 
-    // First, check if we need to remove old sessions
-    const sessions = await this.getAllSessions();
-    if (sessions.length >= MAX_SESSIONS) {
-      // Remove oldest sessions to make room
-      const sessionsToRemove = sessions
-        .slice(MAX_SESSIONS - 1)
-        .map((s) => s.id);
-
-      for (const sessionId of sessionsToRemove) {
-        await this.deleteSession(sessionId);
+    return this.createTimeoutPromise<void>((resolve, reject) => {
+      const transaction = db.transaction(
+        [SESSIONS_STORE, CONFIG_STORE],
+        'readwrite',
+      );
+      const sessionsStore = transaction.objectStore(SESSIONS_STORE);
+      sessionsStore.add(session);
+      transaction.objectStore(CONFIG_STORE).put({
+        key: SESSION_METADATA_KEY,
+        value: metadata,
+      });
+      for (const existingSession of summaries) {
+        if (!retainedSessionIds.has(existingSession.id)) {
+          sessionsStore.delete(existingSession.id);
+        }
       }
-    }
-
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([SESSIONS_STORE], 'readwrite');
-      const store = transaction.objectStore(SESSIONS_STORE);
-      const request = store.add(session);
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
     });
   }
 
@@ -314,36 +472,53 @@ class IndexedDBManager {
         updatedAt: Date.now(),
       };
     }
+    const summaries = await this.getSessionSummaries();
+    const metadata = [
+      toRecordingSessionMetadata(existingSession),
+      ...summaries
+        .filter(({ id }) => id !== sessionId)
+        .map(toRecordingSessionMetadata),
+    ]
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, MAX_SESSIONS);
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([SESSIONS_STORE], 'readwrite');
+      const transaction = db.transaction(
+        [SESSIONS_STORE, CONFIG_STORE],
+        'readwrite',
+      );
       const store = transaction.objectStore(SESSIONS_STORE);
-      const request = store.put(existingSession);
+      store.put(existingSession);
+      transaction.objectStore(CONFIG_STORE).put({
+        key: SESSION_METADATA_KEY,
+        value: metadata,
+      });
 
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
     });
   }
 
   async deleteSession(sessionId: string): Promise<void> {
-    try {
-      const db = await this.ensureDB();
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          const transaction = db.transaction([SESSIONS_STORE], 'readwrite');
-          const store = transaction.objectStore(SESSIONS_STORE);
-          const request = store.delete(sessionId);
-          request.onsuccess = () => {
-            resolve();
-          };
-          request.onerror = () => {
-            reject(request.error);
-          };
-        }, 300);
+    const db = await this.ensureDB();
+    const metadata = (await this.getSessionSummaries())
+      .filter(({ id }) => id !== sessionId)
+      .map(toRecordingSessionMetadata);
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(
+        [SESSIONS_STORE, CONFIG_STORE],
+        'readwrite',
+      );
+      transaction.objectStore(SESSIONS_STORE).delete(sessionId);
+      transaction.objectStore(CONFIG_STORE).put({
+        key: SESSION_METADATA_KEY,
+        value: metadata,
       });
-    } catch (error) {
-      console.error('Failed to delete session:', error);
-    }
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
+    });
   }
 
   // Config management

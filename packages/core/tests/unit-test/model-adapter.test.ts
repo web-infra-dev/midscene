@@ -1,9 +1,17 @@
 import type { CustomPlanningDefinition } from '@/ai-model/model-adapter/custom-planning-types';
+import { createDefaultElementProtocol } from '@/ai-model/model-adapter/default-locate-protocol';
+import { createDefaultMidscenePlanningProtocol } from '@/ai-model/model-adapter/default-planning-protocol';
+import type { StandardPlanningProtocol } from '@/ai-model/model-adapter/planning-protocol';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelAdapter } from '@/ai-model/models';
 import { MODEL_ADAPTER_CONFIGS } from '@/ai-model/models/registry';
+import { parseModelResponseJson } from '@/ai-model/shared/json';
 import { MODEL_FAMILY_VALUES, type TModelFamily } from '@midscene/shared/env';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
+
+const defaultMidscenePlanningProtocol = createDefaultMidscenePlanningProtocol({
+  jsonParser: parseModelResponseJson,
+});
 
 function createTestPlannerDefinition(): CustomPlanningDefinition<null> {
   return {
@@ -20,6 +28,44 @@ function createTestPlannerDefinition(): CustomPlanningDefinition<null> {
 }
 
 describe('model adapter registry', () => {
+  it('keeps unsupported user config independent for each protocol', () => {
+    const adapter = new ResolvedModelAdapter(
+      {
+        chatCompletion: { unsupportedUserConfig: ['temperature'] },
+        responses: { unsupportedUserConfig: ['reasoningBudget'] },
+      },
+      'test',
+    );
+    expect(adapter.chatCompletion.unsupportedUserConfig).toEqual([
+      'temperature',
+    ]);
+    expect(adapter.responses.unsupportedUserConfig).toEqual([
+      'reasoningBudget',
+    ]);
+    expect(
+      new ResolvedModelAdapter({}, 'test').responses.unsupportedUserConfig,
+    ).toEqual([]);
+  });
+
+  it('defaults to Chat Completions while keeping the Responses implementation', () => {
+    const adapter = new ResolvedModelAdapter({}, 'test');
+    expect(adapter.supportedProtocols).toEqual(['openai-chat']);
+    expect(adapter.responses.buildResponsesParams({}).config).toEqual({
+      temperature: 0,
+    });
+  });
+
+  it('allows declaring Responses support without a custom implementation', () => {
+    const adapter = new ResolvedModelAdapter(
+      { supportedProtocols: ['openai-responses'] },
+      'test',
+    );
+    expect(adapter.supportedProtocols).toEqual(['openai-responses']);
+    expect(adapter.responses.buildResponsesParams({}).config).toEqual({
+      temperature: 0,
+    });
+  });
+
   it('resolves the default adapter when modelFamily is not configured', () => {
     const adapter = getModelAdapter();
 
@@ -48,16 +94,12 @@ describe('model adapter registry', () => {
         }
       }
       if (adapter.locate.kind === 'standard') {
-        expect(adapter.locate.resultAdapter.promptSpec).toBeTruthy();
-        expect(
-          adapter.locate.resultAdapter.adaptElementLocateResultToPixelBbox,
-        ).toBeTruthy();
-        expect(
-          adapter.locate.resultAdapter.adaptSectionLocateResultToPixelBboxGroup,
-        ).toBeTruthy();
-        expect(
-          adapter.locate.resultAdapter.adaptPlanningParamToPixelBbox,
-        ).toBeTruthy();
+        expect(adapter.locate.element.resultCodec.promptSpec).toBeTruthy();
+        expect(adapter.locate.element.resultCodec.toPixelResult).toBeTruthy();
+        expect(adapter.locate.element.protocol).toBeTruthy();
+        if (adapter.locate.searchArea?.protocol) {
+          expect(adapter.locate.searchArea?.resultCodec).toBeTruthy();
+        }
       } else {
         expect(adapter.locate.locateFn).toBeTruthy();
       }
@@ -76,6 +118,7 @@ describe('model adapter registry', () => {
       'kimi',
       'kimi3',
       'xiaomi-mimo',
+      'deepseek',
     ];
     const enabledSet = new Set<TModelFamily>(enabledFamilies);
 
@@ -140,7 +183,7 @@ describe('ResolvedModelAdapter', () => {
     ).toEqual({
       config: { temperature: 0.7 },
     });
-    expect(adapter.chatCompletion.resolveImageDetail({})).toBeUndefined();
+    expect(adapter.resolveImageDetail({})).toBe('high');
     expect(adapter.imagePreprocess).toEqual({});
     expect(adapter.planning).toMatchObject({
       kind: 'standard',
@@ -148,18 +191,38 @@ describe('ResolvedModelAdapter', () => {
       defaultReplanningCycleLimit: 20,
       supportsActionDeepLocate: true,
     });
+    if (adapter.planning.kind !== 'standard') {
+      throw new Error('default adapter should use standard planning');
+    }
+    expect(adapter.planning.protocol.actionSpaceProtocol).toEqual(
+      defaultMidscenePlanningProtocol.actionSpaceProtocol,
+    );
+    expect(
+      adapter.planning.protocol.actionOutputProtocol.actionOutputTagNames,
+    ).toEqual(
+      defaultMidscenePlanningProtocol.actionOutputProtocol.actionOutputTagNames,
+    );
     expect(adapter.locate.kind).toBe('standard');
     if (adapter.locate.kind !== 'standard') {
       throw new Error('default adapter should use standard locate');
     }
-    expect(adapter.locate.supportsSearchArea).toBe(true);
+    expect(adapter.locate.promptOrder).toEqual({
+      groups: [
+        { mode: 'system', parts: ['instructions'] },
+        { mode: 'userTogether', parts: ['screenshot', 'task'] },
+        { mode: 'userEach', parts: ['references'] },
+      ],
+    });
+    expect(adapter.locate.element.protocol).toBeDefined();
+    expect(adapter.locate.searchArea?.protocol).toBeDefined();
+    expect(adapter.locate.searchArea?.resultCodec).toBeDefined();
     expect(
-      adapter.locate.resultAdapter.promptSpec.resultValueDescription,
+      adapter.locate.element.resultCodec.promptSpec.resultValueDescription,
     ).toContain('normalized to 0-1000');
   });
 
   it('keeps custom planner and locate definitions while applying policy defaults', () => {
-    const locateFn = vi.fn();
+    const locateFn = rs.fn();
     const adapter = new ResolvedModelAdapter(
       {
         planning: {
@@ -180,10 +243,7 @@ describe('ResolvedModelAdapter', () => {
       defaultReplanningCycleLimit: 20,
       supportsActionDeepLocate: false,
     });
-    expect(adapter.locate).toMatchObject({
-      kind: 'custom',
-      supportsSearchArea: false,
-    });
+    expect(adapter.locate).toMatchObject({ kind: 'custom' });
     if (
       adapter.planning.kind !== 'custom' ||
       adapter.locate.kind !== 'custom'
@@ -193,6 +253,40 @@ describe('ResolvedModelAdapter', () => {
     expect(adapter.planning.planFn).toBeTruthy();
     expect(adapter.planning.coordinateSystem).toBeTruthy();
     expect(adapter.locate.locateFn).toBe(locateFn);
+  });
+
+  it('uses the default search-area protocol unless it is explicitly disabled', () => {
+    const adapterWithExplicitElementProtocol = new ResolvedModelAdapter(
+      {
+        locate: {
+          element: { protocol: createDefaultElementProtocol },
+        },
+      },
+      'test-default-search-area',
+    );
+    const adapterWithoutSearchArea = new ResolvedModelAdapter(
+      {
+        locate: {
+          searchArea: false,
+        },
+      },
+      'test-disabled-search-area',
+    );
+
+    expect(adapterWithExplicitElementProtocol.locate.kind).toBe('standard');
+    expect(adapterWithoutSearchArea.locate.kind).toBe('standard');
+    if (
+      adapterWithExplicitElementProtocol.locate.kind !== 'standard' ||
+      adapterWithoutSearchArea.locate.kind !== 'standard'
+    ) {
+      throw new Error('test adapters should use standard locate');
+    }
+    expect(
+      adapterWithExplicitElementProtocol.locate.searchArea?.protocol,
+    ).toBeDefined();
+    expect(
+      adapterWithoutSearchArea.locate.searchArea?.protocol,
+    ).toBeUndefined();
   });
 
   it('resolves custom planning tap locator definitions with the custom planner', () => {
@@ -206,17 +300,14 @@ describe('ResolvedModelAdapter', () => {
           kind: 'custom',
           planningTapLocator: {
             buildSystemPrompt: () => 'locate system prompt',
-            getLocatedPixelBbox: () => [1, 2, 3, 4],
+            getLocatedPixelResult: () => ({ center: [2, 3] }),
           },
         },
       },
       'test-custom-locator',
     );
 
-    expect(adapter.locate).toMatchObject({
-      kind: 'custom',
-      supportsSearchArea: false,
-    });
+    expect(adapter.locate).toMatchObject({ kind: 'custom' });
     if (
       adapter.planning.kind !== 'custom' ||
       adapter.locate.kind !== 'custom'
@@ -234,13 +325,13 @@ describe('ResolvedModelAdapter', () => {
           {
             planning: {
               kind: 'custom',
-              planFn: vi.fn(),
+              planFn: rs.fn(),
             },
             locate: {
               kind: 'custom',
               planningTapLocator: {
                 buildSystemPrompt: () => 'locate system prompt',
-                getLocatedPixelBbox: () => [1, 2, 3, 4],
+                getLocatedPixelResult: () => ({ center: [2, 3] }),
               },
             },
           },
@@ -252,15 +343,20 @@ describe('ResolvedModelAdapter', () => {
   });
 
   it('applies standard planning overrides from adapter definitions', () => {
+    const planningProtocol: StandardPlanningProtocol = {
+      ...defaultMidscenePlanningProtocol,
+      actionSpaceProtocol: {
+        ...defaultMidscenePlanningProtocol.actionSpaceProtocol,
+        title: 'Test actions',
+      },
+    };
     const adapter = new ResolvedModelAdapter(
       {
         planning: {
           cacheEnabled: false,
           defaultReplanningCycleLimit: 7,
           supportsActionDeepLocate: false,
-        },
-        locate: {
-          supportsSearchArea: false,
+          protocol: planningProtocol,
         },
       },
       'test-standard-overrides',
@@ -271,8 +367,8 @@ describe('ResolvedModelAdapter', () => {
       cacheEnabled: false,
       defaultReplanningCycleLimit: 7,
       supportsActionDeepLocate: false,
+      protocol: planningProtocol,
     });
-    expect(adapter.locate.supportsSearchArea).toBe(false);
   });
 
   it('throws for unknown json parser presets', () => {
@@ -303,7 +399,7 @@ describe('ResolvedModelAdapter', () => {
   });
 
   it('keeps custom planning functions as a fallback escape hatch', () => {
-    const planFn = vi.fn();
+    const planFn = rs.fn();
     const adapter = new ResolvedModelAdapter(
       {
         planning: {
@@ -324,21 +420,5 @@ describe('ResolvedModelAdapter', () => {
       throw new Error('adapter should keep custom planning function');
     }
     expect(adapter.planning.planFn).toBe(planFn);
-  });
-
-  it('allows adapters to opt custom locate into search area', () => {
-    const locateFn = vi.fn();
-    const adapter = new ResolvedModelAdapter(
-      {
-        locate: {
-          kind: 'custom',
-          locateFn,
-          supportsSearchArea: true,
-        },
-      },
-      'test-custom-locate',
-    );
-
-    expect(adapter.locate.supportsSearchArea).toBe(true);
   });
 });

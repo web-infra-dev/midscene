@@ -1,5 +1,5 @@
 import { deriveCaseStatus, deriveTaskStatus } from '@/dump/task-status';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('deriveTaskStatus', () => {
   it('treats a thrown / failed task as failed', () => {
@@ -13,7 +13,10 @@ describe('deriveTaskStatus', () => {
 
   it('treats a finished task carrying an error as failed', () => {
     expect(
-      deriveTaskStatus({ status: 'finished', error: new Error('x') }),
+      deriveTaskStatus({
+        status: 'finished',
+        error: { name: 'Error', message: 'x' },
+      }),
     ).toBe('failed');
     expect(deriveTaskStatus({ status: 'finished', errorMessage: 'boom' })).toBe(
       'failed',
@@ -30,7 +33,7 @@ describe('deriveTaskStatus', () => {
     ).toBe('warning');
   });
 
-  it('treats a finished Assert with falsy output as failed (legacy fallback)', () => {
+  it('treats a finished Assert with false output as failed', () => {
     expect(
       deriveTaskStatus({
         status: 'finished',

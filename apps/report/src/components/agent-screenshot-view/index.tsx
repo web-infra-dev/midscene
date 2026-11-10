@@ -2,6 +2,8 @@ import './index.less';
 
 import { Empty } from 'antd';
 import { useEffect, useMemo, useRef } from 'react';
+import type { Ref } from 'react';
+import ScreenshotsCameraIcon from '../../icons/screenshots-camera.svg?react';
 import {
   type MarkdownView,
   getMarkdownAttachmentDisplayItems,
@@ -11,12 +13,14 @@ interface AgentScreenshotViewProps {
   markdownView?: MarkdownView | null;
   selectedMarkdownImagePath?: string | null;
   selectedMarkdownImageRequestId?: number;
+  scrollContainerRef?: Ref<HTMLDivElement>;
 }
 
 const AgentScreenshotView = ({
   markdownView,
   selectedMarkdownImagePath,
   selectedMarkdownImageRequestId,
+  scrollContainerRef,
 }: AgentScreenshotViewProps): JSX.Element => {
   const readyMarkdown =
     markdownView?.status === 'ready' ? markdownView : undefined;
@@ -43,12 +47,16 @@ const AgentScreenshotView = ({
     <div className="agent-screenshot-view">
       <div className="agent-screenshot-header">
         <div className="agent-screenshot-title">
-          Screenshots
+          <ScreenshotsCameraIcon
+            aria-hidden="true"
+            className="agent-screenshot-title-icon"
+          />
+          <span className="agent-screenshot-title-text">Screenshots</span>
           <span className="agent-screenshot-count">{screenshots.length}</span>
         </div>
       </div>
       {screenshots.length ? (
-        <div className="agent-screenshot-list">
+        <div className="agent-screenshot-list" ref={scrollContainerRef}>
           {screenshots.map((screenshot, index) => (
             <figure
               className={`agent-screenshot-item ${

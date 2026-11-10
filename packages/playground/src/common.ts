@@ -8,7 +8,7 @@ import type {
   ValidationResult,
 } from './types';
 
-// APIs that should not generate replay scripts
+// APIs that return extracted data from the current interface.
 export const dataExtractionAPIs = [
   'aiQuery',
   'aiBoolean',
@@ -19,6 +19,7 @@ export const dataExtractionAPIs = [
 
 export const validationAPIs = ['aiAssert', 'aiWaitFor'];
 
+// APIs whose executions should not be rendered as replays by StandardPlayground.
 export const noReplayAPIs = [...dataExtractionAPIs, ...validationAPIs];
 
 const agentPromptAPIs = [
@@ -65,7 +66,7 @@ export const formatErrorMessage = (e: any): string => {
   const errorMessage = e?.message || '';
 
   if (errorMessage.includes('of different extension')) {
-    return 'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-experience.html#faq';
+    return 'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-start.html#chrome-extension-faq';
   }
 
   if (errorMessage.includes('NOT_IMPLEMENTED_AS_DESIGNED')) {
@@ -93,7 +94,11 @@ export async function parseStructuredParams(
 
   // Start with options and merge deviceOptions into the same level
   // Destructure to exclude deviceOptions from the final object
-  const { deviceOptions: _, ...optionsWithoutDeviceOptions } = options;
+  const {
+    deviceOptions: _,
+    abortSignal: __,
+    ...optionsWithoutDeviceOptions
+  } = options;
   const paramObj: Record<string, unknown> = {
     ...optionsWithoutDeviceOptions,
     ...(options.deviceOptions || {}),
@@ -219,6 +224,9 @@ export async function executeAction(
     (a: DeviceAction<unknown>) =>
       a.interfaceAlias === actionType || a.name === actionType,
   );
+  const signalArgs: [] | [AbortSignal] = options.abortSignal
+    ? [options.abortSignal]
+    : [];
 
   if (action && typeof activeAgent.callActionInActionSpace === 'function') {
     if (value.params) {
@@ -230,6 +238,7 @@ export async function executeAction(
       return await activeAgent.callActionInActionSpace(
         action.name,
         parsedParams[0],
+        ...signalArgs,
       );
     } else {
       // For prompt-based actions, we need to build the detailed locate param
@@ -245,6 +254,7 @@ export async function executeAction(
       const {
         deviceOptions: _,
         reportDisplay: __,
+        abortSignal: ___,
         ...optionsWithoutDeviceOptions
       } = options;
       const actionParams = {
@@ -256,6 +266,7 @@ export async function executeAction(
       return await activeAgent.callActionInActionSpace(
         action.name,
         actionParams,
+        ...signalArgs,
       );
     }
   } else {

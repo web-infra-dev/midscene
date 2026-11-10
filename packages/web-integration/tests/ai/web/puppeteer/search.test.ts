@@ -1,7 +1,7 @@
 import { PuppeteerAgent } from '@/puppeteer';
 import { sleep } from '@midscene/core/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';
-import { describe, it } from 'vitest';
+import { describe, it } from '@rstest/core';
 import {
   DEFAULT_TEST_TIMEOUT,
   createTestContext,
@@ -14,8 +14,9 @@ describe(
   () => {
     const ctx = createTestContext();
 
-    const modelFamily =
-      globalModelConfigManager.getModelConfig('default').modelFamily;
+    const modelFamily = process.env.MIDSCENE_MODEL_NAME
+      ? globalModelConfigManager.getModelConfig('default').modelFamily
+      : undefined;
 
     it.skipIf(!modelFamily)('search engine with specific actions', async () => {
       const htmlPath = getFixturePath('local-search.html');

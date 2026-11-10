@@ -1,0 +1,9 @@
+tasks:
+  - name: Verify search tab isolation and setup state
+    flow:
+      - javascript: verifyParallelYamlCase('search')
+      - javascript: openParallelYamlPopup('search')
+      - sleep: 500
+      - javascript: verifyParallelYamlPopup('search')
+      - recordToReport: Search tab verification passed
+        content: The search YAML inherited setup Cookie and localStorage state, observed cookies written live by all three parallel YAML files, did not inherit sessionStorage, retained isolated window and sessionStorage state, and only followed its own popup in browser mode.

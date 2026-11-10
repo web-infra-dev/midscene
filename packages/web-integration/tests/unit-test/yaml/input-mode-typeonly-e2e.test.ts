@@ -1,5 +1,5 @@
+import { describe, expect, test } from '@rstest/core';
 import puppeteer from 'puppeteer';
-import { describe, expect, test } from 'vitest';
 
 const PUPPETEER_TEST_TIMEOUT_MS = 120000;
 

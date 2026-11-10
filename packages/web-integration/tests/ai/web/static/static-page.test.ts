@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { StaticPageAgent, StaticPage } from '@midscene/web/static';
 import { PlaygroundServer } from '@midscene/playground';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from '@rstest/core';
 import { ScreenshotItem } from '@midscene/core';
 
 const dumpFilePath = join(__dirname, '../../fixtures/ui-context.json');
@@ -19,10 +19,10 @@ describe(
   () => {
     let server: PlaygroundServer | null = null;
     
-    afterEach(() => {
+    afterEach(async () => {
       // Clean up server if it exists
       if (server) {
-        server.close();
+        await server.close();
         server = null;
       }
     });
@@ -46,7 +46,7 @@ describe(
       const agent = new StaticPageAgent(page);
       server = new PlaygroundServer(agent);
 
-      await server.launch();
+      await server.launch(0);
 
       const port = server.port;
       if (!port) {

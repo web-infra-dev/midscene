@@ -4,7 +4,7 @@ import { TaskRunner } from './task-runner';
 import { getVersion } from './utils';
 
 export {
-  plan,
+  standardPlan,
   AiLocateElement,
   runConnectivityTest,
   getMidsceneLocationSchema,
@@ -17,6 +17,7 @@ export {
   type TUserPrompt,
   type ConnectivityTestConfig,
   type ConnectivityTestResult,
+  type ConnectivityCheckResultItem,
 } from './ai-model/index';
 
 export {
@@ -51,6 +52,9 @@ export type {
   MidsceneYamlScriptWebEnv,
   MidsceneYamlScriptAndroidEnv,
   MidsceneYamlScriptIOSEnv,
+  MidsceneYamlScriptHarmonyEnv,
+  MidsceneYamlTargetConfig,
+  MidsceneYamlTargetKey,
   MidsceneYamlScriptEnv,
   LocateOption,
   DetailedLocateParam,
@@ -65,6 +69,9 @@ export {
   type RunGherkinScenarioOptions,
   type UsageBucket,
   createAgent,
+  type UIObservation,
+  type UIObserver,
+  type UIObserverOption,
 } from './agent';
 export {
   describeElementAtPoint,
@@ -78,7 +85,9 @@ export {
 
 // Dump utilities
 export {
+  createInlineImageResolver,
   restoreImageReferences,
+  restoreReportImageReferences,
   escapeContent,
   unescapeContent,
   parseImageScripts,
@@ -89,7 +98,12 @@ export {
   deriveTaskStatus,
   deriveCaseStatus,
 } from './dump';
-export type { TaskStatusFields, DerivedTaskStatus } from './dump';
+export type {
+  TaskStatusFields,
+  DerivedTaskStatus,
+  RestoredScreenshotReference,
+  StoredImageReferenceResolver,
+} from './dump';
 export {
   getTaskSearchArea,
   getTaskServiceDump,
@@ -101,9 +115,19 @@ export { ReportGenerator, nullReportGenerator } from './report-generator';
 export {
   collectDedupedExecutions,
   ReportMergingTool,
+  TestRunReportAssembler,
   dedupeExecutionsKeepLatest,
   splitReportHtmlByExecution,
+  exportReportArtifact,
+  type ExportReportArtifactOptions,
 } from './report';
+export type * from './test-run-report';
+export { TEST_RUN_REPORT_SCRIPT_TYPE } from './test-run-report';
+export type * from './test-run-health';
+export {
+  calculateTestRunHealth,
+  classifyTestRunCase,
+} from './test-run-health';
 export {
   createReportCliCommands,
   reportFileToMarkdown,
@@ -120,13 +144,22 @@ export {
 
 // ScreenshotItem
 export { ScreenshotItem } from './screenshot-item';
-export { ScreenshotStore, type ScreenshotRef } from './dump/screenshot-store';
+export type {
+  ImageUrlRef,
+  ScreenshotRef,
+  StoredImageRef,
+} from './dump/image-reference';
+export {
+  ReportImageStore,
+  ScreenshotStore,
+} from './dump/screenshot-store';
 
 export {
   executionToMarkdown,
   reportToMarkdown,
   type ExecutionMarkdownOptions,
   type ExecutionMarkdownResult,
+  type ReportMarkdownOptions,
   type ReportMarkdownResult,
   type MarkdownAttachment,
 } from './report-markdown';

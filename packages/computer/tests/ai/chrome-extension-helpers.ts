@@ -2,6 +2,7 @@ import { execSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { sleep } from '@midscene/core/utils';
+import type { ComputerAgent } from '../../src';
 import { isHeadlessLinux } from './test-utils';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -17,7 +18,8 @@ const CDP_INJECTION_TIMEOUT = 10_000;
 const NAVIGATE_INJECT_TIMEOUT = 15_000;
 const RELOAD_TIMEOUT = 5_000;
 const BRING_TO_FRONT_TIMEOUT = 5_000;
-
+const SIDE_PANEL_READY_MAX_ATTEMPTS = 20;
+const SIDE_PANEL_READY_INTERVAL = 250;
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface CdpTarget {
@@ -45,6 +47,16 @@ const EXTENSION_ENV_KEYS = [
 // ─── Browser Helpers ────────────────────────────────────────────────────────
 
 function findExtensionCapableBrowser(): string {
+  const configuredBrowser = process.env.PUPPETEER_EXECUTABLE_PATH;
+  if (configuredBrowser) {
+    if (!fs.existsSync(configuredBrowser)) {
+      throw new Error(
+        `PUPPETEER_EXECUTABLE_PATH does not exist: ${configuredBrowser}`,
+      );
+    }
+    return configuredBrowser;
+  }
+
   // Check puppeteer cache first (Chrome for Testing supports --load-extension)
   const puppeteerBase = path.join(
     process.env.HOME ?? '~',
@@ -84,6 +96,7 @@ function findExtensionCapableBrowser(): string {
 export async function launchChromeWithExtension(
   extensionPath: string,
   url: string,
+  options: { forceDarkMode?: boolean } = {},
 ): Promise<void> {
   if (!isHeadlessLinux()) {
     throw new Error('Only supports headless Linux CI');
@@ -103,6 +116,7 @@ export async function launchChromeWithExtension(
     `--remote-debugging-port=${CDP_PORT}`,
     '--window-size=1920,1080',
     '--start-maximized',
+    ...(options.forceDarkMode ? ['--force-dark-mode'] : []),
     url,
   ];
 
@@ -122,6 +136,43 @@ export async function launchChromeWithExtension(
 
   child.unref();
   await waitForCdpReady();
+}
+
+export async function openExtensionSidePanel(
+  agent: ComputerAgent,
+  extensionId: string,
+): Promise<void> {
+  // Rstest can retry a failed case without restarting Chrome. Clicking the
+  // extension action again in that state closes an already-open side panel,
+  // so make this helper idempotent before sending any native input.
+  if (!(await findExtensionPageTarget(extensionId))) {
+    // Chrome can move the toolbar controls when its sign-in chip appears,
+    // and a previous attempt may leave the menu open. Let the agent observe
+    // the current state between actions instead of blindly toggling the menu.
+    await agent.aiAct(
+      'Open the Midscene.js extension side panel using Chrome browser controls. If the Extensions menu is already open, click the Midscene.js icon or name in it. Otherwise open the toolbar Extensions puzzle-piece menu first. Do not click the site-access toggle or the three-dot menu. Stop once the Midscene.js side panel is visibly docked on the right; do not close it.',
+    );
+
+    if (!(await waitForExtensionPageTarget(extensionId))) {
+      throw new Error('Midscene extension side panel did not open');
+    }
+  }
+
+  // A CDP target can appear before Chrome has dismissed the native menu and
+  // painted the panel. Wait for the actual visible state, including on retry.
+  await agent.aiWaitFor(
+    'The Midscene.js side panel is docked at the right of Chrome and its UI is visible; the Chrome Extensions popup menu has closed',
+  );
+}
+
+async function waitForExtensionPageTarget(extensionId: string) {
+  for (let attempt = 0; attempt < SIDE_PANEL_READY_MAX_ATTEMPTS; attempt++) {
+    if (await findExtensionPageTarget(extensionId)) {
+      return true;
+    }
+    await sleep(SIDE_PANEL_READY_INTERVAL);
+  }
+  return false;
 }
 
 // Wait until Chrome's CDP endpoint answers, i.e. the browser is actually up.
@@ -154,19 +205,17 @@ async function waitForCdpReady(
 // Read the extension id from the live CDP target list. The extension's
 // service worker registers as a `chrome-extension://<id>/...` target as soon
 // as it boots — typically well before Chrome flushes the id into the on-disk
-// Preferences file. Only one extension is loaded
-// (`--disable-extensions-except`), so any chrome-extension target is ours.
+// Preferences file. Chrome also exposes built-in extensions despite
+// --disable-extensions-except. Match our manifest background worker, not the
+// first chrome-extension target (which may belong to a built-in extension).
 async function readExtensionIdFromCdp(): Promise<string | null> {
   try {
     const targets = await listCdpTargets();
     for (const t of targets) {
-      const match = t.url?.match(/^chrome-extension:\/\/([a-p]{32})\//);
-      if (
-        match &&
-        (t.type === 'service_worker' ||
-          t.type === 'background_page' ||
-          t.type === 'page')
-      ) {
+      const match = t.url?.match(
+        /^chrome-extension:\/\/([a-p]{32})\/scripts\/worker\.js$/,
+      );
+      if (match && t.type === 'service_worker') {
         return match[1];
       }
     }
@@ -231,6 +280,62 @@ function cdpParse(event: MessageEvent): {
   return JSON.parse(
     typeof event.data === 'string' ? event.data : String(event.data),
   );
+}
+
+export async function evaluateViaWebSocket<T>(
+  wsUrl: string,
+  expression: string,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(wsUrl);
+    let settled = false;
+    const timeout = setTimeout(() => {
+      finish(() => reject(new Error('CDP evaluation timed out')));
+    }, CDP_INJECTION_TIMEOUT);
+
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      ws.close();
+      callback();
+    };
+
+    ws.onopen = () =>
+      cdpSend(ws, 1, 'Runtime.evaluate', {
+        expression,
+        awaitPromise: true,
+        returnByValue: true,
+      });
+    ws.onmessage = (event) => {
+      const msg = cdpParse(event);
+      if (msg.id !== 1) return;
+
+      const response = msg as {
+        error?: { message?: string };
+        result?: {
+          exceptionDetails?: { text?: string };
+          result?: { value?: T };
+        };
+      };
+      const errorMessage =
+        response.error?.message ?? response.result?.exceptionDetails?.text;
+      if (errorMessage) {
+        finish(() =>
+          reject(new Error(`CDP evaluation failed: ${errorMessage}`)),
+        );
+        return;
+      }
+      const runtimeResult = response.result?.result;
+      if (!runtimeResult || !('value' in runtimeResult)) {
+        finish(() => reject(new Error('CDP evaluation returned no value')));
+        return;
+      }
+      finish(() => resolve(runtimeResult.value as T));
+    };
+    ws.onerror = () =>
+      finish(() => reject(new Error('CDP evaluation WebSocket failed')));
+  });
 }
 
 async function listCdpTargets(): Promise<CdpTarget[]> {

@@ -1,8 +1,8 @@
 import { sleep } from '@midscene/core/utils';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { agentFromHdcDevice, getConnectedDevices } from '../../src';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 240 * 1000,
 });
 
@@ -33,18 +33,19 @@ describe(
         await sleep(1600);
         await agent.home();
         await sleep(2000);
-        await observer.stop();
+        const observation = await observer.stop();
 
-        expect(observer.frameCount).toBeGreaterThanOrEqual(3);
+        expect(observer.bufferedFrameCount).toBeGreaterThanOrEqual(3);
 
-        await observer.aiAssert(
+        await observation.aiAssert(
           'comparing the earlier and later frames, the screen transitions from the Settings app to the home screen (launcher / desktop)',
         );
 
-        const sawCalculator = await observer.aiBoolean(
-          'a calculator app interface appears in any of these frames',
-        );
-        expect(sawCalculator).toBe(false);
+        await expect(
+          observation.aiAssert(
+            'a calculator app interface appears in any of these frames',
+          ),
+        ).rejects.toThrow();
       } finally {
         await agent.destroy();
       }

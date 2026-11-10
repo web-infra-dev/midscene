@@ -1,9 +1,9 @@
-import { PuppeteerWebPage } from '@/puppeteer';
+import { PuppeteerBrowserAgent, PuppeteerWebPage } from '@/puppeteer';
 import { launchPuppeteerPage } from '@/puppeteer/agent-launcher';
 import { commonContextParser } from '@midscene/core/agent';
 import { imageInfoOfBase64 } from '@midscene/shared/img';
+import { describe, expect, it } from '@rstest/core';
 import type { Viewport } from 'puppeteer';
-import { describe, expect, it } from 'vitest';
 
 async function launchPage(
   url: string,
@@ -221,4 +221,55 @@ describe('Page.size() with scrollbars', () => {
       }
     },
   );
+});
+
+describe('BrowserAgent viewport changes', () => {
+  it('keeps screenshot coordinates aligned when switching tabs and resizing', async () => {
+    const { originPage: parent, reset } = await launchPage('about:blank', {
+      viewport: { width: 1200, height: 900, deviceScaleFactor: 1 },
+    });
+    const agent = new PuppeteerBrowserAgent(parent.browser(), parent, {
+      autoFollowNewPage: false,
+    });
+    try {
+      const child = await parent.browser().newPage();
+      await child.setViewport({
+        width: 400,
+        height: 300,
+        deviceScaleFactor: 2,
+      });
+
+      const expectViewport = async (
+        width: number,
+        height: number,
+        dpr: number,
+      ) => {
+        expect(await agent.page.size()).toEqual({ width, height });
+        const context = await commonContextParser(agent.page, {});
+        expect(context.shotSize).toEqual({
+          width: width * dpr,
+          height: height * dpr,
+        });
+        expect(context.shrunkShotToLogicalRatio).toBe(dpr);
+      };
+
+      await expectViewport(1200, 900, 1);
+      await agent.setActivePage(child);
+      await expectViewport(400, 300, 2);
+      await agent.setActivePage(parent);
+      await expectViewport(1200, 900, 1);
+      await parent.setViewport({
+        width: 800,
+        height: 600,
+        deviceScaleFactor: 1,
+      });
+      await expectViewport(800, 600, 1);
+    } finally {
+      try {
+        await agent.destroy();
+      } finally {
+        await reset();
+      }
+    }
+  });
 });

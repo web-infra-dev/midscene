@@ -1,7 +1,6 @@
 import { type TModelFamily, UITarsModelVersion } from '@midscene/shared/env';
 import { assert } from '@midscene/shared/utils';
 import type { ModelAdapterDefinition } from '../../model-adapter/types';
-import { parseModelResponseJson } from '../../service-caller/json';
 import {
   type LocateResultValue,
   createLocateResultValue,
@@ -14,11 +13,13 @@ const uiTarsBboxCoordinatesMeta = {
   shape: 'bbox',
   order: 'xy',
   normalizedBy: 1000,
+  rounding: 'round',
 } as const;
 const uiTarsPointCoordinatesMeta = {
   shape: 'point',
   order: 'xy',
   normalizedBy: 1000,
+  rounding: 'round',
 } as const;
 
 // UI-TARS has not received active updates for a long time, so this parser is
@@ -98,7 +99,6 @@ function createUiTarsAdapter(
   uiTarsModelVersion: UITarsModelVersion,
 ): ModelAdapterDefinition {
   return {
-    jsonParser: parseModelResponseJson,
     chatCompletion: {
       unsupportedUserConfig: [
         'reasoningEnabled',
@@ -127,9 +127,11 @@ function createUiTarsAdapter(
       planner: createUiTarsPlanner(uiTarsModelVersion),
     },
     locate: {
-      resultAdapter: {
-        coordinates: uiTarsBboxCoordinatesMeta,
-        parseRawLocateValue: parseUiTarsRawLocateValue,
+      element: {
+        resultFormat: {
+          coordinates: uiTarsBboxCoordinatesMeta,
+          parseRawLocateValue: parseUiTarsRawLocateValue,
+        },
       },
     },
   };

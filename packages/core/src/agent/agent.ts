@@ -1,9 +1,16 @@
-import { type ModelRuntime, getModelRuntime } from '@/ai-model/models';
+import type { ModelTaskType } from '@/ai-model/model-adapter/types';
+import type { ModelRuntime } from '@/ai-model/models';
+import { resolveModelForTaskType } from '@/ai-model/models/model-fallback';
 import { INTERNAL_CALL_ID_FIELD } from '@/ai-model/service-caller';
 import yaml from 'js-yaml';
 import type { TUserPrompt } from '../ai-model/index';
 import { ScreenshotItem } from '../screenshot-item';
 import Service from '../service/index';
+import {
+  hasPendingResourceOperation,
+  waitForResourceIdle,
+} from '../test-runner/engine/resource-operations';
+import type { WorkflowExecutionRecord } from '../test-runner/execution-record';
 // Import types and values directly from their source files to avoid circular dependency
 // DO NOT import from '../index' as it creates a circular dependency:
 // index.ts -> agent/index.ts -> agent/agent.ts -> index.ts
@@ -11,39 +18,47 @@ import {
   type AIUsageInfo,
   type ActionParam,
   type ActionReturn,
-  type AgentAssertOpt,
+  type AgentAIContextKey,
+  type AgentAIContexts,
+  type AgentAssertResult,
   type AgentOpt,
   type AgentProgressListener,
   type AgentWaitForOpt,
+  type AiActEffort,
+  type AiApiName,
+  type AssertOptions,
   type DeepThinkOption,
   type DeviceAction,
   ExecutionDump,
   type ExecutionRecorderItem,
   type ExecutionTask,
   type ExecutionTaskLog,
+  type InsightAPI,
   type LocateOption,
   type LocateResultElement,
   type OnTaskStartTip,
   type PlanningAction,
+  type QueryOptions,
   type RecordToReportOptions,
   type RecordToReportScreenshot,
-  ReportActionDump,
-  type ReportMeta,
+  type Rect,
+  type ReportActionDump,
   type ScrollParam,
   type ServiceAction,
-  type ServiceExtractOption,
   type ServiceExtractParam,
   type TestStatus,
   type UIContext,
 } from '../types';
 import type { MidsceneYamlScript } from '../yaml';
-
-import type { IReportGenerator } from '@/report-generator';
 import {
-  ReportGenerator,
-  assertReportGenerationOptions,
-} from '@/report-generator';
-import { getVersion, processCacheConfig, reportHTMLContent } from '@/utils';
+  YamlExecutionOwnershipError,
+  currentYamlSignal,
+  enterYamlAction,
+  enterYamlExecution,
+  hasActiveYamlExecution,
+  runInYamlExecutionContext,
+} from '../yaml/execution-session';
+
 import {
   ScriptPlayer,
   buildDetailedLocateParam,
@@ -53,9 +68,16 @@ import {
 
 import { readFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
-import type { AbstractInterface } from '@/device';
+import type { AbstractInterface, InputStrategy } from '@/device';
 import type { TaskRunner } from '@/task-runner';
+import { isAgentAIContextKey } from '@midscene/shared/agent-tools/agent-context';
+import { serializeError } from '@midscene/shared/agent-tools/error-formatter';
 import {
+  type ObservationArtifactAdapter,
+  observationArtifactAdapterSymbol,
+} from '@midscene/shared/agent-tools/observation-artifact';
+import {
+  type CreateOpenAIClientFn,
   type IModelConfig,
   MIDSCENE_REPLANNING_CYCLE_LIMIT,
   ModelConfigManager,
@@ -64,13 +86,17 @@ import {
   globalModelConfigManager,
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
-import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
+import { assert, uuid } from '@midscene/shared/utils';
 import {
   defineActionRegisterFileChooserAccept,
   defineActionSleep,
 } from '../device';
-import { validateAgentCacheInput } from './cache-config';
+import { ActionReadiness, isActionReadinessError } from './action-readiness';
+import { normalizeAgentOptions, withAgentDefaults } from './agent-options';
+import { AgentReportManager } from './agent-report-manager';
+import { normalizeAgentCacheConfig } from './cache-config';
 import { FileChooserAccepter } from './file-chooser';
+import { Insight } from './insight';
 import { MetricsCollector, type MidsceneUsageMetrics } from './metrics';
 import { AgentProgressBus } from './progress';
 import { buildPromptWithContext } from './prompt-context';
@@ -81,13 +107,18 @@ import {
 } from './run-gherkin-scenario';
 import { markdownToAiActPrompt } from './run-markdown';
 import { TaskCache } from './task-cache';
+import { TaskExecutor, locatePlanForLocate, withFileChooser } from './tasks';
 import {
-  TaskExecutionError,
-  TaskExecutor,
-  locatePlanForLocate,
-  withFileChooser,
-} from './tasks';
-import { UIObserver, type UIObserverOption } from './ui-observer';
+  type AgentTestRunnerNodeDefinition,
+  commonAgentTestRunnerNodeDefinitions,
+} from './test-runner-nodes';
+import {
+  UIObservationImpl,
+  type UIObserver,
+  UIObserverImpl,
+  type UIObserverOption,
+  uiContextFromObservationRecord,
+} from './ui-observer';
 import {
   type TaskTitleType,
   locateParamStr,
@@ -97,27 +128,42 @@ import {
 } from './ui-utils';
 import {
   commonContextParser,
-  getReportFileName,
   normalizeFilePaths,
   normalizeScrollType,
-  parsePrompt,
 } from './utils';
 
 const debug = getDebug('agent');
 const warn = getDebug('agent', { console: true });
 
-const defaultServiceExtractOption: ServiceExtractOption = {
-  domIncluded: false,
-  screenshotIncluded: true,
-};
+class AgentScopedModelConfigManager extends ModelConfigManager {
+  constructor(
+    private readonly baseManager: ModelConfigManager,
+    private readonly createOpenAIClient?: CreateOpenAIClientFn,
+  ) {
+    super();
+  }
+
+  override getModelConfig(intent: TIntent): IModelConfig {
+    return {
+      ...this.baseManager.getModelConfig(intent),
+      createOpenAIClient: this.createOpenAIClient,
+    };
+  }
+}
 
 export type AiActOptions = {
   cacheable?: boolean;
   fileChooserAccept?: string | string[];
   fileChooserAllowedDir?: string;
+  effort?: AiActEffort;
   deepThink?: DeepThinkOption;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
+  /**
+   * Additional facts, rules, constraints, or output requirements for this AI
+   * call. It overrides `aiContexts.aiAct` and `aiContexts.default`; `''`
+   * disables inherited user context for this call.
+   */
   context?: string;
 };
 
@@ -135,21 +181,57 @@ type AiActInternalOptions = AiActOptions & {
 type AgentInputOption = LocateOption & {
   autoDismissKeyboard?: boolean;
   keyboardTypeDelay?: number;
+  inputStrategy?: InputStrategy;
   mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
 };
 
-export class Agent<
-  InterfaceType extends AbstractInterface = AbstractInterface,
-> {
+export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
+  implements InsightAPI
+{
+  /** Nodes this Agent class intentionally exposes to Test Runner. */
+  static getTestRunnerNodeDefinitions(): readonly AgentTestRunnerNodeDefinition[] {
+    return commonAgentTestRunnerNodeDefinitions;
+  }
+
   interface: InterfaceType;
 
   service: Service;
 
-  dump: ReportActionDump;
+  private reportManager: AgentReportManager;
 
-  reportFile?: string | null;
+  get dump(): ReportActionDump {
+    return this.reportManager.dump;
+  }
+  set dump(value: ReportActionDump) {
+    this.reportManager.dump = value;
+  }
+  get reportFile(): string | null | undefined {
+    return this.reportManager.reportFile;
+  }
+  set reportFile(value: string | null | undefined) {
+    this.reportManager.reportFile = value;
+  }
+  get reportFileName(): string | undefined {
+    return this.reportManager.reportFileName;
+  }
+  set reportFileName(value: string | undefined) {
+    this.reportManager.reportFileName = value;
+  }
 
-  reportFileName?: string;
+  /** @internal Runner snapshots retain immutable data and shared image files. */
+  async _prepareForTestRunner(): Promise<void> {
+    await this.reportManager._prepareForTestRunner();
+  }
+  async _createReportSource(scopeId: string, executionIds?: readonly string[]) {
+    return this.reportManager._createReportSource(scopeId, executionIds);
+  }
+
+  /** @internal The Agent owns one report stream across root YAML invocations. */
+  async _writeYamlExecutionReport(
+    record: WorkflowExecutionRecord,
+  ): Promise<string | undefined> {
+    return this.reportManager._writeYamlExecutionReport(record);
+  }
 
   taskExecutor: TaskExecutor;
 
@@ -174,10 +256,6 @@ export class Agent<
   // `${taskId}:${field}` so re-emitted snapshots never double-count.
   private readonly countedUsageKeys = new Set<string>();
 
-  private dumpUpdateListeners: Array<
-    (dump: string, executionDump?: ExecutionDump) => void
-  > = [];
-
   // Generic progress bus: every producer (aiAct today, more later) broadcasts
   // through here. Consumers narrow by `event.scope`.
   private readonly progressBus = new AgentProgressBus();
@@ -185,21 +263,17 @@ export class Agent<
   get onDumpUpdate():
     | ((dump: string, executionDump?: ExecutionDump) => void)
     | undefined {
-    return this.dumpUpdateListeners[0];
+    return this.reportManager.onDumpUpdate;
   }
-
   set onDumpUpdate(callback:
     | ((dump: string, executionDump?: ExecutionDump) => void)
     | undefined) {
-    // Clear existing listeners
-    this.dumpUpdateListeners = [];
-    // Add callback to array if provided
-    if (callback) {
-      this.dumpUpdateListeners.push(callback);
-    }
+    this.reportManager.onDumpUpdate = callback;
   }
 
   destroyed = false;
+
+  private readonly actionReadiness?: ActionReadiness;
 
   modelConfigManager: ModelConfigManager;
 
@@ -212,21 +286,59 @@ export class Agent<
    * Currently active UIObserver (from startObserving). Only one observer may
    * be active at a time since frame sources are device-level singletons.
    */
-  private activeObserver: UIObserver | null = null;
+  private activeObserver: UIObserverImpl | null = null;
 
-  private get aiActContext(): string | undefined {
-    return this.opts.aiActContext ?? this.opts.aiActionContext;
+  /** Observers own temporary frame files until their observation is disposed. */
+  private ownedObservers = new Set<UIObserverImpl>();
+
+  private get aiContexts(): AgentAIContexts {
+    if (!this.opts.aiContexts) {
+      this.opts.aiContexts = {};
+    }
+    return this.opts.aiContexts;
   }
 
-  private executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
+  private resolveUserContext(
+    apiName: AiApiName,
+    callContext?: string,
+  ): string | undefined {
+    if (callContext !== undefined) {
+      return callContext;
+    }
+
+    const apiContext = this.opts.aiContexts?.[apiName];
+    if (apiContext !== undefined) {
+      return apiContext;
+    }
+
+    const defaultContext = this.opts.aiContexts?.default;
+    if (defaultContext !== undefined) {
+      return defaultContext;
+    }
+
+    return undefined;
+  }
+
+  private withContext<T extends { context?: string }>(
+    apiName: AiApiName,
+    options?: T,
+  ): T | undefined {
+    const resolvedContext = this.resolveUserContext(apiName, options?.context);
+    if (resolvedContext === undefined) {
+      return options;
+    }
+
+    return {
+      ...(options ?? ({} as T)),
+      context: resolvedContext,
+    };
+  }
 
   private fullActionSpace: DeviceAction[];
 
   private activeFileChooserAccepter?: FileChooserAccepter;
 
   private activeFileChooserAllowedDir?: string;
-
-  private reportGenerator: IReportGenerator;
 
   // @deprecated use .interface instead
   get page() {
@@ -269,19 +381,22 @@ export class Agent<
     );
   }
 
-  private resolveModelRuntime(intent: TIntent): ModelRuntime {
-    const runtime = getModelRuntime(
-      this.modelConfigManager.getModelConfig(intent),
+  private resolveModelRuntime(
+    intent: TIntent,
+    taskType: ModelTaskType,
+  ): ModelRuntime {
+    const runtime = resolveModelForTaskType(
+      this.modelConfigManager,
+      intent,
+      taskType,
     );
     return {
       ...runtime,
       onUsage: (usage) => {
         this.usageCallCounter += 1;
-        // buildUsageInfo leaves intent undefined; fill it from the model
-        // config slot so metrics.byIntent has a meaningful category.
-        const enriched = usage.intent
-          ? usage
-          : { ...usage, intent: usage.slot };
+        // buildUsageInfo leaves intent undefined; fill it from the
+        // requested role, even when its configuration falls back to default.
+        const enriched = usage.intent ? usage : { ...usage, intent };
         this.consumeUsage(
           enriched,
           `callai:${usage.request_id ?? this.usageCallCounter}`,
@@ -290,42 +405,40 @@ export class Agent<
     };
   }
 
+  private createInsight(getUIContext?: () => UIContext): Insight {
+    return new Insight(
+      {
+        createTypeQueryExecution: (...args) =>
+          this.withReportOperation(() =>
+            this.taskExecutor.createTypeQueryExecution(...args),
+          ),
+      },
+      (taskType) => this.resolveModelRuntime('insight', taskType),
+      (apiName, callContext) => this.resolveUserContext(apiName, callContext),
+      getUIContext,
+    );
+  }
+
   constructor(interfaceInstance: InterfaceType, opts?: AgentOpt) {
     this.interface = interfaceInstance;
 
-    this.opts = Object.assign(
-      {
-        generateReport: true,
-        persistExecutionDump: false,
-        autoPrintReportMsg: true,
-        groupName: 'Midscene Report',
-        groupDescription: '',
-      },
-      opts || {},
-    );
-    assertReportGenerationOptions(this.opts);
-
-    const resolvedAiActContext =
-      this.opts.aiActContext ?? this.opts.aiActionContext;
-    if (resolvedAiActContext !== undefined) {
-      this.opts.aiActContext = resolvedAiActContext;
-      this.opts.aiActionContext ??= resolvedAiActContext;
+    this.opts = withAgentDefaults(opts);
+    if (this.opts.waitForActionReady !== undefined) {
+      this.actionReadiness = new ActionReadiness(this.opts.waitForActionReady);
     }
 
-    if (
-      opts?.modelConfig &&
-      (typeof opts?.modelConfig !== 'object' || Array.isArray(opts.modelConfig))
-    ) {
-      throw new Error(
-        `opts.modelConfig must be a plain object map of env keys to values, but got ${typeof opts?.modelConfig}`,
-      );
-    }
-    // Create ModelConfigManager if modelConfig or createOpenAIClient is provided
-    // Otherwise, use the global config manager
-    const hasCustomConfig = opts?.modelConfig || opts?.createOpenAIClient;
-    this.modelConfigManager = hasCustomConfig
-      ? new ModelConfigManager(opts?.modelConfig, opts?.createOpenAIClient)
-      : globalModelConfigManager;
+    normalizeAgentOptions(this.opts, warn);
+
+    // Explicit modelConfig is isolated from global configuration.
+    // A custom client factory alone still uses the global model values.
+    this.modelConfigManager = opts?.modelConfig
+      ? new ModelConfigManager(opts.modelConfig, opts.createOpenAIClient)
+      : opts?.createOpenAIClient
+        ? new AgentScopedModelConfigManager(
+            globalModelConfigManager,
+            opts.createOpenAIClient,
+          )
+        : globalModelConfigManager;
 
     this.onTaskStartTip = this.opts.onTaskStartTip;
 
@@ -334,7 +447,7 @@ export class Agent<
     });
 
     // Process cache configuration
-    const cacheConfigObj = this.processCacheConfig(opts || {});
+    const cacheConfigObj = normalizeAgentCacheConfig(opts || {});
     if (cacheConfigObj) {
       this.taskCache = new TaskCache(
         cacheConfigObj.id,
@@ -376,14 +489,23 @@ export class Agent<
     ];
 
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {
+      getDefaultModelRuntime: () =>
+        this.resolveModelRuntime('default', 'general'),
       taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
       waitAfterAction: this.opts.waitAfterAction,
+      actionReadiness: this.actionReadiness,
       useDeviceTime: this.opts.useDeviceTime,
+      getAbortSignal: () => currentYamlSignal(this),
+      operationResource: this,
       actionSpace: this.fullActionSpace,
       hooks: {
+        onExecutionCreated: (runner) => {
+          this.reportManager.bindRunner(runner);
+        },
         onSnapshotChange: async (runner) => {
+          this.reportManager.assertRunnerCurrent(runner);
           const executionDump = runner.dump();
           this.appendExecutionDump(executionDump, runner);
           this.collectUsageMetrics(executionDump);
@@ -391,35 +513,41 @@ export class Agent<
           // Persist report updates before notifying listeners so screenshot
           // payloads can be released from memory and serialized as references.
           this.writeOutActionDumps(executionDump);
-          await this.reportGenerator.flush();
-
-          // Call all registered dump update listeners
-          const dumpString = this.dumpDataString();
-          for (const listener of this.dumpUpdateListeners) {
-            try {
-              listener(dumpString, executionDump);
-            } catch (error) {
-              console.error('Error in onDumpUpdate listener', error);
-            }
-          }
+          await this.reportManager.flushPendingWrites();
+          this.reportManager.notifyDumpUpdateListeners(executionDump);
         },
         onProgress: this.progressBus.publish,
       },
     });
-    this.dump = this.resetDump();
-    this.reportFileName =
-      opts?.reportFileName ??
-      // Keep deprecated testId behavior for generated report names until it is
-      // fully removed from the public API.
-      getReportFileName(opts?.testId || this.interface.interfaceType || 'web');
+    this.reportManager = new AgentReportManager({
+      getOptions: () => this.opts,
+      getDeviceType: () => this.interface.interfaceType,
+      isDestroyed: () => this.destroyed,
+      isExternallyBusy: () =>
+        Boolean(this.activeObserver) ||
+        hasActiveYamlExecution(this) ||
+        hasPendingResourceOperation(this),
+    });
 
-    this.reportGenerator = ReportGenerator.create(this.reportFileName!, {
-      generateReport: this.opts.generateReport,
-      persistExecutionDump: this.opts.persistExecutionDump,
-      outputFormat: this.opts.outputFormat,
-      autoPrintReportMsg: this.opts.autoPrintReportMsg,
-      reuseExistingReport:
-        this.opts.reportAttributes?.['data-group-id'] === this.reportFileName,
+    Object.defineProperty(this, observationArtifactAdapterSymbol, {
+      value: {
+        exportRecord: async (observation) => {
+          assert(
+            observation instanceof UIObservationImpl,
+            'Cannot export an observation that was not created by this Midscene runtime',
+          );
+          return observation.exportRecord();
+        },
+        loadRecord: (record) => {
+          // CLI manifests are validated before this adapter is called. Rebuild
+          // once here as a final runtime-boundary check before creating insight.
+          uiContextFromObservationRecord(record);
+          return new UIObservationImpl(
+            record,
+            this.createInsight(() => uiContextFromObservationRecord(record)),
+          );
+        },
+      } satisfies ObservationArtifactAdapter,
     });
   }
 
@@ -478,15 +606,14 @@ export class Agent<
   }
 
   /**
-   * Start observing the screen in the background so a later assertion can
-   * judge everything that happened while other agent calls ran — including
-   * transient UI (toasts, banners, transitions) that appears mid-action:
+   * Start observing the screen in the background and return a fixed insight
+   * surface when the observation is stopped:
    *
    * ```ts
    * const observer = await agent.startObserving();
    * await agent.aiAct('submit the form');
-   * await observer.stop();
-   * await observer.aiAssert('a success toast appeared during the process');
+   * const observation = await observer.stop();
+   * await observation.aiAssert('a success toast appeared during the process');
    * ```
    *
    * Frames come from the device's continuous frame source when available
@@ -494,12 +621,13 @@ export class Agent<
    * web) and fall back to plain screenshots otherwise. Sampling is capped at
    * 5fps, the buffer is bounded and self-thinning, decoding is deferred to
    * the end, and all buffered frames (up to `maxFrames`) are sent to
-   * the model at assert time. To control token cost for long windows,
+   * the model at insight time. To control token cost for long windows,
    * increase `intervalMs` or decrease `maxFrames`.
    * Awaiting `startObserving()` guarantees one baseline frame is captured
    * before your next action.
    */
   async startObserving(opt?: UIObserverOption): Promise<UIObserver> {
+    this.assertReportWritable();
     // A frozen context pins perception to a single snapshot; observing a
     // window of frames contradicts that. Fail fast instead of silently
     // producing an all-identical sequence.
@@ -514,21 +642,22 @@ export class Agent<
       'An observation window is already active on this agent. ' +
         'Stop the existing observer first (await observer.stop()) before starting a new one.',
     );
-    const observer = new UIObserver(
+    const observer = new UIObserverImpl(
       {
         openFrameSource: async () =>
           (await this.interface.openFrameSource?.()) ?? undefined,
         // Fallback single-frame capture. Deliberately bypasses getUIContext so
         // the observation loop never pollutes the TaskRunner context cache.
-        screenshot: () => this.interface.screenshotBase64(),
-        captureRepresentative: () => this.getUIContext('assert'),
-        runAssert: (assertion, uiContext, msg, assertOpt) =>
-          this.aiAssertWithUIContext(assertion, uiContext, msg, assertOpt),
-        runBoolean: (prompt, uiContext, boolOpt) =>
-          this.aiBooleanWithContext(prompt, uiContext, boolOpt),
+        captureRawScreenshot: () => this.interface.screenshotBase64(),
+        capturePreparedRepresentative: () => this.getUIContext('assert'),
+        createInsight: (record) =>
+          this.createInsight(() => uiContextFromObservationRecord(record)),
         onStopped: () => {
-          this.activeObserver = null;
+          if (this.activeObserver === observer) {
+            this.activeObserver = null;
+          }
         },
+        onDisposed: () => this.ownedObservers.delete(observer),
         screenshotShrinkFactor: this.opts.screenshotShrinkFactor,
       },
       opt,
@@ -536,62 +665,100 @@ export class Agent<
     // Mark as active BEFORE the async start() so concurrent calls hit the
     // assert guard above. If start() throws, clear the reference below.
     this.activeObserver = observer;
+    this.ownedObservers.add(observer);
     try {
       await observer.start();
     } catch (error) {
       this.activeObserver = null;
+      this.ownedObservers.delete(observer);
+      await observer.dispose().catch((disposeError) => {
+        debug(`error disposing failed observer start: ${disposeError}`);
+      });
       throw error;
     }
     return observer;
   }
 
   /**
-   * @deprecated Use {@link setAIActContext} instead.
+   * @deprecated Use `setAIContext('aiAct', context)` instead.
    */
   async setAIActionContext(prompt: string) {
-    await this.setAIActContext(prompt);
+    warn(
+      'setAIActionContext() is deprecated; use setAIContext("aiAct", context) instead.',
+    );
+    this.setAIContext('aiAct', prompt);
   }
 
+  /**
+   * @deprecated Use `setAIContext('aiAct', context)` instead.
+   */
   async setAIActContext(prompt: string) {
-    if (this.aiActContext) {
-      console.warn(
-        'aiActContext is already set, and it is called again, will override the previous setting',
-      );
-    }
-    this.opts.aiActContext = prompt;
-    this.opts.aiActionContext = prompt;
+    warn(
+      'setAIActContext() is deprecated; use setAIContext("aiAct", context) instead.',
+    );
+    this.setAIContext('aiAct', prompt);
   }
 
-  resetDump() {
-    this.dump = new ReportActionDump({
-      sdkVersion: getVersion(),
-      groupName: this.opts.groupName!,
-      groupDescription: this.opts.groupDescription,
-      executions: [],
-      modelBriefs: [],
-      deviceType: this.interface.interfaceType,
-    });
-    this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
+  /**
+   * Set Agent-level AI guidance. Use `default` as the shared fallback for all
+   * AI-powered APIs, or an API name to override that fallback for the API.
+   * API-specific values are not automatically merged with `default`.
+   * Passing `undefined` removes the selected value; an API then falls back to
+   * `default`, while removing `default` disables the shared fallback. Passing
+   * `''` keeps an explicit empty value and therefore prevents an API from using
+   * `default`.
+   */
+  setAIContext(target: AgentAIContextKey, context: string | undefined): void {
+    if (!isAgentAIContextKey(target)) {
+      throw new TypeError(`Unknown Agent context key: ${String(target)}`);
+    }
+    if (context !== undefined && typeof context !== 'string') {
+      throw new TypeError('Agent context must be a string or undefined');
+    }
 
-    return this.dump;
+    this.aiContexts[target] = context;
+
+    if (target === 'aiAct') {
+      if (context === undefined) {
+        this.opts.aiActContext = undefined;
+        this.opts.aiActionContext = undefined;
+      } else {
+        this.opts.aiActContext = context;
+        this.opts.aiActionContext = context;
+      }
+    }
+  }
+
+  private assertReportWritable(): void {
+    this.reportManager.assertReportWritable();
+  }
+
+  private async withReportOperation<T>(
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    return this.reportManager.withReportOperation(operation);
+  }
+
+  /**
+   * Finalize the preceding report and reset execution records for a new report.
+   * Historical artifacts are retained; this Agent and its device stay connected.
+   * Await this method before executing again. Concurrent resets share one reset.
+   */
+  async resetDump(): Promise<ReportActionDump> {
+    return this.reportManager.resetDump();
+  }
+
+  /**
+   * Seal the current report and release its in-memory records without
+   * disconnecting the device. Export in-memory data before calling this method.
+   * Repeated calls return the same result and never rewrite published artifacts.
+   */
+  async finalizeReport(): Promise<string | undefined> {
+    return this.reportManager.finalizeReport();
   }
 
   appendExecutionDump(execution: ExecutionDump, runner?: TaskRunner) {
-    const currentDump = this.dump;
-    if (runner) {
-      const existingIndex = this.executionDumpIndexByRunner.get(runner);
-      if (existingIndex !== undefined) {
-        currentDump.executions[existingIndex] = execution;
-        return;
-      }
-      currentDump.executions.push(execution);
-      this.executionDumpIndexByRunner.set(
-        runner,
-        currentDump.executions.length - 1,
-      );
-      return;
-    }
-    currentDump.executions.push(execution);
+    this.reportManager.appendExecutionDump(execution, runner);
   }
 
   /**
@@ -612,7 +779,7 @@ export class Agent<
     }
     // Dedup key priority:
     // 1. request_id — provider-issued, stable across onUsage and task dump paths
-    // 2. INTERNAL_CALL_ID_FIELD — callAI-generated internal id, covers
+    // 2. INTERNAL_CALL_ID_FIELD — callGenerativeAI-generated internal id, covers
     //    providers that don't return a request_id
     // 3. caller-provided key (taskId:field or callai:counter)
     let dedupKey: string;
@@ -645,44 +812,20 @@ export class Agent<
   }
 
   dumpDataString(opt?: { inlineScreenshots?: boolean }) {
-    // update dump info
-    this.dump.groupName = this.opts.groupName!;
-    this.dump.groupDescription = this.opts.groupDescription;
-    // In browser environment, use inline screenshots since file system is not available
-    if (ifInBrowser || opt?.inlineScreenshots) {
-      return this.dump.serializeWithInlineScreenshots();
-    }
-    return this.dump.serialize();
+    return this.reportManager.dumpDataString(opt);
   }
 
   reportHTMLString(opt?: { inlineScreenshots?: boolean }) {
-    // dumpDataString() handles browser environment with inline screenshots
-    return reportHTMLContent(this.dumpDataString(opt));
+    return this.reportManager.reportHTMLString(() => this.dumpDataString(opt));
   }
-
-  private lastExecutionDump?: ExecutionDump;
 
   writeOutActionDumps(executionDump?: ExecutionDump) {
-    const exec = executionDump || this.lastExecutionDump;
-    if (exec) {
-      this.lastExecutionDump = exec;
-      this.reportGenerator.onExecutionUpdate(
-        exec,
-        this.getReportMeta(),
-        this.opts.reportAttributes,
-      );
-    }
-    this.reportFile = this.reportGenerator.getReportPath();
+    this.reportManager.writeOutActionDumps(executionDump);
   }
 
-  private getReportMeta(): ReportMeta {
-    return {
-      groupName: this.dump.groupName,
-      groupDescription: this.dump.groupDescription,
-      sdkVersion: this.dump.sdkVersion,
-      modelBriefs: this.dump.modelBriefs,
-      deviceType: this.dump.deviceType,
-    };
+  /** Persist current report data without disposing this Agent or its device. */
+  async flushReport(): Promise<string | undefined> {
+    return this.reportManager.flushReport();
   }
 
   private async callbackOnTaskStartTip(task: ExecutionTask) {
@@ -705,12 +848,30 @@ export class Agent<
   async callActionInActionSpace<T = any>(
     type: string,
     opt?: T, // and all other action params
+    abortSignal?: AbortSignal,
+  ) {
+    return this.withReportOperation(() =>
+      this.executeActionInActionSpace<T>(type, opt, abortSignal),
+    );
+  }
+
+  private async executeActionInActionSpace<T>(
+    type: string,
+    opt?: T,
+    abortSignal?: AbortSignal,
   ) {
     debug('callActionInActionSpace', type, ',', opt);
 
+    const clonedActionParam =
+      opt && typeof opt === 'object' && !Array.isArray(opt)
+        ? { ...opt }
+        : opt || {};
+
     const actionPlan: PlanningAction<T> = {
       type: type as any,
-      param: (opt as any) || {},
+      // Planning resolves locate/from/to in place. Keep the caller's inputs
+      // intact so YAML and Test execution facts retain the original prompts.
+      param: clonedActionParam as any,
       thought: '',
     };
     debug('actionPlan', actionPlan); // , ', in which the locateParam is', locateParam);
@@ -725,14 +886,15 @@ export class Agent<
     );
 
     // assume all operation in action space is related to locating
-    const defaultModel = this.resolveModelRuntime('default');
-    const planningModel = this.resolveModelRuntime('planning');
+    const locateModel = this.resolveModelRuntime('locate', 'locate');
+    const planningModel = this.resolveModelRuntime('planning', 'planning');
 
     const { output } = await this.taskExecutor.runPlans(
       title,
       plans,
       planningModel,
-      defaultModel,
+      locateModel,
+      { abortSignal: abortSignal ?? currentYamlSignal(this) },
     );
     return output;
   }
@@ -741,17 +903,22 @@ export class Agent<
     locatePrompt: TUserPrompt,
     opt?: LocateOption & { fileChooserAccept?: string | string[] },
   ): Promise<void> {
-    assert(locatePrompt, 'missing locate prompt for tap');
+    await this.withReportOperation(async () => {
+      assert(locatePrompt, 'missing locate prompt for tap');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+      const detailedLocateParam = buildDetailedLocateParam(
+        locatePrompt,
+        this.withContext('aiTap', opt),
+      );
 
-    const fileChooserAccept = opt?.fileChooserAccept
-      ? this.normalizeFileInput(opt.fileChooserAccept)
-      : undefined;
+      const fileChooserAccept = opt?.fileChooserAccept
+        ? this.normalizeFileInput(opt.fileChooserAccept)
+        : undefined;
 
-    await withFileChooser(this.interface, fileChooserAccept, async () => {
-      await this.callActionInActionSpace('Tap', {
-        locate: detailedLocateParam,
+      await withFileChooser(this.interface, fileChooserAccept, async () => {
+        await this.callActionInActionSpace('Tap', {
+          locate: detailedLocateParam,
+        });
       });
     });
   }
@@ -762,9 +929,34 @@ export class Agent<
   ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for right click');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt,
+      this.withContext('aiRightClick', opt),
+    );
 
     await this.callActionInActionSpace('RightClick', {
+      locate: detailedLocateParam,
+    });
+  }
+
+  /**
+   * Locate an element and click it with the middle mouse button.
+   * Requires a device with the MiddleClick action (Web or Computer).
+   * @param locatePrompt Description or locator of the target element.
+   * @param opt Locator options; per-call context overrides Agent context.
+   */
+  async aiMiddleClick(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption,
+  ): Promise<void> {
+    assert(locatePrompt, 'missing locate prompt for middle click');
+
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt,
+      this.withContext('aiMiddleClick', opt),
+    );
+
+    await this.callActionInActionSpace('MiddleClick', {
       locate: detailedLocateParam,
     });
   }
@@ -775,7 +967,10 @@ export class Agent<
   ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for double click');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt,
+      this.withContext('aiDoubleClick', opt),
+    );
 
     await this.callActionInActionSpace('DoubleClick', {
       locate: detailedLocateParam,
@@ -785,7 +980,10 @@ export class Agent<
   async aiHover(locatePrompt: TUserPrompt, opt?: LocateOption): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for hover');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt,
+      this.withContext('aiHover', opt),
+    );
 
     await this.callActionInActionSpace('Hover', {
       locate: detailedLocateParam,
@@ -852,7 +1050,7 @@ export class Agent<
 
     const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt,
-      opt,
+      this.withContext('aiInput', opt),
     );
 
     // Convert value to string to ensure consistency
@@ -871,7 +1069,7 @@ export class Agent<
 
   // New signature
   async aiKeyboardPress(
-    locatePrompt: TUserPrompt,
+    locatePrompt: TUserPrompt | undefined,
     opt: LocateOption & { keyName: string },
   ): Promise<void>;
 
@@ -887,7 +1085,7 @@ export class Agent<
 
   // Implementation
   async aiKeyboardPress(
-    locatePromptOrKeyName: TUserPrompt | string,
+    locatePromptOrKeyName: TUserPrompt | string | undefined,
     locatePromptOrOpt:
       | TUserPrompt
       | (LocateOption & { keyName: string })
@@ -923,7 +1121,7 @@ export class Agent<
 
     const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt || '',
-      opt,
+      this.withContext('aiKeyboardPress', opt),
     );
 
     await this.callActionInActionSpace('KeyboardPress', {
@@ -1004,7 +1202,7 @@ export class Agent<
 
     const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt || '',
-      opt,
+      this.withContext('aiScroll', opt),
     );
 
     await this.callActionInActionSpace('Scroll', {
@@ -1023,7 +1221,7 @@ export class Agent<
   ): Promise<void> {
     const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt || '',
-      opt,
+      this.withContext('aiPinch', opt),
     );
 
     await this.callActionInActionSpace('Pinch', {
@@ -1040,7 +1238,7 @@ export class Agent<
 
     const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt,
-      opt,
+      this.withContext('aiLongPress', opt),
     );
 
     await this.callActionInActionSpace('LongPress', {
@@ -1055,7 +1253,10 @@ export class Agent<
   ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for clear input');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt,
+      this.withContext('aiClearInput', opt),
+    );
 
     await this.callActionInActionSpace('ClearInput', {
       locate: detailedLocateParam,
@@ -1066,8 +1267,15 @@ export class Agent<
     taskPrompt: TUserPrompt,
     opt?: AiActOptions,
   ): Promise<string | undefined> {
-    const internalReportDisplay = (opt as AiActInternalOptions | undefined)
-      ?._internalReportDisplay;
+    return this.withReportOperation(() => this.executeAiAct(taskPrompt, opt));
+  }
+
+  private async executeAiAct(
+    taskPrompt: TUserPrompt,
+    opt?: AiActOptions,
+  ): Promise<string | undefined> {
+    const internalOptions = opt as AiActInternalOptions | undefined;
+    const internalReportDisplay = internalOptions?._internalReportDisplay;
     const taskPromptText =
       typeof taskPrompt === 'string' ? taskPrompt : taskPrompt.prompt;
     const reportPrompt = internalReportDisplay?.prompt || taskPromptText;
@@ -1083,19 +1291,44 @@ export class Agent<
     }
 
     const runAiAct = async () => {
-      const planningModel = this.resolveModelRuntime('planning');
-      const defaultModel = this.resolveModelRuntime('default');
-      const aiActContext =
-        opt?.context !== undefined ? opt.context : this.aiActContext;
+      const planningModel = this.resolveModelRuntime('planning', 'planning');
+      const locateModel = this.resolveModelRuntime('locate', 'locate');
+      const aiActContext = this.resolveUserContext('aiAct', opt?.context);
       const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
-      // Controls the aiAct planning mode, such as sub-goal prompts and locate result strategy.
-      let deepThink = opt?.deepThink === true;
-      if (deepThink && planningModel.adapter.planning.kind === 'custom') {
-        warn(
-          `The "deepThink" option is not supported for aiAct with custom planning adapters (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}). It will be ignored.`,
-        );
-        deepThink = false;
-      }
+      // Resolve the public planning controls at the API boundary. Internal
+      // aiAct plumbing only uses effort from this point onward. The explicit
+      // effort option takes precedence over deepThink when both are provided.
+      const effort: AiActEffort = (() => {
+        const resolvedEffort =
+          opt?.effort ?? (opt?.deepThink === true ? 'deepThink' : 'balance');
+
+        if (opt?.effort !== undefined && opt.deepThink !== undefined) {
+          warn(
+            'When both "effort" and "deepThink" are provided, "effort" takes precedence.',
+          );
+        }
+
+        if (
+          resolvedEffort === 'fast' &&
+          planningModel.adapter.planning.kind === 'custom'
+        ) {
+          throw new Error(
+            `The "fast" aiAct effort is not supported with custom planning adapters (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}).`,
+          );
+        }
+
+        if (
+          resolvedEffort === 'deepThink' &&
+          planningModel.adapter.planning.kind === 'custom'
+        ) {
+          warn(
+            `The "deepThink" aiAct effort is not supported with custom planning adapters (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}). It will be ignored.`,
+          );
+          return 'balance';
+        }
+
+        return resolvedEffort;
+      })();
 
       let deepLocate = opt?.deepLocate;
       if (
@@ -1107,15 +1340,6 @@ export class Agent<
         );
         deepLocate = false;
       }
-
-      const noIndividualLocateModel = planningModel.config.slot === 'default';
-
-      const includeLocateInPlanning = !deepThink && noIndividualLocateModel;
-
-      debug('setting includeLocateInPlanning to', includeLocateInPlanning, {
-        deepThink,
-        noIndividualLocateModel,
-      });
 
       const cacheable = opt?.cacheable;
       const replanningCycleLimit =
@@ -1141,9 +1365,26 @@ export class Agent<
           );
 
           debug('matched cache, will call .runYaml to run the action');
-          await this.runYaml(yaml);
+          await runInYamlExecutionContext(async () => {
+            const replay = enterYamlExecution(this);
+            const leaveAction = abortSignal
+              ? enterYamlAction(this, abortSignal)
+              : undefined;
+            try {
+              await this.runYaml(yaml);
+            } finally {
+              leaveAction?.();
+              replay.finish();
+            }
+          });
           return;
         } catch (error) {
+          if (
+            error instanceof YamlExecutionOwnershipError ||
+            isActionReadinessError(error)
+          )
+            throw error;
+          abortSignal?.throwIfAborted();
           cachedYamlFailed = true;
           warn(
             `cached aiAct plan failed, will replan and disable the stale cache: ${
@@ -1154,17 +1395,14 @@ export class Agent<
       }
 
       // If cache matched but is not executable, fall through to normal execution
-      const imagesIncludeCount: number = deepThink ? 2 : 1;
       const { output: actionOutput } = await this.taskExecutor.action(
         taskPrompt,
         planningModel,
-        defaultModel,
-        includeLocateInPlanning,
+        locateModel,
         aiActContext,
         cacheable,
         replanningCycleLimit,
-        imagesIncludeCount,
-        deepThink,
+        effort,
         undefined,
         deepLocate,
         abortSignal,
@@ -1247,6 +1485,15 @@ export class Agent<
     markdownPath: string,
     opt?: AiActOptions,
   ): Promise<string | undefined> {
+    return this.withReportOperation(() =>
+      this.executeMarkdown(markdownPath, opt),
+    );
+  }
+
+  private async executeMarkdown(
+    markdownPath: string,
+    opt?: AiActOptions,
+  ): Promise<string | undefined> {
     const markdown = await readFile(markdownPath, 'utf-8');
     const { prompt } = await markdownToAiActPrompt(markdown, markdownPath);
     return this.aiAct(prompt, {
@@ -1262,7 +1509,9 @@ export class Agent<
     scenarioText: string,
     opt?: RunGherkinScenarioOptions,
   ): Promise<void> {
-    return runGherkinScenario(this, scenarioText, opt);
+    return this.withReportOperation(() =>
+      runGherkinScenario(this, scenarioText, opt),
+    );
   }
 
   /**
@@ -1274,224 +1523,94 @@ export class Agent<
 
   async aiQuery<ReturnType = any>(
     demand: ServiceExtractParam,
-    opt: ServiceExtractOption = defaultServiceExtractOption,
+    opt?: QueryOptions,
   ): Promise<ReturnType> {
-    const modelRuntime = this.resolveModelRuntime('insight');
-    const { output } = await this.taskExecutor.createTypeQueryExecution(
-      'Query',
-      demand,
-      modelRuntime,
-      opt,
-    );
-    return output as ReturnType;
+    return this.createInsight().aiQuery<ReturnType>(demand, opt);
   }
 
-  async aiBoolean(
-    prompt: TUserPrompt,
-    opt: ServiceExtractOption = defaultServiceExtractOption,
-  ): Promise<boolean> {
-    return this.aiBooleanWithContext(prompt, undefined, opt);
+  async aiBoolean(prompt: TUserPrompt, opt?: QueryOptions): Promise<boolean> {
+    return this.createInsight().aiBoolean(prompt, opt);
   }
 
-  private async aiBooleanWithContext(
-    prompt: TUserPrompt,
-    uiContext?: UIContext,
-    opt: ServiceExtractOption = defaultServiceExtractOption,
-  ): Promise<boolean> {
-    const modelRuntime = this.resolveModelRuntime('insight');
-
-    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const { output } = await this.taskExecutor.createTypeQueryExecution(
-      'Boolean',
-      textPrompt,
-      modelRuntime,
-      opt,
-      multimodalPrompt,
-      uiContext ? { uiContext } : undefined,
-    );
-    return output as boolean;
+  async aiNumber(prompt: TUserPrompt, opt?: QueryOptions): Promise<number> {
+    return this.createInsight().aiNumber(prompt, opt);
   }
 
-  async aiNumber(
-    prompt: TUserPrompt,
-    opt: ServiceExtractOption = defaultServiceExtractOption,
-  ): Promise<number> {
-    const modelRuntime = this.resolveModelRuntime('insight');
-
-    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const { output } = await this.taskExecutor.createTypeQueryExecution(
-      'Number',
-      textPrompt,
-      modelRuntime,
-      opt,
-      multimodalPrompt,
-    );
-    return output as number;
+  async aiString(prompt: TUserPrompt, opt?: QueryOptions): Promise<string> {
+    return this.createInsight().aiString(prompt, opt);
   }
 
-  async aiString(
-    prompt: TUserPrompt,
-    opt: ServiceExtractOption = defaultServiceExtractOption,
-  ): Promise<string> {
-    const modelRuntime = this.resolveModelRuntime('insight');
-
-    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const { output } = await this.taskExecutor.createTypeQueryExecution(
-      'String',
-      textPrompt,
-      modelRuntime,
-      opt,
-      multimodalPrompt,
-    );
-    return output as string;
-  }
-
-  async aiAsk(
-    prompt: TUserPrompt,
-    opt: ServiceExtractOption = defaultServiceExtractOption,
-  ): Promise<string> {
-    return this.aiString(prompt, opt);
+  async aiAsk(prompt: TUserPrompt, opt?: QueryOptions): Promise<string> {
+    return this.createInsight().aiAsk(prompt, opt);
   }
 
   /**
-   * Locate an element and return both its center point and an approximate rect.
-   *
-   * - In most locate flows, `rect` represents the matched element boundary.
-   * - Some models only support point grounding instead of boundary grounding.
-   *   In those cases (for example, AutoGLM), `rect` falls back to a small 8x8
-   *   box centered on the located point.
-   *
-   * Because `rect` may vary with the underlying model capability, avoid relying
-   * on it too heavily for strict boundary semantics. If you need a stable click
-   * target, prefer `center`.
+   * Locate a target in screenshot coordinates. Preserve the model-provided rect
+   * when available; otherwise, generate an approximate 8x8 compatibility box.
+   * Do not rely on rect for strict element boundaries. Prefer center for the target.
    */
   async aiLocate(prompt: TUserPrompt, opt?: LocateOption) {
-    const locateParam = buildDetailedLocateParam(prompt, opt);
+    return this.withReportOperation(() => this.executeLocate(prompt, opt));
+  }
+
+  private async executeLocate(prompt: TUserPrompt, opt?: LocateOption) {
+    const locateParam = buildDetailedLocateParam(
+      prompt,
+      this.withContext('aiLocate', opt),
+    );
     assert(locateParam, 'cannot get locate param for aiLocate');
     const locatePlan = locatePlanForLocate(locateParam);
     const plans = [locatePlan];
-    const defaultModel = this.resolveModelRuntime('default');
-    const planningModel = this.resolveModelRuntime('planning');
+    const locateModel = this.resolveModelRuntime('locate', 'locate');
+    const planningModel = this.resolveModelRuntime('planning', 'planning');
 
     const { output } = await this.taskExecutor.runPlans(
       taskTitleStr('Locate', locateParamStr(locateParam)),
       plans,
       planningModel,
-      defaultModel,
+      locateModel,
       opt?.uiContext ? { uiContext: opt.uiContext } : undefined,
     );
 
     const { element } = output;
 
     return {
-      rect: element?.rect,
+      rect: element
+        ? (element.rect ?? {
+            left: Math.max(element.center[0] - 3.5, 0),
+            top: Math.max(element.center[1] - 3.5, 0),
+            width: 8,
+            height: 8,
+          })
+        : undefined,
       center: element?.center,
       dpr: element?.dpr,
-    } as Pick<LocateResultElement, 'rect' | 'center' | 'dpr'>;
+    } as Pick<LocateResultElement, 'center' | 'dpr'> & {
+      rect: Rect;
+    };
   }
 
   async aiAssert(
     assertion: TUserPrompt,
     msg?: string,
-    opt?: AgentAssertOpt & ServiceExtractOption,
-  ) {
-    return this.aiAssertWithUIContext(assertion, undefined, msg, opt);
-  }
-
-  private async aiAssertWithUIContext(
-    assertion: TUserPrompt,
-    uiContext?: UIContext,
-    msg?: string,
-    opt?: AgentAssertOpt & ServiceExtractOption,
-  ) {
-    const modelRuntime = this.resolveModelRuntime('insight');
-
-    const serviceOpt: ServiceExtractOption = {
-      domIncluded: opt?.domIncluded ?? defaultServiceExtractOption.domIncluded,
-      screenshotIncluded:
-        opt?.screenshotIncluded ??
-        defaultServiceExtractOption.screenshotIncluded,
-      ...(opt?.context !== undefined ? { context: opt.context } : {}),
-    };
-
-    const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
-    const assertionText =
-      typeof assertion === 'string' ? assertion : assertion.prompt;
-
-    const executionOptions = {
-      abortSignal: opt?.abortSignal,
-      ...(uiContext ? { uiContext } : {}),
-    };
-
-    try {
-      const { output, thought } =
-        await this.taskExecutor.createTypeQueryExecution<boolean>(
-          'Assert',
-          textPrompt,
-          modelRuntime,
-          serviceOpt,
-          multimodalPrompt,
-          executionOptions,
-        );
-
-      const pass = Boolean(output);
-      const message = pass
-        ? undefined
-        : `Assertion failed: ${msg || assertionText}\nReason: ${thought || '(no_reason)'}`;
-
-      if (opt?.keepRawResponse) {
-        return {
-          pass,
-          thought,
-          message,
-        };
-      }
-
-      if (!pass) {
-        throw new Error(message);
-      }
-    } catch (error) {
-      if (error instanceof TaskExecutionError) {
-        const errorTask = error.errorTask;
-        const thought = errorTask?.thought;
-        const rawError = errorTask?.error;
-        const rawMessage =
-          errorTask?.errorMessage ||
-          (rawError instanceof Error
-            ? rawError.message
-            : rawError
-              ? String(rawError)
-              : undefined);
-        const reason = thought || rawMessage || '(no_reason)';
-        const message = `Assertion failed: ${msg || assertionText}\nReason: ${reason}`;
-
-        if (opt?.keepRawResponse) {
-          return {
-            pass: false,
-            thought,
-            message,
-          };
-        }
-
-        throw new Error(message, {
-          cause: rawError ?? error,
-        });
-      }
-
-      throw error;
-    }
+    opt?: AssertOptions,
+  ): Promise<AgentAssertResult | undefined> {
+    return this.createInsight().aiAssert(assertion, msg, opt);
   }
 
   async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {
-    const modelRuntime = this.resolveModelRuntime('insight');
-    await this.taskExecutor.waitFor(
-      assertion,
-      {
-        ...opt,
-        timeoutMs: opt?.timeoutMs || 15 * 1000,
-        checkIntervalMs: opt?.checkIntervalMs || 3 * 1000,
-      },
-      modelRuntime,
+    const modelRuntime = this.resolveModelRuntime('insight', 'boolean');
+    const options = this.withContext('aiWaitFor', opt);
+    await this.withReportOperation(() =>
+      this.taskExecutor.waitFor(
+        assertion,
+        {
+          ...options,
+          timeoutMs: options?.timeoutMs || 15 * 1000,
+          checkIntervalMs: options?.checkIntervalMs || 3 * 1000,
+        },
+        modelRuntime,
+      ),
     );
   }
 
@@ -1499,16 +1618,40 @@ export class Agent<
     return this.aiAct(...args);
   }
 
-  async runYaml(yamlScriptContent: string): Promise<{
+  async runYaml(
+    yamlScriptContent: string,
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<{
     result: Record<string, any>;
   }> {
+    return this.withReportOperation(() =>
+      this.executeYaml(yamlScriptContent, options),
+    );
+  }
+
+  private async executeYaml(
+    yamlScriptContent: string,
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<{ result: Record<string, any> }> {
+    if (this.destroyed)
+      throw new Error('Cannot run YAML using a destroyed Agent.');
     const script = parseYamlScript(yamlScriptContent, 'yaml');
-    const player = new ScriptPlayer(script, async () => {
-      return { agent: this, freeFn: [] };
-    });
+    const player = new ScriptPlayer(
+      script,
+      async () => {
+        return { agent: this, freeFn: [] };
+      },
+      undefined,
+      undefined,
+      options?.abortSignal,
+    );
     await player.run();
 
     if (player.status === 'error') {
+      const readinessFailure = player.taskStatusList.find((task) =>
+        isActionReadinessError(task.error),
+      );
+      if (readinessFailure) throw readinessFailure.error;
       const errors = player.taskStatusList
         .filter((task) => task.status === 'error')
         .map((task) => {
@@ -1528,7 +1671,9 @@ export class Agent<
       this.interface.evaluateJavaScript,
       'evaluateJavaScript is not supported in current agent',
     );
-    return this.interface.evaluateJavaScript(script);
+    return this.withReportOperation(() =>
+      this.interface.evaluateJavaScript!(script),
+    );
   }
 
   /**
@@ -1539,32 +1684,19 @@ export class Agent<
   addDumpUpdateListener(
     listener: (dump: string, executionDump?: ExecutionDump) => void,
   ): () => void {
-    this.dumpUpdateListeners.push(listener);
-
-    // Return remove function
-    return () => {
-      this.removeDumpUpdateListener(listener);
-    };
+    return this.reportManager.addDumpUpdateListener(listener);
   }
 
-  /**
-   * Remove a dump update listener
-   * @param listener The listener function to remove
-   */
+  /** Remove a dump update listener. */
   removeDumpUpdateListener(
     listener: (dump: string, executionDump?: ExecutionDump) => void,
   ): void {
-    const index = this.dumpUpdateListeners.indexOf(listener);
-    if (index > -1) {
-      this.dumpUpdateListeners.splice(index, 1);
-    }
+    this.reportManager.removeDumpUpdateListener(listener);
   }
 
-  /**
-   * Clear all dump update listeners
-   */
+  /** Clear all dump update listeners. */
   clearDumpUpdateListeners(): void {
-    this.dumpUpdateListeners = [];
+    this.reportManager.clearDumpUpdateListeners();
   }
 
   /**
@@ -1593,14 +1725,7 @@ export class Agent<
   }
 
   private notifyDumpUpdateListeners(executionDump?: ExecutionDump) {
-    const dumpString = this.dumpDataString();
-    for (const listener of this.dumpUpdateListeners) {
-      try {
-        listener(dumpString, executionDump);
-      } catch (error) {
-        console.error('Error in onDumpUpdate listener', error);
-      }
-    }
+    this.reportManager.notifyDumpUpdateListeners(executionDump);
   }
 
   async destroy() {
@@ -1611,17 +1736,22 @@ export class Agent<
 
     this.destroyed = true;
 
-    // Stop any active observer before tearing down the interface. The observer
-    // may hold a frame source subscription that needs explicit cleanup.
-    if (this.activeObserver) {
+    // A Runner cancellation can finish before a non-cooperative device call.
+    // Keep the public owner from disposing the interface until that call has
+    // actually settled.
+    await waitForResourceIdle(this);
+    await this.reportManager.waitForOperations();
+
+    // Observers own observation frame files until explicitly disposed.
+    for (const observer of this.ownedObservers) {
       try {
-        await this.activeObserver.stop();
+        await observer.dispose();
       } catch (error) {
-        debug(`error stopping active observer during destroy: ${error}`);
+        debug(`error disposing unexported observer during destroy: ${error}`);
       }
-      // onStopped callback should have cleared this, but ensure it's null
-      this.activeObserver = null;
     }
+    this.ownedObservers.clear();
+    this.activeObserver = null;
 
     let interfaceDestroyError: unknown;
     try {
@@ -1630,20 +1760,42 @@ export class Agent<
       interfaceDestroyError = error;
     }
 
-    // Wait for all queued write operations to complete
-    await this.reportGenerator.flush();
-
-    const finalPath = await this.reportGenerator.finalize();
-    this.reportFile = finalPath;
-
-    this.resetDump(); // reset dump to release memory
+    await this.reportManager.waitForReset();
+    // Owned YAML cleanup runs before its record includes cleanup errors. The
+    // player publishes that record and its source snapshot before finalizing.
+    if (!hasActiveYamlExecution(this)) await this.finalizeReport();
 
     if (interfaceDestroyError) {
       throw interfaceDestroyError;
     }
   }
 
+  /**
+   * Wait for a finite, positive duration in milliseconds and record it as a
+   * Sleep task with the standard UI snapshots. Does not invoke device action
+   * hooks or call a model, but standard UI capture requires valid model
+   * configuration. Recorded elapsed time includes screenshot overhead.
+   * Initial UI capture failure rejects before waiting; a failed final
+   * screenshot does not fail an otherwise completed wait.
+   */
+  async sleep(
+    ms: number,
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<void> {
+    options?.abortSignal?.throwIfAborted();
+    await this.withReportOperation(() =>
+      this.taskExecutor.sleep(ms, options?.abortSignal),
+    );
+  }
+
   async recordToReport(title?: string, opt?: RecordToReportOptions) {
+    return this.withReportOperation(() => this.writeRecordToReport(title, opt));
+  }
+
+  private async writeRecordToReport(
+    title?: string,
+    opt?: RecordToReportOptions,
+  ) {
     const now = Date.now();
     const screenshots = opt?.screenshots;
     const screenshotBase64 = opt?.screenshotBase64;
@@ -1721,7 +1873,7 @@ export class Agent<
     this.appendExecutionDump(executionDump);
 
     this.writeOutActionDumps(executionDump);
-    await this.reportGenerator.flush();
+    await this.reportManager.flushPendingWrites();
 
     // Call all registered dump update listeners
     this.notifyDumpUpdateListeners(executionDump);
@@ -1730,12 +1882,21 @@ export class Agent<
   async recordErrorToReport(
     title: string,
     opt: {
-      error: Error;
+      /** Any thrown value; normalized before it is stored in the report. */
+      error: unknown;
       content?: string;
       screenshotBase64?: string;
     },
   ) {
+    return this.withReportOperation(() => this.writeErrorToReport(title, opt));
+  }
+
+  private async writeErrorToReport(
+    title: string,
+    opt: { error: unknown; content?: string; screenshotBase64?: string },
+  ) {
     const now = Date.now();
+    const error = serializeError(opt.error);
     const recorder: ExecutionRecorderItem[] = [];
     const base64 =
       opt.screenshotBase64 ?? (await this.interface.screenshotBase64());
@@ -1761,9 +1922,9 @@ export class Agent<
       param: {
         content: opt.content || '',
       },
-      error: opt.error,
-      errorMessage: opt.error.message,
-      errorStack: opt.error.stack,
+      error,
+      errorMessage: error.message,
+      errorStack: error.stack,
       executor: async () => {},
     };
 
@@ -1771,13 +1932,13 @@ export class Agent<
       id: uuid(),
       logTime: now,
       name: title,
-      description: opt.content || opt.error.message,
+      description: opt.content || error.message,
       tasks: [task],
     });
 
     this.appendExecutionDump(executionDump);
     this.writeOutActionDumps(executionDump);
-    await this.reportGenerator.flush();
+    await this.reportManager.flushPendingWrites();
     this.notifyDumpUpdateListeners(executionDump);
   }
 
@@ -1822,47 +1983,6 @@ export class Agent<
     debug('Unfreezing page context');
     this.frozenUIContext = undefined;
     debug('Page context unfrozen successfully');
-  }
-
-  /**
-   * Process cache configuration and return normalized cache settings
-   */
-  private processCacheConfig(opts: AgentOpt): {
-    id: string;
-    enabled: boolean;
-    readOnly: boolean;
-    writeOnly: boolean;
-    cacheDir?: string;
-  } | null {
-    validateAgentCacheInput(opts.cache);
-
-    // Use the unified utils function to process cache configuration
-    const cacheConfig = processCacheConfig(
-      opts.cache,
-      opts.cacheId || 'default',
-    );
-
-    if (!cacheConfig) {
-      return null;
-    }
-
-    // Handle cache configuration object
-    if (typeof cacheConfig === 'object' && cacheConfig !== null) {
-      const id = cacheConfig.id;
-      const strategyValue = cacheConfig.strategy ?? 'read-write';
-      const isReadOnly = strategyValue === 'read-only';
-      const isWriteOnly = strategyValue === 'write-only';
-
-      return {
-        id,
-        enabled: !isWriteOnly,
-        readOnly: isReadOnly,
-        writeOnly: isWriteOnly,
-        cacheDir: cacheConfig.cacheDir?.trim(),
-      };
-    }
-
-    return null;
   }
 
   private normalizeFileInput(files: string | string[]): string[] {

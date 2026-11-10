@@ -1,10 +1,10 @@
 import { getModelRuntime } from '@/ai-model/models';
-import { callAI } from '@/ai-model/service-caller';
+import { callGenerativeAI } from '@/ai-model/service-caller';
 import type { CodeGenerationChunk } from '@/types';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { localImg2Base64 } from '@midscene/shared/img';
+import { describe, expect, it, rs } from '@rstest/core';
 import dotenv from 'dotenv';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { getFixture } from '../utils';
 
 dotenv.config({
@@ -12,12 +12,12 @@ dotenv.config({
   override: true,
 });
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 30 * 1000, // Increased timeout for streaming tests
 });
 
-const defaultModelConfig = globalModelConfigManager.getModelConfig('default');
-const defaultModelRuntime = getModelRuntime(defaultModelConfig);
+const defaultModelRuntime = () =>
+  getModelRuntime(globalModelConfigManager.getModelConfig('default'));
 
 describe(
   'Streaming functionality',
@@ -30,7 +30,7 @@ describe(
       let chunkCount = 0;
       let totalContent = '';
 
-      const result = await callAI(
+      const result = await callGenerativeAI(
         [
           {
             role: 'system',
@@ -42,7 +42,7 @@ describe(
               'Explain the concept of artificial intelligence in 3-4 sentences.',
           },
         ],
-        defaultModelRuntime,
+        defaultModelRuntime(),
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -89,14 +89,16 @@ describe(
       const finalChunk = chunks[chunks.length - 1];
       expect(finalChunk.isComplete).toBe(true);
       expect(finalChunk.accumulated).toBe(result.content);
-      expect(finalChunk.usage).toEqual(result.usage);
+      expect(finalChunk.usage).toBeDefined();
+      // The result adds Midscene metadata to the raw usage from the final chunk.
+      expect(result.usage).toMatchObject(finalChunk.usage!);
     });
 
     it('should handle streaming with image input', async () => {
       const chunks: CodeGenerationChunk[] = [];
       const imagePath = getFixture('baidu.png');
 
-      const result = await callAI(
+      const result = await callGenerativeAI(
         [
           {
             role: 'user',
@@ -106,16 +108,14 @@ describe(
                 text: 'Describe what you see in this image in detail.',
               },
               {
-                type: 'image_url',
-                image_url: {
-                  url: localImg2Base64(imagePath),
-                  detail: 'high',
-                },
+                type: 'image',
+                url: localImg2Base64(imagePath),
+                detail: 'high',
               },
             ],
           },
         ],
-        defaultModelRuntime,
+        defaultModelRuntime(),
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -146,7 +146,7 @@ describe(
       const chunks: CodeGenerationChunk[] = [];
       let hasReasoningContent = false;
 
-      const result = await callAI(
+      const result = await callGenerativeAI(
         [
           {
             role: 'system',
@@ -157,7 +157,7 @@ describe(
             content: 'What is 15 multiplied by 8? Show your thinking process.',
           },
         ],
-        defaultModelRuntime,
+        defaultModelRuntime(),
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -182,14 +182,14 @@ describe(
     it('should accumulate content correctly across all chunks', async () => {
       const chunks: CodeGenerationChunk[] = [];
 
-      await callAI(
+      await callGenerativeAI(
         [
           {
             role: 'user',
             content: 'Count from 1 to 10, with each number on a new line.',
           },
         ],
-        defaultModelRuntime,
+        defaultModelRuntime(),
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -218,14 +218,14 @@ describe(
     it('should handle empty chunks gracefully', async () => {
       const chunks: CodeGenerationChunk[] = [];
 
-      const result = await callAI(
+      const result = await callGenerativeAI(
         [
           {
             role: 'user',
             content: 'Say "Hi"',
           },
         ],
-        defaultModelRuntime,
+        defaultModelRuntime(),
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -252,14 +252,14 @@ describe(
       let firstChunkTime: number | undefined;
       let lastChunkTime: number | undefined;
 
-      const result = await callAI(
+      const result = await callGenerativeAI(
         [
           {
             role: 'user',
             content: 'Write a brief paragraph about the weather.',
           },
         ],
-        defaultModelRuntime,
+        defaultModelRuntime(),
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -269,13 +269,6 @@ describe(
               firstChunkTime = currentTime;
             }
             lastChunkTime = currentTime;
-
-            if (chunk.isComplete && chunk.usage) {
-              expect(chunk.usage.time_cost).toBeGreaterThan(0);
-              expect(chunk.usage.time_cost).toBeLessThanOrEqual(
-                currentTime - startTime + 1000,
-              ); // Allow some buffer
-            }
           },
         },
       );
@@ -287,29 +280,10 @@ describe(
 
       if (result.usage) {
         expect(result.usage.time_cost).toBeGreaterThan(0);
+        expect(result.usage.time_cost).toBeLessThanOrEqual(
+          Date.now() - startTime + 1000,
+        ); // Allow some buffer
       }
-    });
-
-    it('should fallback to non-streaming when onChunk is missing', async () => {
-      const result = await callAI(
-        [
-          {
-            role: 'user',
-            content: 'What is programming?',
-          },
-        ],
-        defaultModelRuntime,
-        {
-          stream: true,
-          // onChunk is intentionally omitted
-        },
-      );
-
-      // Should fallback to non-streaming mode
-      expect(result.isStreamed).toBe(false);
-      expect(result.content).toBeDefined();
-      expect(result.content.length).toBeGreaterThan(0);
-      expect(result.usage).toBeDefined();
     });
   },
 );

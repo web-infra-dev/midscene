@@ -1,6 +1,6 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { kimiAdapters } from '@/ai-model/models/kimi';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const kimiAdapter = new ResolvedModelAdapter(kimiAdapters.kimi, 'kimi');
 const kimi3Adapter = new ResolvedModelAdapter(kimiAdapters.kimi3, 'kimi3');
@@ -13,12 +13,11 @@ describe('kimi model adapter', () => {
       throw new Error('kimi should use standard locate adapter');
     }
 
-    const result =
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [0.371, 0.109],
-        { preparedSize: { width: 1920, height: 1440 } },
-      );
-    expect(result).toEqual([693, 142, 731, 171]);
+    const result = locateAdapter.element.resultCodec.toPixelResult(
+      [0.371, 0.109],
+      { preparedSize: { width: 1920, height: 1440 } },
+    );
+    expect(result).toEqual({ center: [712, 157] });
   });
 
   it('accepts pixel xy point coordinates for kimi locate results', () => {
@@ -28,12 +27,10 @@ describe('kimi model adapter', () => {
       throw new Error('kimi should use standard locate adapter');
     }
 
-    const result =
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [960, 540],
-        { preparedSize: { width: 1920, height: 1080 } },
-      );
-    expect(result).toEqual([950, 530, 970, 550]);
+    const result = locateAdapter.element.resultCodec.toPixelResult([960, 540], {
+      preparedSize: { width: 1920, height: 1080 },
+    });
+    expect(result).toEqual({ center: [960, 540] });
   });
 
   it('accepts pixel xy point strings for kimi locate results', () => {
@@ -43,13 +40,30 @@ describe('kimi model adapter', () => {
       throw new Error('kimi should use standard locate adapter');
     }
 
-    const result =
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        '960 540',
-        { preparedSize: { width: 1920, height: 1080 } },
-      );
-    expect(result).toEqual([950, 530, 970, 550]);
+    const result = locateAdapter.element.resultCodec.toPixelResult('960 540', {
+      preparedSize: { width: 1920, height: 1080 },
+    });
+    expect(result).toEqual({ center: [960, 540] });
   });
+
+  it.each([
+    { point: [0.5, 0.5, 0.5] },
+    { point: [960, 540, 100] },
+    { point: '960 540 100' },
+  ])(
+    'rejects Kimi point results with extra coordinates: $point',
+    ({ point }) => {
+      const locateAdapter = kimiAdapter.locate;
+      if (locateAdapter.kind !== 'standard') {
+        throw new Error('kimi should use standard locate adapter');
+      }
+      expect(() =>
+        locateAdapter.element.resultCodec.toPixelResult(point, {
+          preparedSize: { width: 1920, height: 1080 },
+        }),
+      ).toThrow(/invalid point data/);
+    },
+  );
 
   it('rejects out-of-range kimi pixel point coordinates', () => {
     const locateAdapter = kimiAdapter.locate;
@@ -58,11 +72,11 @@ describe('kimi model adapter', () => {
       throw new Error('kimi should use standard locate adapter');
     }
 
-    expect(() =>
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [2000, 540],
-        { preparedSize: { width: 1920, height: 1080 } },
-      ),
+    expect(
+      () =>
+        locateAdapter.element.resultCodec.toPixelResult([2000, 540], {
+          preparedSize: { width: 1920, height: 1080 },
+        }).rect,
     ).toThrow(/exceed image size/);
   });
 

@@ -4,7 +4,7 @@ import {
   defineActionPinch,
   normalizePinchParam,
 } from '@/device';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 describe('Pinch Action Parameter Validation', () => {
   describe('ActionPinchParamSchema', () => {
@@ -82,7 +82,6 @@ describe('Pinch Action Parameter Validation', () => {
           direction: 'out',
           locate: {
             center: [400, 600] as [number, number],
-            rect: { left: 300, top: 500, width: 200, height: 200 },
           },
         },
         ActionPinchParamSchema,
@@ -90,7 +89,6 @@ describe('Pinch Action Parameter Validation', () => {
       );
       expect(parsed!.locate).toEqual({
         center: [200, 300],
-        rect: { left: 150, top: 250, width: 100, height: 100 },
       });
       expect(parsed!.direction).toBe('out');
     });
@@ -114,7 +112,7 @@ describe('Pinch Action Parameter Validation', () => {
     });
 
     it('should invoke the pinch primitive with normalized params', async () => {
-      const pinchFn = vi.fn();
+      const pinchFn = rs.fn();
       const action = defineActionPinch({
         pinch: pinchFn,
         size: async () => ({ width: 400, height: 800 }),

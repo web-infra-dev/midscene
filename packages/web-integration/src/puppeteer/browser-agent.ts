@@ -1,38 +1,34 @@
 import {
-  type BrowserAgentAdapter,
-  BrowserPageManager,
+  type BrowserPageManager,
   WebAgentCore,
   resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
 import { applyForceChromeSelectRendering } from '@/common/browser-agent-utils';
+import {
+  appendBrowserAgentPageActions,
+  createBrowserAgentPageActions,
+} from '@/common/browser-page-actions';
 import type { WebPageAgentOpt } from '@/web-element';
+import type { AgentTestRunnerNodeDefinition } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
 import type {
   Browser as PuppeteerBrowser,
   Page as PuppeteerPage,
   Target as PuppeteerTarget,
 } from 'puppeteer';
+import { createPuppeteerBrowserPageManager } from './browser-page-manager';
+import type { PuppeteerBrowserPageScope } from './browser-page-manager';
 import { PuppeteerWebPage } from './page';
+import { puppeteerAgentTestRunnerNodeDefinitions } from './test-runner/agent-nodes';
+import type { PuppeteerTestRunnerOptions } from './test-runner/types';
 
 const debug = getDebug('puppeteer:browser-agent');
-
-const createPuppeteerBrowserAdapter = (
-  browser: PuppeteerBrowser,
-): BrowserAgentAdapter<PuppeteerPage, PuppeteerTarget> => ({
-  pages: () => browser.pages(),
-  newPage: () => browser.newPage(),
-  isPageClosed: (page) => page.isClosed(),
-  bringToFront: (page) => page.bringToFront(),
-  onNewPage: (handler) => browser.on('targetcreated', handler),
-  offNewPage: (handler) => browser.off('targetcreated', handler),
-  isNewPageEvent: (target) => target.type() === 'page',
-  resolveNewPage: (target) => target.page(),
-});
 
 export type PuppeteerBrowserAgentOpt = Omit<
   WebPageAgentOpt,
   'forceSameTabNavigation'
 > & {
+  testRunner?: PuppeteerTestRunnerOptions;
   autoFollowNewPage?: boolean;
   newPageTimeout?: number;
 };
@@ -42,7 +38,16 @@ export type PuppeteerBrowserAgentCreateOpt = PuppeteerBrowserAgentOpt & {
 };
 
 export class PuppeteerBrowserAgent extends WebAgentCore<PuppeteerWebPage> {
-  private readonly pageManager: BrowserPageManager<
+  static override getTestRunnerNodeDefinitions(): readonly AgentTestRunnerNodeDefinition[] {
+    return [
+      ...WebAgentCore.getTestRunnerNodeDefinitions(),
+      ...puppeteerAgentTestRunnerNodeDefinitions,
+    ];
+  }
+
+  readonly testRunner?: PuppeteerTestRunnerOptions;
+
+  protected readonly pageManager: BrowserPageManager<
     PuppeteerPage,
     PuppeteerTarget
   >;
@@ -51,6 +56,7 @@ export class PuppeteerBrowserAgent extends WebAgentCore<PuppeteerWebPage> {
     browser: PuppeteerBrowser,
     initialPage: PuppeteerPage,
     opts?: PuppeteerBrowserAgentOpt,
+    pageScope?: PuppeteerBrowserPageScope,
   ) {
     if (!browser) {
       throw new Error(
@@ -73,22 +79,27 @@ export class PuppeteerBrowserAgent extends WebAgentCore<PuppeteerWebPage> {
       newPageTimeout,
     });
     const { forceChromeSelectRendering } = agentOpts;
-    const webPage = new PuppeteerWebPage(initialPage, {
+    const browserActions = createBrowserAgentPageActions({
+      getPageManager: () => pageManager,
+    });
+    const webPage: PuppeteerWebPage = new PuppeteerWebPage(initialPage, {
       ...agentOpts,
       forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
+      customActions: appendBrowserAgentPageActions(
+        agentOpts.customActions,
+        browserActions,
+      ),
     });
-    const pageManager = new BrowserPageManager({
-      agentName: 'PuppeteerBrowserAgent',
-      adapter: createPuppeteerBrowserAdapter(browser),
-      getActivePage: () => webPage.underlyingPage as PuppeteerPage,
-      setActivePageValue: (page) => {
-        webPage.underlyingPage = page;
-      },
-      autoFollowNewPage: runtimeOptions.autoFollowNewPage,
-      newPageTimeout: runtimeOptions.newPageTimeout,
-      debug,
-    });
+    const pageManager: BrowserPageManager<PuppeteerPage, PuppeteerTarget> =
+      createPuppeteerBrowserPageManager({
+        browser,
+        webPage,
+        runtimeOptions,
+        debug,
+        pageScope,
+      });
     super(webPage, agentOpts);
+    this.testRunner = opts?.testRunner;
     this.pageManager = pageManager;
 
     applyForceChromeSelectRendering(

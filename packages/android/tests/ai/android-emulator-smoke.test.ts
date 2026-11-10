@@ -10,8 +10,8 @@ import {
   MIDSCENE_MODEL_TIMEOUT,
 } from '@midscene/shared/env';
 import { imageInfoOfBase64 } from '@midscene/shared/img';
+import { describe, expect, it, rs } from '@rstest/core';
 import type ADB from 'appium-adb';
-import { describe, expect, it, vi } from 'vitest';
 import { AndroidAgent, AndroidDevice, getConnectedDevices } from '../../src';
 import { dumpUiHierarchyWithRetry } from '../android-emulator-ui-dump';
 
@@ -29,6 +29,8 @@ const SYSTEM_ERROR_DIALOG_ACTION_IDS = [
 const POLL_INTERVAL_MS = 500;
 const TARGET_TIMEOUT_MS = 30_000;
 const UI_DUMP_MAX_ATTEMPTS = 3;
+const SETTINGS_LAUNCH_MAX_ATTEMPTS = 3;
+const SETTINGS_LAUNCH_ATTEMPT_TIMEOUT_MS = 10_000;
 const SEARCH_MAX_ATTEMPTS = 3;
 const SEARCH_TIMEOUT_MS = 90_000;
 
@@ -58,7 +60,7 @@ interface ReportDump {
   executions?: ReportExecution[];
 }
 
-vi.setConfig({ testTimeout: 240_000, hookTimeout: 30_000 });
+rs.setConfig({ testTimeout: 240_000, hookTimeout: 30_000 });
 
 function sleep(timeMs: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, timeMs));
@@ -274,12 +276,12 @@ async function waitForKeyboardState(
 function locate(bounds: Bounds, prompt: string) {
   return {
     prompt,
-    locatedPixelBbox: [
-      bounds.left,
-      bounds.top,
-      bounds.left + bounds.width,
-      bounds.top + bounds.height,
-    ] as [number, number, number, number],
+    locatedPixelResult: {
+      center: [
+        bounds.left + bounds.width / 2,
+        bounds.top + bounds.height / 2,
+      ] as [number, number],
+    },
   };
 }
 
@@ -377,20 +379,53 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
         systemDialog: Awaited<
           ReturnType<typeof dismissSystemErrorDialogIfPresent>
         >;
+        ready: boolean;
+        error?: string;
       }> = [];
-      for (let attempt = 1; attempt <= 3; attempt += 1) {
+      evidence.settingsLaunches = settingsLaunches;
+      let initialTarget:
+        | Awaited<ReturnType<typeof waitForResource>>
+        | undefined;
+      for (
+        let attempt = 1;
+        attempt <= SETTINGS_LAUNCH_MAX_ATTEMPTS;
+        attempt += 1
+      ) {
         await adb.shell('am force-stop com.android.settings');
         await adb.shell('am start -W -n com.android.settings/.Settings');
         const systemDialog = await dismissSystemErrorDialogIfPresent(
           adb,
           systemDialogXmlFile,
         );
-        settingsLaunches.push({ attempt, systemDialog });
-        if (!systemDialog.detected) {
+        try {
+          initialTarget = await waitForResource(
+            adb,
+            [SETTINGS_SEARCH_BAR_ID],
+            initialXmlFile,
+            Date.now() + SETTINGS_LAUNCH_ATTEMPT_TIMEOUT_MS,
+          );
+          settingsLaunches.push({ attempt, systemDialog, ready: true });
           break;
+        } catch (error) {
+          settingsLaunches.push({
+            attempt,
+            systemDialog,
+            ready: false,
+            error: String(error),
+          });
+          if (
+            !(error instanceof AndroidUiStateTimeoutError) ||
+            attempt === SETTINGS_LAUNCH_MAX_ATTEMPTS
+          ) {
+            throw error;
+          }
         }
       }
-      evidence.settingsLaunches = settingsLaunches;
+      if (!initialTarget) {
+        throw new Error(
+          'Settings launch retry loop completed without a search target',
+        );
+      }
 
       const logicalSize = await device.size();
       const screenshot = await device.screenshotBase64();
@@ -408,12 +443,6 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       expect(logicalSize.height).toBeGreaterThan(0);
       expect(screenshotSize.width).toBeGreaterThan(logicalSize.width);
       expect(screenshotSize.height).toBeGreaterThan(logicalSize.height);
-
-      const initialTarget = await waitForResource(
-        adb,
-        [SETTINGS_SEARCH_BAR_ID],
-        initialXmlFile,
-      );
 
       agent = new AndroidAgent(device, {
         modelConfig: {

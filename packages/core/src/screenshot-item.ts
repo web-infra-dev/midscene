@@ -4,7 +4,7 @@ import { extractImageByIdSync } from './dump/html-utils';
 import {
   type ScreenshotRef,
   normalizeScreenshotRef,
-} from './dump/screenshot-store';
+} from './dump/image-reference';
 
 /**
  * Serialization format for ScreenshotItem
@@ -32,7 +32,19 @@ function detectFormat(base64: string): 'png' | 'jpeg' {
  * After persistence, memory is released but the screenshot can be recovered
  * on-demand from disk, making it safe to release memory at any time.
  */
+const screenshotItemKey = Symbol.for('@midscene/core/screenshot-item');
+
 export class ScreenshotItem {
+  private readonly [screenshotItemKey] = true;
+
+  /** Config loaders and SDK entry points may load distinct class instances. */
+  static isScreenshotItem(value: unknown): value is ScreenshotItem {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      Reflect.get(value, screenshotItemKey) === true
+    );
+  }
   private _id: string;
   private _base64: string | null;
   private _format: 'png' | 'jpeg';
@@ -41,16 +53,37 @@ export class ScreenshotItem {
   private _persistedPath: string | null = null;
   private _persistedHtmlPath: string | null = null;
 
-  private constructor(id: string, base64: string, capturedAt: number) {
+  private constructor(
+    id: string,
+    base64: string | null,
+    capturedAt: number,
+    format: 'png' | 'jpeg',
+  ) {
     this._id = id;
     this._base64 = base64;
-    this._format = detectFormat(base64);
+    this._format = format;
     this._capturedAt = capturedAt;
   }
 
   /** Create a new ScreenshotItem from base64 data */
   static create(base64: string, capturedAt: number): ScreenshotItem {
-    return new ScreenshotItem(uuid(), base64, capturedAt);
+    return new ScreenshotItem(uuid(), base64, capturedAt, detectFormat(base64));
+  }
+
+  /** Create a lazily loaded ScreenshotItem backed by an image file. */
+  static fromFile(
+    filePath: string,
+    mimeType: 'image/png' | 'image/jpeg',
+    capturedAt: number,
+  ): ScreenshotItem {
+    const item = new ScreenshotItem(
+      uuid(),
+      null,
+      capturedAt,
+      mimeType === 'image/jpeg' ? 'jpeg' : 'png',
+    );
+    item._persistedPath = filePath;
+    return item;
   }
 
   get id(): string {

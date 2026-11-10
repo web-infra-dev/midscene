@@ -1,26 +1,26 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 const onUpdatedListeners = new Set<(...args: any[]) => void>();
 
-vi.stubGlobal('chrome', {
+rs.stubGlobal('chrome', {
   tabs: {
-    get: vi.fn(),
-    query: vi.fn(),
-    update: vi.fn(),
+    get: rs.fn(),
+    query: rs.fn(),
+    update: rs.fn(),
     onUpdated: {
-      addListener: vi.fn((listener) => onUpdatedListeners.add(listener)),
-      removeListener: vi.fn((listener) => onUpdatedListeners.delete(listener)),
+      addListener: rs.fn((listener) => onUpdatedListeners.add(listener)),
+      removeListener: rs.fn((listener) => onUpdatedListeners.delete(listener)),
     },
   },
   debugger: {
-    attach: vi.fn(),
-    detach: vi.fn(),
-    sendCommand: vi.fn(),
+    attach: rs.fn(),
+    detach: rs.fn(),
+    sendCommand: rs.fn(),
   },
 });
 
-vi.mock('@midscene/shared/logger', () => ({
-  getDebug: vi.fn(() => vi.fn()),
+rs.mock('@midscene/shared/logger', () => ({
+  getDebug: rs.fn(() => rs.fn()),
 }));
 
 import ChromeExtensionProxyPage from '../../src/chrome-extension/page';
@@ -29,11 +29,11 @@ describe('ChromeExtensionProxyPage navigation', () => {
   let page: ChromeExtensionProxyPage;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     onUpdatedListeners.clear();
     page = new ChromeExtensionProxyPage(true);
     (page as any).activeTabId = 101;
-    vi.spyOn(page as any, 'enableWaterFlowAnimation').mockResolvedValue(
+    rs.spyOn(page as any, 'enableWaterFlowAnimation').mockResolvedValue(
       undefined,
     );
     (chrome.tabs.update as any).mockResolvedValue({
@@ -49,7 +49,7 @@ describe('ChromeExtensionProxyPage navigation', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('waits for the tab target to settle before probing document readiness', async () => {
@@ -70,7 +70,7 @@ describe('ChromeExtensionProxyPage navigation', () => {
   });
 
   it('recovers from an opaque debugger error while waiting for navigation', async () => {
-    vi.spyOn(page as any, 'ensureDebuggerAttached').mockResolvedValue(
+    rs.spyOn(page as any, 'ensureDebuggerAttached').mockResolvedValue(
       undefined,
     );
     (chrome.debugger.sendCommand as any)

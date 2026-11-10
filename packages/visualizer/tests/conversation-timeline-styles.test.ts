@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const styles = readFileSync(
   new URL('../src/component/universal-playground/index.less', import.meta.url),
@@ -11,6 +11,14 @@ const playerStyles = readFileSync(
 );
 const universalPlayground = readFileSync(
   new URL('../src/component/universal-playground/index.tsx', import.meta.url),
+  'utf8',
+);
+const player = readFileSync(
+  new URL('../src/component/player/index.tsx', import.meta.url),
+  'utf8',
+);
+const promptInputStyles = readFileSync(
+  new URL('../src/component/prompt-input/index.less', import.meta.url),
   'utf8',
 );
 
@@ -58,6 +66,12 @@ describe('conversation timeline styles', () => {
     expect(playerStyles).toContain('border: 0;');
   });
 
+  it('allows embedding hosts to hide unsupported fullscreen controls', () => {
+    expect(universalPlayground).toContain('hidePlayerFullscreenControl={');
+    expect(player).toContain('hideFullscreenControl?: boolean;');
+    expect(player).toContain('{!props?.hideFullscreenControl && (');
+  });
+
   it('uses the recorder-style Ant Design tooltip for truncated progress rows', () => {
     expect(universalPlayground).toContain(
       "import { Alert, Button, Form, List, Tooltip } from 'antd';",
@@ -70,6 +84,15 @@ describe('conversation timeline styles', () => {
     );
     expect(styles).toMatch(
       /.progress-row-copy\s*\{[\s\S]*?display:\s*-webkit-box;[\s\S]*?max-height:\s*48px;[\s\S]*?-webkit-line-clamp:\s*2;/,
+    );
+  });
+
+  it('draws a high-contrast connector between non-final progress rows', () => {
+    expect(styles).toMatch(
+      /\.list-item:has\(\.progress-row:not\(\.progress-row-last\)\)::after\s*\{[\s\S]*?top:\s*23px;[\s\S]*?bottom:\s*-15px;[\s\S]*?width:\s*2px;/,
+    );
+    expect(styles).toMatch(
+      /\[data-theme='dark'\] \.playground-container\.playground-conversation-skin[\s\S]*?\.list-item:has\(\.progress-row:not\(\.progress-row-last\)\)::after\s*\{[\s\S]*?rgba\(255, 255, 255, 0\.64\)/,
     );
   });
 
@@ -87,5 +110,12 @@ describe('conversation timeline styles', () => {
     expect(styles).toMatch(
       /\.playground-timeline-region\s*\{[\s\S]*?flex:\s*1\s+1\s+auto;/,
     );
+  });
+
+  it('keeps the More APIs menu inside compact viewports', () => {
+    expect(promptInputStyles).toMatch(
+      /\.more-apis-dropdown\s*\{[\s\S]*?max-height:\s*clamp\(96px, calc\(100dvh - 280px\), 400px\);/,
+    );
+    expect(promptInputStyles).toContain('overscroll-behavior: contain;');
   });
 });

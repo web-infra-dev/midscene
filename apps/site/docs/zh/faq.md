@@ -4,14 +4,95 @@
 
 以下平台的常见问题已整合到各自的文档中：
 
-- [Web 浏览器 - Playwright](./integrate-with-playwright#faq)
+- [Web 浏览器 - Playwright](./sdk/playwright#faq)
 - [Web 浏览器 - Puppeteer](./integrate-with-puppeteer#faq)
-- [Web 浏览器 - Chrome 插件](./quick-experience#faq)
+- [Web 浏览器 - Chrome 插件](./platforms/web#chrome-extension-faq)
 - [Web 浏览器 - 桥接模式](./bridge-mode#faq)
 - [Android](./platforms/android#常见问题)
 - [iOS](./platforms/ios#常见问题)
 - [HarmonyOS](./platforms/harmonyos#常见问题)
 - [PC 桌面](./platforms/desktop#常见问题)
+
+## 操作 VNC 等桌面客户端时，为什么会丢失大写字母或修饰键？ {#keyboard-input-through-desktop-clients}
+
+使用 `@midscene/computer` 操作 VNC、TeamViewer 或虚拟机控制台时，部分客户端可能无法完整识别键盘事件。常见现象包括：大写 `K` 变成 `k`、`!` 变成 `1`，或者 `Control+S` 只输入了 `s`。
+
+遇到这些问题时，可以增加修饰键事件的间隔。下面是一组已经在 Windows VNC 全屏模式下验证过的配置。
+
+```typescript
+import { agentForComputer } from '@midscene/computer';
+
+const agent = await agentForComputer({
+  inputStrategy: 'sequential',
+  keyboardTypeDelay: 120,
+  keyboardModifierDelay: 100,
+  keyboardLayout: 'en-US',
+});
+```
+
+其中，`keyboardModifierDelay` 是解决修饰键丢失问题的主要配置。建议从 `100` 开始测试。确认输入正常后，可以逐步减小这个数值。
+
+### 为什么增加间隔可以解决问题？
+
+大写字母、特殊字符和组合键都依赖修饰键。
+
+例如：
+
+- 大写 `K` 需要按下 `Shift`，再按下 `K`。
+- en-US 键盘布局中的 `!` 需要按下 `Shift`，再按下 `1`。
+- `Control+S` 需要按下 `Control`，再按下 `S`。
+
+Midscene 会把这些操作转换成修饰键按下、主键按下和按键释放等事件。
+
+某些桌面客户端会捕获这些事件，并转发给另一个系统或功能模块。如果事件之间的间隔太短，客户端可能无法在处理主键时保留修饰键状态。结果就是大写字母变成小写、特殊字符变成数字，或者组合键只剩下主键。
+
+设置 `keyboardModifierDelay` 后，Midscene 会分阶段发送这些事件，并在每个阶段之间等待。这样可以给桌面客户端留出识别和转发修饰键状态的时间。
+
+VNC 全屏模式是已经验证过的典型场景。不过，这个问题并不只与 VNC 或远程控制有关。只要桌面客户端需要捕获或转发键盘事件，就可能受到输入时序的影响。
+
+### 各项配置分别有什么作用？
+
+- `keyboardModifierDelay`：控制一次带修饰键输入过程中，各阶段之间的等待时间。它适用于 `Control+S` 等组合键，也适用于大写字母中隐含的 `Shift`。
+- `keyboardTypeDelay`：控制连续输入文本时，相邻字符之间的等待时间。
+- `inputStrategy: 'sequential'`：逐个输入文本字符，使 Midscene 可以为大写字母和特殊字符发送对应的按键序列。
+- `keyboardLayout: 'en-US'`：启用 en-US 键盘布局中的 Shift 字符映射，例如使用 `Shift+1` 输入 `!`。
+
+拉丁大写字母不依赖 `keyboardLayout`。只有 `!`、`@`、`#` 等与键盘布局有关的 Shift 字符，才需要设置该选项。
+
+:::warning
+只有本机和目标环境都使用 en-US 键位时，才能设置 `keyboardLayout: 'en-US'`。其他键盘布局可能使用不同的标点键位，或者需要 AltGr 等修饰键。
+:::
+
+### 这个配置适用于哪些输入方式？
+
+`keyboardModifierDelay` 只对本机 libnut 键盘驱动生效。
+
+- Windows 和 Linux 的本机桌面控制使用 libnut。
+- macOS 设置 `keyboardDriver: 'libnut'` 后，也会使用这条输入路径。
+- 直接通过 RDP 协议输入时，该配置不生效。
+- macOS 使用默认的 AppleScript 键盘驱动时，该配置不生效。
+
+AppleScript 使用另一套输入方式。它是否能被桌面客户端正确识别，仍取决于客户端的快捷键拦截、键盘模式和布局转换。
+
+### 如何发送组合键？
+
+通过 `keyName` 传入组合键。使用 `+` 连接修饰键和主键，并删除 `+` 两侧的空格。
+
+```typescript
+// 向当前获得焦点的元素发送 Control+S。
+await agent.aiKeyboardPress(undefined, {
+  keyName: 'Control+S',
+});
+
+// 先定位终端窗口，再发送 Control+Shift+P。
+await agent.aiKeyboardPress('终端窗口', {
+  keyName: 'Control+Shift+P',
+});
+```
+
+请使用 `Control+S`，不要使用 `Control + S`。
+
+如果目标已经获得焦点，请将第一个参数设置为 `undefined`。这样可以避免额外点击改变当前选区或光标位置。
 
 ## 会有哪些信息发送到 AI 模型？
 
@@ -38,16 +119,16 @@ JSON.stringify({ defaultHeaders: { foo: 'bar' } })
 
 ## 如何使用 Azure OpenAI Service？
 
-使用 Azure OpenAI Service 时，请先按 [模型配置](./model-common-config) 选择并填写对应模型的常规配置。Azure 只需要把模型服务地址和 API Key 换成 Azure 的写法：
+使用 Azure OpenAI Service 时，请先按照[使用模型 API Key](./model-api-setup)选择模型，并填写常规配置。Azure 只需要把模型服务地址和 API Key 换成 Azure 的写法：
 
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1" # 或 https://<your-resource>.openai.azure.com/openai/v1
 MIDSCENE_MODEL_API_KEY="<your-azure-api-key>"
 ```
 
-也就是说，`MIDSCENE_MODEL_NAME`、`MIDSCENE_MODEL_FAMILY` 等其他配置仍然按 [模型配置](./model-common-config) 中对应模型的说明填写；Azure 只是鉴权方式有所差异的模型供应商，而非一种特殊模型。
+`MIDSCENE_MODEL_NAME` 和 `MIDSCENE_MODEL_FAMILY` 等配置，仍应按照[使用模型 API Key](./model-api-setup)中的对应模型说明填写。Azure 只是鉴权方式不同的模型供应商，并非一种特殊模型。
 
-这会走普通 OpenAI-compatible 路径，以 `Authorization: Bearer ...` 请求头发送 `POST /openai/v1/chat/completions`。`MIDSCENE_MODEL_BASE_URL` 不要追加 `/chat/completions`。大多数 `/openai/v1` 端点不需要 `api-version`。
+这会走普通 OpenAI-compatible 路径，使用 `Authorization: Bearer ...` 请求头。根据 `MIDSCENE_MODEL_PROTOCOL` 的配置，请求发送到 `/openai/v1/chat/completions`（默认）或 `/openai/v1/responses`；请确认 Azure 上所选模型和端点支持对应协议。`MIDSCENE_MODEL_BASE_URL` 不要追加 `/chat/completions` 或 `/responses`。大多数 `/openai/v1` 端点不需要 `api-version`。
 
 如果你的资源仍然以 `400 Missing required query parameter: api-version` 报错，说明该资源的 `/openai/v1` surface 尚未 GA。可以通过 `defaultQuery` 注入这个查询参数：
 
@@ -55,7 +136,7 @@ MIDSCENE_MODEL_API_KEY="<your-azure-api-key>"
 MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultQuery":{"api-version":"preview"}}'
 ```
 
-`api-version` 的值按你的资源要求填写（`preview`，或 Azure 门户里显示的带日期版本，如 `2025-01-01-preview`）。这样每个请求都会变成 `.../openai/v1/chat/completions?api-version=preview`。
+`api-version` 的值按你的资源要求填写（`preview`，或 Azure 门户里显示的带日期版本，如 `2025-01-01-preview`）。该查询参数会追加到所选协议的请求路径，例如 `.../openai/v1/chat/completions?api-version=preview` 或 `.../openai/v1/responses?api-version=preview`。
 
 如果某个 Azure-compatible 网关只接受 `api-key` 请求头，可以额外添加下面的配置，通过 header 发送真实 API Key：
 
@@ -77,18 +158,26 @@ Azure AD / keyless 鉴权（`DefaultAzureCredential`）的方式现在已经不�
 
 ## 使用 Azure OpenAI 时点击坐标偏移
 
-在使用 GPT-5 系列模型时，你可能会发现：同一份脚本在 OpenAI 官方 API 上点击位置正确，但切到 Azure OpenAI 后点击位置出现固定比例的偏移。这个偏移和分辨率相关：截图较大时（如 `1920x1080`）出现，截图较小时（如 `1280x600`）则正常。
+在使用 GPT-5 系列模型时，你可能会发现：同一份脚本在 OpenAI 官方 API 上点击位置正确，但切到 Azure OpenAI 的 Chat Completions API 后点击位置出现固定比例的偏移。这个偏移和分辨率相关：截图较大时（如 `1920x1080`）出现，截图较小时（如 `1280x600`）则正常。
 
-原因在于 Azure 端的图片处理。GPT-5 返回的是基于它实际看到的截图尺寸的绝对坐标，而 Midscene 发送图片时带上了 `"detail": "original"`，让模型看到原始分辨率的图片（参见 [GPT-5 说明](./model-common-config#gpt)）。Azure 没有正确处理 `"detail": "original"`，会在服务端对大图进行缩放（短边被压缩到 768）。于是模型在缩放后的坐标系里作答，而 Midscene 仍按原始分辨率还原坐标，最终产生按比例的偏移。可以通过 token 消耗来验证 `original` 是否生效：如果 `original` 生效，图片的 token 消耗会明显更高。
+我们观察到，该问题与 Azure Chat Completions API 的图片处理有关。GPT-5 返回的是基于它实际看到的截图尺寸的绝对坐标，而 Midscene 发送图片时带上了 `"detail": "original"`，让模型看到原始分辨率的图片（参见 [GPT-5 说明](./model-api-setup#gpt)）。在出现此问题的 Chat Completions 请求中，Azure 没有正确处理 `"detail": "original"`，会在服务端对大图进行缩放（短边被压缩到 768）。于是模型在缩放后的坐标系里作答，而 Midscene 仍按原始分辨率还原坐标，最终产生按比例的偏移。可以通过 token 消耗来验证 `original` 是否生效：如果 `original` 生效，图片的 token 消耗会明显更高。
 
-有两种规避办法：
+我们在 Azure 的 Responses API 上验证了 `"detail": "original"` 能够正常生效，因此建议优先切换到 Responses 协议：
+
+```bash
+MIDSCENE_MODEL_PROTOCOL="openai-responses"
+```
+
+请确认所选模型支持 Responses API，并使用对应的 Base URL，具体配置见[协议类型](./model-config#model-api-type)。
+
+如果暂时无法切换协议，还可以：
 
 1. 使用 OpenAI 官方的 GPT-5，或配置其他模型单独用于定位，而只把 Azure 平台的 GPT-5 作为规划模型。
 2. 通过 Agent 参数 `screenshotShrinkFactor` 把截图预先缩放到较小尺寸，使图片不触发 Azure 的服务端缩放阈值。详见 [`screenshotShrinkFactor`](./reference/#common)。
 
 ## 如何配置 midscene_run 目录？
 
-Midscene 会将运行产物（报告、日志、缓存等）保存在 `midscene_run` 目录下。默认情况下，该目录会创建在当前工作目录下。
+Midscene 默认将报告、日志和缓存保存在 `midscene_run/`。独立脚本、旧 YAML 和 Playwright 以当前工作目录为基准，Midscene Test 以测试项目为基准。详见[产物目录](./midscene-test/running#统一产物根与迁移)。
 
 你可以通过环境变量 `MIDSCENE_RUN_DIR` 来自定义该目录的位置，支持相对路径或绝对路径：
 
@@ -100,13 +189,15 @@ export MIDSCENE_RUN_DIR="./my_custom_dir"
 export MIDSCENE_RUN_DIR="/tmp/midscene_output"
 ```
 
-该目录包含以下子目录：
+常用子目录：
 
-- `report/` - 测试报告文件（HTML 格式）
+- `report/` - Agent 报告与 Midscene Test 整合报告，默认是自包含 HTML
+- `test-results/` - 执行结果与诊断记录
 - `log/` - 调试日志文件
 - `cache/` - 缓存文件（详见 [缓存](./caching)）
+- `output/` - 执行操作产生的文件
 
-更多配置选项请参阅 [模型配置](./model-config)。
+更多全局运行参数请参考[运行时配置](./reference/#runtime-configuration)。
 
 ## 如何提升运行效率？
 
@@ -153,11 +244,11 @@ Midscene 的元素定位能力依赖于 AI 模型的视觉理解能力，所以�
 
 通常来说新版本、参数大的模型会比老版本、参数小的模型表现更好。比如 Qwen3-VL 会好于 Qwen2.5-VL，它的 plus 版本会好于 flash 版本。
 
-更多模型选择建议请参考 [模型策略](./model-strategy)。
+当前的模型建议请参考[模型选择指南](./model-selection)。
 
 ### 3. 检查 Model Family 配置
 
-确认你的模型配置中 `MIDSCENE_MODEL_FAMILY` 参数设置是否正确，`MIDSCENE_MODEL_FAMILY` 配置错误会影响 Midscene 对模型的适配逻辑。详见 [模型配置](./model-config)。
+确认你的模型配置中 `MIDSCENE_MODEL_FAMILY` 参数设置是否正确，`MIDSCENE_MODEL_FAMILY` 配置错误会影响 Midscene 对模型的适配逻辑。详见 [使用模型 API Key](./model-api-setup)。
 
 ### 4. 优化提示词，结合视觉特征和位置信息
 
@@ -190,7 +281,7 @@ await agent.aiTap('登录按钮', {
 });
 ```
 
-更多关于 `deepLocate` 的说明，请参阅 [API 文档](/zh/reference/#common)。
+更多关于 `deepLocate` 的说明，请参阅 [API 文档](/zh/reference/#深度定位deeplocate)。
 
 ### 6. 在 web 浏览器中将 dpr 提高到 2
 
@@ -198,6 +289,37 @@ await agent.aiTap('登录按钮', {
 
 需要注意的是，这会消耗更多 token。
 
+## aiAct 中模型规划了错误的滚动和滑动方向 {#scroll-and-swipe-directions}
+
+如果在 `aiAct()` 中遇到模型规划了错误的滚动或滑动方向，有可能是因为自然语言中的方向描述带有歧义。
+
+以“向下滚动”为例，它可能表示下面几种情况：
+
+- **鼠标滚轮向下滚动**：按 Windows 常见的鼠标滚轮设置，页面内容会向上移动。
+- **手指在屏幕上向下滑动**：页面内容会跟随手指向下移动。
+- **期望看到页面下方的内容**：需要结合设备的操作方式，确定手指或鼠标滚轮应该向哪个方向操作。
+
+因此，模型规划的方向与预期不同，可能是因为它对指令中的方向有了不同的理解。
+
+一个比较好的减少歧义的方式是，在指令中**明确表达想要达到的结果**，例如：
+
+- “向下滚动页面到页脚”。
+- “向上滚动日期选择器使日期增加”。
+- “向右滚动页面查看右边 tab 的内容”。
+
+即使模型和你对方向词的理解不同，清晰的目的也有助于模型规划正确的操作方向。
+
+Midscene 会优先要求模型根据滚动和滑动的目的确定操作方向。对于“向下滚动”“向下滑动”这类模糊指令，如果结合上下文仍无法明确意图，则使用以下默认约定：
+
+- **scroll**：方向按希望查看的屏外内容方向解释。例如，scroll down 表示查看页面下方的内容。
+- **swipe**：方向按手指移动方向解释。例如，swipe down 表示手指向下移动。
+
 ## 豆包手机是否使用了 Midscene 作为底层方案？
 
 没有。
+
+## Web 包应该使用哪些导入入口？
+
+Web 接入使用 `@midscene/web/playwright`、`@midscene/web/playwright/agent`、`@midscene/web/puppeteer` 或包根入口。通用 Agent 与 YAML API 分别位于 `@midscene/core/agent` 和 `@midscene/core/yaml`。
+
+`@midscene/web/utils`、`@midscene/web/ui-utils`、`@midscene/web/yaml` 和 `@midscene/web/agent` 四项残留声明已清理，它们指向的文件此前没有包含在发布包中。更新自定义接入时，请按包支持的导出入口导入。

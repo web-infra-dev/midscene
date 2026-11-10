@@ -1,7 +1,14 @@
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
+import { normalizeWebDriverBaseUrl } from '../utils/base-url';
 import { makeWebDriverRequest } from '../utils/request';
-import type { DeviceInfo, Size, WDASession, WebDriverOptions } from './types';
+import type {
+  DeviceInfo,
+  Size,
+  WDASession,
+  WebDriverOptions,
+  WebDriverRequestOptions,
+} from './types';
 
 const debugClient = getDebug('webdriver:client');
 
@@ -17,11 +24,14 @@ export class WebDriverClient {
     this.port = options.port || DEFAULT_WDA_PORT;
     this.host = options.host || 'localhost';
     this.timeout = options.timeout || 30000;
-    this.baseUrl = `http://${this.host}:${this.port}`;
+    this.baseUrl =
+      options.baseUrl !== undefined
+        ? normalizeWebDriverBaseUrl(options.baseUrl)
+        : `http://${this.host}:${this.port}`;
     this.sessionId = options.sessionId || null;
     this.ownsSession = !options.sessionId;
 
-    debugClient(`Initialized WebDriver client on ${this.host}:${this.port}`);
+    debugClient('Initialized WebDriver client');
   }
 
   get sessionInfo(): WDASession | null {
@@ -173,13 +183,14 @@ export class WebDriverClient {
     method: string,
     endpoint: string,
     data?: any,
+    options?: WebDriverRequestOptions,
   ): Promise<any> {
     return makeWebDriverRequest(
       this.baseUrl,
       method,
       endpoint,
       data,
-      this.timeout,
+      options?.timeout ?? this.timeout,
     );
   }
 

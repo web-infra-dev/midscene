@@ -1,3 +1,4 @@
+import { getTemperatureWithSemanticRetry } from './temperature-with-semantic-retry';
 import type {
   ChatCompletionAdapter,
   ChatCompletionCallContext,
@@ -5,8 +6,6 @@ import type {
   MidsceneChatCompletionDefaults,
   ModelAdapterDefinition,
 } from './types';
-
-const defaultImageDetail = (_input: unknown) => undefined;
 
 const defaultChatCompletionParams = ({
   midsceneDefaults,
@@ -64,8 +63,6 @@ export function resolveChatCompletion(
 ): ChatCompletionAdapter {
   const buildChatCompletionParams =
     chatCompletion?.buildChatCompletionParams ?? defaultChatCompletionParams;
-  const resolveImageDetail =
-    chatCompletion?.resolveImageDetail ?? defaultImageDetail;
   const unsupportedUserConfig = chatCompletion?.unsupportedUserConfig ?? [];
   const extractContentAndReasoning =
     resolveExtractContentAndReasoning(chatCompletion);
@@ -82,14 +79,19 @@ export function resolveChatCompletion(
         userConfig: input.userConfig ?? {},
         midsceneDefaults: midsceneChatCompletionDefaults,
       };
-      return buildChatCompletionParams(context);
+      const params = buildChatCompletionParams(context);
+      return {
+        ...params,
+        config: {
+          ...params.config,
+          temperature: getTemperatureWithSemanticRetry({
+            temperature: params.config.temperature,
+            userTemperature: input.userConfig?.temperature,
+            semanticRetryAttempt: input.semanticRetryAttempt,
+          }),
+        },
+      };
     },
-    resolveImageDetail: (input) =>
-      resolveImageDetail({
-        ...input,
-        userConfig: input.userConfig ?? {},
-        midsceneDefaults: midsceneChatCompletionDefaults,
-      }),
     extractContentAndReasoning,
     useReasoningAsContentFallback,
     replayRawAssistantMessage,

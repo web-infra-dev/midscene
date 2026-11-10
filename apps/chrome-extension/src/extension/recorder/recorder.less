@@ -631,6 +631,15 @@
 // The shared recorder timeline is also used by Studio. Keep this compact
 // layout opt-in for the Chrome extension instead of changing the default.
 .record-timeline-chrome-extension {
+  // The Recorder detail view already owns the available modal height and is
+  // its scroll container. The shared timeline's 500px cap creates a nested
+  // scrollbar even when that view still has unused vertical space.
+  .timeline-scrollable,
+  .timeline-scrollable > div {
+    max-height: none;
+    overflow-y: visible;
+  }
+
   // Ant Design positions a custom Timeline dot around the 5px default head.
   // Our recorder icons are larger, so their left edge otherwise falls outside
   // the scrollable timeline and is clipped by the side-panel viewport.

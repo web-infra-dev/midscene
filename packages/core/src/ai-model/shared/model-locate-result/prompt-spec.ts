@@ -5,6 +5,10 @@ import type {
   ResolvedLocateResultCoordinates,
 } from './types';
 
+export function formatLocateExampleValue(value: unknown): string {
+  return Array.isArray(value) ? `[${value.join(', ')}]` : JSON.stringify(value);
+}
+
 function describeLocateResultCoordinates({
   shape,
   order,
@@ -89,9 +93,14 @@ function locateResultName(
 
 export function createLocateResultPromptSpec(
   resolvedCoordinates: ResolvedLocateResultCoordinates,
+  options: {
+    resultKey?: string;
+    resultKeyAliases?: string[];
+  } = {},
 ): LocateResultPromptSpec {
   return {
-    resultKey: locateResultKey(resolvedCoordinates),
+    resultKey: options.resultKey ?? locateResultKey(resolvedCoordinates),
+    resultKeyAliases: options.resultKeyAliases ?? [],
     resultValueSchema: describeLocateResultValueSchema(resolvedCoordinates),
     resultValueDescription:
       describeLocateResultCoordinates(resolvedCoordinates),

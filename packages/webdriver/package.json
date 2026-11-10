@@ -1,6 +1,6 @@
 {
   "name": "@midscene/webdriver",
-  "version": "1.10.7",
+  "version": "1.17.7",
   "repository": {
     "type": "git",
     "url": "https://github.com/web-infra-dev/midscene.git",
@@ -14,7 +14,7 @@
     "dev": "npm run build:watch",
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
-    "test": "vitest --run",
+    "test": "rstest",
     "lint": "biome check .",
     "lint:fix": "biome check . --write"
   },
@@ -23,10 +23,10 @@
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {
-    "@rslib/core": "^0.18.3",
+    "@rslib/core": "~0.19.6",
+    "@rstest/core": "0.12.0",
     "@types/node": "^18.0.0",
-    "typescript": "^5.8.3",
-    "vitest": "3.0.5"
+    "typescript": "^5.8.3"
   },
   "exports": {
     ".": {

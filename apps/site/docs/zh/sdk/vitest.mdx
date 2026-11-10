@@ -1,0 +1,47 @@
+import SdkDeviceLifecycle from '../../../theme/components/sdk-device-tests/zh/sdk-device-lifecycle.mdx';
+import SdkVitestInstall from '../common/sdk-vitest-install.mdx';
+import SdkVitestConfig from '../common/sdk-vitest-config.mdx';
+import SdkVitestWrite from '../common/sdk-vitest-write.mdx';
+import SdkVitestRun from '../common/sdk-vitest-run.mdx';
+import SdkCommonMethods from '../common/sdk-common-methods.mdx';
+import { SdkPrerequisites, SdkPlatformProvider, SdkPlatformSelector } from '@theme';
+
+# 接入 Vitest
+
+<SdkPlatformProvider lang="zh">
+
+编写 Android、iOS、HarmonyOS 和桌面端的 JavaScript / TypeScript 测试时，推荐使用 [Rstest](./rstest) 或 [Vitest](./vitest)。本文介绍 Vitest 的接入方式。Vitest 负责组织用例、执行生命周期钩子并汇总测试结果；Midscene Agent 负责连接设备、操作界面并执行断言。
+
+## 使用前准备
+
+<SdkPrerequisites lang="zh" mode="vitest" />
+
+<SdkPlatformSelector lang="zh" />
+
+## 1. 安装依赖
+
+<SdkVitestInstall />
+
+## 2. 配置测试
+
+<SdkVitestConfig />
+
+## 3. 编写测试
+
+<SdkVitestWrite />
+
+## 4. 运行测试与查看报告
+
+<SdkVitestRun />
+
+## 常用方法
+
+<SdkCommonMethods />
+
+## 生命周期与设备独占
+
+<SdkDeviceLifecycle />
+
+完整的示例工程可参考 [Android](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)、[iOS](https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo)、[HarmonyOS](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo) 和[桌面端](https://github.com/web-infra-dev/midscene-example/tree/main/computer/vitest-demo)的 Vitest 示例项目。
+
+</SdkPlatformProvider>

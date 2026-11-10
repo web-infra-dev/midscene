@@ -13,18 +13,19 @@
 import { type ChildProcess, execSync, spawn } from 'node:child_process';
 import path from 'node:path';
 import { sleep } from '@midscene/core/utils';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, rs } from '@rstest/core';
 import { type ComputerAgent, agentFromComputer } from '../../src';
 import {
   findExtensionPageTarget,
   injectBridgePermission,
   injectExtensionConfig,
   launchChromeWithExtension,
+  openExtensionSidePanel,
   readExtensionId,
   reloadViaWebSocket,
 } from './chrome-extension-helpers';
 
-vi.setConfig({ testTimeout: 360 * 1000 });
+rs.setConfig({ testTimeout: 360 * 1000 });
 
 const SIDE_PANEL =
   'the Midscene side panel on the right side of the browser window';
@@ -158,53 +159,51 @@ describe('chrome extension bridge mode start/stop (#2119)', () => {
 
   // ── Setup: open side panel and switch to Bridge Mode ─────────────────
 
-  it('open side panel and switch to Bridge Mode', async () => {
-    await agent.aiAct(
-      'Click the puzzle piece icon (Extensions button) in the top-right area of the Chrome toolbar',
-    );
-    await sleep(1000);
+  it(
+    'open side panel and switch to Bridge Mode',
+    { timeout: 20 * 60 * 1000, retry: 0 },
+    async () => {
+      await openExtensionSidePanel(agent, extId);
 
-    await agent.aiAct('Click "Midscene.js" in the extensions dropdown list');
-    await sleep(3000);
-
-    await agent.aiAssert(
-      'The browser shows a side panel on the right side containing Midscene or Playground UI',
-    );
-
-    // Inject env config and bridge permission (auto-allow connections)
-    await injectExtensionConfig(extId);
-    await injectBridgePermission(extId);
-    const target = await findExtensionPageTarget(extId);
-    if (target?.webSocketDebuggerUrl) {
-      await reloadViaWebSocket(target.webSocketDebuggerUrl);
-      await sleep(3000);
-    }
-
-    // Switch to Bridge Mode
-    const switchToBridge = async () => {
-      await agent.aiAct(
-        `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner. It should open a dropdown menu.`,
-      );
-      await sleep(2000);
-      await agent.aiAct(
-        'In the dropdown menu that just appeared, click the menu item labeled "Bridge Mode" which has an API icon next to it',
-      );
-      await sleep(3000);
-    };
-
-    await switchToBridge();
-    try {
       await agent.aiAssert(
-        `${SIDE_PANEL} shows Bridge mode UI with "Bridge Mode" title and a "Stop" button at the bottom`,
+        'The browser shows a side panel on the right side containing Midscene or Playground UI',
       );
-    } catch {
-      console.log('Bridge mode switch failed, retrying...');
+
+      // Inject env config and bridge permission (auto-allow connections)
+      await injectExtensionConfig(extId);
+      await injectBridgePermission(extId);
+      const target = await findExtensionPageTarget(extId);
+      if (target?.webSocketDebuggerUrl) {
+        await reloadViaWebSocket(target.webSocketDebuggerUrl);
+        await sleep(3000);
+      }
+
+      // Switch to Bridge Mode
+      const switchToBridge = async () => {
+        await agent.aiAct(
+          `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner. It should open a dropdown menu.`,
+        );
+        await sleep(2000);
+        await agent.aiAct(
+          'In the dropdown menu that just appeared, click the menu item labeled "Bridge Mode" which has an API icon next to it',
+        );
+        await sleep(3000);
+      };
+
       await switchToBridge();
-      await agent.aiAssert(
-        `${SIDE_PANEL} shows Bridge mode UI with "Bridge Mode" title and a "Stop" button at the bottom`,
-      );
-    }
-  });
+      try {
+        await agent.aiAssert(
+          `${SIDE_PANEL} shows Bridge mode UI with "Bridge Mode" title and a "Stop" button at the bottom`,
+        );
+      } catch {
+        console.log('Bridge mode switch failed, retrying...');
+        await switchToBridge();
+        await agent.aiAssert(
+          `${SIDE_PANEL} shows Bridge mode UI with "Bridge Mode" title and a "Stop" button at the bottom`,
+        );
+      }
+    },
+  );
 
   // ── Test: bridge connects to a real server ────────────────────────────
 

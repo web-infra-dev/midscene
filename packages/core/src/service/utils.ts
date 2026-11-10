@@ -2,7 +2,7 @@ import {
   AIResponseParseError,
   extractJSONFromCodeBlock,
 } from '@/ai-model/service-caller';
-import { expandSearchArea } from '@/common';
+import { expandSearchArea } from '@/ai-model/workflows/grounding/search-area';
 import type {
   AIDescribeElementResponse,
   DumpMeta,

@@ -1,5 +1,5 @@
 /// <reference types="chrome" />
-import { Form, Modal } from 'antd';
+import { Form, Modal, message } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import type { RecordingSession } from '../../store';
 import { useRecordStore, useRecordingSessionStore } from '../../store';
@@ -11,6 +11,7 @@ import { useRecordingControl } from './hooks/useRecordingControl';
 import { useRecordingSession } from './hooks/useRecordingSession';
 import { useTabMonitoring } from './hooks/useTabMonitoring';
 import { recordLogger } from './logger';
+import { startNewRecording } from './startNewRecording';
 import type { ViewMode } from './types';
 import './recorder.less';
 import { useEnvConfig } from '@midscene/visualizer';
@@ -33,12 +34,12 @@ export default function Recorder() {
     let isMounted = true; // Prevent state updates after component unmount
 
     const initializeStores = async () => {
+      const recordStoreInitialization = recordStore.initialize();
       try {
-        // Initialize both stores concurrently
-        await Promise.all([
-          sessionStore.initializeStore(),
-          recordStore.initialize(),
-        ]);
+        // Render the session list as soon as its lightweight metadata is
+        // available. Restoring a live recording may deserialize screenshots,
+        // but it should not keep the list behind a "Loading sessions" screen.
+        await sessionStore.initializeStore();
 
         // Only update state if component is still mounted
         if (isMounted) {
@@ -50,6 +51,12 @@ export default function Recorder() {
         if (isMounted) {
           setIsStoreInitialized(true);
         }
+      }
+
+      try {
+        await recordStoreInitialization;
+      } catch (error) {
+        console.error('Failed to initialize recording state:', error);
       }
     };
 
@@ -81,6 +88,7 @@ export default function Recorder() {
     sessions,
     currentSessionId,
     getCurrentSession,
+    loadSession,
     setCurrentSession,
     createNewSession,
     handleUpdateSession,
@@ -99,6 +107,7 @@ export default function Recorder() {
   );
   const {
     isRecording,
+    isStarting,
     events,
     isExtensionMode,
     recordContainerRef,
@@ -166,15 +175,19 @@ export default function Recorder() {
 
   // View session detail handler
   const handleViewDetail = useCallback(
-    (session: RecordingSession) => {
+    async (session: RecordingSession) => {
       recordLogger.info('Viewing session detail', {
         sessionId: session.id,
-        session,
       });
+      const fullSession = await loadSession(session.id);
+      if (!fullSession) {
+        message.error('Session not found');
+        return;
+      }
       setCurrentSession(session.id);
       setViewMode('detail');
     },
-    [currentSessionId],
+    [loadSession, setCurrentSession],
   );
 
   // Go back to list view handler
@@ -191,18 +204,23 @@ export default function Recorder() {
   }, [isRecording, stopRecording]);
 
   // Create session handler
-  const handleCreateNewSession = () => {
-    const sessionName = generateDefaultSessionName();
-    const newSession = createNewSession(sessionName);
-
-    setTimeout(() => {
-      startRecording(newSession.id);
-    }, 300);
-
+  const handleCreateNewSession = async () => {
     // Switch to detail view
     setViewMode('detail');
 
-    setCurrentSession(newSession.id);
+    try {
+      await startNewRecording(
+        () => createNewSession(generateDefaultSessionName()),
+        startRecording,
+      );
+    } catch (error) {
+      recordLogger.error(
+        'Failed to create recording session',
+        undefined,
+        error,
+      );
+      setViewMode('list');
+    }
   };
 
   // Show loading state while stores are initializing
@@ -233,6 +251,7 @@ export default function Recorder() {
         onExportAllEvents={handleExportAllEvents}
         onViewDetail={handleViewDetail}
         isExtensionMode={isExtensionMode}
+        isRecordingStoreReady={recordStore.isInitialized}
         handleCreateNewSession={handleCreateNewSession}
       />
 
@@ -273,6 +292,7 @@ export default function Recorder() {
             key={currentSessionId}
             sessionId={currentSessionId}
             isRecording={isRecording}
+            isStarting={isStarting}
             // events={events}
             currentTab={currentTab}
             onBack={handleBackToList}

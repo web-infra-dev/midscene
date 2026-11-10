@@ -9,11 +9,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   DEFAULT_YAML_TEST_TIMEOUT,
+  RSTEST_YAML_SEQUENTIAL_TEST_MODULE,
   createRstestYamlProject,
   resolveDefaultFrameworkImport,
   resolveTestName,
 } from '@/framework/rstest-project';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from '@rstest/core';
 
 const createTempDir = () => mkdtempSync(join(tmpdir(), 'midscene-rstest-'));
 
@@ -39,7 +40,7 @@ describe('rstest yaml project generation', () => {
 
       expect(project.projectDir).toBe(root);
       expect(project.outputDir).toBe(outputDir);
-      expect(project.include).toEqual([
+      expect(project.modules.map((item) => item.id)).toEqual([
         'virtual:midscene-yaml/001-checkout.test.ts',
         'virtual:midscene-yaml/002-case.test.ts',
       ]);
@@ -52,7 +53,7 @@ describe('rstest yaml project generation', () => {
       expect(project.maxConcurrency).toBe(2);
       expect(project.testTimeout).toBe(DEFAULT_YAML_TEST_TIMEOUT);
 
-      const generated = project.virtualModules[project.cases[1].testModule];
+      const generated = project.modules[1].source;
       expect(generated).toContain('import { test } from "@test/rstest-core"');
       expect(generated).toContain(
         'import { defineYamlCaseTest } from "@test/framework"',
@@ -97,7 +98,7 @@ describe('rstest yaml project generation', () => {
         },
       });
 
-      const generated = project.virtualModules[project.cases[0].testModule];
+      const generated = project.modules[0].source;
       expect(generated).toContain('"caseOptions"');
       expect(generated).toContain('"webRuntimeOptions"');
       expect(generated).toContain('"viewportWidth": 1280');
@@ -127,6 +128,50 @@ describe('rstest yaml project generation', () => {
     }
   });
 
+  test('generates one ordered module when concurrency is one', () => {
+    const root = createTempDir();
+    const outputDir = join(root, 'runner');
+    const yamlFiles = ['third.yaml', 'first.yaml', 'second.yaml'].map((name) =>
+      join(root, name),
+    );
+    for (const file of yamlFiles) {
+      writeFileSync(file, 'web:\n  url: about:blank\ntasks: []\n');
+    }
+
+    try {
+      const project = createRstestYamlProject({
+        files: yamlFiles,
+        projectDir: root,
+        outputDir,
+        frameworkImport: '@test/framework',
+        rstestCoreImport: '@test/rstest-core',
+        maxConcurrency: 1,
+      });
+
+      expect(project.modules.map((item) => item.id)).toEqual([
+        RSTEST_YAML_SEQUENTIAL_TEST_MODULE,
+      ]);
+      expect(project.modules[0].caseIds).toEqual(
+        project.cases.map((item) => item.caseId),
+      );
+      expect(project.cases.map((item) => item.yamlFile)).toEqual(yamlFiles);
+
+      const generated = project.modules[0].source;
+      expect(generated).toContain(
+        'defineYamlCaseTest(test.sequential, testOptions)',
+      );
+      const indexes = yamlFiles.map((file) => generated.indexOf(file));
+      expect(indexes.every((index) => index >= 0)).toBe(true);
+      expect(
+        indexes.every((index, position) =>
+          position === 0 ? true : index > indexes[position - 1],
+        ),
+      ).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test('carries the retry count into the generated project', () => {
     const root = createTempDir();
     const outputDir = join(root, 'runner');
@@ -142,6 +187,7 @@ describe('rstest yaml project generation', () => {
       });
 
       expect(project.retry).toBe(3);
+      expect(project.modules[0].source).toContain('"retry": 3');
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -207,8 +253,10 @@ describe('rstest yaml project generation', () => {
   test('generates a single batch virtual entry for shared browser context', () => {
     const root = createTempDir();
     const outputDir = join(root, 'runner');
+    const setupYaml = join(root, 'setup.yaml');
     const yamlA = join(root, 'login.yaml');
     const yamlB = join(root, 'check.yaml');
+    writeFileSync(setupYaml, 'web:\n  url: about:blank\ntasks: []\n');
     writeFileSync(yamlA, 'web:\n  url: about:blank\ntasks: []\n');
     writeFileSync(yamlB, 'web:\n  url: about:blank\ntasks: []\n');
 
@@ -220,9 +268,11 @@ describe('rstest yaml project generation', () => {
         frameworkImport: '@test/framework',
         rstestCoreImport: '@test/rstest-core',
         batchConfig: {
+          setup: setupYaml,
           files: [yamlA, yamlB],
           concurrent: 1,
           continueOnError: true,
+          retry: 2,
           summary: 'summary.json',
           shareBrowserContext: true,
           globalConfig: {
@@ -237,14 +287,20 @@ describe('rstest yaml project generation', () => {
         },
       });
 
-      expect(project.include).toEqual(['virtual:midscene-yaml/batch.test.ts']);
-      expect(project.batchTest).toEqual({
-        testModule: 'virtual:midscene-yaml/batch.test.ts',
-        testName: 'midscene yaml batch',
-      });
-      expect(project.cases).toHaveLength(2);
+      expect(project.modules.map((item) => item.id)).toEqual([
+        'virtual:midscene-yaml/batch.test.ts',
+      ]);
+      expect(project.cases.map((item) => item.yamlFile)).toEqual([
+        setupYaml,
+        yamlA,
+        yamlB,
+      ]);
       expect(project.maxConcurrency).toBe(1);
-      const generated = project.virtualModules[project.include[0]];
+      expect(project.retry).toBeUndefined();
+      expect(project.modules[0].caseIds).toEqual(
+        project.cases.map((item) => item.caseId),
+      );
+      const generated = project.modules[0].source;
       expect(generated).toContain('import { test } from "@test/rstest-core"');
       expect(generated).toContain(
         'import { defineYamlBatchTest } from "@test/framework"',
@@ -252,6 +308,8 @@ describe('rstest yaml project generation', () => {
       expect(generated).toContain('defineYamlBatchTest(test, testOptions)');
       expect(generated).not.toContain('defineYamlBatchTest(testOptions)');
       expect(generated).toContain('"shareBrowserContext": true');
+      expect(generated).toContain('"retry": 2');
+      expect(generated).toContain(JSON.stringify(setupYaml));
       expect(generated).toContain(JSON.stringify(yamlA));
       expect(generated).toContain(JSON.stringify(yamlB));
     } finally {

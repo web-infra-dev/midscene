@@ -2,8 +2,8 @@ import { getModelAdapter } from '@/ai-model/models';
 import {
   extractJSONFromCodeBlock,
   parseModelResponseJson,
-} from '@/ai-model/service-caller/json';
-import { describe, expect, it } from 'vitest';
+} from '@/ai-model/shared/json';
+import { describe, expect, it } from '@rstest/core';
 
 describe('extractJSONFromCodeBlock', () => {
   it('should extract JSON from a direct JSON object', () => {
@@ -76,6 +76,25 @@ describe('parseModelResponseJson', () => {
     expect(result).toEqual({ key: 'value' });
   });
 
+  it.each([
+    '[]',
+    '[{"index":1}]',
+    '[{"index":1},{"index":2}]',
+    '[[{"index":1}]]',
+    '[1,{"index":1},null]',
+    '"text with {braces}"',
+  ])('should preserve JSON value structure: %s', (input) => {
+    const expected = JSON.parse(input);
+    expect(parseModelResponseJson(input)).toEqual(expected);
+    expect(parseModelResponseJson(`\`\`\`json\n${input}\n\`\`\``)).toEqual(
+      expected,
+    );
+  });
+
+  it('should preserve arrays when repairing malformed JSON', () => {
+    expect(parseModelResponseJson('[{index: 1,}]')).toEqual([{ index: 1 }]);
+  });
+
   it('should parse dirty JSON that jsonrepair can fix', () => {
     const input = "{key: 'value'}";
     const result = parseModelResponseJson(input);
@@ -89,33 +108,25 @@ describe('parseModelResponseJson', () => {
     );
   });
 
-  it('should reject top-level non-object JSON values', () => {
-    expect(() => parseModelResponseJson('[1, 2]')).toThrow(
-      /expected parsed LLM response to be a JSON object/,
-    );
-  });
-
-  it('should allow top-level non-object JSON values when object validation is disabled', () => {
+  it('should allow top-level non-object JSON values', () => {
     expect(
       parseModelResponseJson('[" todo 1 ", " todo 2 "]', {
         source: 'generic-object',
-        requireObject: false,
       }),
     ).toEqual(['todo 1', 'todo 2']);
 
     expect(
       parseModelResponseJson('" todo list "', {
         source: 'generic-object',
-        requireObject: false,
       }),
     ).toBe('todo list');
 
     expect(
       parseModelResponseJson('42', {
         source: 'generic-object',
-        requireObject: false,
       }),
     ).toBe(42);
+    expect(parseModelResponseJson('null')).toBeNull();
   });
 
   it('should parse JSON from code block', () => {
@@ -336,11 +347,11 @@ describe('parseModelResponseJson', () => {
     expect(result.type).toBe('Tap');
   });
 
-  it('should handle a single object wrapped in an array through legacy extraction', () => {
+  it('should preserve a single object wrapped in an array', () => {
     const input = '[{"  type  ": "  Tap  "}]';
     const result = parseJson(input);
 
-    expect(result).toEqual({ type: 'Tap' });
+    expect(result).toEqual([{ type: 'Tap' }]);
   });
 
   it('should preserve coordinate tuple text inside valid JSON strings', () => {

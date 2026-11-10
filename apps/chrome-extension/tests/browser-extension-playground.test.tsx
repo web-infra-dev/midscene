@@ -1,19 +1,19 @@
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 /**
- * @vitest-environment jsdom
+ * @rstest-environment jsdom
  */
 import { act } from 'react';
 import type React from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockPlaygroundSDK = vi.fn();
+const mockPlaygroundSDK = rs.fn();
 const universalPlaygroundProps: Array<Record<string, unknown>> = [];
-const mockTabsQuery = vi.fn();
-const mockOnActivatedAddListener = vi.fn();
-const mockOnActivatedRemoveListener = vi.fn();
+const mockTabsQuery = rs.fn();
+const mockOnActivatedAddListener = rs.fn();
+const mockOnActivatedRemoveListener = rs.fn();
 let activeTabChangeListener: (() => void) | undefined;
 
-vi.mock('@midscene/playground', () => ({
+rs.mock('@midscene/playground', () => ({
   PlaygroundSDK: class MockPlaygroundSDK {
     constructor(config: unknown) {
       mockPlaygroundSDK(config);
@@ -21,7 +21,7 @@ vi.mock('@midscene/playground', () => ({
   },
 }));
 
-vi.mock('@midscene/visualizer', () => ({
+rs.mock('@midscene/visualizer', () => ({
   UniversalPlayground: (props: Record<string, unknown>) => {
     universalPlaygroundProps.push(props);
     return <div>universal-playground</div>;
@@ -35,7 +35,22 @@ vi.mock('@midscene/visualizer', () => ({
   },
 }));
 
-vi.mock('../../src/utils/chrome', () => ({
+rs.mock('antd', () => ({
+  Empty: ({
+    image,
+    description,
+  }: {
+    image?: React.ReactNode;
+    description?: React.ReactNode;
+  }) => (
+    <div>
+      {image}
+      {description}
+    </div>
+  ),
+}));
+
+rs.mock('../../src/utils/chrome', () => ({
   getExtensionVersion: () => '1.0.0',
 }));
 
@@ -73,20 +88,23 @@ describe('BrowserExtensionPlayground', () => {
         },
       },
     });
-    vi.stubGlobal('__SDK_VERSION__', 'test-sdk');
+    rs.stubGlobal('__SDK_VERSION__', 'test-sdk');
   });
 
   afterEach(() => {
     document.body.innerHTML = '';
-    vi.unstubAllGlobals();
+    rs.unstubAllGlobals();
   });
 
   it('creates PlaygroundSDK even when env config is empty', async () => {
     const { BrowserExtensionPlayground } = await import(
       '../src/components/playground'
     );
-    const onPlaygroundSDKChange = vi.fn();
-    const getAgent = vi.fn(() => ({ page: { screenshot: vi.fn() } }));
+    const onPlaygroundSDKChange = rs.fn();
+    const onVerify = rs.fn();
+    const onAgentOptionsSave = rs.fn();
+    const agentOptions = { waitAfterAction: 500 };
+    const getAgent = rs.fn(() => ({ page: { screenshot: rs.fn() } }));
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -95,8 +113,11 @@ describe('BrowserExtensionPlayground', () => {
       root.render(
         <BrowserExtensionPlayground
           getAgent={getAgent}
+          agentOptions={agentOptions}
+          onAgentOptionsSave={onAgentOptionsSave}
           showContextPreview={false}
           onPlaygroundSDKChange={onPlaygroundSDKChange}
+          onVerify={onVerify}
         />,
       );
       await Promise.resolve();
@@ -111,6 +132,16 @@ describe('BrowserExtensionPlayground', () => {
     expect(universalPlaygroundProps.at(-1)?.className).toBe(
       'chrome-extension-playground playground-conversation-skin',
     );
+    expect(universalPlaygroundProps.at(-1)?.envConfigReminderProps).toEqual({
+      modelConfigActions: expect.anything(),
+      agentOptions,
+      configModalClassName: 'chrome-extension-model-env-config-modal',
+      configModalWidth: 360,
+      envTextareaAutoSize: false,
+      envTextareaMinRows: 4,
+      onAgentOptionsSave,
+      onVerify,
+    });
     expect(universalPlaygroundProps.at(-1)?.config).toEqual(
       expect.objectContaining({
         emptyState: expect.anything(),
@@ -158,7 +189,7 @@ describe('BrowserExtensionPlayground', () => {
       emptyStateRoot.unmount();
       root.unmount();
     });
-  }, 10_000);
+  });
 
   it('keeps a stable storage namespace when switching browser tabs', async () => {
     const { BrowserExtensionPlayground } = await import(
@@ -171,7 +202,7 @@ describe('BrowserExtensionPlayground', () => {
     await act(async () => {
       root.render(
         <BrowserExtensionPlayground
-          getAgent={() => ({ page: { screenshot: vi.fn() } })}
+          getAgent={() => ({ page: { screenshot: rs.fn() } })}
           showContextPreview={false}
         />,
       );

@@ -1,20 +1,28 @@
+import { spawn } from 'node:child_process';
+import { EventEmitter } from 'node:events';
 import { existsSync } from 'node:fs';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  createCliInterruptWaiter,
+  waitForCliInterrupt,
+} from '@midscene/shared/cli/interrupt';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import {
   checkXvfbInstalled,
+  createXvfbSignalCleanup,
   findAvailableDisplay,
   needsXvfb,
+  scheduleXvfbStopAfterProcessExit,
 } from '../../src/xvfb';
 
-vi.mock('node:fs', () => ({
-  existsSync: vi.fn(() => false),
+rs.mock('node:fs', () => ({
+  existsSync: rs.fn(() => false),
 }));
 
-vi.mock('node:child_process', () => ({
-  execSync: vi.fn(() => {
+rs.mock('node:child_process', () => ({
+  execSync: rs.fn(() => {
     throw new Error('not found');
   }),
-  spawn: vi.fn(),
+  spawn: rs.fn(),
 }));
 
 describe('needsXvfb', () => {
@@ -53,12 +61,12 @@ describe('needsXvfb', () => {
 
 describe('findAvailableDisplay', () => {
   it('should return startFrom when no lock files exist', () => {
-    vi.mocked(existsSync).mockReturnValue(false);
+    rs.mocked(existsSync).mockReturnValue(false);
     expect(findAvailableDisplay(99)).toBe(99);
   });
 
   it('should skip occupied display numbers', () => {
-    vi.mocked(existsSync)
+    rs.mocked(existsSync)
       .mockReturnValueOnce(true) // :99 occupied
       .mockReturnValueOnce(true) // :100 occupied
       .mockReturnValueOnce(false); // :101 free
@@ -66,7 +74,7 @@ describe('findAvailableDisplay', () => {
   });
 
   it('should throw if no display is available', () => {
-    vi.mocked(existsSync).mockReturnValue(true);
+    rs.mocked(existsSync).mockReturnValue(true);
     expect(() => findAvailableDisplay(99)).toThrow(
       'No available display number found',
     );
@@ -80,7 +88,83 @@ describe('checkXvfbInstalled', () => {
 
   it('should return true when Xvfb is installed', async () => {
     const { execSync } = await import('node:child_process');
-    vi.mocked(execSync).mockReturnValueOnce(Buffer.from('/usr/bin/Xvfb'));
+    rs.mocked(execSync).mockReturnValueOnce(Buffer.from('/usr/bin/Xvfb'));
     expect(checkXvfbInstalled()).toBe(true);
+  });
+});
+
+describe('scheduleXvfbStopAfterProcessExit', () => {
+  it('unrefs Xvfb and a detached process-exit monitor', () => {
+    const xvfbUnref = rs.fn();
+    const monitorUnref = rs.fn();
+    const monitorOn = rs.fn();
+    rs.mocked(spawn).mockReturnValueOnce({
+      on: monitorOn,
+      unref: monitorUnref,
+    } as never);
+
+    scheduleXvfbStopAfterProcessExit(
+      {
+        display: ':99',
+        process: { pid: 4321, unref: xvfbUnref } as never,
+        stop: rs.fn(),
+      },
+      1234,
+    );
+
+    expect(spawn).toHaveBeenCalledWith(
+      process.execPath,
+      ['-e', expect.any(String), '1234', '4321'],
+      { detached: true, stdio: 'ignore' },
+    );
+    expect(monitorOn).toHaveBeenCalledWith('error', expect.any(Function));
+    expect(xvfbUnref).toHaveBeenCalledOnce();
+    expect(monitorUnref).toHaveBeenCalledOnce();
+  });
+});
+
+describe('createXvfbSignalCleanup', () => {
+  it('cleans up when the host only has unrelated SIGINT listeners', () => {
+    const source = new EventEmitter();
+    const cleanup = rs.fn();
+    source.on('SIGINT', () => {});
+    source.on('SIGINT', createXvfbSignalCleanup(cleanup, source));
+
+    source.emit('SIGINT');
+
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it('defers cleanup while a foreground recorder is handling SIGINT', async () => {
+    const source = new EventEmitter();
+    const cleanup = rs.fn();
+    source.on('SIGINT', createXvfbSignalCleanup(cleanup, source));
+    const stopped = waitForCliInterrupt(0, source);
+
+    source.emit('SIGINT');
+
+    await expect(stopped).resolves.toBe('sigint');
+    expect(cleanup).not.toHaveBeenCalled();
+
+    source.emit('SIGINT');
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it('keeps Xvfb alive through a forwarded SIGTERM while saving', async () => {
+    const source = new EventEmitter();
+    const cleanup = rs.fn();
+    const signalCleanup = createXvfbSignalCleanup(cleanup, source);
+    source.on('SIGINT', signalCleanup);
+    source.on('SIGTERM', signalCleanup);
+    const waiter = createCliInterruptWaiter(0, { source });
+
+    source.emit('SIGINT');
+    await expect(waiter.result).resolves.toBe('sigint');
+    source.emit('SIGTERM');
+
+    expect(cleanup).not.toHaveBeenCalled();
+    waiter.dispose();
+    source.emit('SIGTERM');
+    expect(cleanup).toHaveBeenCalledOnce();
   });
 });

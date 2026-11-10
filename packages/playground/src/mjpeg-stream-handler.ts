@@ -1,4 +1,5 @@
 import http from 'node:http';
+import https from 'node:https';
 import type { Agent as PageAgent } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
 import type { Request, Response } from 'express';
@@ -27,6 +28,16 @@ function toMjpegFrameDataUrl(data: string, contentType?: string) {
     return data;
   }
   return `data:${contentType || 'image/jpeg'};base64,${data}`;
+}
+
+function getNativeStream(
+  nativeUrl: string,
+  onResponse: (response: http.IncomingMessage) => void,
+): http.ClientRequest {
+  const url = new URL(nativeUrl);
+  if (url.protocol === 'http:') return http.get(url, onResponse);
+  if (url.protocol === 'https:') return https.get(url, onResponse);
+  throw new Error('Unsupported native MJPEG URL protocol');
 }
 
 /**
@@ -147,35 +158,44 @@ export class MjpegStreamHandler {
     res: Response,
   ): Promise<boolean> {
     return new Promise<boolean>((resolve) => {
-      debugMjpeg(`trying native stream from ${nativeUrl}`);
-      const proxyReq = http.get(nativeUrl, (proxyRes) => {
-        const statusCode = proxyRes.statusCode ?? 0;
-        if (statusCode >= 400) {
-          this.nativeAvailable = false;
-          this.nativeFailedAt = Date.now();
-          proxyRes.resume();
-          debugMjpeg(
-            `native stream returned HTTP ${statusCode}, using polling mode`,
-          );
-          resolve(false);
-          return;
-        }
-        this.nativeAvailable = true;
-        this.nativeFailedAt = null;
-        debugMjpeg('streaming via native WDA MJPEG server');
-        const contentType = proxyRes.headers['content-type'];
-        if (contentType) res.setHeader('Content-Type', contentType);
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Connection', 'keep-alive');
-        proxyRes.pipe(res);
-        req.on('close', () => proxyReq.destroy());
-        resolve(true);
-      });
+      debugMjpeg('trying native MJPEG stream');
+      let proxyReq: http.ClientRequest;
+      try {
+        proxyReq = getNativeStream(nativeUrl, (proxyRes) => {
+          const statusCode = proxyRes.statusCode ?? 0;
+          if (statusCode >= 400) {
+            this.nativeAvailable = false;
+            this.nativeFailedAt = Date.now();
+            proxyRes.resume();
+            debugMjpeg(
+              `native stream returned HTTP ${statusCode}, using polling mode`,
+            );
+            resolve(false);
+            return;
+          }
+          this.nativeAvailable = true;
+          this.nativeFailedAt = null;
+          debugMjpeg('streaming via native WDA MJPEG server');
+          const contentType = proxyRes.headers['content-type'];
+          if (contentType) res.setHeader('Content-Type', contentType);
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.setHeader('Connection', 'keep-alive');
+          proxyRes.pipe(res);
+          req.on('close', () => proxyReq.destroy());
+          resolve(true);
+        });
+      } catch {
+        this.nativeAvailable = false;
+        this.nativeFailedAt = Date.now();
+        debugMjpeg('native stream URL is invalid, using polling mode');
+        resolve(false);
+        return;
+      }
       proxyReq.on('error', (err) => {
         this.nativeAvailable = false;
         this.nativeFailedAt = Date.now();
         debugMjpeg(
-          `native stream unavailable (${err.message}), using polling mode`,
+          `native stream unavailable (${(err as NodeJS.ErrnoException).code ?? err.name}), using polling mode`,
         );
         resolve(false);
       });
@@ -184,12 +204,18 @@ export class MjpegStreamHandler {
 
   private probeNativeLiveness(nativeUrl: string): Promise<boolean> {
     return new Promise<boolean>((resolve) => {
-      const probe = http.get(nativeUrl, (probeRes) => {
-        const statusCode = probeRes.statusCode ?? 0;
-        const reachable = statusCode >= 200 && statusCode < 400;
-        probeRes.destroy();
-        resolve(reachable);
-      });
+      let probe: http.ClientRequest;
+      try {
+        probe = getNativeStream(nativeUrl, (probeRes) => {
+          const statusCode = probeRes.statusCode ?? 0;
+          const reachable = statusCode >= 200 && statusCode < 400;
+          probeRes.destroy();
+          resolve(reachable);
+        });
+      } catch {
+        resolve(false);
+        return;
+      }
       probe.setTimeout(1000, () => {
         probe.destroy();
         resolve(false);

@@ -7,27 +7,27 @@ import type { IModelConfig } from '@midscene/shared/env';
  * applied when creating OpenAI clients. Uses mocking to verify that the correct
  * proxy implementations are instantiated with proper parameters.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 // Mock undici and fetch-socks before importing service-caller
-const mockProxyAgent = vi.fn();
-const mockSocksDispatcher = vi.fn();
+const mockProxyAgent = rs.fn();
+const mockSocksDispatcher = rs.fn();
 
-vi.mock('undici', () => ({
+rs.mock('undici', () => ({
   ProxyAgent: mockProxyAgent,
 }));
 
-vi.mock('fetch-socks', () => ({
+rs.mock('fetch-socks', () => ({
   socksDispatcher: mockSocksDispatcher,
 }));
 
 // Mock OpenAI to avoid actual API calls
-vi.mock('openai', () => {
+rs.mock('openai', () => {
   return {
-    default: vi.fn().mockImplementation(() => ({
+    default: rs.fn().mockImplementation(() => ({
       chat: {
         completions: {
-          create: vi.fn().mockResolvedValue({
+          create: rs.fn().mockResolvedValue({
             choices: [{ message: { content: 'test response' } }],
             usage: {
               prompt_tokens: 10,
@@ -43,16 +43,16 @@ vi.mock('openai', () => {
 
 describe('Proxy Configuration', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   describe('HTTP Proxy', () => {
     it('should create ProxyAgent with correct HTTP proxy URL', async () => {
-      const { callAI } = await import('@/ai-model/service-caller');
+      const { callGenerativeAI } = await import('@/ai-model/service-caller');
 
       const httpProxy = 'http://127.0.0.1:9999';
       const modelConfig: IModelConfig = {
@@ -68,7 +68,7 @@ describe('Proxy Configuration', () => {
 
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      await callAI(messages, getModelRuntime(modelConfig));
+      await callGenerativeAI(messages, getModelRuntime(modelConfig));
 
       // Verify ProxyAgent was called with correct URI
       expect(mockProxyAgent).toHaveBeenCalledWith({
@@ -77,7 +77,7 @@ describe('Proxy Configuration', () => {
     });
 
     it('should support HTTP proxy with authentication', async () => {
-      const { callAI } = await import('@/ai-model/service-caller');
+      const { callGenerativeAI } = await import('@/ai-model/service-caller');
 
       const httpProxy = 'http://user:pass@127.0.0.1:8888';
       const modelConfig: IModelConfig = {
@@ -92,7 +92,7 @@ describe('Proxy Configuration', () => {
 
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      await callAI(messages, getModelRuntime(modelConfig));
+      await callGenerativeAI(messages, getModelRuntime(modelConfig));
 
       // Verify ProxyAgent was called with authenticated proxy URL
       expect(mockProxyAgent).toHaveBeenCalledWith({
@@ -101,7 +101,7 @@ describe('Proxy Configuration', () => {
     });
 
     it('should support HTTPS proxy URLs', async () => {
-      const { callAI } = await import('@/ai-model/service-caller');
+      const { callGenerativeAI } = await import('@/ai-model/service-caller');
 
       const httpProxy = 'https://proxy.example.com:8080';
       const modelConfig: IModelConfig = {
@@ -116,7 +116,7 @@ describe('Proxy Configuration', () => {
 
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      await callAI(messages, getModelRuntime(modelConfig));
+      await callGenerativeAI(messages, getModelRuntime(modelConfig));
 
       expect(mockProxyAgent).toHaveBeenCalledWith({
         uri: httpProxy,
@@ -126,7 +126,7 @@ describe('Proxy Configuration', () => {
 
   describe('SOCKS Proxy', () => {
     it('should create SOCKS5 dispatcher with correct configuration', async () => {
-      const { callAI } = await import('@/ai-model/service-caller');
+      const { callGenerativeAI } = await import('@/ai-model/service-caller');
 
       const socksProxy = 'socks5://127.0.0.1:1080';
       const modelConfig: IModelConfig = {
@@ -142,7 +142,7 @@ describe('Proxy Configuration', () => {
 
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      await callAI(messages, getModelRuntime(modelConfig));
+      await callGenerativeAI(messages, getModelRuntime(modelConfig));
 
       // Verify socksDispatcher was called with correct SOCKS5 config
       expect(mockSocksDispatcher).toHaveBeenCalledWith({
@@ -153,7 +153,7 @@ describe('Proxy Configuration', () => {
     });
 
     it('should parse SOCKS4 proxy URL correctly', async () => {
-      const { callAI } = await import('@/ai-model/service-caller');
+      const { callGenerativeAI } = await import('@/ai-model/service-caller');
 
       const socksProxy = 'socks4://127.0.0.1:1080';
       const modelConfig: IModelConfig = {
@@ -168,7 +168,7 @@ describe('Proxy Configuration', () => {
 
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      await callAI(messages, getModelRuntime(modelConfig));
+      await callGenerativeAI(messages, getModelRuntime(modelConfig));
 
       // Verify socksDispatcher was called with type 4 for SOCKS4
       expect(mockSocksDispatcher).toHaveBeenCalledWith({
@@ -179,7 +179,7 @@ describe('Proxy Configuration', () => {
     });
 
     it('should support SOCKS proxy with authentication', async () => {
-      const { callAI } = await import('@/ai-model/service-caller');
+      const { callGenerativeAI } = await import('@/ai-model/service-caller');
 
       const socksProxy = 'socks5://user:pass@127.0.0.1:1080';
       const modelConfig: IModelConfig = {
@@ -194,7 +194,7 @@ describe('Proxy Configuration', () => {
 
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      await callAI(messages, getModelRuntime(modelConfig));
+      await callGenerativeAI(messages, getModelRuntime(modelConfig));
 
       // Verify socksDispatcher includes authentication
       expect(mockSocksDispatcher).toHaveBeenCalledWith({
@@ -207,7 +207,7 @@ describe('Proxy Configuration', () => {
     });
 
     it('should throw error for invalid SOCKS proxy URL', async () => {
-      const { callAI } = await import('@/ai-model/service-caller');
+      const { callGenerativeAI } = await import('@/ai-model/service-caller');
 
       const socksProxy = 'invalid-url';
       const modelConfig: IModelConfig = {
@@ -223,12 +223,12 @@ describe('Proxy Configuration', () => {
       const messages = [{ role: 'user' as const, content: 'test' }];
 
       await expect(
-        callAI(messages, getModelRuntime(modelConfig)),
+        callGenerativeAI(messages, getModelRuntime(modelConfig)),
       ).rejects.toThrow(/Invalid SOCKS proxy URL/);
     });
 
     it('should throw error for SOCKS proxy URL missing port', async () => {
-      const { callAI } = await import('@/ai-model/service-caller');
+      const { callGenerativeAI } = await import('@/ai-model/service-caller');
 
       const socksProxy = 'socks5://127.0.0.1';
       const modelConfig: IModelConfig = {
@@ -245,12 +245,12 @@ describe('Proxy Configuration', () => {
 
       // URL without port throws error
       await expect(
-        callAI(messages, getModelRuntime(modelConfig)),
+        callGenerativeAI(messages, getModelRuntime(modelConfig)),
       ).rejects.toThrow(/Invalid SOCKS proxy URL/);
     });
 
     it('should throw error for SOCKS proxy URL with invalid port', async () => {
-      const { callAI } = await import('@/ai-model/service-caller');
+      const { callGenerativeAI } = await import('@/ai-model/service-caller');
 
       const socksProxy = 'socks5://127.0.0.1:abc';
       const modelConfig: IModelConfig = {
@@ -267,12 +267,12 @@ describe('Proxy Configuration', () => {
 
       // URL with invalid port throws error
       await expect(
-        callAI(messages, getModelRuntime(modelConfig)),
+        callGenerativeAI(messages, getModelRuntime(modelConfig)),
       ).rejects.toThrow(/Invalid SOCKS proxy URL/);
     });
 
     it('should throw error for SOCKS proxy URL missing hostname', async () => {
-      const { callAI } = await import('@/ai-model/service-caller');
+      const { callGenerativeAI } = await import('@/ai-model/service-caller');
 
       const socksProxy = 'socks5://:1080';
       const modelConfig: IModelConfig = {
@@ -289,14 +289,14 @@ describe('Proxy Configuration', () => {
 
       // URL without hostname throws error
       await expect(
-        callAI(messages, getModelRuntime(modelConfig)),
+        callGenerativeAI(messages, getModelRuntime(modelConfig)),
       ).rejects.toThrow(/Invalid SOCKS proxy URL/);
     });
   });
 
   describe('Proxy Priority', () => {
     it('should prioritize HTTP proxy when both are configured', async () => {
-      const { callAI } = await import('@/ai-model/service-caller');
+      const { callGenerativeAI } = await import('@/ai-model/service-caller');
 
       const httpProxy = 'http://127.0.0.1:8888';
       const socksProxy = 'socks5://127.0.0.1:1080';
@@ -313,7 +313,7 @@ describe('Proxy Configuration', () => {
 
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      await callAI(messages, getModelRuntime(modelConfig));
+      await callGenerativeAI(messages, getModelRuntime(modelConfig));
 
       // HTTP proxy should be used
       expect(mockProxyAgent).toHaveBeenCalledWith({
@@ -326,7 +326,7 @@ describe('Proxy Configuration', () => {
 
   describe('No Proxy Configuration', () => {
     it('should work without proxy configuration', async () => {
-      const { callAI } = await import('@/ai-model/service-caller');
+      const { callGenerativeAI } = await import('@/ai-model/service-caller');
 
       const modelConfig: IModelConfig = {
         modelName: 'gpt-4o',
@@ -339,7 +339,7 @@ describe('Proxy Configuration', () => {
 
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      await callAI(messages, getModelRuntime(modelConfig));
+      await callGenerativeAI(messages, getModelRuntime(modelConfig));
 
       // Neither proxy should be used
       expect(mockProxyAgent).not.toHaveBeenCalled();

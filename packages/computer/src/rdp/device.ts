@@ -8,12 +8,18 @@ import type {
 import {
   type AbstractInterface,
   type ComputerInputPrimitives,
+  type PointerPoint,
+  type ResolvedTextInputOptions,
   defineAction,
   defineActionsFromInputPrimitives,
+  resolveTextInputOptions,
+  sendTextSequentially,
+  shouldInputSequentially,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { getDebug } from '@midscene/shared/logger';
 import type { ComputerDeviceInputOpt, DisplayInfo } from '../device';
+import { clampPointerPointToSize } from '../pointer';
 import {
   formatRdpServerAddress,
   normalizeRdpConnectionConfig,
@@ -56,7 +62,9 @@ export interface RDPDeviceOpt
 export class RDPDevice implements AbstractInterface {
   interfaceType: InterfaceType = 'rdp';
 
-  private readonly options: RDPDeviceOpt;
+  private readonly connectionConfig: RDPConnectionConfig;
+  private readonly inputOptions: ComputerDeviceInputOpt;
+  private readonly customActions: DeviceAction<any>[];
   private readonly backend: RDPBackendClient;
   private connectionInfo?: RDPConnectionInfo;
   private destroyed = false;
@@ -88,6 +96,13 @@ export class RDPDevice implements AbstractInterface {
         });
         await this.backend.mouseButton('right', 'click');
       },
+      middleClick: async ({ x, y }) => {
+        await this.movePointer(Math.round(x), Math.round(y), {
+          steps: SMOOTH_MOVE_STEPS_TAP,
+          stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
+        });
+        await this.backend.mouseButton('middle', 'click');
+      },
       hover: async ({ x, y }) => {
         await this.movePointer(Math.round(x), Math.round(y), {
           steps: SMOOTH_MOVE_STEPS_MOUSE_MOVE,
@@ -96,23 +111,22 @@ export class RDPDevice implements AbstractInterface {
         });
       },
       dragAndDrop: async (from, to) => {
-        await this.movePointer(Math.round(from.x), Math.round(from.y), {
-          steps: SMOOTH_MOVE_STEPS_TAP,
-          stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
-        });
-        await this.backend.mouseButton('left', 'down');
-        await sleep(DRAG_HOLD_DURATION);
-        await this.movePointer(Math.round(to.x), Math.round(to.y), {
-          steps: SMOOTH_MOVE_STEPS_DRAG,
-          stepDelayMs: SMOOTH_MOVE_DELAY_DRAG,
-        });
-        await sleep(DRAG_HOLD_DURATION);
-        await this.backend.mouseButton('left', 'up');
+        await this.performPointerDrag(from, to);
+      },
+      swipe: async (from, to, opts) => {
+        const repeatCount = opts?.repeat ?? 1;
+        for (let index = 0; index < repeatCount; index++) {
+          await this.performPointerDrag(from, to, opts?.duration);
+        }
       },
     },
     keyboard: {
       typeText: async (value, opts) => {
         this.assertConnected();
+        const resolvedInputOptions = resolveTextInputOptions(
+          opts,
+          this.inputOptions,
+        );
         const target = opts?.target as LocateResultElement | undefined;
         if (target) {
           await this.inputPrimitives.pointer!.tap({
@@ -128,9 +142,7 @@ export class RDPDevice implements AbstractInterface {
         if (opts?.focusOnly || !value) {
           return;
         }
-        const keyboardTypeDelay =
-          opts?.keyboardTypeDelay ?? this.options.keyboardTypeDelay;
-        await this.typeText(value, keyboardTypeDelay);
+        await this.typeText(value, resolvedInputOptions);
       },
       clearInput: async (target) => {
         this.assertConnected();
@@ -194,38 +206,47 @@ export class RDPDevice implements AbstractInterface {
 
   private async typeText(
     value: string,
-    keyboardTypeDelay?: number,
+    inputOptions: ResolvedTextInputOptions,
   ): Promise<void> {
-    if (!keyboardTypeDelay || keyboardTypeDelay <= 0) {
+    if (!shouldInputSequentially(inputOptions)) {
       await this.backend.typeText(value);
       return;
     }
 
-    const characters = Array.from(value);
-    for (let index = 0; index < characters.length; index++) {
-      await this.backend.typeText(characters[index]);
-      if (index < characters.length - 1) {
-        await sleep(keyboardTypeDelay);
-      }
-    }
+    await sendTextSequentially(
+      value,
+      {
+        sendCharacter: (character) => this.backend.typeText(character),
+        wait: sleep,
+      },
+      { delayMs: inputOptions.keyboardTypeDelay },
+    );
   }
 
   constructor(options: RDPDeviceOpt) {
-    const normalizedOptions = normalizeRdpConnectionConfig(options);
-    this.options = {
+    const {
+      backend,
+      customActions,
+      inputStrategy,
+      keyboardTypeDelay,
+      ...connectionConfig
+    } = options;
+    this.connectionConfig = {
       port: 3389,
       securityProtocol: 'auto',
       ignoreCertificate: false,
-      ...normalizedOptions,
+      ...normalizeRdpConnectionConfig(connectionConfig),
     };
-    this.backend = options.backend || createDefaultRDPBackendClient();
+    this.inputOptions = { inputStrategy, keyboardTypeDelay };
+    this.customActions = customActions ?? [];
+    this.backend = backend || createDefaultRDPBackendClient();
   }
 
   describe(): string {
-    const port = this.options.port || 3389;
-    const server = formatRdpServerAddress(this.options.host, port);
-    const username = this.options.username
-      ? ` as ${this.options.username}`
+    const port = this.connectionConfig.port || 3389;
+    const server = formatRdpServerAddress(this.connectionConfig.host, port);
+    const username = this.connectionConfig.username
+      ? ` as ${this.connectionConfig.username}`
       : '';
     const session = this.connectionInfo?.sessionId
       ? ` [session ${this.connectionInfo.sessionId}]`
@@ -236,20 +257,11 @@ export class RDPDevice implements AbstractInterface {
   async connect(): Promise<void> {
     this.throwIfDestroyed();
     debug('connecting to rdp backend', {
-      host: this.options.host,
-      port: this.options.port,
-      username: this.options.username,
+      host: this.connectionConfig.host,
+      port: this.connectionConfig.port,
+      username: this.connectionConfig.username,
     });
-    // Only forward serializable connection settings. `backend` and
-    // `customActions` are runtime objects (the backend instance even holds a
-    // live child process with circular references); leaking them into the
-    // config sent over the helper's JSON protocol corrupts the request line.
-    const {
-      backend: _backend,
-      customActions: _customActions,
-      ...config
-    } = this.options;
-    this.connectionInfo = await this.backend.connect(config);
+    this.connectionInfo = await this.backend.connect(this.connectionConfig);
     this.cursorPosition = [
       Math.round(this.connectionInfo.size.width / 2),
       Math.round(this.connectionInfo.size.height / 2),
@@ -278,9 +290,12 @@ export class RDPDevice implements AbstractInterface {
 
   actionSpace(): DeviceAction<any>[] {
     const defaultActions: DeviceAction<any>[] = [
-      ...defineActionsFromInputPrimitives(this.inputPrimitives),
+      ...defineActionsFromInputPrimitives(this.inputPrimitives, {
+        size: () => this.size(),
+      }),
       defineAction({
         name: 'ListDisplays',
+        supportedBySystemOne: true,
         description: 'List all available displays/monitors',
         call: async (): Promise<DisplayInfo[]> => {
           this.assertConnected();
@@ -288,12 +303,12 @@ export class RDPDevice implements AbstractInterface {
           const server =
             this.connectionInfo?.server ||
             formatRdpServerAddress(
-              this.options.host,
-              this.options.port || 3389,
+              this.connectionConfig.host,
+              this.connectionConfig.port || 3389,
             );
           return [
             {
-              id: this.connectionInfo?.sessionId || this.options.host,
+              id: this.connectionInfo?.sessionId || this.connectionConfig.host,
               name: `RDP ${server} (${size.width}x${size.height})`,
               primary: true,
             },
@@ -302,7 +317,7 @@ export class RDPDevice implements AbstractInterface {
       }),
     ];
 
-    return [...defaultActions, ...(this.options.customActions || [])];
+    return [...defaultActions, ...this.customActions];
   }
 
   private assertConnected(): void {
@@ -396,6 +411,38 @@ export class RDPDevice implements AbstractInterface {
 
     if (options?.settleDelayMs) {
       await sleep(options.settleDelayMs);
+    }
+  }
+
+  private async performPointerDrag(
+    from: PointerPoint,
+    to: PointerPoint,
+    duration?: number,
+  ): Promise<void> {
+    const screenSize = await this.size();
+    const boundedFrom = clampPointerPointToSize(from, screenSize);
+    const boundedTo = clampPointerPointToSize(to, screenSize);
+    await this.movePointer(
+      Math.round(boundedFrom.x),
+      Math.round(boundedFrom.y),
+      {
+        steps: SMOOTH_MOVE_STEPS_TAP,
+        stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
+      },
+    );
+    await this.backend.mouseButton('left', 'down');
+    try {
+      await sleep(DRAG_HOLD_DURATION);
+      await this.movePointer(Math.round(boundedTo.x), Math.round(boundedTo.y), {
+        steps: SMOOTH_MOVE_STEPS_DRAG,
+        stepDelayMs:
+          duration === undefined
+            ? SMOOTH_MOVE_DELAY_DRAG
+            : Math.max(0, Math.round(duration / SMOOTH_MOVE_STEPS_DRAG)),
+      });
+      await sleep(DRAG_HOLD_DURATION);
+    } finally {
+      await this.backend.mouseButton('left', 'up');
     }
   }
 

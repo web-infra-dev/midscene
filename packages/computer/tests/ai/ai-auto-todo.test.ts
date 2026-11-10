@@ -1,10 +1,10 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, rs } from '@rstest/core';
 import { type ComputerAgent, agentFromComputer } from '../../src';
 import { openBrowserAndNavigate } from './test-utils';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 120 * 1000,
 });
 
@@ -130,7 +130,7 @@ describe('computer todo app automation', () => {
     'should automate todo list operations',
     async () => {
       if (isCacheEnabled) {
-        vi.setConfig({ testTimeout: 1000 * 1000 });
+        rs.setConfig({ testTimeout: 1000 * 1000 });
       }
 
       if (!agent) {

@@ -3,26 +3,21 @@ import {
   type TIntent,
   globalModelConfigManager,
 } from '@midscene/shared/env';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { loadDotenvConfig } from '../../src/dotenv-loader';
 import {
   buildModelVerifyCurlCommands,
   runModelCommand,
 } from '../../src/model-command';
+import { runSiwcCommand } from '../../src/siwc-command';
 
-vi.mock('@midscene/shared/env', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@midscene/shared/env')>();
-  return {
-    ...actual,
-    globalModelConfigManager: {
-      getModelConfig: vi.fn(),
-    },
-  };
-});
-
-vi.mock('../../src/dotenv-loader', () => ({
-  loadDotenvConfig: vi.fn(),
+rs.mock('../../src/dotenv-loader', () => ({
+  loadDotenvConfig: rs.fn(),
 }));
+
+rs.mock('../../src/siwc-command', () => ({ runSiwcCommand: rs.fn() }));
+
+rs.spyOn(globalModelConfigManager, 'getModelConfig');
 
 function createModelConfig(
   overrides: Partial<IModelConfig> = {},
@@ -40,12 +35,56 @@ function createModelConfig(
 
 function createIO() {
   return {
-    stdout: vi.fn(),
-    stderr: vi.fn(),
+    stdout: rs.fn(),
+    stderr: rs.fn(),
   };
 }
 
 describe('model command', () => {
+  it('includes SIWC in model command help', async () => {
+    const io = createIO();
+    expect(await runModelCommand(['model', '--help'], {}, io)).toBe(0);
+    expect(io.stdout).toHaveBeenCalledWith(
+      expect.stringContaining('midscene model siwc <login|refresh> [options]'),
+    );
+  });
+
+  it('routes siwc options and output without loading model configuration', async () => {
+    const io = createIO();
+    const loadDotenv = rs.fn();
+    const getModelConfig = rs.fn();
+    rs.mocked(runSiwcCommand).mockResolvedValueOnce(0);
+    expect(
+      await runModelCommand(
+        ['model', 'siwc', 'login', '--no-open', '--port', '1455'],
+        { loadDotenv, getModelConfig },
+        io,
+      ),
+    ).toBe(0);
+    expect(runSiwcCommand).toHaveBeenCalledWith(
+      ['login', '--no-open', '--port', '1455'],
+      io,
+    );
+    expect(loadDotenvConfig).toHaveBeenCalledWith({
+      dotenvOverride: false,
+      dotenvDebug: false,
+    });
+    expect(loadDotenv).not.toHaveBeenCalled();
+    expect(getModelConfig).not.toHaveBeenCalled();
+  });
+
+  it('loads dotenv for SIWC refresh without requiring model configuration', async () => {
+    const io = createIO();
+    rs.mocked(loadDotenvConfig).mockClear();
+    rs.mocked(runSiwcCommand).mockResolvedValueOnce(0);
+    expect(await runModelCommand(['model', 'siwc', 'refresh'], {}, io)).toBe(0);
+    expect(loadDotenvConfig).toHaveBeenCalledWith({
+      dotenvOverride: false,
+      dotenvDebug: false,
+    });
+    expect(runSiwcCommand).toHaveBeenCalledWith(['refresh'], io);
+  });
+
   it('deduplicates curl commands by base URL, API key, and model name', () => {
     const commands = buildModelVerifyCurlCommands([
       {
@@ -97,14 +136,17 @@ describe('model command', () => {
 
   it('runs model verify with model configs', async () => {
     const io = createIO();
-    const loadDotenv = vi.fn();
+    const loadDotenv = rs.fn();
     const configs: Record<TIntent, IModelConfig> = {
       default: createModelConfig({ intent: 'default', slot: 'default' }),
+      locate: createModelConfig({ intent: 'locate', slot: 'default' }),
       planning: createModelConfig({ intent: 'planning', slot: 'planning' }),
       insight: createModelConfig({ intent: 'insight', slot: 'insight' }),
     };
-    const getModelConfig = vi.fn((intent: TIntent) => configs[intent]);
-    const verifyModel = vi.fn().mockResolvedValue({ passed: true });
+    const getModelConfig = rs.fn((intent: TIntent) => configs[intent]);
+    const verifyModel = rs
+      .fn()
+      .mockResolvedValue({ checks: [], requestCount: 0, passed: true });
 
     const exitCode = await runModelCommand(
       ['model', 'verify'],
@@ -120,15 +162,16 @@ describe('model command', () => {
     expect(loadDotenv).toHaveBeenCalledOnce();
     expect(verifyModel).toHaveBeenCalledWith({
       defaultModelConfig: configs.default,
+      locateModelConfig: configs.locate,
       planningModelConfig: configs.planning,
       insightModelConfig: configs.insight,
     });
     expect(io.stdout).toHaveBeenCalledWith(
-      'Model verify started. This usually takes about 5 seconds.\n',
+      'Model verify started. This usually completes within 30 seconds.',
     );
     expect(io.stdout).toHaveBeenCalledWith('');
     expect(io.stdout).toHaveBeenCalledWith('✅ Model verify passed.');
-    expect(vi.mocked(io.stdout).mock.invocationCallOrder[0]).toBeLessThan(
+    expect(rs.mocked(io.stdout).mock.invocationCallOrder[0]).toBeLessThan(
       loadDotenv.mock.invocationCallOrder[0],
     );
   });
@@ -147,10 +190,11 @@ describe('model command', () => {
       intent: 'insight',
       slot: 'insight',
     });
-    const getModelConfig = vi.mocked(globalModelConfigManager.getModelConfig);
+    const getModelConfig = rs.mocked(globalModelConfigManager.getModelConfig);
     getModelConfig.mockImplementation((intent: TIntent) => {
       const configs: Record<TIntent, IModelConfig> = {
         default: defaultConfig,
+        locate: { ...defaultConfig, intent: 'locate' },
         planning: planningConfig,
         insight: insightConfig,
       };
@@ -160,7 +204,9 @@ describe('model command', () => {
     const exitCode = await runModelCommand(
       ['model', 'verify'],
       {
-        verifyModel: vi.fn().mockResolvedValue({ passed: true }),
+        verifyModel: rs
+          .fn()
+          .mockResolvedValue({ checks: [], requestCount: 0, passed: true }),
       },
       io,
     );
@@ -183,6 +229,13 @@ describe('model command', () => {
         openaiApiKey: 'sk-default',
         modelName: 'gpt-4o',
       }),
+      locate: createModelConfig({
+        intent: 'locate',
+        slot: 'locate',
+        modelName: 'locator',
+        openaiBaseURL: 'https://locate.example/v1',
+        openaiApiKey: 'locate-key',
+      }),
       planning: createModelConfig({
         intent: 'planning',
         slot: 'planning',
@@ -202,9 +255,11 @@ describe('model command', () => {
     const exitCode = await runModelCommand(
       ['model', 'verify'],
       {
-        loadDotenv: vi.fn(),
-        getModelConfig: vi.fn((intent: TIntent) => configs[intent]),
-        verifyModel: vi.fn().mockResolvedValue({
+        loadDotenv: rs.fn(),
+        getModelConfig: rs.fn((intent: TIntent) => configs[intent]),
+        verifyModel: rs.fn().mockResolvedValue({
+          checks: [],
+          requestCount: 0,
           passed: false,
           message: '[Vision check - ep-vision (insight)]: 404 Not Found',
         }),
@@ -213,7 +268,7 @@ describe('model command', () => {
     );
 
     expect(exitCode).toBe(1);
-    const output = vi.mocked(io.stderr).mock.calls[0][0];
+    const output = rs.mocked(io.stderr).mock.calls[0][0];
     expect(output).toContain('────────────────────────────────────────');
     expect(output).toContain('❌ Model verify failed with messages:');
     expect(output).toContain(
@@ -230,7 +285,8 @@ describe('model command', () => {
     expect(output).toContain('# insight');
     expect(output).toContain('sk-default');
     expect(output).toContain('ark-key');
-    expect(output.match(/curl -X POST/g)).toHaveLength(2);
+    expect(output).toContain('https://locate.example/v1/chat/completions');
+    expect(output.match(/curl -X POST/g)).toHaveLength(3);
   });
 
   it('explains when a generated curl command uses the default base URL', async () => {
@@ -240,6 +296,13 @@ describe('model command', () => {
         intent: 'default',
         slot: 'default',
         openaiBaseURL: undefined,
+      }),
+      locate: createModelConfig({
+        intent: 'locate',
+        slot: 'locate',
+        modelName: 'locator',
+        openaiBaseURL: 'https://locate.example/v1',
+        openaiApiKey: 'locate-key',
       }),
       planning: createModelConfig({
         intent: 'planning',
@@ -256,9 +319,11 @@ describe('model command', () => {
     await runModelCommand(
       ['model', 'verify'],
       {
-        loadDotenv: vi.fn(),
-        getModelConfig: vi.fn((intent: TIntent) => configs[intent]),
-        verifyModel: vi.fn().mockResolvedValue({
+        loadDotenv: rs.fn(),
+        getModelConfig: rs.fn((intent: TIntent) => configs[intent]),
+        verifyModel: rs.fn().mockResolvedValue({
+          checks: [],
+          requestCount: 0,
           passed: false,
           message: 'failed',
         }),
@@ -266,7 +331,7 @@ describe('model command', () => {
       io,
     );
 
-    const output = vi.mocked(io.stderr).mock.calls[0][0];
+    const output = rs.mocked(io.stderr).mock.calls[0][0];
     expect(output).toContain(
       '# default (base URL not configured; using OpenAI SDK default)',
     );

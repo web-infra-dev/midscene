@@ -1,6 +1,6 @@
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from '@rstest/core';
 import { getRdpHelperBinaryPath } from '../../../src/rdp/helper-binary';
 
 // These tests exercise the *real* compiled rdp-helper binary over its stdio

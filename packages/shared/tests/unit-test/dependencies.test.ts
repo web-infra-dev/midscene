@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('Dependencies version validation', () => {
   it('should ensure uuid version in package.json is less than 13', () => {
@@ -16,7 +16,7 @@ describe('Dependencies version validation', () => {
     // Fail if uuid version is 13 or higher (ESM-only versions)
     expect(majorVersion).toBeLessThan(13);
 
-    // Expected version should be 11.1.0
-    expect(uuidVersion).toBe('11.1.0');
+    // Expected version should be 11.1.1
+    expect(uuidVersion).toBe('11.1.1');
   });
 });

@@ -1,10 +1,10 @@
+import { resolveLocateResultCoordinates } from './coordinates';
 import type {
-  BboxLocateResultCoordinates,
   BboxLocateResultValue,
   LocateResultBbox,
+  LocateResultCoordinates,
   LocateResultPoint,
   LocateResultValue,
-  PointLocateResultCoordinates,
   PointLocateResultValue,
   ResolvedLocateResultCoordinates,
 } from './types';
@@ -43,9 +43,18 @@ export function parseCoordinateList(input: unknown, label: string): number[] {
     throw new Error(`invalid ${label} data: ${JSON.stringify(input)} `);
   }
 
-  const numericValues = values.map((value) =>
-    typeof value === 'number' ? value : Number(value),
-  );
+  const numericValues = values.map((value) => {
+    if (typeof value === 'number') {
+      return value;
+    }
+    if (
+      typeof value !== 'string' ||
+      !/^[+-]?(?:\d+\.?\d*|\.\d+)$/.test(value.trim())
+    ) {
+      return Number.NaN;
+    }
+    return Number(value);
+  });
 
   if (!numericValues.every((value) => Number.isFinite(value))) {
     throw new Error(`invalid ${label} data: ${JSON.stringify(input)} `);
@@ -55,17 +64,22 @@ export function parseCoordinateList(input: unknown, label: string): number[] {
 }
 
 export function createLocateResultValue(
-  coordinatesMeta: PointLocateResultCoordinates,
+  coordinatesMeta: LocateResultCoordinates & { shape: 'point' },
   coordinates: number[],
 ): PointLocateResultValue;
 export function createLocateResultValue(
-  coordinatesMeta: BboxLocateResultCoordinates,
+  coordinatesMeta: LocateResultCoordinates & { shape: 'bbox' },
   coordinates: number[],
 ): BboxLocateResultValue;
 export function createLocateResultValue(
-  coordinatesMeta: ResolvedLocateResultCoordinates,
+  coordinatesMeta: LocateResultCoordinates,
+  coordinates: number[],
+): LocateResultValue;
+export function createLocateResultValue(
+  inputCoordinatesMeta: LocateResultCoordinates,
   coordinates: number[],
 ): LocateResultValue {
+  const coordinatesMeta = resolveLocateResultCoordinates(inputCoordinatesMeta);
   if (coordinatesMeta.shape === 'point') {
     return {
       coordinates: [coordinates[0], coordinates[1]] as LocateResultPoint,
@@ -90,7 +104,7 @@ export function parseNumericLocateResult(
 ): LocateResultValue {
   if (resolvedCoordinates.shape === 'point') {
     const point = parseCoordinateList(input, 'point');
-    if (point.length < 2) {
+    if (point.length !== 2) {
       throw new Error(`invalid point data: ${JSON.stringify(input)} `);
     }
     return createLocateResultValue(resolvedCoordinates, point);

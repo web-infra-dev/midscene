@@ -1,15 +1,19 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { setMidsceneRunDir } from '@midscene/shared/common';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { agentFromAdbDevice } from '../../src/agent';
 import { AndroidMidsceneTools } from '../../src/agent-tools';
 
-vi.mock('../../src/agent', () => ({
-  agentFromAdbDevice: vi.fn(),
+rs.mock('../../src/agent', () => ({
+  agentFromAdbDevice: rs.fn(),
 }));
 
-vi.mock('../../src/device', () => ({
-  AndroidDevice: vi.fn().mockImplementation(() => ({
-    actionSpace: vi.fn().mockReturnValue([]),
-    destroy: vi.fn(),
+rs.mock('../../src/device', () => ({
+  AndroidDevice: rs.fn().mockImplementation(() => ({
+    actionSpace: rs.fn().mockReturnValue([]),
+    destroy: rs.fn(),
   })),
 }));
 
@@ -19,20 +23,20 @@ const validPngBase64 =
 function createMockAgent() {
   return {
     page: {
-      screenshotBase64: vi.fn().mockResolvedValue(validPngBase64),
+      screenshotBase64: rs.fn().mockResolvedValue(validPngBase64),
     },
-    aiAction: vi.fn().mockResolvedValue('done'),
-    destroy: vi.fn(),
+    aiAction: rs.fn().mockResolvedValue('done'),
+    destroy: rs.fn(),
   };
 }
 
 describe('AndroidMidsceneTools', () => {
   beforeEach(() => {
-    vi.mocked(agentFromAdbDevice).mockResolvedValue(createMockAgent() as any);
+    rs.mocked(agentFromAdbDevice).mockResolvedValue(createMockAgent() as any);
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('passes top-level deviceId to take_screenshot', async () => {
@@ -95,7 +99,7 @@ describe('AndroidMidsceneTools', () => {
 
   it('passes nested android.deviceId to act', async () => {
     const mockAgent = createMockAgent();
-    vi.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
+    rs.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
 
     const tools = new AndroidMidsceneTools();
     await tools.initTools();
@@ -134,6 +138,10 @@ describe('AndroidMidsceneTools', () => {
         deviceId: 'target-device',
         waitAfterAction: 650,
         replanningCycleLimit: 12,
+        aiContexts: {
+          default: 'prices are displayed in USD',
+          aiAct: 'accept permission dialogs',
+        },
         aiActContext: 'accept permission dialogs',
         screenshotShrinkFactor: 2,
       },
@@ -143,6 +151,10 @@ describe('AndroidMidsceneTools', () => {
       autoDismissKeyboard: false,
       waitAfterAction: 650,
       replanningCycleLimit: 12,
+      aiContexts: {
+        default: 'prices are displayed in USD',
+        aiAct: 'accept permission dialogs',
+      },
       aiActContext: 'accept permission dialogs',
       screenshotShrinkFactor: 2,
     });
@@ -161,6 +173,7 @@ describe('AndroidMidsceneTools', () => {
 
     expect(takeScreenshotTool?.schema).toHaveProperty('android.deviceId');
     expect(actTool?.schema).toHaveProperty('android.deviceId');
+    expect(takeScreenshotTool?.schema).toHaveProperty('android.aiContexts');
     expect(takeScreenshotTool?.schema).toHaveProperty('android.aiActContext');
     expect(takeScreenshotTool?.schema).not.toHaveProperty(
       'android.aiActionContext',
@@ -189,7 +202,7 @@ describe('AndroidMidsceneTools', () => {
 
   it('reuses the Android agent when called twice with identical init args', async () => {
     const mockAgent = createMockAgent();
-    vi.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
+    rs.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
 
     const tools = new AndroidMidsceneTools();
     await tools.initTools();
@@ -212,7 +225,7 @@ describe('AndroidMidsceneTools', () => {
   it('rebuilds the Android agent when init args change', async () => {
     const firstAgent = createMockAgent();
     const secondAgent = createMockAgent();
-    vi.mocked(agentFromAdbDevice)
+    rs.mocked(agentFromAdbDevice)
       .mockResolvedValueOnce(firstAgent as any)
       .mockResolvedValueOnce(secondAgent as any);
 
@@ -241,7 +254,7 @@ describe('AndroidMidsceneTools', () => {
   it('rebuilds the Android agent when init args are omitted after being set', async () => {
     const firstAgent = createMockAgent();
     const secondAgent = createMockAgent();
-    vi.mocked(agentFromAdbDevice)
+    rs.mocked(agentFromAdbDevice)
       .mockResolvedValueOnce(firstAgent as any)
       .mockResolvedValueOnce(secondAgent as any);
 
@@ -262,5 +275,43 @@ describe('AndroidMidsceneTools', () => {
     expect(agentFromAdbDevice).toHaveBeenLastCalledWith(undefined, {
       autoDismissKeyboard: false,
     });
+  });
+});
+
+// These adapters share the CLI writer tested with real subprocesses in Core.
+// Here we verify that each real platform adapter forwards the session identity.
+describe('AndroidMidsceneTools report sessions', () => {
+  it('reuses the report across tool instances and rotates it on connect', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'android-report-session-'));
+    setMidsceneRunDir(root);
+    const factory = rs.mocked(agentFromAdbDevice);
+    factory.mockResolvedValue(createMockAgent() as any);
+    const call = async (command: string) => {
+      const tools = new AndroidMidsceneTools();
+      await tools.initTools();
+      const tool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === command)!;
+      try {
+        await tool.handler({ prompt: 'continue recording' });
+      } finally {
+        await tools.destroy();
+      }
+      return factory.mock.calls.at(-1)![1]!;
+    };
+    try {
+      const first = await call('android_connect');
+      expect(first).toMatchObject({
+        reportFileName: expect.stringContaining('midscene-android'),
+        reportAttributes: { 'data-group-id': first.reportFileName },
+      });
+      expect(await call('act')).toEqual(first);
+      const next = await call('android_connect');
+      expect(next.reportFileName).not.toBe(first.reportFileName);
+      expect(await call('act')).toEqual(next);
+    } finally {
+      setMidsceneRunDir(undefined);
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

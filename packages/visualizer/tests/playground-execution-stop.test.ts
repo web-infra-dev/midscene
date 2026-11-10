@@ -1,37 +1,39 @@
-// @vitest-environment jsdom
+// @rstest-environment jsdom
 import type { DeviceAction } from '@midscene/core';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { act, createElement, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, describe, expect, it, vi } from 'vitest';
 import { usePlaygroundExecution } from '../src/hooks/usePlaygroundExecution';
 import type { InfoListItem, PlaygroundSDKLike } from '../src/types';
 import type { ReplayScriptsInfo } from '../src/utils/replay-scripts';
 
-const { allScriptsFromDumpMock } = vi.hoisted(() => ({
-  allScriptsFromDumpMock: vi.fn<(dump: unknown) => ReplayScriptsInfo | null>(
+const { allScriptsFromDumpMock, envConfigMock } = rs.hoisted(() => ({
+  allScriptsFromDumpMock: rs.fn<(dump: unknown) => ReplayScriptsInfo | null>(
     () => null,
   ),
+  envConfigMock: {
+    alwaysRefreshScreenInfo: false,
+    autoDismissKeyboard: false,
+    deepLocate: undefined,
+    deepThink: 'unset' as const,
+    domIncluded: false,
+    imeStrategy: undefined,
+    screenshotStrategy: undefined as 'auto' | 'always-yadb' | undefined,
+    keyboardDismissStrategy: undefined,
+    screenshotIncluded: false,
+  },
 }));
 
-vi.mock('@midscene/core/agent', () => ({
+rs.mock('@midscene/core/agent', () => ({
   paramStr: () => '',
   typeStr: () => 'Plan',
 }));
 
-vi.mock('../src/store/store', () => ({
-  useEnvConfig: () => ({
-    alwaysRefreshScreenInfo: false,
-    autoDismissKeyboard: false,
-    deepLocate: undefined,
-    deepThink: 'unset',
-    domIncluded: false,
-    imeStrategy: undefined,
-    keyboardDismissStrategy: undefined,
-    screenshotIncluded: false,
-  }),
+rs.mock('../src/store/store', () => ({
+  useEnvConfig: () => envConfigMock,
 }));
 
-vi.mock('../src/utils/replay-scripts', () => ({
+rs.mock('../src/utils/replay-scripts', () => ({
   allScriptsFromDump: allScriptsFromDumpMock,
 }));
 
@@ -108,6 +110,23 @@ function replayDump() {
         tasks: [
           {
             type: 'Planning',
+            param: {
+              userInstruction: {
+                prompt: 'Compare with the reference image',
+                images: [
+                  {
+                    name: 'reference',
+                    url: {
+                      type: 'midscene_image_url_ref',
+                      id: 'reference-1',
+                      mimeType: 'image/webp',
+                      storage: 'file',
+                      path: './screenshots/reference-1.webp',
+                    },
+                  },
+                ],
+              },
+            },
             uiContext: {
               screenshot: {
                 type: 'midscene_screenshot_ref',
@@ -127,6 +146,7 @@ function replayDump() {
 function reportWithReplay() {
   return `
     <script type="midscene-image" data-id="shot-1">data:image/png;base64,abc</script>
+    <script type="midscene-image" data-id="reference-1">data:image/webp;base64,def</script>
     <script type="midscene_web_dump">${JSON.stringify(replayDump())}</script>
   `;
 }
@@ -134,10 +154,54 @@ function reportWithReplay() {
 describe('usePlaygroundExecution stop handling', () => {
   afterEach(() => {
     document.body.replaceChildren();
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
+    rs.restoreAllMocks();
+    rs.unstubAllGlobals();
     allScriptsFromDumpMock.mockReset();
     allScriptsFromDumpMock.mockReturnValue(null);
+    envConfigMock.screenshotStrategy = undefined;
+  });
+
+  it('forwards an updated screenshot strategy to the next execution', async () => {
+    let snapshot: HarnessSnapshot | null = null;
+    const getSnapshot = () => {
+      if (!snapshot) throw new Error('Harness snapshot is not ready');
+      return snapshot;
+    };
+    const onSnapshot = (nextSnapshot: HarnessSnapshot) => {
+      snapshot = nextSnapshot;
+    };
+    const playgroundSDK = {
+      executeAction: rs.fn().mockResolvedValue(null),
+      onDumpUpdate: rs.fn(),
+      onProgressUpdate: rs.fn(),
+    } as unknown as PlaygroundSDKLike;
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(createElement(Harness, { onSnapshot, playgroundSDK }));
+    });
+
+    envConfigMock.screenshotStrategy = 'always-yadb';
+    await act(async () => {
+      root.render(createElement(Harness, { onSnapshot, playgroundSDK }));
+    });
+    await act(async () => {
+      await getSnapshot().handleRun({ prompt: 'Capture', type: 'aiAct' });
+    });
+
+    expect(playgroundSDK.executeAction).toHaveBeenCalledWith(
+      'aiAct',
+      { prompt: 'Capture', type: 'aiAct' },
+      expect.objectContaining({
+        deviceOptions: expect.objectContaining({
+          screenshotStrategy: 'always-yadb',
+        }),
+      }),
+    );
+
+    await act(async () => root.unmount());
   });
 
   it('restores replay scripts from a report-only stop result', async () => {
@@ -154,13 +218,13 @@ describe('usePlaygroundExecution stop handling', () => {
       return snapshot;
     };
     const playgroundSDK = {
-      cancelExecution: vi.fn(async () => ({
+      cancelExecution: rs.fn(async () => ({
         dump: null,
         reportHTML,
       })),
-      executeAction: vi.fn(() => new Promise(() => undefined)),
-      onDumpUpdate: vi.fn(),
-      onProgressUpdate: vi.fn(),
+      executeAction: rs.fn(() => new Promise(() => undefined)),
+      onDumpUpdate: rs.fn(),
+      onProgressUpdate: rs.fn(),
     } as unknown as PlaygroundSDKLike;
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -203,11 +267,11 @@ describe('usePlaygroundExecution stop handling', () => {
       height: 200,
       modelBriefs: [],
     });
-    const fetchMock = vi.fn(async () => ({
+    const fetchMock = rs.fn(async () => ({
       ok: true,
       json: async () => replayDump(),
     }));
-    vi.stubGlobal('fetch', fetchMock);
+    rs.stubGlobal('fetch', fetchMock);
     let snapshot: HarnessSnapshot | null = null;
     const getSnapshot = () => {
       if (!snapshot) throw new Error('Harness snapshot is not ready');
@@ -221,14 +285,14 @@ describe('usePlaygroundExecution stop handling', () => {
       format: 'single-html' as const,
     };
     const playgroundSDK = {
-      cancelExecution: vi.fn(async () => ({
+      cancelExecution: rs.fn(async () => ({
         dump: null,
         reportHTML: null,
         report,
       })),
-      executeAction: vi.fn(() => new Promise(() => undefined)),
-      onDumpUpdate: vi.fn(),
-      onProgressUpdate: vi.fn(),
+      executeAction: rs.fn(() => new Promise(() => undefined)),
+      onDumpUpdate: rs.fn(),
+      onProgressUpdate: rs.fn(),
     } as unknown as PlaygroundSDKLike;
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -261,6 +325,11 @@ describe('usePlaygroundExecution stop handling', () => {
     expect(
       restoredDump.executions[0].tasks[0].uiContext.screenshot.base64,
     ).toBe('http://localhost/reports/stopped-report/screenshots/shot-1.png');
+    expect(
+      restoredDump.executions[0].tasks[0].param.userInstruction.images[0].url,
+    ).toBe(
+      'http://localhost/reports/stopped-report/screenshots/reference-1.webp',
+    );
 
     await act(async () => root.unmount());
   });
@@ -273,21 +342,21 @@ describe('usePlaygroundExecution stop handling', () => {
       modelBriefs: [],
     });
     const reportHTML = reportWithReplay();
-    const fetchMock = vi.fn(async () =>
+    const fetchMock = rs.fn(async () =>
       Promise.resolve({
         ok: true,
         json: async () => replayDump(),
       }),
     );
-    vi.stubGlobal('fetch', fetchMock);
+    rs.stubGlobal('fetch', fetchMock);
     let snapshot: HarnessSnapshot | null = null;
     const getSnapshot = () => {
       if (!snapshot) throw new Error('Harness snapshot is not ready');
       return snapshot;
     };
     const playgroundSDK = {
-      cancelExecution: vi.fn(),
-      executeAction: vi.fn(async () => ({
+      cancelExecution: rs.fn(),
+      executeAction: rs.fn(async () => ({
         dump: null,
         reportHTML: null,
         report: {
@@ -299,8 +368,8 @@ describe('usePlaygroundExecution stop handling', () => {
         },
         result: 'done',
       })),
-      onDumpUpdate: vi.fn(),
-      onProgressUpdate: vi.fn(),
+      onDumpUpdate: rs.fn(),
+      onProgressUpdate: rs.fn(),
     } as unknown as PlaygroundSDKLike;
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -332,6 +401,9 @@ describe('usePlaygroundExecution stop handling', () => {
     expect(
       restoredDump.executions[0].tasks[0].uiContext.screenshot.base64,
     ).toBe('http://localhost/reports/report-1/screenshots/shot-1.png');
+    expect(
+      restoredDump.executions[0].tasks[0].param.userInstruction.images[0].url,
+    ).toBe('http://localhost/reports/report-1/screenshots/reference-1.webp');
 
     await act(async () => root.unmount());
   });
@@ -347,20 +419,20 @@ describe('usePlaygroundExecution stop handling', () => {
       return snapshot;
     };
     const playgroundSDK = {
-      cancelExecution: vi.fn(
+      cancelExecution: rs.fn(
         () =>
           new Promise<null>((resolve) => {
             resolveCancel = resolve;
           }),
       ),
-      executeAction: vi.fn(
+      executeAction: rs.fn(
         () =>
           new Promise((_resolve, reject) => {
             rejectRun = reject;
           }),
       ),
-      onDumpUpdate: vi.fn(),
-      onProgressUpdate: vi.fn(),
+      onDumpUpdate: rs.fn(),
+      onProgressUpdate: rs.fn(),
     } as unknown as PlaygroundSDKLike;
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -427,20 +499,20 @@ describe('usePlaygroundExecution stop handling', () => {
       return snapshot;
     };
     const playgroundSDK = {
-      cancelExecution: vi.fn(
+      cancelExecution: rs.fn(
         () =>
           new Promise<null>((resolve) => {
             resolveCancel = resolve;
           }),
       ),
-      executeAction: vi.fn(
+      executeAction: rs.fn(
         () =>
           new Promise((_resolve, reject) => {
             rejectRun = reject;
           }),
       ),
-      onDumpUpdate: vi.fn(),
-      onProgressUpdate: vi.fn(),
+      onDumpUpdate: rs.fn(),
+      onProgressUpdate: rs.fn(),
     } as unknown as PlaygroundSDKLike;
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -499,20 +571,20 @@ describe('usePlaygroundExecution stop handling', () => {
       return snapshot;
     };
     const playgroundSDK = {
-      cancelExecution: vi.fn(
+      cancelExecution: rs.fn(
         () =>
           new Promise<null>((resolve) => {
             resolveCancel = resolve;
           }),
       ),
-      executeAction: vi.fn(
+      executeAction: rs.fn(
         () =>
           new Promise<null>((resolve) => {
             resolveRun = resolve;
           }),
       ),
-      onDumpUpdate: vi.fn(),
-      onProgressUpdate: vi.fn(),
+      onDumpUpdate: rs.fn(),
+      onProgressUpdate: rs.fn(),
     } as unknown as PlaygroundSDKLike;
     const container = document.createElement('div');
     document.body.appendChild(container);

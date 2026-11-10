@@ -15,13 +15,18 @@ on:
 permissions:
   contents: read
 
-jobs:
-  main:
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        node-version: [24.13.0]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+jobs:
+  changes:
+    uses: ./.github/workflows/ci-changes.yml
+
+  ai-tests:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
@@ -36,33 +41,33 @@ jobs:
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
-        fetch-depth: 0
-        ref: ${{ github.event.inputs.branch || github.ref }}
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.sha }}
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
-      with:
-        version: 9.3.0
-  
-    - name: Setup Node.js
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-      with:
-        node-version: '24.13.0'
-        cache: 'pnpm'
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
+
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Install puppeteer dependencies
-      run: |
-        cd packages/web-integration
-        npx puppeteer browsers install chrome
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
 
-    - name: Build project
-      run: pnpm run build
+    - name: Setup Puppeteer browser
+      uses: ./.github/actions/setup-puppeteer-browser
+
+    - name: Build AI unit test projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/core,@midscene/web,@midscene/cli"
     
     - name: Run tests with coverage
-      run: pnpm run test:ai:coverage
+      # Two packages at a time, each with at most two workers.
+      uses: ./.github/actions/ai-ci
+      with:
+        command: MIDSCENE_COVERAGE_DIR=coverage-ai python3 scripts/ci-measure.py "$RUNNER_TEMP/ai-unit-resources.json" pnpm exec nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli --parallel=2 --outputStyle=stream --verbose -- --coverage
       id: test-ai
       continue-on-error: true
 
@@ -71,7 +76,12 @@ jobs:
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: test-ai-output
-        path: ${{ github.workspace }}/packages/web-integration/midscene_run/report
+        path: |
+          packages/web-integration/midscene_run/report
+          packages/cli/midscene_run
+          packages/core/test-results.json
+          packages/web-integration/test-results.json
+          packages/cli/test-results.json
         if-no-files-found: ignore
 
     - name: Upload AI coverage reports
@@ -84,14 +94,34 @@ jobs:
         if-no-files-found: ignore
 
     - name: Write AI coverage summary
-      if: always()
       env:
         COVERAGE_DIR: coverage-ai
         COVERAGE_TITLE: AI Test Coverage
         COVERAGE_ARTIFACT_NAME: ai-coverage
         COVERAGE_ARTIFACT_URL: ${{ steps.upload-ai-coverage.outputs.artifact-url }}
       run: node scripts/github-coverage-summary.js
+    - name: Upload AI unit resource measurements
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: ai-unit-resources
+        path: ${{ runner.temp }}/ai-unit-resources.json
+        retention-days: 7
+        if-no-files-found: ignore
 
     - name: Check if script failed
       if: steps.test-ai.outcome == 'failure'
       run: exit 1
+
+  main:
+    needs: [changes, ai-tests]
+    if: always() && (needs.changes.result != 'success' || needs.changes.outputs.code == 'true')
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [24.13.0]
+    steps:
+    - name: Check all AI suites
+      env:
+        RESULT: ${{ needs.ai-tests.result }}
+      run: test "$RESULT" = success

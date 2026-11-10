@@ -1,5 +1,8 @@
 import { Agent, type AgentOpt } from '@midscene/core/agent';
-import type { FileChooserHandler } from '@midscene/core/device';
+import type {
+  FileChooserHandler,
+  TextInputOptions,
+} from '@midscene/core/device';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { commonWebActionsForWebPage } from '../web-page';
@@ -39,12 +42,14 @@ function deserializeBridgeError(error: BridgeSerializedError): Error {
 }
 
 // actually, this is a proxy to the page in browser side
-export const getBridgePageInCliSide = (options?: {
-  host?: string;
-  port?: number;
-  timeout?: number | false;
-  closeConflictServer?: boolean;
-}): ChromeExtensionPageCliSide => {
+export const getBridgePageInCliSide = (
+  options?: {
+    host?: string;
+    port?: number;
+    timeout?: number | false;
+    closeConflictServer?: boolean;
+  } & TextInputOptions,
+): ChromeExtensionPageCliSide => {
   const host = options?.host || DefaultBridgeServerHost;
   const port = options?.port || DefaultBridgeServerPort;
   const server = new BridgeServer(
@@ -101,6 +106,8 @@ export const getBridgePageInCliSide = (options?: {
     };
   };
   const page = {
+    inputStrategy: options?.inputStrategy,
+    keyboardTypeDelay: options?.keyboardTypeDelay,
     showStatusMessage: async (message: string) => {
       await server.call(BridgeEvent.UpdateAgentStatus, [message]);
     },
@@ -184,6 +191,7 @@ export const getBridgePageInCliSide = (options?: {
       if (prop === 'keyboard') {
         const keyboard: KeyboardAction = {
           type: bridgeCaller(KeyboardEvent.Type),
+          insertText: bridgeCaller(KeyboardEvent.InsertText),
           press: bridgeCaller(KeyboardEvent.Press),
         };
         return keyboard;
@@ -231,33 +239,34 @@ export class AgentOverChromeBridge extends Agent<ChromeExtensionPageCliSide> {
   private enableWaterFlowAnimation: boolean;
 
   constructor(
-    opts?: AgentOpt & {
-      /**
-       * Enable remote access to the bridge server.
-       * - false (default): Only localhost can connect (most secure)
-       * - true: Allow remote machines to connect (binds to 0.0.0.0)
-       */
-      allowRemoteAccess?: boolean;
-      /**
-       * Custom host to bind the bridge server to.
-       * Overrides allowRemoteAccess if specified.
-       */
-      host?: string;
-      /**
-       * Custom port for the bridge server.
-       * @default 3766
-       */
-      port?: number;
-      closeNewTabsAfterDisconnect?: boolean;
-      serverListeningTimeout?: number | false;
-      closeConflictServer?: boolean;
-      /**
-       * Show the blue water-flow border and mouse pointer while controlling
-       * the page.
-       * @default true
-       */
-      enableWaterFlowAnimation?: boolean;
-    },
+    opts?: AgentOpt &
+      TextInputOptions & {
+        /**
+         * Enable remote access to the bridge server.
+         * - false (default): Only localhost can connect (most secure)
+         * - true: Allow remote machines to connect (binds to 0.0.0.0)
+         */
+        allowRemoteAccess?: boolean;
+        /**
+         * Custom host to bind the bridge server to.
+         * Overrides allowRemoteAccess if specified.
+         */
+        host?: string;
+        /**
+         * Custom port for the bridge server.
+         * @default 3766
+         */
+        port?: number;
+        closeNewTabsAfterDisconnect?: boolean;
+        serverListeningTimeout?: number | false;
+        closeConflictServer?: boolean;
+        /**
+         * Show the blue water-flow border and mouse pointer while controlling
+         * the page.
+         * @default true
+         */
+        enableWaterFlowAnimation?: boolean;
+      },
   ) {
     const host = getBridgeServerHost({
       host: opts?.host,
@@ -268,6 +277,8 @@ export class AgentOverChromeBridge extends Agent<ChromeExtensionPageCliSide> {
       port: opts?.port,
       timeout: opts?.serverListeningTimeout,
       closeConflictServer: opts?.closeConflictServer,
+      inputStrategy: opts?.inputStrategy,
+      keyboardTypeDelay: opts?.keyboardTypeDelay,
     });
     const originalOnTaskStartTip = opts?.onTaskStartTip;
     super(

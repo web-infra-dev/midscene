@@ -1,0 +1,10 @@
+# Retry setup in isolated contexts, then preserve its successful state for main files.
+concurrent: 1
+continueOnError: false
+retry: 1
+shareBrowserContext: true
+
+setup: 04-setup-retry.yaml
+
+files:
+  - 05-check-setup-retry.yaml

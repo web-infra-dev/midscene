@@ -1,21 +1,11 @@
-target:
-  serve: ./dist
-  url: demo.html
-tasks:
-  - name: toggle to dark mode
-    flow:
-      - sleep: 2000
-      - aiTap: theme toggle button in the top right header
-      - sleep: 2000
-      - aiAssert: The report UI is in dark theme; the top header, left sidebar, and page chrome are dark charcoal or black rather than white
+beforeAll:
+  - report.open:
+      path: demo-agent.html
 
-  - name: toggle back to light mode
-    flow:
-      - aiAssert: The report UI is currently in dark theme before clicking the theme toggle again
-      - aiTap: theme toggle button in the top right header
-      - sleep: 2000
-      - aiAssert: The report UI is in light theme; the top header, left sidebar, and page chrome are light or white rather than dark charcoal or black
-
-  - name: version info displayed
-    flow:
-      - aiAssert: The top header area shows version information with a version number like "v" followed by digits
+cases:
+  - name: switch between light and dark themes
+    steps:
+      - aiTap: the theme toggle in the report header
+      - aiAssert: The report is in dark theme and its task list remains readable.
+      - aiTap: the theme toggle in the report header
+      - aiAssert: The report is back in light theme and its task list remains readable.

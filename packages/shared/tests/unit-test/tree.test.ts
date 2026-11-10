@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { NodeType } from '../../src/constants';
 import { descriptionOfTree } from '../../src/extractor/tree';
 

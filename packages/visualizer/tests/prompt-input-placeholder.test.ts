@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { getPlaceholderForType } from '../src/utils/prompt-placeholder';
 
 describe('getPlaceholderForType', () => {

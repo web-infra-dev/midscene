@@ -1,15 +1,15 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('@midscene/core/agent', () => ({
+rs.mock('@midscene/core/agent', () => ({
   paramStr: () => '',
   typeStr: () => 'Plan',
 }));
 
-vi.mock('../src/store/store', () => ({
+rs.mock('../src/store/store', () => ({
   useEnvConfig: () => ({}),
 }));
 
-vi.mock('../src/utils/replay-scripts', () => ({
+rs.mock('../src/utils/replay-scripts', () => ({
   allScriptsFromDump: () => null,
 }));
 

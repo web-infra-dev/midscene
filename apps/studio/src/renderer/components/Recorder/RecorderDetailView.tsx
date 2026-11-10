@@ -1,4 +1,4 @@
-import { RecordTimeline } from '@midscene/recorder';
+import { RecordTimeline } from '@midscene/recorder-ui';
 import type { StudioRecorderCodeType } from '@shared/electron-contract';
 import type { ReactNode } from 'react';
 import type { StudioRecordingSession } from '../../recorder/types';

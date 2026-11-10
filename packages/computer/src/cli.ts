@@ -3,7 +3,9 @@ import { reportCLIError, runToolsCLI } from '@midscene/shared/cli';
 import { ComputerMidsceneTools } from './agent-tools';
 
 declare const __VERSION__: string;
-const tools = new ComputerMidsceneTools();
+const tools = new ComputerMidsceneTools({
+  keepXvfbAliveUntilProcessExit: true,
+});
 runToolsCLI(tools, 'midscene-computer', {
   stripPrefix: 'computer_',
   version: __VERSION__,

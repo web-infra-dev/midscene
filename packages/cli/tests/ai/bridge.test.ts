@@ -1,5 +1,5 @@
+import { describe, test } from '@rstest/core';
 import { execa } from 'execa';
-import { describe, test } from 'vitest';
 const cliBin = require.resolve('../../bin/midscene');
 
 const describeIf = process.env.BRIDGE_MODE ? describe : describe.skip;

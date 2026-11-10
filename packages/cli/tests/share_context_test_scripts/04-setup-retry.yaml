@@ -1,0 +1,27 @@
+web:
+  url: http://127.0.0.1:18527/share-context-test.html
+  viewportWidth: 800
+  viewportHeight: 600
+
+tasks:
+  - name: Retry setup without leaking failed-attempt state
+    flow:
+      - javascript: |
+          (async function() {
+            const response = await fetch('http://127.0.0.1:18528/setup-attempt');
+            const { attempt } = await response.json();
+            const failedAttemptResidue = localStorage.getItem('failedSetupResidue');
+
+            if (attempt === 1) {
+              localStorage.setItem('failedSetupResidue', 'must-not-leak');
+              throw new Error('intentional first setup failure');
+            }
+            if (failedAttemptResidue !== null) {
+              throw new Error(`setup retry inherited failed state: ${failedAttemptResidue}`);
+            }
+
+            localStorage.setItem('successfulSetupState', 'ready');
+            document.cookie = 'successfulSetupCookie=ready; path=/';
+            return { attempt, isolated: true };
+          })()
+        name: setup_retry

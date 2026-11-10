@@ -585,12 +585,55 @@ export default function ShellLayout() {
           if (!runtime) {
             throw new Error('Studio runtime is not available.');
           }
-          await runtime.updateAgentOptions(nextAgentOptions);
-          saveModelEnvText(text);
-          setModelEnvText(text);
-          saveAgentOptions(nextAgentOptions);
-          setAgentOptions(nextAgentOptions);
-          closeModelModal();
+
+          const previousModelEnvText = modelEnvText;
+          const previousAgentOptions = agentOptions;
+          let modelConfigSaveStarted = false;
+          let agentOptionsSaveStarted = false;
+          let runtimeUpdateStarted = false;
+
+          try {
+            await runtime.updateAgentOptions(nextAgentOptions);
+            runtimeUpdateStarted = true;
+            modelConfigSaveStarted = true;
+            saveModelEnvText(text);
+            agentOptionsSaveStarted = true;
+            saveAgentOptions(nextAgentOptions);
+            setModelEnvText(text);
+            setAgentOptions(nextAgentOptions);
+            closeModelModal();
+          } catch (error) {
+            const rollbackErrors: unknown[] = [];
+
+            if (runtimeUpdateStarted) {
+              try {
+                await runtime.updateAgentOptions(previousAgentOptions);
+              } catch (rollbackError) {
+                rollbackErrors.push(rollbackError);
+              }
+            }
+            if (agentOptionsSaveStarted) {
+              try {
+                saveAgentOptions(previousAgentOptions);
+              } catch (rollbackError) {
+                rollbackErrors.push(rollbackError);
+              }
+            }
+            if (modelConfigSaveStarted) {
+              try {
+                saveModelEnvText(previousModelEnvText);
+              } catch (rollbackError) {
+                rollbackErrors.push(rollbackError);
+              }
+            }
+
+            if (rollbackErrors.length > 0) {
+              throw new Error(
+                `Saving configuration failed and rollback was incomplete. Original error: ${String(error)}. Rollback errors: ${rollbackErrors.map(String).join('; ')}`,
+              );
+            }
+            throw error;
+          }
         }}
         open={modelModalOpen}
         textValue={modelEnvText}

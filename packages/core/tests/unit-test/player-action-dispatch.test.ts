@@ -1,6 +1,6 @@
 import { buildYamlFlowFromPlans } from '@/common';
 import { ScriptPlayer } from '@/yaml/player';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 
 const runAdbShellParamSchema = z.object({
@@ -33,10 +33,10 @@ function createPlayerWithActionSpace(actionSpace: any[]) {
 
 function createMockAgent(overrides: Record<string, any> = {}) {
   return {
-    callActionInActionSpace: vi.fn().mockResolvedValue('action-result'),
-    launch: vi.fn().mockResolvedValue('launch-result'),
-    terminate: vi.fn().mockResolvedValue('terminate-result'),
-    runAdbShell: vi.fn().mockResolvedValue('adb-result'),
+    callActionInActionSpace: rs.fn().mockResolvedValue('action-result'),
+    launch: rs.fn().mockResolvedValue('launch-result'),
+    terminate: rs.fn().mockResolvedValue('terminate-result'),
+    runAdbShell: rs.fn().mockResolvedValue('adb-result'),
     ...overrides,
   } as any;
 }
@@ -102,6 +102,36 @@ describe('player action dispatch ordering', () => {
     );
     expect(agent.callActionInActionSpace).not.toHaveBeenCalled();
     expect(player.result.services).toBe('adb-result');
+  });
+
+  it('should preserve RunAdbShell timeout through the ActionSpace fallback', async () => {
+    const actionSpace = [
+      {
+        name: 'RunAdbShell',
+        interfaceAlias: 'runAdbShell',
+        paramSchema: runAdbShellParamSchema.extend({
+          timeout: z.number().optional(),
+        }),
+      },
+    ];
+    const player = createPlayerWithActionSpace(actionSpace);
+    const agent = {
+      callActionInActionSpace: rs.fn().mockResolvedValue('shell output'),
+    } as any;
+    const taskStatus = {
+      name: 'test',
+      flow: [{ runAdbShell: 'dumpsys activity', timeout: 60_000 }],
+      index: 0,
+      status: 'running' as const,
+      totalSteps: 1,
+    };
+
+    await player.playTask(taskStatus, agent);
+
+    expect(agent.callActionInActionSpace).toHaveBeenCalledWith('RunAdbShell', {
+      command: 'dumpsys activity',
+      timeout: 60_000,
+    });
   });
 
   it('should not treat uppercase RunAdbShell as the YAML timeout helper', async () => {
@@ -249,7 +279,7 @@ describe('player action dispatch ordering', () => {
     ];
     const player = createPlayerWithActionSpace(actionSpace);
     const agent = {
-      callActionInActionSpace: vi.fn().mockResolvedValue('launch-via-action'),
+      callActionInActionSpace: rs.fn().mockResolvedValue('launch-via-action'),
     } as any;
 
     const taskStatus = {
@@ -277,7 +307,7 @@ describe('player action dispatch ordering', () => {
     ];
     const player = createPlayerWithActionSpace(actionSpace);
     const agent = {
-      callActionInActionSpace: vi
+      callActionInActionSpace: rs
         .fn()
         .mockResolvedValue('terminate-via-action'),
     } as any;
@@ -307,7 +337,7 @@ describe('player action dispatch ordering', () => {
     ];
     const player = createPlayerWithActionSpace(actionSpace);
     const agent = createMockAgent({
-      callActionInActionSpace: vi.fn().mockResolvedValue('shell output'),
+      callActionInActionSpace: rs.fn().mockResolvedValue('shell output'),
     });
 
     const taskStatus = {
@@ -333,7 +363,7 @@ describe('player action dispatch ordering', () => {
     ];
     const player = createPlayerWithActionSpace(actionSpace);
     const agent = {
-      callActionInActionSpace: vi.fn().mockResolvedValue('fallback-result'),
+      callActionInActionSpace: rs.fn().mockResolvedValue('fallback-result'),
     } as any;
 
     const taskStatus = {
@@ -352,6 +382,31 @@ describe('player action dispatch ordering', () => {
   });
 
   describe('player task dispatch without runtime result interpolation', () => {
+    it('should forward YAML inputStrategy to the Input action', async () => {
+      const player = createPlayerWithActionSpace([]);
+      const agent = createMockAgent();
+      const taskStatus = {
+        name: 'test',
+        flow: [
+          {
+            aiInput: 'search box',
+            value: 'Beijing',
+            inputStrategy: 'bulk',
+          },
+        ],
+        index: 0,
+        status: 'running' as const,
+        totalSteps: 1,
+      };
+
+      await player.playTask(taskStatus, agent);
+
+      expect(agent.callActionInActionSpace).toHaveBeenCalledWith(
+        'Input',
+        expect.objectContaining({ inputStrategy: 'bulk', value: 'Beijing' }),
+      );
+    });
+
     it('should pass $var text through as a literal value', async () => {
       const player = createPlayerWithActionSpace([]);
       const agent = createMockAgent();
@@ -376,7 +431,7 @@ describe('player action dispatch ordering', () => {
     it('should pass ${var} text through as a literal value', async () => {
       const player = createPlayerWithActionSpace([]);
       const agent = createMockAgent({
-        aiQuery: vi.fn().mockResolvedValue('query-result'),
+        aiQuery: rs.fn().mockResolvedValue('query-result'),
       });
       player.result.product_id = '110';
 
@@ -419,7 +474,7 @@ describe('player action dispatch ordering', () => {
     it('should pass variable-like values through in nested objects', async () => {
       const player = createPlayerWithActionSpace([]);
       const agent = createMockAgent({
-        aiTap: vi.fn().mockResolvedValue('tap-result'),
+        aiTap: rs.fn().mockResolvedValue('tap-result'),
       });
       player.result.prompt_text = 'search box';
 

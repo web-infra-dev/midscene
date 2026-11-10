@@ -43,10 +43,15 @@ import {
   sanitizeXpaths,
 } from '../common/cache-helper';
 import {
+  focusedInputFrameScript,
+  selectAllInputScript,
+} from '../common/input-scripts';
+import {
   type KeyInput,
   type MouseButton,
   commonWebActionsForWebPage,
 } from '../web-page';
+import { capturePuppeteerScreenshot } from './screenshot';
 
 export const debugPage = getDebug('web:page');
 const warnPage = getDebug('web:page', { console: true });
@@ -80,6 +85,16 @@ type ScreencastFrameEvent = {
 type PageCdpSession = {
   send(method: string, params?: Record<string, unknown>): Promise<unknown>;
   detach(): Promise<void>;
+};
+
+// Narrow the different Playwright/Puppeteer generic overloads to the frame
+// operations needed for focus traversal, including cross-origin child frames.
+type FocusedInputFrame = {
+  evaluate(script: string): Promise<unknown>;
+  evaluateHandle(script: string): Promise<{
+    asElement(): { contentFrame(): Promise<FocusedInputFrame | null> } | null;
+    dispose(): Promise<void>;
+  }>;
 };
 
 type ScreencastCdpSession = PageCdpSession & {
@@ -201,12 +216,12 @@ export class Page<
   underlyingPage: InterfaceType;
   protected waitForNavigationTimeout: number;
   protected waitForNetworkIdleTimeout: number;
-  private viewportSize?: Size;
   private onBeforeInvokeAction?: AbstractInterface['beforeInvokeAction'];
   private onAfterInvokeAction?: AbstractInterface['afterInvokeAction'];
   private customActions?: DeviceAction<any>[];
   private enableTouchEventsInActionSpace: boolean;
-  private keyboardTypeDelay: number | undefined;
+  readonly keyboardTypeDelay: number | undefined;
+  readonly inputStrategy: WebPageAgentOpt['inputStrategy'];
   private puppeteerFileChooserSession?: CDPSession;
   private puppeteerFileChooserHandler?: (
     event: Protocol.Page.FileChooserOpenedEvent,
@@ -272,6 +287,7 @@ export class Page<
     this.enableTouchEventsInActionSpace =
       opts?.enableTouchEventsInActionSpace ?? false;
     this.keyboardTypeDelay = opts?.keyboardTypeDelay;
+    this.inputStrategy = opts?.inputStrategy;
   }
 
   async evaluateJavaScript<T = any>(script: string): Promise<T> {
@@ -445,15 +461,14 @@ export class Page<
   }
 
   async size(): Promise<Size> {
-    if (this.viewportSize) return this.viewportSize;
-    const sizeInfo: Size = await this.evaluate(() => {
+    // Tabs and window sizes can change while this wrapper stays alive.
+    /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
+    return this.evaluate(() => {
       return {
         width: window.innerWidth,
         height: window.innerHeight,
       };
     });
-    this.viewportSize = sizeInfo;
-    return sizeInfo;
   }
 
   async screenshotBase64(): Promise<string> {
@@ -464,11 +479,10 @@ export class Page<
 
     let base64: string;
     if (this.interfaceType === 'puppeteer') {
-      const result = await (this.underlyingPage as PuppeteerPage).screenshot({
-        type: imgType,
-        quality,
-        encoding: 'base64',
-      });
+      const result = await capturePuppeteerScreenshot(
+        this.underlyingPage as PuppeteerPage,
+        { type: imgType, quality, encoding: 'base64' },
+      );
       base64 = createImgBase64ByFormat(imgType, result);
     } else if (this.interfaceType === 'playwright') {
       const page = this.underlyingPage as PlaywrightPage;
@@ -589,6 +603,7 @@ export class Page<
     const timeoutMs = opts?.timeoutMs ?? 500;
     const targetCenter = opts?.target?.center;
     try {
+      /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
       await this.evaluate(
         ([q, total, center]: [number, number, [number, number] | undefined]) =>
           new Promise<void>((resolve) => {
@@ -637,6 +652,7 @@ export class Page<
     }
 
     try {
+      /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
       await this.evaluate(
         (timeoutMs: number) =>
           new Promise<void>((resolve) => {
@@ -1054,6 +1070,21 @@ export class Page<
           delay: effectiveDelay,
         });
       },
+      insertText: async (text: string) => {
+        debugPage(`keyboard insert text ${text}`);
+        if (this.interfaceType === 'playwright') {
+          return (this.underlyingPage as PlaywrightPage).keyboard.insertText(
+            text,
+          );
+        }
+
+        const client = await this.createPageCdpSession('bulk text input');
+        try {
+          await client.send('Input.insertText', { text });
+        } finally {
+          await client.detach().catch(() => undefined);
+        }
+      },
       press: async (
         action:
           | { key: KeyInput; command?: string }
@@ -1099,6 +1130,33 @@ export class Page<
       });
     } finally {
       await client.detach().catch(() => undefined);
+    }
+  }
+
+  async selectAllInput(element?: ElementInfo): Promise<void> {
+    if (!element) {
+      let frame: FocusedInputFrame = this.underlyingPage.mainFrame();
+      while (true) {
+        const handle = await frame.evaluateHandle(focusedInputFrameScript);
+        let child: FocusedInputFrame | null | undefined;
+        try {
+          child = await handle.asElement()?.contentFrame();
+        } finally {
+          await handle.dispose();
+        }
+        if (!child) break;
+        frame = child;
+      }
+      if (!(await frame.evaluate(selectAllInputScript))) {
+        // Never issue a page-level selectAll when no editable field owns focus.
+        throw new Error('Replacing text requires a focused editable field');
+      }
+      return;
+    }
+    await this.mouse.click(element.center[0], element.center[1]);
+    const selected = await this.evaluate<boolean>(selectAllInputScript);
+    if (!selected) {
+      await this.selectAllByCdp();
     }
   }
 
@@ -1156,6 +1214,7 @@ export class Page<
   }
 
   async scrollUp(distance?: number, startingPoint?: Point): Promise<void> {
+    /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
     const innerHeight = await this.evaluate(() => window.innerHeight);
     const scrollDistance = distance || innerHeight * 0.7;
     await this.moveToPointBeforeScroll(startingPoint);
@@ -1163,6 +1222,7 @@ export class Page<
   }
 
   async scrollDown(distance?: number, startingPoint?: Point): Promise<void> {
+    /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
     const innerHeight = await this.evaluate(() => window.innerHeight);
     const scrollDistance = distance || innerHeight * 0.7;
     await this.moveToPointBeforeScroll(startingPoint);
@@ -1170,6 +1230,7 @@ export class Page<
   }
 
   async scrollLeft(distance?: number, startingPoint?: Point): Promise<void> {
+    /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
     const innerWidth = await this.evaluate(() => window.innerWidth);
     const scrollDistance = distance || innerWidth * 0.7;
     await this.moveToPointBeforeScroll(startingPoint);
@@ -1177,6 +1238,7 @@ export class Page<
   }
 
   async scrollRight(distance?: number, startingPoint?: Point): Promise<void> {
+    /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
     const innerWidth = await this.evaluate(() => window.innerWidth);
     const scrollDistance = distance || innerWidth * 0.7;
     await this.moveToPointBeforeScroll(startingPoint);
@@ -1237,6 +1299,7 @@ export class Page<
         await client.detach();
       }
     } else if (this.interfaceType === 'playwright') {
+      /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
       await (this.underlyingPage as PlaywrightPage).evaluate(() =>
         window.stop(),
       );
@@ -1247,6 +1310,7 @@ export class Page<
 
   async navigationState(): Promise<{ isLoading: boolean }> {
     try {
+      /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
       const readyState = await this.evaluate(() => document.readyState);
       return { isLoading: readyState !== 'complete' };
     } catch (error) {
@@ -1261,12 +1325,14 @@ export class Page<
     }
   }
 
-  async afterInvokeAction(name: string, param: any): Promise<void> {
+  async defaultActionWait(name: string, _param: any): Promise<void> {
     await Promise.all([
       this.waitForNavigation('afterInvokeAction', name),
       this.waitForNetworkIdle('afterInvokeAction', name),
     ]);
+  }
 
+  async afterInvokeAction(name: string, param: any): Promise<void> {
     if (this.onAfterInvokeAction) {
       await this.onAfterInvokeAction(name, param);
     }
@@ -1279,49 +1345,36 @@ export class Page<
     to: { x: number; y: number },
     duration?: number,
   ) {
-    const LONG_PRESS_THRESHOLD = 500;
     const MIN_PRESS_THRESHOLD = 150;
     duration = duration || 100;
     if (duration < MIN_PRESS_THRESHOLD) {
       duration = MIN_PRESS_THRESHOLD;
     }
-    if (duration > LONG_PRESS_THRESHOLD) {
-      duration = LONG_PRESS_THRESHOLD;
-    }
+    // Preserve explicit slow gestures; a moving pointer is not a long press.
     debugPage(
       `mouse swipe from ${from.x}, ${from.y} to ${to.x}, ${to.y} with duration ${duration}ms`,
     );
 
-    if (this.interfaceType === 'puppeteer') {
-      const page = this.underlyingPage as PuppeteerPage;
-      await page.mouse.move(from.x, from.y);
-      await page.mouse.down({ button: 'left' });
-
+    const page = this.underlyingPage as PuppeteerPage | PlaywrightPage;
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down({ button: 'left' });
+    let completed = false;
+    try {
       const steps = 30;
-      const delay = duration / steps;
       for (let i = 1; i <= steps; i++) {
         const x = from.x + (to.x - from.x) * (i / steps);
         const y = from.y + (to.y - from.y) * (i / steps);
         await page.mouse.move(x, y);
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await sleep(duration / steps);
       }
-
-      await page.mouse.up({ button: 'left' });
-    } else if (this.interfaceType === 'playwright') {
-      const page = this.underlyingPage as PlaywrightPage;
-      await page.mouse.move(from.x, from.y);
-      await page.mouse.down();
-
-      const steps = 30;
-      const delay = duration / steps;
-      for (let i = 1; i <= steps; i++) {
-        const x = from.x + (to.x - from.x) * (i / steps);
-        const y = from.y + (to.y - from.y) * (i / steps);
-        await page.mouse.move(x, y);
-        await page.waitForTimeout(delay);
+      completed = true;
+    } finally {
+      if (completed) {
+        await page.mouse.up({ button: 'left' });
+      } else {
+        // Release best-effort without replacing the original movement error.
+        await page.mouse.up({ button: 'left' }).catch(() => {});
       }
-
-      await page.mouse.up({ button: 'left' });
     }
   }
   async longPress(x: number, y: number, duration?: number) {
@@ -1486,19 +1539,25 @@ export class Page<
         capturedError = error as Error;
       }
     };
-    session.on('Page.fileChooserOpened', this.puppeteerFileChooserHandler);
+    const listener = this.puppeteerFileChooserHandler;
+    session.on('Page.fileChooserOpened', listener);
+    let disposed = false;
     return {
       dispose: () => {
-        if (this.puppeteerFileChooserHandler) {
-          session.off(
-            'Page.fileChooserOpened',
-            this.puppeteerFileChooserHandler,
-          );
+        if (disposed) return;
+        disposed = true;
+        session.off('Page.fileChooserOpened', listener);
+        if (this.puppeteerFileChooserHandler === listener) {
+          this.puppeteerFileChooserHandler = undefined;
         }
-        void session.detach();
-        this.puppeteerFileChooserHandler = undefined;
-        if (this.puppeteerFileChooserSession === session) {
+        if (
+          this.puppeteerFileChooserSession === session &&
+          !this.puppeteerFileChooserHandler
+        ) {
           this.puppeteerFileChooserSession = undefined;
+          void session.detach().catch((error) => {
+            debugPage('failed to detach file chooser session: %s', error);
+          });
         }
       },
       getError: () => capturedError,
@@ -1582,6 +1641,7 @@ select {
 
   const injectStyle = async () => {
     try {
+      /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
       await (page as PuppeteerPage & PlaywrightPage).evaluate(
         ({ id, content }: { id: string; content: string }) => {
           if (document.getElementById(id)) return;

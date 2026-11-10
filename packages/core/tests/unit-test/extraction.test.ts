@@ -1,7 +1,20 @@
-import { parseXMLExtractionResponse } from '@/ai-model/prompt/extraction';
-import { describe, expect, it } from 'vitest';
+import { createDefaultInsightProtocol } from '@/ai-model/model-adapter/default-insight-protocol';
+import { parseModelResponseJson } from '@/ai-model/shared/json';
+import { parseInsightResponse } from '@/ai-model/workflows/insight/insight-response-parser';
+import { describe, expect, it } from '@rstest/core';
 
-describe('parseXMLExtractionResponse', () => {
+const defaultInsightProtocol = createDefaultInsightProtocol({
+  jsonParser: parseModelResponseJson,
+});
+
+const parseDefaultInsightResponse = <T>(content: string) =>
+  parseInsightResponse<T>(
+    content,
+    defaultInsightProtocol.dataOutput,
+    parseModelResponseJson,
+  );
+
+describe('default insight response parser', () => {
   it('should parse complete XML response with all fields', () => {
     const xml = `
 <observation>According to the screenshot, I can see a user profile with name, age, and admin status</observation>
@@ -15,7 +28,7 @@ describe('parseXMLExtractionResponse', () => {
 <errors>[]</errors>
     `.trim();
 
-    const result = parseXMLExtractionResponse<{
+    const result = parseDefaultInsightResponse<{
       name: string;
       age: number;
       isAdmin: boolean;
@@ -41,7 +54,7 @@ describe('parseXMLExtractionResponse', () => {
 </data-json>
     `.trim();
 
-    const result = parseXMLExtractionResponse<{ title: string }>(xml);
+    const result = parseDefaultInsightResponse<{ title: string }>(xml);
 
     expect(result).toEqual({
       data: {
@@ -58,12 +71,27 @@ describe('parseXMLExtractionResponse', () => {
 </data-json>
     `.trim();
 
-    const result = parseXMLExtractionResponse<string[]>(xml);
+    const result = parseDefaultInsightResponse<string[]>(xml);
 
     expect(result).toEqual({
       thought: 'I found three todo items in the list',
       data: ['todo 1', 'todo 2', 'todo 3'],
     });
+  });
+
+  it('should preserve a single extracted object in an array', () => {
+    const result = parseDefaultInsightResponse<
+      { index: number; name: string }[]
+    >(`
+Based on the screenshot, only the first card is fully visible.
+<observation>Only one complete card is returned.</observation>
+<data-json>
+[{"index": 1, "name": "Example"}]
+</data-json>
+<errors>[]</errors>
+`);
+
+    expect(result.data).toEqual([{ index: 1, name: 'Example' }]);
   });
 
   it('should parse XML response with string data', () => {
@@ -74,7 +102,7 @@ describe('parseXMLExtractionResponse', () => {
 </data-json>
     `.trim();
 
-    const result = parseXMLExtractionResponse<string>(xml);
+    const result = parseDefaultInsightResponse<string>(xml);
 
     expect(result).toEqual({
       thought: 'The page title is "todo list"',
@@ -90,7 +118,7 @@ describe('parseXMLExtractionResponse', () => {
 </data-json>
     `.trim();
 
-    const result = parseXMLExtractionResponse<{ result: boolean }>(xml);
+    const result = parseDefaultInsightResponse<{ result: boolean }>(xml);
 
     expect(result).toEqual({
       thought: 'This is the SMS page',
@@ -111,7 +139,7 @@ describe('parseXMLExtractionResponse', () => {
 </errors>
     `.trim();
 
-    const result = parseXMLExtractionResponse<{ name: string }>(xml);
+    const result = parseDefaultInsightResponse<{ name: string }>(xml);
 
     expect(result).toEqual({
       thought: 'Failed to extract some data',
@@ -129,7 +157,7 @@ describe('parseXMLExtractionResponse', () => {
 </data-json>
     `.trim();
 
-    const result = parseXMLExtractionResponse<number>(xml);
+    const result = parseDefaultInsightResponse<number>(xml);
 
     expect(result).toEqual({
       data: 42,
@@ -158,7 +186,7 @@ describe('parseXMLExtractionResponse', () => {
 </data-json>
     `.trim();
 
-    const result = parseXMLExtractionResponse<{
+    const result = parseDefaultInsightResponse<{
       users: Array<{ name: string; role: string }>;
     }>(xml);
 
@@ -176,7 +204,7 @@ describe('parseXMLExtractionResponse', () => {
 <errors>[]</errors>
     `.trim();
 
-    expect(() => parseXMLExtractionResponse(xml)).toThrow(
+    expect(() => parseDefaultInsightResponse(xml)).toThrow(
       'Missing required field: data-json',
     );
   });
@@ -189,7 +217,7 @@ describe('parseXMLExtractionResponse', () => {
 </data-json>
     `.trim();
 
-    expect(() => parseXMLExtractionResponse(xml)).toThrow(
+    expect(() => parseDefaultInsightResponse(xml)).toThrow(
       'Failed to parse data-json',
     );
   });
@@ -215,7 +243,7 @@ describe('parseXMLExtractionResponse', () => {
 <errors>[]</errors>
     `.trim();
 
-    expect(() => parseXMLExtractionResponse(xml)).toThrow(
+    expect(() => parseDefaultInsightResponse(xml)).toThrow(
       'Failed to parse data-json',
     );
   });
@@ -230,7 +258,7 @@ invalid json array
 </errors>
     `.trim();
 
-    const result = parseXMLExtractionResponse<{ value: number }>(xml);
+    const result = parseDefaultInsightResponse<{ value: number }>(xml);
 
     expect(result).toEqual({
       data: { value: 123 },
@@ -245,7 +273,7 @@ invalid json array
 </DATA-JSON>
     `.trim();
 
-    const result = parseXMLExtractionResponse<{ result: string }>(xml);
+    const result = parseDefaultInsightResponse<{ result: string }>(xml);
 
     expect(result.thought).toBe('Case insensitive thought');
     expect(result.data).toEqual({ result: 'success' });
@@ -269,7 +297,7 @@ invalid json array
 </data-json>
     `.trim();
 
-    const result = parseXMLExtractionResponse<{
+    const result = parseDefaultInsightResponse<{
       user: {
         profile: {
           name: string;
@@ -290,7 +318,7 @@ invalid json array
 <errors>[]</errors>
     `.trim();
 
-    const result = parseXMLExtractionResponse<{ value: number }>(xml);
+    const result = parseDefaultInsightResponse<{ value: number }>(xml);
 
     expect(result).toEqual({
       data: { value: 100 },

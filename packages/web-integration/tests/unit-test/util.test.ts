@@ -6,7 +6,7 @@ import {
   buildDetailedLocateParam,
   buildDetailedLocateParamAndRestParams,
 } from '@midscene/core/yaml';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('getKeyCommands', () => {
   it('should return a single key without command when no meta or control key is provided', () => {

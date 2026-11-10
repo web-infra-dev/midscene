@@ -18,6 +18,7 @@ import type {
   DeviceAction,
   FileChooserHandler,
   FileChooserRegistration,
+  TextInputOptions,
 } from '@midscene/core/device';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
@@ -32,6 +33,7 @@ import {
   judgeOrderSensitive,
   sanitizeXpaths,
 } from '../common/cache-helper';
+import { selectAllInputScript } from '../common/input-scripts';
 import {
   type KeyInput,
   type MouseButton,
@@ -159,6 +161,10 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   public forceSameTabNavigation: boolean;
 
+  readonly keyboardTypeDelay?: number;
+
+  readonly inputStrategy?: TextInputOptions['inputStrategy'];
+
   private viewportSize?: Size;
 
   private activeTabId: number | null = null;
@@ -181,21 +187,34 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   public _continueWhenFailedToAttachDebugger = false;
 
-  constructor(forceSameTabNavigation: boolean) {
+  constructor(
+    forceSameTabNavigation: boolean,
+    inputOptions?: TextInputOptions,
+  ) {
     this.forceSameTabNavigation = forceSameTabNavigation;
+    this.keyboardTypeDelay = inputOptions?.keyboardTypeDelay;
+    this.inputStrategy = inputOptions?.inputStrategy;
   }
 
   actionSpace(): DeviceAction[] {
     return commonWebActionsForWebPage(this);
   }
 
-  public async setActiveTabId(tabId: number) {
+  /**
+   * Set the tab currently used by Midscene and optionally activate it in Chrome.
+   */
+  public async setActiveTabId(
+    tabId: number,
+    options: { activate?: boolean } = {},
+  ) {
     if (this.activeTabId) {
       throw new Error(
         `Active tab id is already set, which is ${this.activeTabId}, cannot set it to ${tabId}`,
       );
     }
-    await chrome.tabs.update(tabId, { active: true });
+    if (options.activate !== false) {
+      await chrome.tabs.update(tabId, { active: true });
+    }
     this.activeTabId = tabId;
   }
 
@@ -228,7 +247,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   public async getTabIdOrConnectToCurrentTab() {
     if (this.activeTabId) {
-      // alway keep on the connected tab
+      // Always reuse the controlled tab to avoid switching to a tab activated later by the user.
       return this.activeTabId;
     }
     const tabId = await chrome.tabs
@@ -947,6 +966,35 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     });
   }
 
+  async selectAllInput(element?: ElementInfo) {
+    if (element) {
+      await this.mouse.click(element.center[0], element.center[1]);
+    }
+    const selectionResult = await this.sendCommandToDebugger(
+      'Runtime.evaluate',
+      {
+        expression: selectAllInputScript,
+        returnByValue: true,
+      },
+    );
+    if (selectionResult?.result?.value === true) {
+      return;
+    }
+
+    if (!element) {
+      throw new Error('Replacing text requires a focused editable field');
+    }
+
+    await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
+      type: 'keyDown',
+      commands: ['selectAll'],
+    });
+    await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
+      type: 'keyUp',
+      commands: ['selectAll'],
+    });
+  }
+
   private latestMouseX = 100;
   private latestMouseY = 100;
 
@@ -1087,6 +1135,9 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         send: this.sendCommandToDebugger.bind(this),
       });
       await cdpKeyboard.type(text, { delay: 0 });
+    },
+    insertText: async (text: string) => {
+      await this.sendCommandToDebugger('Input.insertText', { text });
     },
     press: async (
       action:

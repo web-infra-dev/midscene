@@ -1,6 +1,7 @@
 import path from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import {
+  convertImgBufferToJpeg,
   inferBase64ImageFormat,
   normalizeBase64Image,
   normalizeScreenshotBase64,
@@ -58,7 +59,7 @@ describe('preapareImageUrl', () => {
 
   it('http url will be converted to base64 if convertHttpImage2Base64 is true', async () => {
     const mockData = Buffer.from('image-data');
-    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue(
+    const fetchSpy = rs.spyOn(global, 'fetch').mockResolvedValue(
       new Response(mockData, {
         status: 200,
         headers: { 'content-type': 'image/svg+xml' },
@@ -141,6 +142,26 @@ describe('inferBase64ImageFormat', () => {
   });
 });
 
+describe('convertImgBufferToJpeg', () => {
+  it('preserves the Sharp failure when Photon is unavailable in Node.js', async () => {
+    const sharpError = new Error('Sharp not available');
+    const getSharpModule = await import('../../src/img/get-sharp');
+    rs.spyOn(getSharpModule, 'default').mockRejectedValue(sharpError);
+
+    try {
+      await expect(
+        convertImgBufferToJpeg(Buffer.from('invalid image')),
+      ).rejects.toMatchObject({
+        message:
+          'Failed to convert image to JPEG with Sharp: Sharp not available',
+        cause: sharpError,
+      });
+    } finally {
+      rs.restoreAllMocks();
+    }
+  });
+});
+
 describe('scaleImage', () => {
   // 1x1 white pixel JPEG image in base64
   const onePixelWhiteImage =
@@ -181,7 +202,7 @@ describe('scaleImage', () => {
   it('should throw when Sharp is unavailable in Node.js', async () => {
     // Mock getSharp to throw an error
     const getSharpModule = await import('../../src/img/get-sharp');
-    vi.spyOn(getSharpModule, 'default').mockRejectedValue(
+    rs.spyOn(getSharpModule, 'default').mockRejectedValue(
       new Error('Sharp not available'),
     );
 
@@ -189,23 +210,23 @@ describe('scaleImage', () => {
       'Sharp not available',
     );
 
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('should throw when Sharp fails during processing in Node.js', async () => {
     // Mock getSharp to return a mock Sharp that throws during processing
     const getSharpModule = await import('../../src/img/get-sharp');
-    const mockSharp = vi.fn(() => {
+    const mockSharp = rs.fn(() => {
       throw new Error('Sharp processing failed');
     });
 
-    vi.spyOn(getSharpModule, 'default').mockResolvedValue(mockSharp as any);
+    rs.spyOn(getSharpModule, 'default').mockResolvedValue(mockSharp as any);
 
     await expect(scaleImage(onePixelWhiteImage, 3)).rejects.toThrow(
       'Sharp processing failed',
     );
 
     // Restore
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 });

@@ -1,43 +1,31 @@
+import * as coreActual from '@midscene/core' with { rstest: 'importActual' };
 import { TaskExecutor } from '@midscene/core/agent';
 import { getModelRuntime } from '@midscene/core/ai-model';
 import { defineActionSleep } from '@midscene/core/device';
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 declare const __VERSION__: string;
 
 // Mock only the necessary parts to avoid side effects
-vi.mock('@midscene/core/utils', () => ({
-  writeLogFile: vi.fn(() => null),
-  reportHTMLContent: vi.fn(() => ''),
-  stringifyDumpData: vi.fn(() => '{}'),
+rs.mock('@midscene/core/utils', () => ({
+  writeLogFile: rs.fn(() => null),
+  reportHTMLContent: rs.fn(() => ''),
+  stringifyDumpData: rs.fn(() => '{}'),
   groupedActionDumpFileExt: '.json',
   getVersion: () => __VERSION__,
-  sleep: vi.fn(() => Promise.resolve()),
+  sleep: rs.fn(() => Promise.resolve()),
 }));
 
-vi.mock('@midscene/shared/logger', () => ({
-  getDebug: vi.fn(() => vi.fn()),
-  logMsg: vi.fn(),
+rs.mock('@midscene/shared/logger', () => ({
+  getDebug: rs.fn(() => rs.fn()),
+  logMsg: rs.fn(),
 }));
 
-vi.mock('@midscene/core', async () => {
-  const actual = await vi.importActual('@midscene/core');
-  return {
-    ...actual,
-    Insight: vi.fn().mockImplementation(() => ({})),
-  };
-});
-
-// Partial mock for utils - only mock the async functions that need mocking
-vi.mock('@/common/utils', async () => {
-  const actual = await vi.importActual('@/common/utils');
-  return {
-    ...actual,
-    WebPageContextParser: vi.fn().mockResolvedValue({}),
-    printReportMsg: vi.fn(),
-  };
-});
+rs.mock('@midscene/core', () => ({
+  ...coreActual,
+  Insight: rs.fn().mockImplementation(() => ({})),
+}));
 
 const mockedModelConfig: IModelConfig = {
   modelName: 'mock-model',
@@ -47,28 +35,30 @@ const mockedModelConfig: IModelConfig = {
 };
 const mockedModelRuntime = getModelRuntime(mockedModelConfig);
 
-describe('TaskExecutor waitFor method with doNotThrowError', () => {
+describe('TaskExecutor waitFor', () => {
   let taskExecutor: TaskExecutor;
   let mockInsight: any;
   let mockPage: any;
+  let abortSignal: AbortSignal | undefined;
 
   beforeEach(async () => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
+    abortSignal = undefined;
 
     // Create mock page
     mockPage = {
       interfaceType: 'test',
-      size: vi.fn().mockResolvedValue({ width: 1024, height: 768 }),
-      screenshotBase64: vi.fn().mockResolvedValue('mock-screenshot-base64'),
-      url: vi.fn().mockResolvedValue('https://example.com'),
-      title: vi.fn().mockResolvedValue('Test Page'),
-      actionSpace: vi.fn(() => [defineActionSleep()]),
+      size: rs.fn().mockResolvedValue({ width: 1024, height: 768 }),
+      screenshotBase64: rs.fn().mockResolvedValue('mock-screenshot-base64'),
+      url: rs.fn().mockResolvedValue('https://example.com'),
+      title: rs.fn().mockResolvedValue('Test Page'),
+      actionSpace: rs.fn(() => [defineActionSleep()]),
     };
 
     // Create mock insight with extract method
     mockInsight = {
-      extract: vi.fn(),
-      contextRetrieverFn: vi.fn().mockResolvedValue({
+      extract: rs.fn(),
+      contextRetrieverFn: rs.fn().mockResolvedValue({
         screenshotBase64: 'mock-screenshot-base64',
         shotSize: { width: 1024, height: 768 },
         shrunkShotToLogicalRatio: 1,
@@ -81,14 +71,16 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
     };
 
     taskExecutor = new TaskExecutor(mockPage, mockInsight, {
-      onTaskStart: vi.fn(),
+      getDefaultModelRuntime: () => mockedModelRuntime,
+      onTaskStart: rs.fn(),
       actionSpace: mockPage.actionSpace(),
+      getAbortSignal: () => abortSignal,
     });
   });
 
-  it('should pass doNotThrowError=true to createTypeQueryTask in waitFor method', async () => {
+  it('passes query options and the execution id without a cancellation signal', async () => {
     // Spy on the private createTypeQueryTask method
-    const createTypeQueryTaskSpy = vi.spyOn(
+    const createTypeQueryTaskSpy = rs.spyOn(
       taskExecutor as any,
       'createTypeQueryTask',
     );
@@ -101,7 +93,7 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       param: {
         dataDemand: { result: 'Boolean, test assertion' },
       },
-      executor: vi.fn().mockResolvedValue({
+      executor: rs.fn().mockResolvedValue({
         output: true, // Return true to exit the waitFor loop immediately
         thought: 'Mock assertion passed',
       }),
@@ -118,16 +110,21 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       mockedModelRuntime,
     );
 
-    // Verify that createTypeQueryTask was called with ServiceExtractOption
+    // waitFor associates its queries with the current runner's execution id.
     expect(createTypeQueryTaskSpy).toHaveBeenCalledWith(
       'WaitFor',
       'test assertion',
-      mockedModelRuntime,
+      expect.objectContaining({
+        config: mockedModelRuntime.config,
+        adapter: mockedModelRuntime.adapter,
+        executionId: result.runner.id,
+      }),
       {
         domIncluded: undefined,
         screenshotIncluded: undefined,
       },
       undefined,
+      { abortSignal: undefined },
     );
 
     // Verify the result structure - waitFor returns runner, not executor
@@ -135,9 +132,10 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
     expect(result.output).toBeUndefined(); // waitFor returns undefined output on success
   });
 
-  it('should handle AI failures gracefully with doNotThrowError in waitFor loop', async () => {
+  it('preserves the cancellation signal and execution id when retrying a false assertion', async () => {
+    abortSignal = new AbortController().signal;
     // Spy on the private createTypeQueryTask method
-    const createTypeQueryTaskSpy = vi.spyOn(
+    const createTypeQueryTaskSpy = rs.spyOn(
       taskExecutor as any,
       'createTypeQueryTask',
     );
@@ -150,7 +148,7 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       param: {
         dataDemand: { result: 'Boolean, test assertion' },
       },
-      executor: vi
+      executor: rs
         .fn()
         .mockResolvedValueOnce({
           output: false, // First call returns false (assertion failed)
@@ -173,20 +171,22 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       mockedModelRuntime,
     );
 
-    // Verify that createTypeQueryTask was called multiple times with ServiceExtractOption
-    expect(createTypeQueryTaskSpy).toHaveBeenCalledWith(
-      'WaitFor',
-      'test assertion',
-      mockedModelRuntime,
-      {
-        domIncluded: undefined,
-        screenshotIncluded: undefined,
-      },
-      undefined,
-    );
-
-    // Should have been called at least twice (first failed, second succeeded)
+    // Both checks belong to the same execution and share its cancellation signal.
     expect(createTypeQueryTaskSpy).toHaveBeenCalledTimes(2);
+    for (const args of createTypeQueryTaskSpy.mock.calls) {
+      expect(args).toEqual([
+        'WaitFor',
+        'test assertion',
+        expect.objectContaining({
+          config: mockedModelRuntime.config,
+          adapter: mockedModelRuntime.adapter,
+          executionId: result.runner.id,
+        }),
+        { domIncluded: undefined, screenshotIncluded: undefined },
+        undefined,
+        { abortSignal },
+      ]);
+    }
 
     // Verify the result
     expect(result.runner).toBeDefined();

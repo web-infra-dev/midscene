@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" />
+  <title>随机纹理找同款</title>
+  <style>
+    body { margin: 0; background: #f4f5f7; color: #222; font-family: sans-serif; }
+    main { width: 700px; margin: 32px auto; text-align: center; }
+    h1 { font-size: 24px; }
+    p { color: #666; }
+    .cards { display: grid; grid-template-columns: repeat(3, 216px); gap: 20px; margin-top: 28px; }
+    button { padding: 11px; background: white; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; }
+    button img { display: block; width: 192px; height: 192px; pointer-events: none; }
+    button.selected { outline: 4px solid #2563eb; }
+    #result { min-height: 28px; margin-top: 24px; }
+  </style>
+  <main>
+    <h1>随机纹理找同款</h1>
+    <p>点击与参考图片完全一致的卡片。</p>
+    <div class="cards">
+      <button data-slot="0"><img src="texture-0.png" alt="" /></button>
+      <button data-slot="1"><img src="texture-1.png" alt="" /></button>
+      <button data-slot="2"><img src="texture-2.png" alt="" /></button>
+      <button data-slot="3"><img src="texture-3.png" alt="" /></button>
+      <button data-slot="4"><img src="texture-4.png" alt="" /></button>
+      <button data-slot="5"><img src="texture-5.png" alt="" /></button>
+    </div>
+    <div id="result" aria-live="polite"></div>
+  </main>
+  <script>
+    window.clickedSlots = [];
+    document.querySelectorAll('button').forEach((button) => {
+      button.addEventListener('click', () => {
+        window.clickedSlots.push(Number(button.dataset.slot));
+        button.classList.add('selected');
+        document.querySelector('#result').textContent = '已选择';
+      });
+    });
+  </script>
+</html>

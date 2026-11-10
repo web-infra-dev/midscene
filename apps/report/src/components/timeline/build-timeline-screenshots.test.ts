@@ -1,5 +1,5 @@
 import type { ExecutionTask } from '@midscene/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { buildTimelineScreenshots } from './build-timeline-screenshots';
 
 const onePixelPngBase64 =

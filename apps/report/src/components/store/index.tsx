@@ -22,10 +22,7 @@ import { flattenGroupedDumpTasks } from './flatten-tasks';
 const { create } = Z;
 
 export const isElementField = (value: unknown): value is LocateResultElement =>
-  Boolean(value) &&
-  typeof value === 'object' &&
-  Boolean((value as any).center) &&
-  Boolean((value as any).rect);
+  Boolean(value) && typeof value === 'object' && Boolean((value as any).center);
 
 export const useBlackboardPreference = create<{
   markerVisible: boolean;

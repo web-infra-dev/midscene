@@ -8,17 +8,25 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import {
   extractAllDumpScriptsSync,
+  generateDumpScriptTag,
   generateImageScriptTag,
+  parseImageScripts,
 } from '../../src/dump/html-utils';
+import { readReportDumpScripts } from '../../src/dump/report-artifact-reader';
 import { ReportMergingTool, isDirectoryModeReport } from '../../src/report';
 import {
   ReportActionDump,
   type ReportFileWithAttributes,
 } from '../../src/types';
-import { getReportTpl, getTmpFile, writeDumpReport } from '../../src/utils';
+import {
+  getReportTpl,
+  getTmpFile,
+  getVersion,
+  writeDumpReport,
+} from '../../src/utils';
 
 function generateNReports(
   n: number,
@@ -32,7 +40,12 @@ function generateNReports(
     const content = `${c} ${i}`;
     if (withExpectedContent) expectedContents.push(content);
     const reportPath = writeDumpReport(`${prefix}-${i}`, {
-      dumpString: content,
+      dumpString: new ReportActionDump({
+        sdkVersion: getVersion(),
+        groupName: content,
+        modelBriefs: [],
+        executions: [],
+      }).serialize(),
     });
     t.append({
       reportFilePath: reportPath!,
@@ -71,6 +84,11 @@ describe('reportMergingTool', () => {
     const mergedReportContent = readFileSync(mergedReportPath!, 'utf-8');
     expectedContents.forEach((content) => {
       expect(mergedReportContent).contains(content);
+    });
+    // Public merge callers own their input reports unless they explicitly opt
+    // into rmOriginalReports.
+    getReportInfos(tool).forEach((el) => {
+      expect(existsSync(el.reportFilePath)).toBe(true);
     });
   });
 
@@ -218,12 +236,33 @@ describe('reportMergingTool', () => {
 
         // Create HTML report with dump referencing screenshots via relative paths
         const dumpJson = JSON.stringify({
+          sdkVersion: getVersion(),
           groupName: `test-${r}`,
+          modelBriefs: [],
           executions: [
             {
-              screenshots: [
-                { base64: `./screenshots/img-${r}-0.png` },
-                { base64: `./screenshots/img-${r}-1.png` },
+              id: `dir-${r}`,
+              logTime: 0,
+              name: `directory ${r}`,
+              tasks: [
+                {
+                  taskId: `task-${r}`,
+                  type: 'Log',
+                  status: 'finished',
+                  param: {},
+                  recorder: [0, 1].map((i) => ({
+                    type: 'screenshot',
+                    ts: i,
+                    screenshot: {
+                      type: 'midscene_screenshot_ref',
+                      id: `img-${r}-${i}`,
+                      capturedAt: i,
+                      mimeType: 'image/png',
+                      storage: 'file',
+                      path: `./screenshots/img-${r}-${i}.png`,
+                    },
+                  })),
+                },
               ],
             },
           ],
@@ -246,6 +285,7 @@ describe('reportMergingTool', () => {
       }
 
       const mergedPath = tool.mergeReports('dir-mode-merge-test', {
+        outputFormat: 'html-and-external-assets',
         overwrite: true,
       });
 
@@ -258,24 +298,22 @@ describe('reportMergingTool', () => {
       expect(existsSync(mergedScreenshotsDir)).toBe(true);
 
       const copiedFiles = readdirSync(mergedScreenshotsDir).sort();
-      expect(copiedFiles).toContain('img-0-0.png');
-      expect(copiedFiles).toContain('img-0-1.png');
-      expect(copiedFiles).toContain('img-1-0.png');
-      expect(copiedFiles).toContain('img-1-1.png');
-
-      // Verify screenshot content is correct
-      expect(
-        readFileSync(join(mergedScreenshotsDir, 'img-0-0.png'), 'utf-8'),
-      ).toBe('fake-png-0-0');
-      expect(
-        readFileSync(join(mergedScreenshotsDir, 'img-1-1.png'), 'utf-8'),
-      ).toBe('fake-png-1-1');
-
-      // Verify dump data is preserved and base URL fix is injected
-      const mergedContent = readFileSync(mergedPath!, 'utf-8');
-      expect(mergedContent).toContain('./screenshots/img-0-0.png');
-      expect(mergedContent).toContain('./screenshots/img-1-1.png');
-      expect(mergedContent).toContain('document.createElement("base")');
+      expect(copiedFiles).toHaveLength(4);
+      const contents = readReportDumpScripts(mergedPath!).flatMap((script) =>
+        JSON.parse(script.content).executions[0].tasks[0].recorder.map(
+          (frame: any) =>
+            readFileSync(
+              join(dirname(mergedPath!), frame.screenshot.path),
+              'utf8',
+            ),
+        ),
+      );
+      expect(contents.sort()).toEqual([
+        'fake-png-0-0',
+        'fake-png-0-1',
+        'fake-png-1-0',
+        'fake-png-1-1',
+      ]);
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -320,6 +358,7 @@ describe('reportMergingTool', () => {
       }
 
       const mergedPath = tool.mergeReports('dir-mode-rm-test', {
+        outputFormat: 'html-and-external-assets',
         rmOriginalReports: true,
         overwrite: true,
       });
@@ -407,6 +446,7 @@ describe('reportMergingTool', () => {
       }
 
       const mergedPath = tool.mergeReports('dir-mode-noss-rm-test', {
+        outputFormat: 'html-and-external-assets',
         rmOriginalReports: true,
         overwrite: true,
       });
@@ -641,7 +681,7 @@ describe('reportMergingTool', () => {
 
           const content = `${getReportTpl()}
 ${imageScripts}
-<script type="midscene_web_dump">{"groupName":"test-${r}","executions":[]}</script>`;
+${generateDumpScriptTag(JSON.stringify({ sdkVersion: getVersion(), groupName: `test-${r}`, modelBriefs: [], executions: [{ id: `large-${r}`, name: `large ${r}`, logTime: 0, tasks: [{ taskId: `task-${r}`, type: 'Log', status: 'finished', param: { images: Array.from({ length: imagesPerReport }, (_, i) => ({ type: 'midscene_image_url_ref', id: `img-${r}-${i}`, mimeType: 'image/png', storage: 'inline' })) } }] }] }), { 'data-group-id': `large-${r}` })}`;
 
           writeFileSync(reportPath, content);
 
@@ -699,4 +739,79 @@ ${imageScripts}
       }
     },
   );
+
+  it('should store a shared inline reference image once when merging reports', () => {
+    const tmpDir = join(tmpdir(), `midscene-merge-image-dedup-${Date.now()}`);
+    mkdirSync(tmpDir, { recursive: true });
+
+    try {
+      const tool = new ReportMergingTool();
+      const referenceImage = `data:image/webp;base64,${'A'.repeat(64 * 1024)}`;
+      const imageId = 'reference-shared-image';
+
+      for (let index = 0; index < 2; index++) {
+        const reportPath = join(tmpDir, `source-${index}.html`);
+        const dump = new ReportActionDump({
+          sdkVersion: getVersion(),
+          groupName: `source-${index}`,
+          modelBriefs: [],
+          executions: [
+            {
+              id: `ref-${index}`,
+              name: 'reference',
+              logTime: 0,
+              tasks: [
+                {
+                  taskId: `ref-${index}`,
+                  type: 'Log',
+                  status: 'finished',
+                  param: {
+                    image: {
+                      type: 'midscene_image_url_ref',
+                      id: imageId,
+                      mimeType: 'image/webp',
+                      storage: 'inline',
+                    },
+                  },
+                  recorder: [],
+                  executor: async () => undefined,
+                },
+              ],
+            },
+          ],
+        });
+        writeFileSync(
+          reportPath,
+          [
+            getReportTpl(),
+            generateImageScriptTag(imageId, referenceImage),
+            generateDumpScriptTag(dump.serialize(), {
+              'data-group-id': `group-${index}`,
+            }),
+          ].join('\n'),
+        );
+        tool.append({
+          reportFilePath: reportPath,
+          reportAttributes: {
+            testDescription: `Source ${index}`,
+            testDuration: 1,
+            testId: `source-${index}`,
+            testStatus: 'passed',
+            testTitle: `Source ${index}`,
+          },
+        });
+      }
+
+      const mergedReportPath = tool.mergeReports('merged-image-dedup', {
+        outputDir: tmpDir,
+        overwrite: true,
+      });
+      const mergedReport = readFileSync(mergedReportPath!, 'utf-8');
+
+      expect(mergedReport.split(referenceImage)).toHaveLength(2);
+      expect(parseImageScripts(mergedReport)[imageId]).toBe(referenceImage);
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
 });

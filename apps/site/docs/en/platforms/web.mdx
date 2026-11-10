@@ -1,0 +1,72 @@
+import { ChromeExtensionButton } from '@theme';
+
+# Web environment setup
+
+Midscene controls web pages in one of three browsers: the Midscene Chrome extension, a browser launched by Playwright or Puppeteer, or your desktop Chrome through [Chrome Bridge](../bridge-mode). This guide prepares each of them. Prepare only the one you plan to use.
+
+## Chrome extension {#chrome-extension}
+
+The extension runs Playground in desktop Chrome and needs no project or Node.js.
+
+1. Install Midscene from the Chrome Web Store:
+
+   <ChromeExtensionButton linkLabel="Install the Midscene extension from the Chrome Web Store" />
+
+2. Open **Midscene** from the Chrome extensions list. The Midscene sidebar appears on the right side of the browser.
+
+Model settings saved in the extension stay in the browser. Tests and scripts read their own model configuration.
+
+## Playwright {#playwright}
+
+Install Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` and pnpm. In your project directory, run `pnpm init` if there is no `package.json` yet, then install the dependencies and Chromium:
+
+```bash
+pnpm add -D @midscene/web playwright
+pnpm exec playwright install chromium
+```
+
+A Midscene Test Web project already depends on Playwright. Run only `pnpm exec playwright install chromium` in that project.
+
+## Puppeteer {#puppeteer}
+
+```bash
+pnpm add -D @midscene/web puppeteer
+```
+
+Allow Puppeteer to download its bundled browser during installation. If you use a custom browser binary or a remote browser, make sure the executable path or CDP endpoint is reachable. For connection options, see [Integrate with Puppeteer](../integrate-with-puppeteer).
+
+## Chrome Bridge {#chrome-bridge}
+
+To reuse the tabs, login sessions, or extensions of your desktop Chrome, install the [Chrome extension](#chrome-extension), then follow [Chrome Bridge environment setup](../bridge-mode) to verify that a script can control Chrome through it.
+
+## Verify {#verify}
+
+Verify the Chrome extension in Playground. Open [Get started](../get-started?platform=web&scene=playground), where Web and Playground are already selected, choose how to connect a model, and follow the steps to run one `aiAct` action and one `aiAssert` assertion. A passing assertion confirms that the extension and model calls work.
+
+Playground runs in the extension and does not use the Playwright or Puppeteer browser. To verify that browser, choose **Create a Midscene Test project** or **Add to a JavaScript test project** on the same page; the first test run uses it. For Chrome Bridge, run the [connection check](../bridge-mode#verify-connection).
+
+## FAQ {#faq}
+
+<span id="chrome-extension-faq" />
+
+### Can I install the Chrome extension manually?
+
+If you cannot access the Chrome Web Store, download the installation package from the [GitHub Releases page](https://github.com/web-infra-dev/midscene/releases) and install it manually. Manual installations do not receive automatic updates.
+
+### It fails with `Cannot access a chrome-extension:// URL of different extension`
+
+This error usually indicates a conflict between Midscene and another Chrome extension. For example, another Chrome extension may have injected an `<iframe />` or `<script />` into the page.
+
+Follow these steps to find the conflicting Chrome extension:
+
+1. Open the page's developer tools, find an `<iframe />` or `<script />` whose URL starts with `chrome-extension://`, and copy the extension ID from the URL.
+2. Open `chrome://extensions/`, find the Chrome extension by its ID, and disable it.
+3. Refresh the page and try again.
+
+### I get a 403 error when using an Ollama model in the extension
+
+Set the `OLLAMA_ORIGINS="*"` environment variable to allow the Chrome extension to access the Ollama model.
+
+### A test or script cannot open the page
+
+Check that the Playwright or Puppeteer browser is installed and that the target URL is reachable from the machine running the test. A browser launched by Playwright or Puppeteer uses a new profile, so login sessions from your desktop Chrome are not available. Use [Chrome Bridge](#chrome-bridge) to reuse them.

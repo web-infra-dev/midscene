@@ -1,29 +1,29 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 // Mock localStorage
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
-    getItem: vi.fn((key: string) => store[key] || null),
-    setItem: vi.fn((key: string, value: string) => {
+    getItem: rs.fn((key: string) => store[key] || null),
+    setItem: rs.fn((key: string, value: string) => {
       store[key] = value;
     }),
-    clear: vi.fn(() => {
+    clear: rs.fn(() => {
       store = {};
     }),
   };
 })();
 
 // Mock window
-vi.stubGlobal('localStorage', localStorageMock);
-vi.stubGlobal('window', {
+rs.stubGlobal('localStorage', localStorageMock);
+rs.stubGlobal('window', {
   location: { search: '', href: '' },
 });
 
 describe('Playback Speed Store', () => {
   beforeEach(() => {
     localStorageMock.clear();
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   describe('PlaybackSpeedType validation', () => {

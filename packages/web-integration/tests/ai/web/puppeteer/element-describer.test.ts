@@ -4,7 +4,7 @@ import {
   describeElementAtPoint,
 } from '@midscene/core';
 import { getModelRuntime } from '@midscene/core/ai-model';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import {
   DEFAULT_TEST_TIMEOUT,
   createTestContext,

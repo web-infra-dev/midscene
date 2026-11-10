@@ -1,6 +1,6 @@
 import type { DeviceAction } from '@midscene/core';
 import { ReportActionDump } from '@midscene/core';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from '@rstest/core';
 import { LocalExecutionAdapter } from '../../src/adapters/local-execution';
 import { RemoteExecutionAdapter } from '../../src/adapters/remote-execution';
 import { PlaygroundSDK } from '../../src/sdk';
@@ -64,7 +64,8 @@ describe('Playground Integration Tests', () => {
         dumpDataString: () => JSON.stringify({ executions: [{}] }),
         reportHTMLString: () => '',
         writeOutActionDumps: () => {},
-        resetDump: () => {},
+        resetDump: async () => undefined,
+        finalizeReport: async () => undefined,
       } as unknown as PlaygroundAgent;
 
       const config: PlaygroundConfig = {
@@ -221,7 +222,8 @@ describe('Playground Integration Tests', () => {
         dumpDataString: () => JSON.stringify({ executions: [{}] }),
         reportHTMLString: () => '',
         writeOutActionDumps: () => {},
-        resetDump: () => {},
+        resetDump: async () => undefined,
+        finalizeReport: async () => undefined,
       } as unknown as PlaygroundAgent;
 
       adapter = new LocalExecutionAdapter(mockAgent);

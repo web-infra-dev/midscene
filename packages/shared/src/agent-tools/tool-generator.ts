@@ -11,6 +11,8 @@ import {
   unwrapZodField,
 } from '../zod-schema-utils';
 import { getErrorMessage } from './error-formatter';
+import { resolveObservationArtifactAdapter } from './observation-artifact';
+import { readUIObservationRecord } from './observation-record';
 import type { ToolDefaults } from './tool-defaults';
 import type {
   ActionSpaceItem,
@@ -543,7 +545,10 @@ function mergeToolCliMetadata(
     ...(extra?.options ?? {}),
   };
 
-  return Object.keys(options).length > 0 ? { options } : undefined;
+  const positionals = base?.positionals ?? extra?.positionals;
+  return Object.keys(options).length > 0 || positionals
+    ? { options, positionals }
+    : undefined;
 }
 
 /**
@@ -775,7 +780,7 @@ export function generateCommonTools(
     {
       name: 'assert',
       description:
-        'Assert a natural language statement against the current page/screen.',
+        'Assert a natural language statement against the current page/screen or a saved UI observation record.',
       schema: {
         prompt: z
           .string()
@@ -787,6 +792,12 @@ export function generateCommonTools(
           .optional()
           .describe(
             'Custom error message to throw when the assertion fails, e.g. "the login button should be visible".',
+          ),
+        record: z
+          .string()
+          .optional()
+          .describe(
+            'Path to a JSON observation manifest created by the record command. Keep its adjacent image directory with it. When set, the assertion uses that ordered frame window instead of the current screen.',
           ),
         ...promptInputExtraSchema,
         ...initArgSchema,
@@ -810,13 +821,34 @@ export function generateCommonTools(
             toolName: 'assert',
           });
           try {
+            const observationRecord =
+              typeof args.record === 'string'
+                ? readUIObservationRecord(args.record)
+                : undefined;
             const userPrompt = composeUserPrompt({
               prompt,
               image: args.image,
               imageName: args.imageName,
               convertHttpImage2Base64: args.convertHttpImage2Base64,
             });
-            await agent.aiAssert(userPrompt, message);
+            if (observationRecord) {
+              const observationArtifacts =
+                resolveObservationArtifactAdapter(agent);
+              if (!observationArtifacts) {
+                throw new Error(
+                  'assert --record is not supported because this agent cannot load UI observations',
+                );
+              }
+              const observation =
+                observationArtifacts.loadRecord(observationRecord);
+              try {
+                await observation.aiAssert(userPrompt, message);
+              } finally {
+                await observation.dispose?.();
+              }
+            } else {
+              await agent.aiAssert(userPrompt, message);
+            }
             return {
               content: [{ type: 'text', text: 'Assertion passed.' }],
             };

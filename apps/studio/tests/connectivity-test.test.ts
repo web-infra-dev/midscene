@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('@midscene/core/ai-model', () => ({
-  runConnectivityTest: vi.fn(),
+rs.mock('@midscene/core/ai-model', () => ({
+  runConnectivityTest: rs.fn(),
 }));
 
 import { runConnectivityTest as runCoreConnectivityTest } from '@midscene/core/ai-model';
@@ -9,12 +9,14 @@ import { runConnectivityTest } from '../src/main/playground/connectivity-test';
 
 describe('runConnectivityTest', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('runs the Studio model config through the core connectivity suite', async () => {
-    vi.mocked(runCoreConnectivityTest).mockResolvedValue({
+    rs.mocked(runCoreConnectivityTest).mockResolvedValue({
       passed: true,
+      checks: [],
+      requestCount: 0,
     });
 
     const result = await runConnectivityTest({
@@ -26,6 +28,8 @@ describe('runConnectivityTest', () => {
 
     expect(result).toEqual({
       passed: true,
+      checks: [],
+      requestCount: 0,
     });
     expect(runCoreConnectivityTest).toHaveBeenCalledWith({
       defaultModelConfig: expect.objectContaining({
@@ -34,6 +38,11 @@ describe('runConnectivityTest', () => {
         modelName: 'gpt-4o',
         modelFamily: 'gpt-5',
         intent: 'default',
+        slot: 'default',
+      }),
+      locateModelConfig: expect.objectContaining({
+        modelName: 'gpt-4o',
+        intent: 'locate',
         slot: 'default',
       }),
       planningModelConfig: expect.objectContaining({
@@ -56,8 +65,10 @@ describe('runConnectivityTest', () => {
   });
 
   it('supports compatible alias keys when building the core config', async () => {
-    vi.mocked(runCoreConnectivityTest).mockResolvedValue({
+    rs.mocked(runCoreConnectivityTest).mockResolvedValue({
       passed: true,
+      checks: [],
+      requestCount: 0,
     });
 
     await runConnectivityTest({
@@ -86,6 +97,8 @@ describe('runConnectivityTest', () => {
       }),
     ).resolves.toMatchObject({
       passed: false,
+      checks: [],
+      requestCount: 0,
       message: 'Missing required keys: OPENAI_BASE_URL',
     });
     expect(runCoreConnectivityTest).not.toHaveBeenCalled();

@@ -1,10 +1,14 @@
-Set the model configuration through environment variables. See [Model strategy](../model-strategy) for guidance on choosing a model.
+The following example uses `qwen3.7-plus` through Alibaba Cloud:
 
 ```bash
-export MIDSCENE_MODEL_BASE_URL="https://replace-with-your-model-service-url/v1"
-export MIDSCENE_MODEL_API_KEY="replace-with-your-api-key"
-export MIDSCENE_MODEL_NAME="replace-with-your-model-name"
-export MIDSCENE_MODEL_FAMILY="replace-with-your-model-family"
+export MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+export MIDSCENE_MODEL_API_KEY="your-api-key"
+export MIDSCENE_MODEL_NAME="qwen3.7-plus"
+export MIDSCENE_MODEL_FAMILY="qwen3"
 ```
+
+Replace `your-api-key` with your API Key.
+
+> To use another model, such as Doubao, GLM, Gemini, or GPT-5, see [Use a model API key](../model-api-setup).
 
 For all configuration options, see [Model configuration](../model-config).

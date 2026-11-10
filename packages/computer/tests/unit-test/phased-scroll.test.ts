@@ -1,6 +1,6 @@
 import { existsSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { getPhasedScrollBinary } from '../../src/device';
 
 describe('phased-scroll binary resolution', () => {

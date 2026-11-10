@@ -1,6 +1,6 @@
+import { describe, expect, it } from '@rstest/core';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
 import {
   SCRCPY_PREVIEW_MAX_SIZE,
   SCRCPY_PREVIEW_VIDEO_BIT_RATE,

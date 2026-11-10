@@ -240,9 +240,9 @@ export interface ElectronShellApi {
   openRunDirectory: () => Promise<void>;
   /** Open an image with the operating system's default image viewer. */
   openImagePreview: (request: OpenImagePreviewRequest) => Promise<void>;
-  /** Ask the main process for a target path for a report HTML export. */
+  /** Authorize one report write through a native save dialog. Reload revokes it. */
   chooseReportSavePath: (defaultFileName?: string) => Promise<string | null>;
-  /** Ask the main process for a target path for a generic file export. */
+  /** Authorize one generic file write through a native save dialog. */
   chooseFileSavePath: (
     request?: ChooseFileSavePathRequest,
   ) => Promise<string | null>;
@@ -251,9 +251,9 @@ export interface ElectronShellApi {
    * window is not available (e.g. during teardown).
    */
   toggleMaximizeWindow: () => Promise<void>;
-  /** Persist a report HTML file using the native shell process. */
+  /** Write once to the exact path returned by chooseReportSavePath. */
   writeReportFile: (request: WriteReportFileRequest) => Promise<void>;
-  /** Persist a generic text or base64-encoded binary file via the shell. */
+  /** Write text or base64 once to the exact path returned by chooseFileSavePath. */
   writeFile: (request: WriteFileRequest) => Promise<void>;
   /**
    * Sync the app's resolved theme to the OS so window chrome (border,

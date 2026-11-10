@@ -9,7 +9,9 @@ const main = async () => {
   const { default: open } = await import('open');
 
   try {
-    const scrcpyServer = new ScrcpyServer();
+    const scrcpyServer = new ScrcpyServer({
+      host: process.env.MIDSCENE_SCRCPY_HOST,
+    });
     const prepared = await androidPlaygroundPlatform.prepare({
       staticDir,
       scrcpyServer,

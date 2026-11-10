@@ -4,7 +4,7 @@ import type {
   ChatCompletionParamsResult,
   ModelAdapterDefinition,
 } from '../model-adapter/types';
-import { parseModelResponseJson } from '../service-caller/json';
+import { parseModelResponseJson } from '../shared/json';
 import {
   type LocateResultValue,
   createLocateResultValue,
@@ -15,11 +15,13 @@ const doubaoBboxCoordinatesMeta = {
   shape: 'bbox',
   order: 'xy',
   normalizedBy: 1000,
+  rounding: 'round',
 } as const;
 const doubaoPointCoordinatesMeta = {
   shape: 'point',
   order: 'xy',
   normalizedBy: 1000,
+  rounding: 'round',
 } as const;
 
 /**
@@ -151,9 +153,11 @@ const doubaoVisionAdapter: ModelAdapterDefinition = {
     useReasoningAsContentFallback: true,
   },
   locate: {
-    resultAdapter: {
-      coordinates: doubaoBboxCoordinatesMeta,
-      parseRawLocateValue: parseDoubaoRawLocateValue,
+    element: {
+      resultFormat: {
+        coordinates: doubaoBboxCoordinatesMeta,
+        parseRawLocateValue: parseDoubaoRawLocateValue,
+      },
     },
   },
 };

@@ -398,21 +398,26 @@ const DetailPanel = ({
               </Tooltip>
             )}
           {viewType === VIEW_TYPE_JSON && activeTaskJsonText && (
-            <a
-              className="copy-json-link"
-              onClick={() => {
-                navigator.clipboard
-                  .writeText(activeTaskJsonText)
-                  .then(() => {
-                    message.success('JSON copied to clipboard');
-                  })
-                  .catch(() => {
-                    message.error('Copy failed');
-                  });
-              }}
-            >
-              <CopyOutlined /> Copy JSON
-            </a>
+            <Tooltip title="Copy JSON">
+              <button
+                type="button"
+                className="copy-json-link"
+                aria-label="Copy JSON"
+                onClick={() => {
+                  navigator.clipboard
+                    .writeText(activeTaskJsonText)
+                    .then(() => {
+                      message.success('JSON copied to clipboard');
+                    })
+                    .catch(() => {
+                      message.error('Copy failed');
+                    });
+                }}
+              >
+                <CopyOutlined />
+                <span className="copy-json-label">Copy JSON</span>
+              </button>
+            </Tooltip>
           )}
           <OpenInPlayground
             context={(activeTask as ExecutionTaskPlanning)?.uiContext}

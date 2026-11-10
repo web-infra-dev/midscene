@@ -1,0 +1,47 @@
+import SdkDeviceLifecycle from '../../../theme/components/sdk-device-tests/en/sdk-device-lifecycle.mdx';
+import SdkVitestInstall from '../common/sdk-vitest-install.mdx';
+import SdkVitestConfig from '../common/sdk-vitest-config.mdx';
+import SdkVitestWrite from '../common/sdk-vitest-write.mdx';
+import SdkVitestRun from '../common/sdk-vitest-run.mdx';
+import SdkCommonMethods from '../common/sdk-common-methods.mdx';
+import { SdkPrerequisites, SdkPlatformProvider, SdkPlatformSelector } from '@theme';
+
+# Integrate with Vitest
+
+<SdkPlatformProvider lang="en">
+
+We recommend [Rstest](./rstest) or [Vitest](./vitest) for writing JavaScript and TypeScript tests on Android, iOS, HarmonyOS, and desktop. This guide covers Vitest. Vitest organizes test cases, runs lifecycle hooks, and aggregates test results, while Midscene Agents connect to devices, interact with the UI, and perform assertions.
+
+## Before you begin
+
+<SdkPrerequisites lang="en" mode="vitest" />
+
+<SdkPlatformSelector lang="en" />
+
+## 1. Install dependencies
+
+<SdkVitestInstall />
+
+## 2. Configure Vitest
+
+<SdkVitestConfig />
+
+## 3. Write a test
+
+<SdkVitestWrite />
+
+## 4. Run the test and view the report
+
+<SdkVitestRun />
+
+## Common methods
+
+<SdkCommonMethods />
+
+## Lifecycle and exclusive device access
+
+<SdkDeviceLifecycle />
+
+For complete working projects, see the Vitest examples for [Android](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo), [iOS](https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo), [HarmonyOS](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo), and [desktop](https://github.com/web-infra-dev/midscene-example/tree/main/computer/vitest-demo).
+
+</SdkPlatformProvider>

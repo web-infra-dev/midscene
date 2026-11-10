@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { LocalExecutionAdapter } from '../src/adapters/local-execution';
 import type { PlaygroundAgent } from '../src/types';
 
@@ -10,7 +10,7 @@ describe('LocalExecutionAdapter - Config Recreation', () => {
   let agentFactoryCallCount: number;
 
   beforeEach(() => {
-    vi.unstubAllEnvs();
+    rs.unstubAllEnvs();
     agentFactoryCallCount = 0;
 
     // Create a mock agent
@@ -20,19 +20,21 @@ describe('LocalExecutionAdapter - Config Recreation', () => {
           interfaceType: 'puppeteer',
           actionSpace: () => [],
         } as any,
-        getActionSpace: vi.fn(async () => []),
-        destroy: vi.fn(async () => {}),
-        dumpDataString: vi.fn(() => '{"executions":[]}'),
-        reportHTMLString: vi.fn(() => '<html></html>'),
-        writeOutActionDumps: vi.fn(),
-        resetDump: vi.fn(),
-        addDumpUpdateListener: vi.fn(() => () => {}),
+        getActionSpace: rs.fn(async () => []),
+        aiAct: rs.fn(async () => 'done'),
+        destroy: rs.fn(async () => {}),
+        dumpDataString: rs.fn(() => '{"executions":[]}'),
+        reportHTMLString: rs.fn(() => '<html></html>'),
+        writeOutActionDumps: rs.fn(),
+        resetDump: rs.fn(async () => undefined),
+        finalizeReport: rs.fn(async () => undefined),
+        addDumpUpdateListener: rs.fn(() => () => {}),
       }) as any;
 
     mockAgent = createMockAgent();
 
     // Create a factory that returns new agents
-    mockAgentFactory = vi.fn(async () => {
+    mockAgentFactory = rs.fn(async () => {
       agentFactoryCallCount++;
       console.log(`Agent factory called (count: ${agentFactoryCallCount})`);
       return createMockAgent();
@@ -40,8 +42,8 @@ describe('LocalExecutionAdapter - Config Recreation', () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
-    vi.unstubAllEnvs();
+    rs.clearAllMocks();
+    rs.unstubAllEnvs();
   });
 
   it('should recreate agent when overrideConfig is called', async () => {
@@ -72,6 +74,35 @@ describe('LocalExecutionAdapter - Config Recreation', () => {
     expect(agentFactoryCallCount).toBe(1);
   });
 
+  it('reuses the provided Agent across reports when config is unchanged', async () => {
+    const adapter = new LocalExecutionAdapter(mockAgent, mockAgentFactory);
+    for (let run = 0; run < 2; run++) {
+      const result = (await adapter.executeAction(
+        'aiAct',
+        { type: 'aiAct', prompt: 'run' },
+        {},
+      )) as any;
+      expect(result.error).toBeNull();
+    }
+    expect(mockAgentFactory).not.toHaveBeenCalled();
+    expect(mockAgent.destroy).not.toHaveBeenCalled();
+    expect(mockAgent.resetDump).toHaveBeenCalledTimes(2);
+    expect(mockAgent.finalizeReport).toHaveBeenCalledTimes(2);
+  });
+
+  it('creates a factory Agent once and reuses it for later reports', async () => {
+    const adapter = new LocalExecutionAdapter(undefined, mockAgentFactory);
+    for (let run = 0; run < 2; run++) {
+      const result = (await adapter.executeAction(
+        'aiAct',
+        { type: 'aiAct', prompt: 'run' },
+        {},
+      )) as any;
+      expect(result.error).toBeNull();
+    }
+    expect(mockAgentFactory).toHaveBeenCalledOnce();
+  });
+
   it('should work when agent is initially undefined', async () => {
     const adapter = new LocalExecutionAdapter(undefined, mockAgentFactory);
 
@@ -97,7 +128,7 @@ describe('LocalExecutionAdapter - Config Recreation', () => {
   });
 
   it('should handle recreation failure gracefully', async () => {
-    const failingFactory = vi.fn(async () => {
+    const failingFactory = rs.fn(async () => {
       throw new Error('Factory failed');
     });
 

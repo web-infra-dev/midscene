@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { ComputerDevice } from '../../src';
 
 describe('Input Strategy', () => {
@@ -23,10 +23,10 @@ describe('Input Strategy', () => {
       keyboardTypeDelay: 80,
     });
     const inputDriver = (device as any).inputDriver;
-    const typeString = vi
+    const typeString = rs
       .spyOn(inputDriver, 'typeString')
       .mockImplementation(() => {});
-    const delay = vi.spyOn(inputDriver, 'delay').mockResolvedValue(undefined);
+    const delay = rs.spyOn(inputDriver, 'delay').mockResolvedValue(undefined);
 
     await device.inputPrimitives.keyboard!.typeText('A😀B');
 
@@ -40,23 +40,68 @@ describe('Input Strategy', () => {
       keyboardTypeDelay: 25,
     });
     const inputDriver = (device as any).inputDriver;
-    const typeString = vi
+    const typeString = rs
       .spyOn(inputDriver, 'typeString')
       .mockImplementation(() => {});
-    const sendKey = vi
+    const sendKey = rs
       .spyOn(inputDriver, 'sendKey')
       .mockImplementation(() => {});
-    vi.spyOn(inputDriver, 'delay').mockResolvedValue(undefined);
+    rs.spyOn(inputDriver, 'delay').mockResolvedValue(undefined);
 
     await device.inputPrimitives.keyboard!.typeText('a \r\n\tb');
 
     expect(typeString.mock.calls).toEqual([['a'], ['b']]);
-    expect(sendKey.mock.calls).toEqual([['space'], ['enter'], ['tab']]);
+    expect(sendKey.mock.calls).toEqual([['space'], ['return'], ['tab']]);
   });
+
+  it.runIf(process.platform === 'linux')(
+    'types shifted punctuation with explicit Shift key taps on Linux',
+    async () => {
+      const device = new ComputerDevice({
+        keyboardDriver: 'libnut',
+        keyboardTypeDelay: 1,
+      });
+      const inputDriver = (device as any).inputDriver;
+      const typeString = rs
+        .spyOn(inputDriver, 'typeString')
+        .mockImplementation(() => {});
+      const keyTap = rs
+        .spyOn(inputDriver, 'keyTap')
+        .mockImplementation(() => {});
+      rs.spyOn(inputDriver, 'delay').mockResolvedValue(undefined);
+
+      await device.inputPrimitives.keyboard!.typeText(`~!@#$%^&*()_+{}|:"<>?`);
+
+      expect(typeString).not.toHaveBeenCalled();
+      expect(keyTap.mock.calls).toEqual([
+        ['`', ['shift']],
+        ['1', ['shift']],
+        ['2', ['shift']],
+        ['3', ['shift']],
+        ['4', ['shift']],
+        ['5', ['shift']],
+        ['6', ['shift']],
+        ['7', ['shift']],
+        ['8', ['shift']],
+        ['9', ['shift']],
+        ['0', ['shift']],
+        ['-', ['shift']],
+        ['=', ['shift']],
+        ['[', ['shift']],
+        [']', ['shift']],
+        ['\\', ['shift']],
+        [';', ['shift']],
+        ["'", ['shift']],
+        [',', ['shift']],
+        ['.', ['shift']],
+        ['/', ['shift']],
+      ]);
+    },
+  );
 
   it('lets an action-level zero disable the device delay', async () => {
     const device = new ComputerDevice({ keyboardTypeDelay: 80 });
-    const smartTypeString = vi
+    const smartTypeString = rs
       .spyOn(device as any, 'smartTypeString')
       .mockResolvedValue(undefined);
 
@@ -64,6 +109,163 @@ describe('Input Strategy', () => {
       keyboardTypeDelay: 0,
     });
 
-    expect(smartTypeString).toHaveBeenCalledWith('hello', 0);
+    expect(smartTypeString).toHaveBeenCalledWith('hello', {
+      inputStrategy: 'legacy',
+      keyboardTypeDelay: 0,
+    });
+  });
+
+  it('forces real key input without requiring a positive delay', async () => {
+    const device = new ComputerDevice({
+      keyboardDriver: 'libnut',
+      inputStrategy: 'sequential',
+    });
+    const inputDriver = (device as any).inputDriver;
+    const typeString = rs
+      .spyOn(inputDriver, 'typeString')
+      .mockImplementation(() => {});
+
+    await device.inputPrimitives.keyboard!.typeText('A😀B');
+
+    expect(typeString.mock.calls).toEqual([['A'], ['😀'], ['B']]);
+  });
+
+  it('paces implicit Shift for uppercase and punctuation in sequential input', async () => {
+    const device = new ComputerDevice({
+      keyboardDriver: 'libnut',
+      inputStrategy: 'sequential',
+      keyboardModifierDelay: 50,
+      keyboardLayout: 'en-US',
+    });
+    const inputDriver = (device as any).inputDriver;
+    const typeString = rs
+      .spyOn(inputDriver, 'typeString')
+      .mockImplementation(() => {});
+    const explicitShortcut = rs
+      .spyOn(inputDriver, 'keyTapWithModifierDelay')
+      .mockResolvedValue(undefined);
+
+    await device.inputPrimitives.keyboard!.typeText('A!b😀');
+
+    expect(explicitShortcut.mock.calls).toEqual([
+      ['a', ['shift'], 50],
+      ['1', ['shift'], 50],
+    ]);
+    expect(typeString.mock.calls).toEqual([['b'], ['😀']]);
+  });
+
+  it('does not assume an en-US punctuation layout', async () => {
+    const device = new ComputerDevice({
+      keyboardDriver: 'libnut',
+      inputStrategy: 'sequential',
+      keyboardModifierDelay: 50,
+    });
+    const inputDriver = (device as any).inputDriver;
+    const typeString = rs
+      .spyOn(inputDriver, 'typeString')
+      .mockImplementation(() => {});
+    const keyTap = rs.spyOn(inputDriver, 'keyTap').mockImplementation(() => {});
+    const explicitShortcut = rs
+      .spyOn(inputDriver, 'keyTapWithModifierDelay')
+      .mockResolvedValue(undefined);
+
+    await device.inputPrimitives.keyboard!.typeText('A!');
+
+    expect(explicitShortcut).toHaveBeenCalledWith('a', ['shift'], 50);
+    expect(explicitShortcut).toHaveBeenCalledTimes(1);
+    if (process.platform === 'linux') {
+      expect(keyTap).toHaveBeenCalledWith('1', ['shift']);
+    } else {
+      expect(typeString).toHaveBeenCalledWith('!');
+    }
+  });
+
+  it('paces the select-all shortcut used before replacing input', async () => {
+    const device = new ComputerDevice({
+      keyboardDriver: 'libnut',
+      keyboardModifierDelay: 50,
+    });
+    const inputDriver = (device as any).inputDriver;
+    const explicitShortcut = rs
+      .spyOn(inputDriver, 'keyTapWithModifierDelay')
+      .mockResolvedValue(undefined);
+    const keyTap = rs.spyOn(inputDriver, 'keyTap').mockImplementation(() => {});
+    rs.spyOn(inputDriver, 'delay').mockResolvedValue(undefined);
+
+    await (device as any).selectAllAndDelete();
+
+    expect(explicitShortcut).toHaveBeenCalledWith(
+      'a',
+      [process.platform === 'darwin' ? 'command' : 'control'],
+      50,
+    );
+    expect(keyTap).toHaveBeenCalledWith('backspace');
+  });
+
+  it('uses explicit modifier phases when modifier delay is configured', async () => {
+    const device = new ComputerDevice({
+      keyboardDriver: 'libnut',
+      keyboardModifierDelay: 50,
+    });
+    const inputDriver = (device as any).inputDriver;
+    const explicitShortcut = rs
+      .spyOn(inputDriver, 'keyTapWithModifierDelay')
+      .mockResolvedValue(undefined);
+    const sendKey = rs
+      .spyOn(inputDriver, 'sendKey')
+      .mockImplementation(() => {});
+
+    await device.inputPrimitives.keyboard!.keyboardPress('Control+Shift+s');
+
+    expect(explicitShortcut).toHaveBeenCalledWith(
+      's',
+      ['control', 'shift'],
+      50,
+    );
+    expect(sendKey).not.toHaveBeenCalled();
+  });
+
+  it('keeps the existing shortcut path when modifier delay is zero', async () => {
+    const device = new ComputerDevice({
+      keyboardDriver: 'libnut',
+      keyboardModifierDelay: 0,
+    });
+    const inputDriver = (device as any).inputDriver;
+    const explicitShortcut = rs.spyOn(inputDriver, 'keyTapWithModifierDelay');
+    const sendKey = rs
+      .spyOn(inputDriver, 'sendKey')
+      .mockImplementation(() => {});
+
+    await device.inputPrimitives.keyboard!.keyboardPress('Control+s');
+
+    expect(sendKey).toHaveBeenCalledWith('s', ['control']);
+    expect(explicitShortcut).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid modifier delays and keyboard layouts', () => {
+    expect(() => new ComputerDevice({ keyboardModifierDelay: -1 })).toThrow(
+      'keyboardModifierDelay must be a finite non-negative number',
+    );
+    expect(
+      () => new ComputerDevice({ keyboardModifierDelay: Number.NaN }),
+    ).toThrow('keyboardModifierDelay must be a finite non-negative number');
+    expect(
+      () => new ComputerDevice({ keyboardLayout: 'de-DE' as any }),
+    ).toThrow('keyboardLayout must be "en-US" when specified');
+  });
+
+  it('rejects bulk input with a positive device delay', async () => {
+    const device = new ComputerDevice({ keyboardTypeDelay: 80 });
+    const clearInput = rs.spyOn(device as any, 'selectAllAndDelete');
+
+    await expect(
+      device.inputPrimitives.keyboard!.typeText('hello', {
+        inputStrategy: 'bulk',
+        target: { center: [10, 20] },
+      }),
+    ).rejects.toThrow(
+      'inputStrategy "bulk" requires keyboardTypeDelay to be omitted or set to 0; use inputStrategy "sequential" for delayed input',
+    );
+    expect(clearInput).not.toHaveBeenCalled();
   });
 });

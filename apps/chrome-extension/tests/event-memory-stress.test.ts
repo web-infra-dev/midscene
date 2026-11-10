@@ -9,9 +9,9 @@
  * JSON.stringify is a close proxy for that cost. We measure actual heap usage
  * to prove the old approach exceeds Chrome Service Worker memory limits (~256-512 MB).
  *
- * Run: npx vitest run apps/chrome-extension/tests/event-memory-stress.test.ts
+ * Run: npx rstest run apps/chrome-extension/tests/event-memory-stress.test.ts
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 // --- Helpers ---
 

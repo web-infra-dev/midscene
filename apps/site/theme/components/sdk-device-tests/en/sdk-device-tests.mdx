@@ -1,0 +1,39 @@
+import { SdkDeviceTestExample, SdkPlatformContent } from '@theme';
+
+Create `e2e/settings.test.ts`, initializing a new Agent for each test in `beforeEach` and destroying it in `afterEach`:
+
+<SdkPlatformContent platform="android">
+
+<SdkDeviceTestExample runner={props.runner} platform="android" />
+
+If multiple devices are connected, pass a device ID to `agentFromAdbDevice(deviceId)`. See the [Android SDK guide](/sdk/android) for connection options.
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="ios">
+
+<SdkDeviceTestExample runner={props.runner} platform="ios" />
+
+Replace `wdaHost` and `wdaPort` with your verified WebDriverAgent service endpoint. See the [iOS SDK guide](/sdk/ios) for connection options.
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="harmonyos">
+
+<SdkDeviceTestExample runner={props.runner} platform="harmonyos" />
+
+If multiple devices are connected, pass a device ID to `agentFromHdcDevice(deviceId)`. See the [HarmonyOS SDK guide](/sdk/harmonyos) for connection options.
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="desktop">
+
+<SdkDeviceTestExample runner={props.runner} platform="desktop" />
+
+Before running the test, open your system Settings app and bring a scrollable settings page to the foreground. Keep it visible during the test. See the [desktop SDK guide](/sdk/desktop) for permissions and connection options.
+
+</SdkPlatformContent>
+
+`dotenv/config` loads model settings from the project's `.env` file (settings in the Playground are not automatically shared with test runs).
+
+When an `aiAssert` check fails, it throws an error, causing the test runner to mark the test as failed before running `afterEach` to clean up the Agent. You can also extract data from the screen with methods like `aiQuery` and pass the result to the test runner's `expect`. For more interaction and extraction methods, see the [Agent API reference](/reference/#interaction-methods).

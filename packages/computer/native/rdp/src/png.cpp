@@ -81,12 +81,15 @@ std::vector<uint8_t> BuildImageData(const RawFrame& frame) {
       const uint8_t blue = frame.bgra[pixel_offset];
       const uint8_t green = frame.bgra[pixel_offset + 1];
       const uint8_t red = frame.bgra[pixel_offset + 2];
-      const uint8_t alpha = frame.bgra[pixel_offset + 3];
 
       image_data.push_back(red);
       image_data.push_back(green);
       image_data.push_back(blue);
-      image_data.push_back(alpha);
+      // FreeRDP's PIXEL_FORMAT_BGRA32 is an opaque BGRX desktop surface. The
+      // fourth byte is padding and may be zero, so treating it as alpha makes
+      // otherwise valid screenshots transparent and turns them black during
+      // PNG-to-JPEG conversion.
+      image_data.push_back(0xFF);
     }
   }
 

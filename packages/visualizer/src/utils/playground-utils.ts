@@ -1,4 +1,4 @@
-import type { UIContext } from '@midscene/core';
+import type { DeviceAction, UIContext } from '@midscene/core';
 import { StaticPage, StaticPageAgent } from '@midscene/web/static';
 import type { ZodObjectSchema } from '../types';
 import { isZodObjectSchema, unwrapZodType } from '../types';
@@ -21,8 +21,7 @@ export const isRunButtonEnabled = (
   runButtonEnabled: boolean,
   needsStructuredParams: boolean,
   params: any,
-  actionSpace: any[] | undefined,
-  selectedType: string,
+  action: DeviceAction<any> | undefined,
   promptValue: string,
 ) => {
   if (!runButtonEnabled) {
@@ -31,37 +30,26 @@ export const isRunButtonEnabled = (
 
   // Check if this method needs any input
   const needsAnyInput = (() => {
-    if (actionSpace) {
-      // Use actionSpace to determine if method needs any input
-      const action = actionSpace.find(
-        (a) => a.interfaceAlias === selectedType || a.name === selectedType,
-      );
+    if (action) {
+      if (!action.paramSchema) return false;
 
-      // If action exists in actionSpace, check if it has paramSchema with actual fields
-      if (action) {
-        if (!action.paramSchema) return false;
-
-        // Check if paramSchema actually has fields
-        if (
-          typeof action.paramSchema === 'object' &&
-          'shape' in action.paramSchema
-        ) {
-          const shape =
-            (action.paramSchema as { shape: Record<string, unknown> }).shape ||
-            {};
-          const shapeKeys = Object.keys(shape);
-          return shapeKeys.length > 0; // Only need input if there are actual fields
-        }
-
-        // If paramSchema exists but not in expected format, assume it needs input
-        return true;
+      // Check if paramSchema actually has fields
+      if (
+        typeof action.paramSchema === 'object' &&
+        'shape' in action.paramSchema
+      ) {
+        const shape =
+          (action.paramSchema as { shape: Record<string, unknown> }).shape ||
+          {};
+        const shapeKeys = Object.keys(shape);
+        return shapeKeys.length > 0; // Only need input if there are actual fields
       }
 
-      // If not found in actionSpace, assume most methods need input
+      // If paramSchema exists but not in expected format, assume it needs input
       return true;
     }
 
-    // Fallback: most methods need some input
+    // If the action is unavailable, assume most methods need some input.
     return true;
   })();
 
@@ -72,9 +60,6 @@ export const isRunButtonEnabled = (
 
   if (needsStructuredParams) {
     const currentParams = params || {};
-    const action = actionSpace?.find(
-      (a) => a.interfaceAlias === selectedType || a.name === selectedType,
-    );
     if (action?.paramSchema && isZodObjectSchema(action.paramSchema)) {
       // Check if all required fields are filled
       const schema = action.paramSchema as unknown as ZodObjectSchema;

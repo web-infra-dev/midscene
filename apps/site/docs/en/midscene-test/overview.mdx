@@ -1,0 +1,38 @@
+import TestPhilosophy from '../common/test-philosophy.mdx';
+import TestWorkflow from '../common/test-workflow.mdx';
+import TestCollaboration from '../common/test-collaboration.mdx';
+import TestExecutionSection from '../common/test-execution.mdx';
+
+# Midscene Test overview
+
+<div className="introduction-page">
+
+<TestPhilosophy />
+
+## AI and business operations in one YAML file {#ai-and-nodes}
+
+<TestWorkflow />
+
+## Test cases maintained by people and AI {#nodes-and-spec}
+
+<TestCollaboration />
+
+## Test framework capabilities {#framework-capabilities}
+
+<TestExecutionSection />
+
+## Next steps
+
+- [Create a test project](./use): create, run, change a case, and inspect results.
+- [Write YAML cases](./writing): author and maintain cases.
+- [Built-in Nodes across platforms](./builtin-nodes): inspect universal AI capabilities and platform-specific built-in operations.
+- [Configure test projects](./configuration): manage environment variables, case files, and execution projects.
+- [Develop custom Nodes](./extend): encapsulate reusable business operations.
+- [Run tests](./running) and [lifecycle and concurrency](./execution): control execution modes, concurrency strategies, and inspect test reports and diagnostics.
+- [Run in GitHub Actions](./running#run-in-github-actions): connect to CI workflows.
+
+:::info Migrating from the legacy YAML runner
+The legacy `tasks/flow` YAML runner is in maintenance mode, receiving compatibility updates and necessary fixes. Use Midscene Test for new projects and cases. Existing projects can continue using the `midscene` command; see [Migrate to Midscene Test](../migrate-to-midscene-test) when switching to `midscene-test`.
+:::
+
+</div>

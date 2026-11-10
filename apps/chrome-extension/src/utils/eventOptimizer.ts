@@ -2,7 +2,7 @@ import Service from '@midscene/core';
 import type { Rect, UIContext } from '@midscene/core';
 import { ScreenshotItem } from '@midscene/core';
 import { getModelRuntime } from '@midscene/core/ai-model';
-import type { RecordedEvent } from '@midscene/recorder';
+import type { RecordedEvent } from '@midscene/recorder-ui';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { compositeElementInfoImg } from '@midscene/shared/img';
 

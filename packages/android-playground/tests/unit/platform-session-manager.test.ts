@@ -1,30 +1,30 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, rs, test } from '@rstest/core';
 
-const connectMock = vi.fn();
+const connectMock = rs.fn();
 const currentDevice = { connect: connectMock };
-const getConnectedDevicesWithDetailsMock = vi.fn();
-const findAvailablePortMock = vi.fn(async (port: number) => port);
-const androidAgentMock = vi.fn().mockImplementation((device) => ({
+const getConnectedDevicesWithDetailsMock = rs.fn();
+const findAvailablePortMock = rs.fn(async (port: number) => port);
+const androidAgentMock = rs.fn().mockImplementation((device) => ({
   interface: {
     interfaceType: 'android',
     describe: () => 'Mock Android device',
     actionSpace: () => [],
   },
-  destroy: vi.fn(),
+  destroy: rs.fn(),
   device,
 }));
 
-vi.mock('@midscene/android', () => ({
+rs.mock('@midscene/android', () => ({
   AndroidAgent: androidAgentMock,
-  AndroidDevice: vi.fn().mockImplementation(() => currentDevice),
+  AndroidDevice: rs.fn().mockImplementation(() => currentDevice),
   getConnectedDevicesWithDetails: getConnectedDevicesWithDetailsMock,
 }));
 
-vi.mock('@midscene/shared/node', () => ({
+rs.mock('@midscene/shared/node', () => ({
   findAvailablePort: findAvailablePortMock,
 }));
 
-vi.mock('@midscene/playground', () => ({
+rs.mock('@midscene/playground', () => ({
   definePlaygroundPlatform: (descriptor: unknown) => descriptor,
   createScrcpyPreviewDescriptor: (
     custom: Record<string, unknown>,
@@ -39,7 +39,7 @@ vi.mock('@midscene/playground', () => ({
 
 describe('androidPlaygroundPlatform session manager', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     getConnectedDevicesWithDetailsMock.mockResolvedValue([
       {
         udid: 'SERIAL123',
@@ -76,6 +76,27 @@ describe('androidPlaygroundPlatform session manager', () => {
     });
     expect(connectMock).toHaveBeenCalled();
   });
+
+  test.each(['127.0.0.1', '192.168.1.100', '0.0.0.0', '::1'])(
+    'includes the Scrcpy bind host %s before and after device connection',
+    async (host) => {
+      const { androidPlaygroundPlatform } = await import('../../src/platform');
+      const scrcpyServer = {
+        host,
+        currentDeviceId: null,
+        launch: rs.fn(async () => {}),
+        close: rs.fn(),
+      };
+      const prepared = await androidPlaygroundPlatform.prepare({
+        scrcpyServer,
+      });
+      expect(prepared.preview?.custom).toMatchObject({ scrcpyHost: host });
+      const session = await prepared.sessionManager!.createSession({
+        deviceId: 'SERIAL123',
+      });
+      expect(session.preview?.custom).toMatchObject({ scrcpyHost: host });
+    },
+  );
 
   test('keeps the setup schema usable when adb discovery fails', async () => {
     getConnectedDevicesWithDetailsMock

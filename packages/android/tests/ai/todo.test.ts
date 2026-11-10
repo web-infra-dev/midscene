@@ -1,12 +1,12 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { sleep } from '@midscene/core/utils';
+import { afterAll, beforeAll, describe, expect, it, rs } from '@rstest/core';
 import type ADB from 'appium-adb';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { AndroidAgent, AndroidDevice, getConnectedDevices } from '../../src';
 import { dumpUiHierarchyWithRetry } from '../android-emulator-ui-dump';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 240 * 1000,
   hookTimeout: 60 * 1000,
 });

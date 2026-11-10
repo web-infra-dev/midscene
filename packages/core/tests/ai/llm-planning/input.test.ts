@@ -1,16 +1,27 @@
-import { ConversationHistory, plan } from '@/ai-model';
+import {
+  ConversationHistory,
+  standardPlan as runPreparedStandardPlan,
+} from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
+import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
+import type { PlanOptions } from '@/ai-model/workflows/planning/types';
+import type { TUserPrompt } from '@/common';
 import { globalModelConfigManager } from '@midscene/shared/env';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { mockActionSpace } from '../../common';
 import { getContextFromFixture } from '../../evaluation';
-vi.setConfig({
+rs.setConfig({
   testTimeout: 180 * 1000,
   hookTimeout: 30 * 1000,
 });
 
-const defaultModelConfig = globalModelConfigManager.getModelConfig('default');
-const defaultModelRuntime = getModelRuntime(defaultModelConfig);
+const defaultModelRuntime = () =>
+  getModelRuntime(globalModelConfigManager.getModelConfig('default'));
+
+const standardPlan = async (
+  userInstruction: TUserPrompt,
+  options: PlanOptions,
+) => runPreparedStandardPlan(await prepareUserPrompt(userInstruction), options);
 
 describe('automation - planning input', () => {
   it('input value', async () => {
@@ -21,12 +32,13 @@ describe('automation - planning input', () => {
     ];
 
     for (const instruction of instructions) {
-      const { actions } = await plan(instruction, {
+      const { actions } = await standardPlan(instruction, {
         context,
         actionSpace: mockActionSpace,
-        modelRuntime: defaultModelRuntime,
+        modelRuntime: defaultModelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
+        effort: 'balance',
       });
       expect(actions).toBeDefined();
       expect(actions?.length).toBeGreaterThan(0);
@@ -42,12 +54,13 @@ describe('automation - planning input', () => {
     ];
 
     for (const instruction of instructions) {
-      const { actions } = await plan(instruction, {
+      const { actions } = await standardPlan(instruction, {
         context,
         actionSpace: mockActionSpace,
-        modelRuntime: defaultModelRuntime,
+        modelRuntime: defaultModelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
+        effort: 'balance',
       });
       expect(actions).toBeDefined();
       expect(actions?.length).toBeGreaterThan(0);

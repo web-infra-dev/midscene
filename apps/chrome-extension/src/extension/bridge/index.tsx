@@ -7,7 +7,7 @@ import {
   PauseCircleOutlined,
   PlayCircleOutlined,
 } from '@ant-design/icons';
-import { Button, Input, List, Spin } from 'antd';
+import { Button, Input, List, Spin, Tooltip } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
 import type { BridgeStatus } from '../../utils/bridgeConnector';
@@ -33,7 +33,7 @@ interface BridgeMessageRecord {
 }
 
 const BRIDGE_SERVER_URL_KEY = 'midscene-bridge-server-url';
-const DEFAULT_SERVER_URL = 'ws://localhost:3766';
+const DEFAULT_SERVER_URL = 'ws://127.0.0.1:3766';
 
 export default function Bridge() {
   const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>('closed');
@@ -348,19 +348,22 @@ export default function Bridge() {
     <div className="bridge-mode-container">
       <div className="playground-form-container">
         <div className="form-part" />
-        {messageList.length > 0 && (
-          <div className="clear-button-container">
-            <Button
-              size="small"
-              icon={<ClearOutlined />}
-              onClick={clearMessageList}
-              type="text"
-              className="clear-button"
-            />
-          </div>
-        )}
         {/* middle dialog area */}
         <div className="middle-dialog-area">
+          {messageList.length > 0 && (
+            <div className="clear-button-container">
+              <Tooltip title="Clear Bridge activity">
+                <Button
+                  aria-label="Clear Bridge activity"
+                  size="small"
+                  icon={<ClearOutlined />}
+                  onClick={clearMessageList}
+                  type="text"
+                  className="clear-button"
+                />
+              </Tooltip>
+            </div>
+          )}
           <div ref={messageListRef} className="info-list-container">
             <div className="mode-header">
               <div className="mode-icon">
@@ -400,7 +403,7 @@ export default function Bridge() {
                   <Input
                     value={serverUrl}
                     onChange={(e) => handleServerUrlChange(e.target.value)}
-                    placeholder="ws://localhost:3766"
+                    placeholder="ws://127.0.0.1:3766"
                     disabled={bridgeStatus !== 'closed'}
                     className="server-config-input"
                   />
@@ -408,7 +411,7 @@ export default function Bridge() {
                     {serverUrl && serverUrl !== DEFAULT_SERVER_URL ? (
                       <>Remote mode: Connect to {serverUrl}</>
                     ) : (
-                      <>Local mode (default): ws://localhost:3766</>
+                      <>Local mode (default): ws://127.0.0.1:3766</>
                     )}
                   </small>
                 </div>

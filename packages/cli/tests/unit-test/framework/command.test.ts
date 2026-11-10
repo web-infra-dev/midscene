@@ -6,9 +6,10 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { runFrameworkTestConfig } from '@/framework/command';
-import { describe, expect, test } from 'vitest';
+import { RSTEST_YAML_SEQUENTIAL_TEST_MODULE } from '@/framework/rstest-project';
+import { describe, expect, test } from '@rstest/core';
 
 const createTempDir = () => mkdtempSync(join(tmpdir(), 'midscene-command-'));
 
@@ -106,15 +107,21 @@ export function defineYamlCaseTest(test: any, options: any) {
 
   test('uses one batch virtual entry when shareBrowserContext is enabled', async () => {
     const root = createTempDir();
+    const runDir = join(root, 'midscene-run');
     const outputDir = join(root, 'generated-runner');
+    const setupYaml = join(root, 'setup.yaml');
     const yamlA = join(root, 'login.yaml');
     const yamlB = join(root, 'check-login.yaml');
+    const previousRunDir = process.env.MIDSCENE_RUN_DIR;
+    process.env.MIDSCENE_RUN_DIR = runDir;
+    writeFileSync(setupYaml, 'web:\n  url: about:blank\ntasks: []\n');
     writeFileSync(yamlA, 'web:\n  url: about:blank\ntasks: []\n');
     writeFileSync(yamlB, 'web:\n  url: about:blank\ntasks: []\n');
 
     try {
       const exitCode = await runFrameworkTestConfig(
         {
+          setup: setupYaml,
           files: [yamlA, yamlB],
           concurrent: 3,
           continueOnError: true,
@@ -135,15 +142,16 @@ export function defineYamlCaseTest(test: any, options: any) {
           frameworkImport: '@test/framework',
           stdio: 'pipe',
           rstestRunner: async ({ project }) => {
-            expect(project.include).toEqual([
+            expect(project.modules.map((item) => item.id)).toEqual([
               'virtual:midscene-yaml/batch.test.ts',
             ]);
             expect(project.maxConcurrency).toBe(1);
-            const batchModule = project.virtualModules[project.include[0]];
+            const batchModule = project.modules[0].source;
             expect(batchModule).toContain('defineYamlBatchTest');
             expect(batchModule).toContain('"concurrent": 3');
             expect(batchModule).toContain('"shareBrowserContext": true');
             expect(project.cases.map((item) => item.yamlFile)).toEqual([
+              setupYaml,
               yamlA,
               yamlB,
             ]);
@@ -165,12 +173,103 @@ export function defineYamlCaseTest(test: any, options: any) {
         },
       );
       expect(exitCode).toBe(0);
+      const summary = JSON.parse(
+        readFileSync(join(runDir, 'output', 'summary.json'), 'utf8'),
+      );
+      expect(summary.summary).toMatchObject({ total: 3, successful: 3 });
+      expect(
+        summary.results.map((result: { script: string }) =>
+          basename(result.script),
+        ),
+      ).toEqual(['setup.yaml', 'login.yaml', 'check-login.yaml']);
     } finally {
+      if (previousRunDir === undefined) {
+        Reflect.deleteProperty(process.env, 'MIDSCENE_RUN_DIR');
+      } else {
+        process.env.MIDSCENE_RUN_DIR = previousRunDir;
+      }
       rmSync(root, { recursive: true, force: true });
     }
   });
 
-  test('lets Rstest schedule virtual entries by concurrency and stops after failure', async () => {
+  test('uses one batch virtual entry for setup without browser sharing', async () => {
+    const root = createTempDir();
+    const runDir = join(root, 'midscene-run');
+    const outputDir = join(root, 'generated-runner');
+    const setupYaml = join(root, 'setup-android.yaml');
+    const mainYaml = join(root, 'main-android.yaml');
+    const previousRunDir = process.env.MIDSCENE_RUN_DIR;
+    process.env.MIDSCENE_RUN_DIR = runDir;
+    writeFileSync(setupYaml, 'android: {}\ntasks: []\n');
+    writeFileSync(mainYaml, 'android: {}\ntasks: []\n');
+
+    try {
+      const exitCode = await runFrameworkTestConfig(
+        {
+          setup: setupYaml,
+          files: [mainYaml],
+          concurrent: 1,
+          continueOnError: false,
+          retry: 1,
+          summary: 'summary.json',
+          shareBrowserContext: false,
+          globalConfig: {},
+          headed: false,
+          keepWindow: false,
+          dotenvOverride: false,
+          dotenvDebug: false,
+        },
+        {
+          outputDir,
+          frameworkImport: '@test/framework',
+          stdio: 'pipe',
+          rstestRunner: async ({ project }) => {
+            expect(project.modules.map((item) => item.id)).toEqual([
+              'virtual:midscene-yaml/batch.test.ts',
+            ]);
+            expect(project.maxConcurrency).toBe(1);
+            const batchModule = project.modules[0].source;
+            expect(batchModule).toContain('defineYamlBatchTest');
+            expect(batchModule).toContain('"shareBrowserContext": false');
+            expect(batchModule).toContain('"retry": 1');
+            expect(project.cases.map((item) => item.yamlFile)).toEqual([
+              setupYaml,
+              mainYaml,
+            ]);
+            for (const item of project.cases) {
+              mkdirSync(dirname(item.resultFile), { recursive: true });
+              writeFileSync(
+                item.resultFile,
+                JSON.stringify({
+                  file: item.yamlFile,
+                  success: true,
+                  executed: true,
+                  duration: 1,
+                  resultType: 'success',
+                }),
+              );
+            }
+            return 0;
+          },
+        },
+      );
+
+      expect(exitCode).toBe(0);
+      const summary = JSON.parse(
+        readFileSync(join(runDir, 'output', 'summary.json'), 'utf8'),
+      );
+      expect(summary.summary).toMatchObject({ total: 2, successful: 2 });
+    } finally {
+      if (previousRunDir === undefined) {
+        Reflect.deleteProperty(process.env, 'MIDSCENE_RUN_DIR');
+      } else {
+        process.env.MIDSCENE_RUN_DIR = previousRunDir;
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('runs an ordered sequential entry and stops after failure', async () => {
     const root = createTempDir();
     const runDir = join(root, 'midscene-run');
     const outputDir = join(root, 'generated-runner');
@@ -204,7 +303,7 @@ export function defineYamlCaseTest(test: any, options: any) {
           frameworkImport: '@test/framework',
           stdio: 'pipe',
           rstestRunner: async ({ project }) => {
-            includes.push(project.include);
+            includes.push(project.modules.map((item) => item.id));
             for (const item of project.cases) {
               const shouldSkip = item.yamlFile === yamlC;
               if (shouldSkip) {
@@ -230,13 +329,7 @@ export function defineYamlCaseTest(test: any, options: any) {
       );
 
       expect(exitCode).toBe(1);
-      expect(includes).toEqual([
-        [
-          'virtual:midscene-yaml/001-a.test.ts',
-          'virtual:midscene-yaml/002-b.test.ts',
-          'virtual:midscene-yaml/003-c.test.ts',
-        ],
-      ]);
+      expect(includes).toEqual([[RSTEST_YAML_SEQUENTIAL_TEST_MODULE]]);
       const summary = JSON.parse(
         readFileSync(join(runDir, 'output', 'summary.json'), 'utf8'),
       );
@@ -291,7 +384,7 @@ export function defineYamlCaseTest(test: any, options: any) {
           frameworkImport: '@test/framework',
           stdio: 'pipe',
           rstestRunner: async ({ project }) => {
-            includes.push(project.include);
+            includes.push(project.modules.map((item) => item.id));
             for (const item of project.cases) {
               const isPartial = item.yamlFile === yamlA;
               mkdirSync(dirname(item.resultFile), { recursive: true });
@@ -313,12 +406,7 @@ export function defineYamlCaseTest(test: any, options: any) {
       );
 
       expect(exitCode).toBe(1);
-      expect(includes).toEqual([
-        [
-          'virtual:midscene-yaml/001-a.test.ts',
-          'virtual:midscene-yaml/002-b.test.ts',
-        ],
-      ]);
+      expect(includes).toEqual([[RSTEST_YAML_SEQUENTIAL_TEST_MODULE]]);
       const summary = JSON.parse(
         readFileSync(join(runDir, 'output', 'summary.json'), 'utf8'),
       );
@@ -372,7 +460,7 @@ export function defineYamlCaseTest(test: any, options: any) {
           frameworkImport: '@test/framework',
           stdio: 'pipe',
           rstestRunner: async ({ project }) => {
-            includes.push(project.include);
+            includes.push(project.modules.map((item) => item.id));
             for (const item of project.cases) {
               const shouldFail = item.yamlFile === yamlA;
               mkdirSync(dirname(item.resultFile), { recursive: true });
@@ -394,13 +482,7 @@ export function defineYamlCaseTest(test: any, options: any) {
       );
 
       expect(exitCode).toBe(1);
-      expect(includes).toEqual([
-        [
-          'virtual:midscene-yaml/001-a.test.ts',
-          'virtual:midscene-yaml/002-b.test.ts',
-          'virtual:midscene-yaml/003-c.test.ts',
-        ],
-      ]);
+      expect(includes).toEqual([[RSTEST_YAML_SEQUENTIAL_TEST_MODULE]]);
       const summary = JSON.parse(
         readFileSync(join(runDir, 'output', 'summary.json'), 'utf8'),
       );
@@ -450,7 +532,7 @@ export function defineYamlCaseTest(test: any, options: any) {
           frameworkImport: '@test/framework',
           stdio: 'pipe',
           rstestRunner: async ({ project }) => {
-            includes.push(project.include);
+            includes.push(project.modules.map((item) => item.id));
             expect(project.maxConcurrency).toBe(2);
             for (const item of project.cases) {
               mkdirSync(dirname(item.resultFile), { recursive: true });
@@ -520,7 +602,7 @@ export function defineYamlCaseTest(test: any, options: any) {
           frameworkImport: '@test/framework',
           stdio: 'pipe',
           rstestRunner: async ({ project }) => {
-            includes.push(project.include);
+            includes.push(project.modules.map((item) => item.id));
             for (const item of project.cases) {
               if (item.yamlFile === yamlC || item.yamlFile === yamlD) {
                 continue;
@@ -646,11 +728,13 @@ export function defineYamlCaseTest(test: any, options: any) {
     const root = createTempDir();
     const runDir = join(root, 'midscene-run');
     const outputDir = join(root, 'generated-runner');
-    const yaml = join(root, 'case.yaml');
+    const yamlFiles = [join(root, 'first.yaml'), join(root, 'second.yaml')];
     const previousRunDir = process.env.MIDSCENE_RUN_DIR;
 
     process.env.MIDSCENE_RUN_DIR = runDir;
-    writeFileSync(yaml, 'web:\n  url: about:blank\ntasks: []\n');
+    for (const yaml of yamlFiles) {
+      writeFileSync(yaml, 'web:\n  url: about:blank\ntasks: []\n');
+    }
 
     try {
       // The generated virtual module imports the framework entry. Point it at an
@@ -660,7 +744,7 @@ export function defineYamlCaseTest(test: any, options: any) {
       // error instead of a blank "not executed".
       const exitCode = await runFrameworkTestConfig(
         {
-          files: [yaml],
+          files: yamlFiles,
           concurrent: 1,
           continueOnError: false,
           summary: 'summary.json',
@@ -683,9 +767,13 @@ export function defineYamlCaseTest(test: any, options: any) {
         readFileSync(join(runDir, 'output', 'summary.json'), 'utf8'),
       );
       expect(summary.summary.notExecuted).toBe(0);
-      expect(summary.results[0].resultType).toBe('failed');
-      expect(summary.results[0].error).toBeTruthy();
-      expect(summary.results[0].error).not.toContain('Not executed');
+      expect(summary.summary.failed).toBe(2);
+      expect(summary.results).toHaveLength(2);
+      for (const result of summary.results) {
+        expect(result.resultType).toBe('failed');
+        expect(result.error).toBeTruthy();
+        expect(result.error).not.toContain('Not executed');
+      }
     } finally {
       if (previousRunDir === undefined) {
         Reflect.deleteProperty(process.env, 'MIDSCENE_RUN_DIR');

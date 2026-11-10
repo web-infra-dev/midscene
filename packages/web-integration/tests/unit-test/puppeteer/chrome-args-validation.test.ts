@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  rs,
+  test,
+} from '@rstest/core';
 
 // Constants and helper function for testing
 const DANGEROUS_ARGS = [
@@ -36,11 +43,11 @@ const validateChromeArgs = (args: string[], baseArgs: string[]): void => {
 // We need to test the validateChromeArgs function indirectly through launchPuppeteerPage
 // since it's not exported. We'll verify the warnings by spying on console.warn
 describe('Chrome Arguments Validation', () => {
-  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+  let consoleWarnSpy: ReturnType<typeof rs.spyOn>;
 
   beforeEach(() => {
     // Spy on console.warn to verify warning messages
-    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleWarnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {

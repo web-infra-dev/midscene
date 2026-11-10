@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { getExecutionMarkdownView } from './markdown-view';
 
 describe('getExecutionMarkdownView', () => {
@@ -29,7 +29,7 @@ describe('getExecutionMarkdownView', () => {
   });
 
   it('returns the error message and warns when generation fails', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
 
     const result = getExecutionMarkdownView(
       { id: 'execution' } as never,

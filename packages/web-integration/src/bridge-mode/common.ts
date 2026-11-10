@@ -41,10 +41,20 @@ export const BridgeSignalKill = 'MIDSCENE_BRIDGE_SIGNAL_KILL';
 
 export interface BridgeConnectTabOptions {
   /**
+   * Existing Chrome tab ID for connectCurrentTab. Omit to use the foreground tab.
+   * Ignored by connectNewTabWithUrl, which always creates a new tab.
+   */
+  tabId?: number;
+  /**
    * If true, the page will always track the active tab.
    * @default true
    */
   forceSameTabNavigation?: boolean;
+  /**
+   * Whether the newly created tab should become Chrome's active tab.
+   * @default true
+   */
+  activateTab?: boolean;
   /**
    * Custom timeout for connecting to the tab in milliseconds.
    * @default 30000 (30 seconds)
@@ -69,6 +79,7 @@ export enum MouseEvent {
 export enum KeyboardEvent {
   PREFIX = 'keyboard.',
   Type = 'keyboard.type',
+  InsertText = 'keyboard.insertText',
   Press = 'keyboard.press',
 }
 
