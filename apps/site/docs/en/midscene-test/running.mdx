@@ -84,60 +84,19 @@ In CI:
 - With the [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action), set `run-directory` or `MIDSCENE_RUN_DIR`. Execution and artifact collection use the same directory.
 - Collect files using the printed `Summary:` / `Report:` paths or the SDK's `summaryPath`, `markdownPath`, and `reportPath`. See below for sharing reports.
 
-### Configurable result reporters
+### Result reporters
 
-Midscene Test supports multiple output reporters for CI integrations. Existing
-terminal, HTML, Markdown, and summary outputs remain enabled as before.
-Additional reporters are opt-in. Configure them in `midscene.config.ts`:
-
-```ts
-import { defineTestProject } from '@midscene/test/config';
-
-export default defineTestProject({
-  reporters: [
-    ['junit', { outputFile: 'ci/junit.xml' }],
-    ['json', { outputFile: 'ci/results.json' }],
-  ],
-});
-```
-
-You can also enable built-in reporters with repeatable CLI arguments:
+To generate JUnit XML for CI, run:
 
 ```bash
-pnpm exec midscene-test --reporter=verbose --reporter=junit --reporter=json
+pnpm exec midscene-test --reporter=junit
 ```
 
-`default` and `verbose` select the terminal presentation. `junit` and
-`json` add output files. Paths are relative to each run's results directory,
-unless absolute; defaults are `junit.xml` and `result.json`. Outputs are
-listed in `summary.json` under `reporters`; JUnit also sets `junit`.
-The SDK accepts `runTestProject({ reporters: ['junit', 'json'] })`,
-which overrides project reporter configuration.
+This writes `junit.xml` beside `summary.json`. Add `--reporter=json` to also write `result.json`. The `reporters` field in `summary.json` lists the output paths.
 
-A custom reporter can be supplied directly in a JavaScript/TypeScript config
-or SDK call:
+To enable a reporter for every run, set `reporters: ['junit']` in `midscene.config.ts`. Use `reporters: [['junit', { outputFile: 'ci/junit.xml' }]]` to choose a path relative to each run’s results directory.
 
-```ts
-reporters: [{
-  name: 'my-reporter',
-  onEvent(event) { /* live events */ },
-  async onFinished({ result, dump, outputDir }) {
-    // Write a file and return its relative or absolute path, or return void.
-  },
-}]
-```
-
-Choose distinct output paths for built-in reporters. Paths that conflict with runner files such as `summary.json` or `plan.json` are rejected before execution. Built-in output names must also be distinct ignoring case and stay outside the runner’s records and project directories. Custom reporters own the paths they write.
-
-Event handlers may return promises and overlap during execution. All pending handlers settle before `onFinished` runs.
-
-Custom `onFinished` receives the completed result and sanitized report dump.
-Reporter failures are captured as publication failures, make the run fail, and
-do not prevent subsequent reporters from running. JUnit represents Case failures
-as `<failure>`, unexecuted Cases as `<skipped>`, and collection, lifecycle,
-file-hook, resource cleanup and run-infrastructure failures as `<error>`. CI collectors can read
-`midscene_run/test-results/*/junit.xml` (or the configured path). Preserve
-the original command's exit code when collecting artifacts.
+You can also register a custom reporter object with a `name` and one or both hooks. Use `onEvent(event)` for live updates or `onFinished({ result, dump, outputDir })` to write a report. Return the file path from `onFinished` to list it in `summary.json`. A reporter error makes the command exit with code 1.
 
 ### Exit codes
 
