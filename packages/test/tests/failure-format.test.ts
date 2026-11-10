@@ -121,6 +121,31 @@ describe('first application stack frame', () => {
     expect(firstBusinessFrame(wrapper, '/demo')).toBe('custom node.ts:42:5');
   });
 
+  it('keeps parentheses that are part of the file path', () => {
+    const windows = new Error('failure');
+    windows.stack =
+      'Error: failure\n at Object.execute (C:\\Program Files (x86)\\demo\\midscene.config.ts:112:13)';
+    expect(firstBusinessFrame(windows, 'C:\\Program Files (x86)\\demo')).toBe(
+      'midscene.config.ts:112:13',
+    );
+    const posix = new Error('failure');
+    posix.stack =
+      'Error: failure\n at async run (/home/me/demo (copy)/nodes/login.ts:7:3)';
+    expect(firstBusinessFrame(posix, '/home/me/demo (copy)')).toBe(
+      'nodes/login.ts:7:3',
+    );
+    const esm = new Error('failure');
+    esm.stack =
+      'Error: failure\n at Module.login (file:///home/me/demo%20(copy)/nodes/login.mjs:1:38)';
+    expect(firstBusinessFrame(esm, '/home/me/demo (copy)')).toBe(
+      'nodes/login.mjs:1:38',
+    );
+    const symbol = new Error('failure');
+    symbol.stack =
+      'Error: failure\n at Object.[Symbol(run)] (/demo/nodes/login.ts:9:1)';
+    expect(firstBusinessFrame(symbol, '/demo')).toBe('nodes/login.ts:9:1');
+  });
+
   it('supports Windows paths, aggregate branches and missing stacks', () => {
     const leaf = new Error('failure');
     leaf.stack =

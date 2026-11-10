@@ -53,8 +53,10 @@ export function firstBusinessFrame(
         .trim()
         .slice(3)
         .replace(/^async /, '');
-      if (location.endsWith(')'))
-        location = location.slice(location.lastIndexOf('(') + 1, -1);
+      // V8 writes `name (location)`. The location can hold parentheses too,
+      // as in `C:\Program Files (x86)`, so split at the first ` (`.
+      if (location.endsWith(')') && location.includes(' ('))
+        location = location.slice(location.indexOf(' (') + 2, -1);
       const match = location.match(/^(.*):(\d+):(\d+)$/);
       if (!match) continue;
       let file = match[1];
