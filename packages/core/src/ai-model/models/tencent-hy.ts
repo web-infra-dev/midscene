@@ -11,17 +11,16 @@ const buildTencentHyChatCompletionParams = ({
   midsceneDefaults,
   userConfig,
 }: ChatCompletionCallContext): ChatCompletionParamsResult => {
-  const { reasoningEnabled, reasoningEffort } = userConfig;
-  const enabled = reasoningEnabled ?? false;
+  const { reasoningEnabled = false, reasoningEffort } = userConfig;
   const reasoningConfig: Record<string, unknown> = {};
 
   if (isOpenRouter(baseURL)) {
     // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
     const reasoning: Record<string, unknown> = {};
-    if (enabled !== 'default') {
-      reasoning.enabled = enabled;
+    if (reasoningEnabled !== 'default') {
+      reasoning.enabled = reasoningEnabled;
     }
-    if (enabled !== false) {
+    if (reasoningEnabled !== false) {
       if (reasoningEffort !== undefined) {
         reasoning.effort = reasoningEffort;
       }
@@ -30,13 +29,13 @@ const buildTencentHyChatCompletionParams = ({
       reasoningConfig.reasoning = reasoning;
     }
   } else {
-    if (enabled !== 'default') {
+    if (reasoningEnabled !== 'default') {
       // https://cloud.tencent.com/document/product/1823/131208
       reasoningConfig.thinking = {
-        type: enabled ? 'enabled' : 'disabled',
+        type: reasoningEnabled ? 'enabled' : 'disabled',
       };
     }
-    if (enabled !== false) {
+    if (reasoningEnabled !== false) {
       if (reasoningEffort !== undefined) {
         reasoningConfig.reasoning_effort = reasoningEffort;
       }
