@@ -348,7 +348,7 @@ describe('qwen model adapter', () => {
     });
   });
 
-  it('preserves fractional pixel bbox coordinates and center for qwen2.5-vl', () => {
+  it('rounds fractional pixel bbox coordinates and center for qwen2.5-vl', () => {
     const locateAdapter = qwen25Adapter.locate;
     expect(locateAdapter.kind).toBe('standard');
     if (locateAdapter.kind !== 'standard') {
@@ -360,8 +360,8 @@ describe('qwen model adapter', () => {
       { preparedSize: { width: 1000, height: 1000 } },
     );
     expect(result).toEqual({
-      center: [201, 300.875],
-      rect: { left: 100.25, top: 200.5, width: 202.5, height: 201.75 },
+      center: [202, 301],
+      rect: { left: 100, top: 201, width: 203, height: 201 },
     });
   });
 
@@ -419,13 +419,13 @@ describe('Qwen point grounding', () => {
     const context = { preparedSize: { width: 100, height: 80 } };
     expect(
       locate.element.resultCodec.toPixelResult([0.25, 0.5], context).center,
-    ).toEqual([0.25, 0.5]);
+    ).toEqual([0, 1]);
     expect(
       locate.element.resultCodec.toPixelResult([99, 79], context).center,
     ).toEqual([99, 79]);
     expect(
       locate.element.resultCodec.toPixelResult([10, 20, 11, 21], context)
         .center,
-    ).toEqual([10.5, 20.5]);
+    ).toEqual([11, 21]);
   });
 });

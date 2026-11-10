@@ -1,42 +1,19 @@
-import { parseNumericLocateResult } from './parse';
+import { resolveLocateResultCoordinates } from './coordinates';
+import { createLocateResultValue, parseNumericLocateResult } from './parse';
 import {
-  clampPixelBboxToSize,
   clampPixelPointToSize,
-  mapLocateResultToPixelBbox,
   mapLocateResultToPixelPoint,
-  pixelBboxToRect,
+  mapLocateResultToPixelRect,
 } from './pixel-mapper';
 import { createLocateResultPromptSpec } from './prompt-spec';
 import { isBboxLocateResultValue } from './types';
-import type {
-  LocateResultCodec,
-  LocateResultCoordinates,
-  LocateResultFormatDefinition,
-  ResolvedLocateResultCoordinates,
-} from './types';
+import type { LocateResultCodec, LocateResultFormatDefinition } from './types';
 import {
   assertLocateResultCoordinateRangeAndOrder,
   assertLocateResultStructure,
 } from './validation';
 
-export function resolveLocateResultCoordinates(
-  coordinates: LocateResultCoordinates,
-): ResolvedLocateResultCoordinates {
-  if (coordinates.normalizedBy !== undefined && coordinates.normalizedBy <= 0) {
-    throw new Error(
-      `locate result coordinates normalizedBy must be positive: ${coordinates.normalizedBy}`,
-    );
-  }
-  return {
-    ...(coordinates.shape === 'bbox'
-      ? { boundsType: coordinates.boundsType ?? 'inclusive' }
-      : {}),
-    shape: coordinates.shape,
-    order: coordinates.order ?? 'xy',
-    normalizedBy: coordinates.normalizedBy,
-    rounding: coordinates.rounding ?? 'round',
-  };
-}
+export { resolveLocateResultCoordinates } from './coordinates';
 
 export function createLocateResultCodec(
   config: LocateResultFormatDefinition,
@@ -53,16 +30,20 @@ export function createLocateResultCodec(
       resultKeyAliases: config.resultKeyAliases,
     }),
     toPixelResult: (rawResult, context) => {
-      const result = parseRawLocateValue(rawResult);
+      const parsed = parseRawLocateValue(rawResult);
+      assertLocateResultStructure(parsed);
+      const result = createLocateResultValue(
+        parsed.coordinatesMeta,
+        parsed.coordinates,
+      );
       const { preparedSize, contentSize = preparedSize } = context;
-      assertLocateResultStructure(result);
-      const edgeBounds =
+      const leftClosedRightOpenBounds =
         isBboxLocateResultValue(result) &&
-        result.coordinatesMeta.boundsType === 'edges';
+        result.coordinatesMeta.boundsType === 'left-closed-right-open';
       assertLocateResultCoordinateRangeAndOrder(
         result,
-        preparedSize.width - (edgeBounds ? 0 : 1),
-        preparedSize.height - (edgeBounds ? 0 : 1),
+        preparedSize.width - (leftClosedRightOpenBounds ? 0 : 1),
+        preparedSize.height - (leftClosedRightOpenBounds ? 0 : 1),
       );
       // Clamp the mapped center independently from the optional bbox so padding
       // removal cannot change the target by recomputing a clipped box's center.
@@ -74,17 +55,7 @@ export function createLocateResultCodec(
       // and aiLocate's return value. Point-only results leave rect undefined;
       // click coordinates always use the independently calculated center.
       const rect = isBboxLocateResultValue(result)
-        ? (() => {
-            const pixelBbox = clampPixelBboxToSize(
-              mapLocateResultToPixelBbox(result, preparedSize),
-              contentSize,
-              result.coordinatesMeta.boundsType,
-            );
-            return pixelBboxToRect(
-              pixelBbox,
-              result.coordinatesMeta.boundsType,
-            );
-          })()
+        ? mapLocateResultToPixelRect(result, context)
         : undefined;
       return { center, rect };
     },

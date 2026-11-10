@@ -3,6 +3,7 @@ import {
   createLocateResultCodec,
   resolveLocateResultCoordinates,
 } from '@/ai-model/shared/model-locate-result';
+import { mapLocateResultToUnroundedPixelBbox } from '@/ai-model/shared/model-locate-result/pixel-mapper';
 import { locateResultExampleRegions } from '@/ai-model/shared/model-locate-result/prompt-spec';
 import { describe, expect, it } from '@rstest/core';
 
@@ -10,14 +11,166 @@ const locateCtx = (width: number, height: number) => ({
   preparedSize: { width, height },
 });
 
+describe('normalization basis', () => {
+  it.each(['xy', 'yx'] as const)(
+    'maps independently of bounds in %s order',
+    (order) => {
+      for (const normalizedBy of [1, 1000]) {
+        for (const normalizationBasis of [
+          undefined,
+          'image-size',
+          'last-pixel',
+        ] as const) {
+          for (const boundsType of [
+            'closed',
+            'left-closed-right-open',
+          ] as const) {
+            const coordinatesMeta = resolveLocateResultCoordinates({
+              shape: 'bbox',
+              order,
+              normalizedBy,
+              normalizationBasis,
+              boundsType,
+              rounding: 'none',
+            });
+            if (coordinatesMeta.shape !== 'bbox') {
+              throw new Error('Expected bbox metadata');
+            }
+            const coordinates: [number, number, number, number] =
+              order === 'xy'
+                ? [0, normalizedBy / 2, normalizedBy, normalizedBy]
+                : [normalizedBy / 2, 0, normalizedBy, normalizedBy];
+            expect(
+              mapLocateResultToUnroundedPixelBbox(
+                { coordinates, coordinatesMeta },
+                { width: 2000, height: 1000 },
+              ),
+            ).toEqual(
+              normalizationBasis === 'last-pixel'
+                ? [0, 499.5, 1999, 999]
+                : [0, 500, 2000, 1000],
+            );
+            expect(
+              mapLocateResultToUnroundedPixelBbox(
+                { coordinates, coordinatesMeta },
+                { width: 1, height: 1 },
+              ),
+            ).toEqual(
+              normalizationBasis === 'last-pixel'
+                ? [0, 0, 0, 0]
+                : [0, 0.5, 1, 1],
+            );
+          }
+        }
+      }
+    },
+  );
+
+  it.each(['image-size', 'last-pixel'] as const)(
+    'uses %s for points and distances',
+    (normalizationBasis) => {
+      const coordinates = {
+        shape: 'point' as const,
+        normalizedBy: 1000,
+        normalizationBasis,
+        rounding: 'none' as const,
+      };
+      const codec = createLocateResultCodec({ coordinates });
+      const size = { width: 2000, height: 1000 };
+      expect(
+        codec.toPixelResult([500, 500], { preparedSize: size }).center,
+      ).toEqual(
+        normalizationBasis === 'last-pixel' ? [999.5, 499.5] : [1000, 500],
+      );
+      const distance = createCoordinateDistanceToPixels(
+        size,
+        resolveLocateResultCoordinates(coordinates),
+      );
+      expect(distance(500, 'x')).toBe(
+        normalizationBasis === 'last-pixel' ? 999.5 : 1000,
+      );
+      expect(distance(500, 'y')).toBe(
+        normalizationBasis === 'last-pixel' ? 499.5 : 500,
+      );
+      const pixels = createLocateResultCodec({
+        coordinates: { ...coordinates, normalizedBy: undefined },
+      });
+      expect(
+        pixels.toPixelResult([500, 500], { preparedSize: size }).center,
+      ).toEqual([500, 500]);
+    },
+  );
+
+  it.each(['image-size', 'last-pixel'] as const)(
+    'applies bounds after %s mapping',
+    (normalizationBasis) => {
+      for (const boundsType of ['closed', 'left-closed-right-open'] as const) {
+        const codec = createLocateResultCodec({
+          coordinates: {
+            shape: 'bbox',
+            normalizedBy: 1000,
+            normalizationBasis,
+            boundsType,
+            rounding: 'none',
+          },
+        });
+        const result = codec.toPixelResult(
+          [100, 100, 200, 200],
+          locateCtx(2000, 2000),
+        );
+        const left = normalizationBasis === 'last-pixel' ? 199.9 : 200;
+        const width =
+          (normalizationBasis === 'last-pixel' ? 199.9 : 200) +
+          (boundsType === 'closed' ? 1 : 0);
+        expect(result.rect?.left).toBeCloseTo(left);
+        expect(result.rect?.width).toBeCloseTo(width);
+        expect(result.center[0]).toBeCloseTo(left + width / 2);
+      }
+    },
+  );
+});
+
+describe('normalization basis validation and rounding', () => {
+  it('rejects an unsupported basis', () => {
+    const codec = createLocateResultCodec({
+      coordinates: {
+        shape: 'point',
+        normalizedBy: 1000,
+        normalizationBasis: 'invalid' as 'image-size',
+      },
+    });
+    expect(() =>
+      codec.toPixelResult([500, 500], locateCtx(2000, 2000)),
+    ).toThrow(/normalization basis/);
+  });
+
+  it.each([
+    { rounding: 'round' as const, expected: 1000 },
+    { rounding: 'trunc' as const, expected: 999 },
+    { rounding: 'none' as const, expected: 999.5 },
+  ])('applies $rounding after last-pixel mapping', ({ rounding, expected }) => {
+    const codec = createLocateResultCodec({
+      coordinates: {
+        shape: 'point',
+        normalizedBy: 1000,
+        normalizationBasis: 'last-pixel',
+        rounding,
+      },
+    });
+    expect(
+      codec.toPixelResult([500, 500], locateCtx(2000, 2000)).center,
+    ).toEqual([expected, expected]);
+  });
+});
+
 describe('createLocateResultCodec', () => {
   it.each([1, undefined])(
-    'maps edge boxes with normalization %s',
+    'maps left-closed-right-open boxes with normalization %s',
     (normalizedBy) => {
       const codec = createLocateResultCodec({
         coordinates: {
           shape: 'bbox',
-          boundsType: 'edges',
+          boundsType: 'left-closed-right-open',
           normalizedBy,
           rounding: 'none',
         },
@@ -43,9 +196,13 @@ describe('createLocateResultCodec', () => {
     },
   );
 
-  it('clips edge boxes independently from their click centers', () => {
+  it('clips left-closed-right-open boxes independently from their click centers', () => {
     const codec = createLocateResultCodec({
-      coordinates: { shape: 'bbox', boundsType: 'edges', rounding: 'none' },
+      coordinates: {
+        shape: 'bbox',
+        boundsType: 'left-closed-right-open',
+        rounding: 'none',
+      },
     });
     expect(
       codec.toPixelResult([40, 20, 100, 80], {
@@ -61,7 +218,7 @@ describe('createLocateResultCodec', () => {
     ).toThrow(/exceed/);
   });
 
-  it('preserves inclusive pixel bounds by default', () => {
+  it('preserves closed pixel bounds by default', () => {
     const codec = createLocateResultCodec({ coordinates: { shape: 'bbox' } });
     expect(
       codec.toPixelResult([20, 8, 60, 40], locateCtx(100, 80)).rect,
@@ -71,7 +228,82 @@ describe('createLocateResultCodec', () => {
     ).toThrow(/exceed/);
   });
 
-  it.each([undefined, 'invalid'])(
+  it.each(['xy', 'yx'] as const)(
+    'uses bounds semantics for pixel bbox centers in %s order',
+    (order) => {
+      const input =
+        order === 'xy' ? [100, 200, 301, 400] : [200, 100, 400, 301];
+      for (const boundsType of [
+        undefined,
+        'closed',
+        'left-closed-right-open',
+      ] as const) {
+        const codec = createLocateResultCodec({
+          coordinates: { shape: 'bbox', order, boundsType, rounding: 'none' },
+        });
+        const result = codec.toPixelResult(input, locateCtx(500, 500));
+        expect(result.center).toEqual(
+          boundsType === 'left-closed-right-open' ? [200.5, 300] : [201, 300.5],
+        );
+        expect(result.center).toEqual([
+          result.rect!.left + result.rect!.width / 2,
+          result.rect!.top + result.rect!.height / 2,
+        ]);
+      }
+    },
+  );
+
+  it.each(['xy', 'yx'] as const)(
+    'applies bounds semantics before final pixel rounding in %s order',
+    (order) => {
+      for (const normalizedBy of [undefined, 1, 1000]) {
+        const xy = [0.1, 0.2, 0.3, 0.4].map(
+          (value, index) =>
+            value * (normalizedBy ?? (index % 2 === 0 ? 104 : 82)),
+        );
+        const input = order === 'xy' ? xy : [xy[1], xy[0], xy[3], xy[2]];
+        for (const rounding of ['round', 'trunc', 'none'] as const) {
+          for (const boundsType of [
+            'closed',
+            'left-closed-right-open',
+          ] as const) {
+            const codec = createLocateResultCodec({
+              coordinates: {
+                shape: 'bbox',
+                order,
+                normalizedBy,
+                rounding,
+                boundsType,
+              },
+            });
+            const expected =
+              boundsType === 'closed'
+                ? { round: [21, 25], trunc: [21, 25], none: [21.3, 25.1] }
+                : { round: [21, 25], trunc: [20, 24], none: [20.8, 24.6] };
+            const { center } = codec.toPixelResult(input, locateCtx(104, 82));
+            expect(center[0]).toBeCloseTo(expected[rounding][0], 10);
+            expect(center[1]).toBeCloseTo(expected[rounding][1], 10);
+          }
+        }
+      }
+    },
+  );
+
+  it('uses actual bbox metadata from a custom parser and clamps the final center', () => {
+    const codec = createLocateResultCodec({
+      coordinates: { shape: 'point' },
+      parseRawLocateValue: () => ({
+        coordinates: [99, 79, 99, 79],
+        coordinatesMeta: { shape: 'bbox', order: 'xy', rounding: 'none' },
+      }),
+    });
+    expect(codec.toPixelResult(null, locateCtx(100, 80))).toEqual({
+      center: [99, 79],
+      rect: { left: 99, top: 79, width: 1, height: 1 },
+    });
+  });
+
+  it.each(['invalid'])(
     'rejects custom parser metadata without valid rounding: %s',
     (rounding) => {
       const codec = createLocateResultCodec({
@@ -90,6 +322,32 @@ describe('createLocateResultCodec', () => {
       );
     },
   );
+  it('resolves omitted defaults from custom parser metadata', () => {
+    const codec = createLocateResultCodec({
+      coordinates: {
+        shape: 'point',
+        normalizationBasis: 'last-pixel',
+        rounding: 'none',
+      },
+      parseRawLocateValue: () => ({
+        coordinates: [100, 200, 300, 400],
+        coordinatesMeta: { shape: 'bbox', normalizedBy: 1000 },
+      }),
+    });
+    expect(codec.toPixelResult(null, locateCtx(1000, 1000))).toEqual({
+      center: [201, 301],
+      rect: { left: 100, top: 200, width: 201, height: 201 },
+    });
+    expect(resolveLocateResultCoordinates({ shape: 'bbox' })).toEqual({
+      shape: 'bbox',
+      order: 'xy',
+      normalizedBy: undefined,
+      normalizationBasis: 'image-size',
+      boundsType: 'closed',
+      rounding: 'round',
+    });
+  });
+
   it('resolves default rounding before mapping positions and distances', () => {
     const coordinates = resolveLocateResultCoordinates({
       shape: 'point',
@@ -122,21 +380,24 @@ describe('createLocateResultCodec', () => {
     {
       rounding: 'round',
       center: [38, 41],
+      bboxCenter: [38, 41],
       rect: { left: 13, top: 20, width: 51, height: 42 },
     },
     {
       rounding: 'trunc',
       center: [37, 40],
+      bboxCenter: [38, 41],
       rect: { left: 12, top: 20, width: 52, height: 41 },
     },
     {
       rounding: 'none',
       center: [37.875, 40.5],
+      bboxCenter: [38.375, 41],
       rect: { left: 12.625, top: 20.25, width: 51.5, height: 41.5 },
     },
   ] as const)(
     'applies $rounding consistently to positions, bbox metadata and distances',
-    ({ rounding, center, rect }) => {
+    ({ rounding, center, bboxCenter, rect }) => {
       const coordinates = {
         shape: 'point',
         order: 'xy',
@@ -150,14 +411,14 @@ describe('createLocateResultCodec', () => {
       });
       const distanceToPixels = createCoordinateDistanceToPixels(
         size,
-        coordinates,
+        resolveLocateResultCoordinates(coordinates),
       );
       expect(
         pointCodec.toPixelResult([375, 500], { preparedSize: size }).center,
       ).toEqual(center);
       expect(
         bboxCodec.toPixelResult([125, 250, 625, 750], { preparedSize: size }),
-      ).toEqual({ center, rect });
+      ).toEqual({ center: bboxCenter, rect });
       expect([distanceToPixels(-375, 'x'), distanceToPixels(500, 'y')]).toEqual(
         center,
       );
@@ -196,15 +457,27 @@ describe('createLocateResultCodec', () => {
     },
   );
 
-  it.each(['round', 'trunc', 'none'] as const)(
-    'preserves pixel input precision with rounding=%s',
-    (rounding) => {
+  it.each([
+    { rounding: 'round', expected: [11, 21] },
+    { rounding: 'trunc', expected: [10, 20] },
+    { rounding: 'none', expected: [10.75, 20.5] },
+  ] as const)(
+    'applies $rounding to pixel inputs and distances',
+    ({ rounding, expected }) => {
       const codec = createLocateResultCodec({
         coordinates: { shape: 'point', rounding },
       });
       expect(
         codec.toPixelResult([10.75, 20.5], locateCtx(100, 80)).center,
-      ).toEqual([10.75, 20.5]);
+      ).toEqual(expected);
+      const distanceToPixels = createCoordinateDistanceToPixels(
+        { width: 100, height: 80 },
+        resolveLocateResultCoordinates({ shape: 'point', rounding }),
+      );
+      expect([
+        distanceToPixels(-10.75, 'x'),
+        distanceToPixels(20.5, 'y'),
+      ]).toEqual(expected);
     },
   );
 
@@ -541,7 +814,7 @@ describe('createLocateResultCodec', () => {
       coordinates: { shape: 'bbox' },
     });
     expect(bboxCodec.toPixelResult([40, 20, 90, 70], context)).toEqual({
-      center: [65, 45],
+      center: [66, 46],
       rect: { left: 40, top: 20, width: 30, height: 40 },
     });
     expect(bboxCodec.toPixelResult([90, 70, 90, 70], context)).toEqual({
@@ -628,15 +901,93 @@ describe('createLocateResultCodec', () => {
     );
   });
 
-  it('preserves fractional pixel bbox corners and center with yx coordinates', () => {
+  it('rounds fractional pixel bbox corners and center with yx coordinates', () => {
     const codec = createLocateResultCodec({
       coordinates: { shape: 'bbox', order: 'yx' },
     });
     expect(
       codec.toPixelResult([20.5, 10.25, 41.25, 31.75], locateCtx(100, 80)),
     ).toEqual({
-      center: [21, 30.875],
-      rect: { left: 10.25, top: 20.5, width: 22.5, height: 21.75 },
+      center: [22, 31],
+      rect: { left: 10, top: 21, width: 23, height: 21 },
     });
   });
+});
+
+describe('rounded bbox center containment', () => {
+  it.each(['xy', 'yx'] as const)(
+    'clips each axis independently in %s order',
+    (order) => {
+      const cases = [
+        {
+          boundsType: 'closed' as const,
+          bbox: [50, 40, 50, 40],
+          round: [50, 40],
+          trunc: [50, 40],
+          none: [50.5, 40.5],
+        },
+        {
+          boundsType: 'left-closed-right-open' as const,
+          bbox: [50, 40, 51, 41],
+          round: [50, 40],
+          trunc: [50, 40],
+          none: [50.5, 40.5],
+        },
+        {
+          boundsType: 'left-closed-right-open' as const,
+          bbox: [50.6, 40.6, 51.2, 41.2],
+          round: [51, 41],
+          trunc: [51, 41],
+          none: [50.9, 40.9],
+        },
+        {
+          boundsType: 'closed' as const,
+          bbox: [50.6, 40.2, 51.2, 40.4],
+          round: [51, 41],
+          trunc: [51, 40],
+          none: [51.4, 40.8],
+        },
+        {
+          boundsType: 'left-closed-right-open' as const,
+          bbox: [50, 40, 50, 40],
+          round: [50, 40],
+          trunc: [50, 40],
+          none: [50, 40],
+        },
+      ];
+      for (const { boundsType, bbox, ...expected } of cases) {
+        for (const rounding of ['round', 'trunc', 'none'] as const) {
+          const codec = createLocateResultCodec({
+            coordinates: { shape: 'bbox', boundsType, order, rounding },
+          });
+          const input =
+            order === 'xy' ? bbox : [bbox[1], bbox[0], bbox[3], bbox[2]];
+          const { center } = codec.toPixelResult(input, locateCtx(100, 80));
+          expect(center[0]).toBeCloseTo(expected[rounding][0]);
+          expect(center[1]).toBeCloseTo(expected[rounding][1]);
+        }
+      }
+    },
+  );
+
+  it.each(['image-size', 'last-pixel'] as const)(
+    'clips after %s mapping using unrounded endpoints',
+    (normalizationBasis) => {
+      const codec = createLocateResultCodec({
+        coordinates: {
+          shape: 'bbox',
+          boundsType: 'left-closed-right-open',
+          normalizedBy: 1000,
+          normalizationBasis,
+          rounding: 'trunc',
+        },
+      });
+      // Both scales produce a narrow interval containing only pixel 51.
+      const result = codec.toPixelResult(
+        [506, 506, 512, 512],
+        locateCtx(101, 101),
+      );
+      expect(result.center).toEqual([51, 51]);
+    },
+  );
 });

@@ -395,7 +395,7 @@ describe('plan XML parse retry', () => {
     );
     expect(feedback).not.toEqual(expect.stringContaining('locatedPixelResult'));
     expect(result.actions?.[0]?.param.locate.locatedPixelResult.center).toEqual(
-      [20, 30],
+      [21, 31],
     );
   });
 
@@ -1055,7 +1055,7 @@ describe('plan XML parse retry', () => {
     expect(callGenerativeAI).toHaveBeenCalledTimes(2);
     expect(
       result.actions?.[0]?.param?.locate?.locatedPixelResult?.center,
-    ).toEqual([20, 30]);
+    ).toEqual([21, 31]);
     expect(yamlFlowInputs).toHaveLength(1);
     expect(yamlFlowInputs[0]).toEqual([
       {
@@ -1064,7 +1064,7 @@ describe('plan XML parse retry', () => {
           locate: {
             prompt: 'submit',
             locatedPixelResult: {
-              center: [20, 30],
+              center: [21, 31],
               rect: { left: 10, top: 20, width: 21, height: 21 },
             },
           },

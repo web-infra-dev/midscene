@@ -71,7 +71,7 @@ export interface LocateResultPromptSpec {
 }
 
 export interface PixelLocateResult {
-  /** Raw bbox midpoint (or raw point), mapped to the locate image using the configured rounding. */
+  /** Bounds-aware bbox center (or raw point), mapped to pixels before final rounding and content clamping. */
   center: LocateResultPoint;
   /**
    * Original bbox mapped to locate-image pixels and clipped to content bounds.
@@ -89,19 +89,28 @@ export interface LocateResultCodec {
   ): PixelLocateResult;
 }
 
+export type NormalizationBasis = 'image-size' | 'last-pixel';
+
 export type CoordinateRounding = 'round' | 'trunc' | 'none';
 
-export type BboxBoundsType = 'inclusive' | 'edges';
+/** Applied to both axes: closed [min, max] or left-closed-right-open [min, max). */
+export type BboxBoundsType = 'closed' | 'left-closed-right-open';
 
 export interface LocateResultCoordinates {
-  /** Bbox boundary semantics; defaults to inclusive pixel endpoints. */
+  /** Bbox endpoint inclusion; defaults to closed. Used for interval lengths. */
   boundsType?: BboxBoundsType;
   shape: LocateResultShape;
   /** Axis order in the raw coordinates; defaults to xy. */
   order?: 'xy' | 'yx';
-  /** Normalization range, e.g. 1 or 1000. Omit for model-image pixel coordinates. */
+  /**
+   * Input normalization scale, e.g. 1 or 1000, independent of boundsType.
+   * normalizationBasis determines the target pixel scale.
+   * Omit for model-image pixel coordinates.
+   */
   normalizedBy?: number;
-  /** Rounding after normalized-to-pixel mapping; defaults to round. Pixel inputs retain their precision. */
+  /** Mapping multiplier: size (default) or size - 1. Ignored for pixel inputs. */
+  normalizationBasis?: NormalizationBasis;
+  /** Final pixel rounding for centers, bbox corners and distances, regardless of input units; defaults to round. Use none to retain subpixel precision. */
   rounding?: CoordinateRounding;
 }
 
@@ -111,24 +120,39 @@ export type ResolvedLocateResultCoordinates =
       shape: 'point';
       order: 'xy' | 'yx';
       normalizedBy?: number;
+      normalizationBasis: NormalizationBasis;
       rounding: CoordinateRounding;
     }
   | {
       shape: 'bbox';
-      boundsType?: BboxBoundsType;
+      boundsType: BboxBoundsType;
       order: 'xy' | 'yx';
       normalizedBy?: number;
+      normalizationBasis: NormalizationBasis;
       rounding: CoordinateRounding;
     };
 
-export type RawLocateValueParser = (input: RawLocateValue) => LocateResultValue;
+/** Parser output may omit defaults; the codec resolves them before mapping. */
+export type ParsedLocateResultValue =
+  | {
+      coordinates: LocateResultPoint;
+      coordinatesMeta: LocateResultCoordinates & { shape: 'point' };
+    }
+  | {
+      coordinates: LocateResultBbox;
+      coordinatesMeta: LocateResultCoordinates & { shape: 'bbox' };
+    };
+
+export type RawLocateValueParser = (
+  input: RawLocateValue,
+) => ParsedLocateResultValue;
 
 /**
  * Format of one model coordinate value, shared by element and search-area locate.
  * The operation protocol extracts target/reference values from the response;
  * the codec parses each value once and maps it to `{ center, rect }` using the
  * parsed result's coordinatesMeta. Rect is undefined for actual point results.
- * Raw-value parsing and normalized-coordinate rounding are configurable;
+ * Raw-value parsing and final pixel rounding are configurable;
  * coordinate mapping is shared.
  */
 export type LocateResultFormatDefinition = {
@@ -145,7 +169,8 @@ export type LocateResultFormatDefinition = {
    * Optional model-specific parser for nonstandard formats or point/bbox fallback.
    * Return `{ coordinates, coordinatesMeta }` describing the actual shape, axis
    * order, and normalization. Preserve coordinate precision; do not round or map
-   * to pixels here. Include an explicit rounding policy in `coordinatesMeta`.
+   * to pixels here. Optional `coordinatesMeta` fields may be omitted; the codec
+   * resolves their defaults before mapping, including `rounding: 'round'`.
    * Omit the parser to parse numeric values according to `coordinates`.
    */
   parseRawLocateValue?: RawLocateValueParser;

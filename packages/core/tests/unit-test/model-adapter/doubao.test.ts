@@ -270,6 +270,8 @@ describe('doubao model adapter', () => {
     expect(parseDoubaoRawLocateValue([100, 200, 300, 400])).toEqual({
       coordinates: [100, 200, 300, 400],
       coordinatesMeta: {
+        normalizationBasis: 'image-size',
+        boundsType: 'closed',
         shape: 'bbox',
         order: 'xy',
         normalizedBy: 1000,
@@ -285,6 +287,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [100, 200, 300, 400],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -298,6 +302,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [100, 200, 300, 400],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -311,6 +317,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [100, 200, 300, 400],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -324,6 +332,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [336, 163, 717, 200],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -337,6 +347,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [336, 163, 717, 200],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -350,6 +362,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [653, 277, 664, 291],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -363,6 +377,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [653, 277, 664, 291],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -376,6 +392,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [782, 541, 815, 559],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -389,6 +407,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [782, 541, 815, 559],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -402,6 +422,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [410, 295, 885, 345],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -415,6 +437,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [859, 773, 923, 808],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -428,6 +452,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [859, 773, 923, 808],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -441,6 +467,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [650, 700, 710, 730],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -454,6 +482,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [100, 200, 300, 400],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -467,6 +497,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [100, 5, 200, 300],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -480,6 +512,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [100, 200, 300, 400],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -496,6 +530,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [100, 200, 300, 400],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -509,6 +545,7 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [100, 200],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
           shape: 'point',
           order: 'xy',
           normalizedBy: 1000,
@@ -522,6 +559,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [1, 2, 5, 6],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
