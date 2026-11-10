@@ -84,6 +84,20 @@ In CI:
 - With the [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action), set `run-directory` or `MIDSCENE_RUN_DIR`. Execution and artifact collection use the same directory.
 - Collect files using the printed `Summary:` / `Report:` paths or the SDK's `summaryPath`, `markdownPath`, and `reportPath`. See below for sharing reports.
 
+### Result reporters
+
+To generate JUnit XML for CI, run:
+
+```bash
+pnpm exec midscene-test --reporter=junit
+```
+
+This writes `junit.xml` beside `summary.json`. Add `--reporter=json` to also write `result.json`. The `reporters` field in `summary.json` lists the output paths.
+
+To enable a reporter for every run, set `reporters: ['junit']` in `midscene.config.ts`. Use `reporters: [['junit', { outputFile: 'ci/junit.xml' }]]` to choose a path relative to each run’s results directory.
+
+You can also register a custom reporter object with a `name` and one or both hooks. Use `onEvent(event)` for live updates or `onFinished({ result, dump, outputDir })` to write a report. Return the file path from `onFinished` to list it in `summary.json`. A reporter error makes the command exit with code 1.
+
 ### Exit codes
 
 You can determine the overall outcome of a test run from the CLI exit code:

@@ -5,6 +5,7 @@ import type {
   WorkflowDocumentRunResult,
 } from '../engine/types';
 import type { WorkflowError } from '../errors';
+import type { TestReporterArtifact } from './reporter-config';
 import type { TestFileSelection, TestTagSelection } from './test-project';
 
 export type TestProjectCaseRunResult = CaseRunOutcome & {
@@ -66,6 +67,10 @@ export interface TestProjectRunResult {
   summaryPath: string;
   /** Absolute path to the generated per-run result.md. */
   markdownPath?: string;
+  /** Convenience path when the JUnit reporter is enabled. */
+  junitPath?: string;
+  /** Files emitted by configured result reporters. */
+  reporterArtifacts?: readonly TestReporterArtifact[];
   reportDir: string;
   /** Absolute path to the unified Midscene Test HTML report. */
   reportPath?: string;

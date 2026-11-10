@@ -17,6 +17,8 @@ import {
   prepareProject,
   selectProjects,
 } from './project-preparation';
+import { validateTestReporters } from './reporter-config';
+import { createTestReporters } from './reporter-runner';
 import { loadTestProject } from './test-project';
 
 const padDatePart = (value: number): string => String(value).padStart(2, '0');
@@ -85,12 +87,25 @@ export async function prepareTestRun(
   if (options.configPath && !existsSync(configPath!))
     throw new Error(`Midscene config does not exist: ${configPath}`);
   const definition = await loadTestProject<unknown>(configPath);
+  const entries =
+    options.reporters === undefined
+      ? definition.reporters
+      : validateTestReporters(options.reporters);
   const artifactDir = resolveMidsceneRunDir(input.projectRoot);
   return runWithMidsceneRunDir(artifactDir, async () => {
     const resultDir = options.resultDir
       ? resolve(input.cwd, options.resultDir)
       : join(artifactDir, 'test-results');
     const runDir = join(resultDir, runId);
+    const selectedProjects = selectProjects(
+      definition.projects,
+      options.projectNames,
+    );
+    const reporters = createTestReporters(
+      entries,
+      runDir,
+      selectedProjects.map((project) => project.projectId),
+    );
     const summaryPath = join(runDir, 'summary.json');
     const reportDir = definition.output.reportDir
       ? resolve(input.projectRoot, definition.output.reportDir)
@@ -98,10 +113,7 @@ export async function prepareTestRun(
     mkdirSync(resultDir, { recursive: true });
     mkdirSync(runDir);
     const projects: PreparedExecutionProject[] = [];
-    for (const project of selectProjects(
-      definition.projects,
-      options.projectNames,
-    ))
+    for (const project of selectedProjects)
       projects.push(
         await prepareProject(
           project,
@@ -143,8 +155,15 @@ export async function prepareTestRun(
       preflightScope: hasFormatMismatch ? 'run' : 'project',
       reportEnabled: true,
       publications: [],
+      reporters,
       onProgress: options.onProgress ?? (() => {}),
-      onEvent: options.onEvent,
+      onEvent: (event) => {
+        try {
+          options.onEvent?.(event);
+        } finally {
+          reporters.onEvent(event);
+        }
+      },
     };
   });
 }

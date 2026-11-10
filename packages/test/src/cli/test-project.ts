@@ -3,6 +3,10 @@ import { pathToFileURL } from 'node:url';
 import { require as tsxRequire } from 'tsx/cjs/api';
 import { NodeRegistry } from '../engine/registry';
 import type { NodeDefinition } from '../node/types';
+import {
+  type TestReporterEntry,
+  validateTestReporters,
+} from './reporter-config';
 
 import type {
   FileSetupDefinition,
@@ -83,6 +87,8 @@ export interface TestProjectDefinition<
   projects?: readonly ExecutionProjectDefinition<TContext, TProjectContext>[];
   test?: TestOptions;
   output?: TestOutputDefinition;
+  /** Additional result reporters, run together after execution. */
+  reporters?: readonly TestReporterEntry[];
   nodes?: readonly NodeDefinition<any, any, TContext>[];
 }
 
@@ -103,6 +109,7 @@ export interface LoadedTestProject<
   hasExplicitProjects: boolean;
   test: ResolvedTestOptions;
   output: ResolvedTestOutputDefinition;
+  reporters: readonly TestReporterEntry[];
   nodes: NodeRegistry;
   resolveNode(name: string): NodeDefinition<any, any, TContext> | undefined;
 }
@@ -658,7 +665,7 @@ const validateTestProjectDefinition = <TContext, TProjectContext = TContext>(
   }
   rejectUnknownKeys(
     definition,
-    ['setup', 'fileSetup', 'projects', 'test', 'output', 'nodes'],
+    ['setup', 'fileSetup', 'projects', 'test', 'output', 'reporters', 'nodes'],
     'root',
   );
   const nodes = new NodeRegistry(
@@ -679,6 +686,7 @@ const validateTestProjectDefinition = <TContext, TProjectContext = TContext>(
     ...resolvedProjects,
     test,
     output: validateOutput(definition.output),
+    reporters: validateTestReporters(definition.reporters),
     nodes,
     resolveNode: (name) =>
       nodes.get(name) as NodeDefinition<any, any, TContext> | undefined,

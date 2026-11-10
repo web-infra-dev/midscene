@@ -517,6 +517,27 @@ async function runWithReportSession(
       completedResult = { ...completedResult, markdownPath };
     },
   );
+  await plan.reporters.finish({
+    context: () => ({
+      result: completedResult,
+      dump: buildTestRunReportDump(
+        completedResult,
+        reportIndex ?? { sources: [], metrics: sumTestRunReportMetrics([]) },
+      ),
+      outputDir: dirname(summaryPath),
+    }),
+    publish: (path, write) => publish('write-result', path, write),
+    onArtifact: (artifact, builtin) => {
+      completedResult = {
+        ...completedResult,
+        reporterArtifacts: [
+          ...(completedResult.reporterArtifacts ?? []),
+          artifact,
+        ],
+        ...(builtin === 'junit' ? { junitPath: artifact.path } : {}),
+      };
+    },
+  });
   if (completedResult.reportPath && !hasInfrastructureError)
     await publish('write-result', reports.directory, () => reports.prune());
   await writeSummary();

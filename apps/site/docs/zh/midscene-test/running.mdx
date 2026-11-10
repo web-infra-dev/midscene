@@ -84,6 +84,20 @@ MIDSCENE_RUN_DIR="./artifacts" pnpm exec midscene-test
 - 使用 [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action) 时，通过 `run-directory` 或 `MIDSCENE_RUN_DIR` 指定目录，执行与产物收集共用该目录。
 - 按终端打印的 `Summary:` / `Report:`，或 SDK 返回的 `summaryPath`、`markdownPath`、`reportPath` 收集文件。分享报告的方式见下文。
 
+### 结果 Reporter
+
+在 CI 中生成 JUnit XML：
+
+```bash
+pnpm exec midscene-test --reporter=junit
+```
+
+`junit.xml` 与 `summary.json` 位于同一目录。加上 `--reporter=json` 可同时生成 `result.json`。产物路径可从 `summary.json` 的 `reporters` 字段读取。
+
+要在每次运行时启用 JUnit，在 `midscene.config.ts` 中设置 `reporters: ['junit']`。要指定相对于当次结果目录的路径，可写成 `reporters: [['junit', { outputFile: 'ci/junit.xml' }]]`。
+
+也可以在 `reporters` 中注册自定义对象，提供 `name` 和至少一个回调。用 `onEvent(event)` 接收实时进度，用 `onFinished({ result, dump, outputDir })` 写报告。从 `onFinished` 返回文件路径即可将其登记到 `summary.json`。Reporter 报错时，命令以退出码 1 结束。
+
 ### 退出码
 
 你可以根据 CLI 退出码判断整次测试运行是否成功：
