@@ -1,6 +1,3 @@
-import { getBasicEnvValue } from '@midscene/shared/env/basic';
-import { MIDSCENE_TEST_REPORT_REDACT } from '@midscene/shared/env/types';
-import { ifInNode } from '@midscene/shared/utils';
 import type {
   TestRunReportError,
   TestRunReportValue,
@@ -12,27 +9,6 @@ const MAX_ARRAY_ITEMS = 50;
 const MAX_OBJECT_KEYS = 50;
 const MAX_SERIALIZED_BYTES = 64 * 1024;
 const TRUNCATED_VALUE = '[Truncated: display value exceeded 64 KiB]';
-
-const normalizedSecretKeys = [
-  'password',
-  'passwd',
-  'secret',
-  'token',
-  'authorization',
-  'cookie',
-  'apikey',
-];
-
-const normalizedKey = (key: string): string =>
-  key.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-export const isReportRedactionEnabled = (): boolean =>
-  !ifInNode || getBasicEnvValue(MIDSCENE_TEST_REPORT_REDACT) !== 'false';
-
-export const isReportSecretKey = (key: string): boolean => {
-  const normalized = normalizedKey(key);
-  return normalizedSecretKeys.some((secret) => normalized.includes(secret));
-};
 
 const objectPath = (parent: string, key: string): string =>
   /^[A-Za-z_$][\w$]*$/.test(key)
@@ -52,12 +28,8 @@ export function sanitizeReportText(
 }
 
 /** Convert arbitrary Node input/output to a bounded, JSON-safe display value. */
-export function sanitizeReportValue(
-  value: unknown,
-  { redactSecrets = isReportRedactionEnabled() } = {},
-): TestRunReportValue {
+export function sanitizeReportValue(value: unknown): TestRunReportValue {
   const truncatedPaths = new Set<string>();
-  const redactedPaths = new Set<string>();
   const ancestors = new WeakSet<object>();
   let remainingBytes = MAX_SERIALIZED_BYTES;
 
@@ -152,16 +124,11 @@ export function sanitizeReportValue(
     for (const key of keys.slice(0, MAX_OBJECT_KEYS)) {
       const childPath = objectPath(path, key);
       if (!consume(childPath, key)) break;
-      if (redactSecrets && isReportSecretKey(key)) {
-        output[key] = '[REDACTED]';
-        redactedPaths.add(childPath);
-      } else {
-        output[key] = visit(
-          (current as Record<string, unknown>)[key],
-          childPath,
-          depth + 1,
-        );
-      }
+      output[key] = visit(
+        (current as Record<string, unknown>)[key],
+        childPath,
+        depth + 1,
+      );
       if (remainingBytes <= 0) break;
     }
     if (keys.length > Object.keys(output).length) truncatedPaths.add(path);
@@ -181,54 +148,10 @@ export function sanitizeReportValue(
   return {
     value: sanitized,
     ...(truncatedPaths.size > 0 ? { truncatedPaths: [...truncatedPaths] } : {}),
-    ...(redactedPaths.size > 0 ? { redactedPaths: [...redactedPaths] } : {}),
   };
 }
 
-function redactAuthorizationValue(_: string, label: string, value: string) {
-  const quote = value.startsWith('"') || value.startsWith("'") ? value[0] : '';
-  return `${label}${quote}[REDACTED]${quote}`;
-}
-
-export function redactCredentials(value: string): string {
-  return (
-    value
-      // A quoted field can span lines. Stop at the next structured field.
-      .replace(
-        /((?:"authorization"|'authorization')\s*[:=]\s*)("(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|\[REDACTED\]|[^\r\n,;}\]]+)/gi,
-        redactAuthorizationValue,
-      )
-      // A bare header owns its whole line. Accept quoted or indented continuations.
-      .replace(
-        /(\bauthorization[ \t]*[:=][ \t]*(?:\s*(?=["'])|\r?\n[ \t]+)?)("(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|[^\r\n]*)/gi,
-        redactAuthorizationValue,
-      )
-      .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]')
-      .replace(/(https?:\/\/)[^\s/@]+:[^\s/@]+@/gi, '$1[REDACTED]@')
-      .replace(
-        /(["']?\b(?:password|passwd|secret|token|cookie|api[_-]?key)\b["']?\s*[:=]\s*)(?:\[REDACTED\]|"[^"]*"|'[^']*'|[^\s,;}\]]+)/gi,
-        '$1[REDACTED]',
-      )
-  );
-}
-
-export function redactDiagnosticMessage(value: string): string {
-  return sanitizeReportText(redactCredentials(value));
-}
-
 export function sanitizeReportError(error: unknown): TestRunReportError {
-  return serializeWorkflowError(error, {
-    redactSecrets: isReportRedactionEnabled(),
-  });
-}
-
-export function serializeWorkflowError(
-  error: unknown,
-  { redactSecrets }: { redactSecrets: boolean },
-): TestRunReportError {
-  const messageText = redactSecrets
-    ? redactDiagnosticMessage
-    : sanitizeReportText;
   const ancestors = new WeakSet<object>();
   let remainingBytes = MAX_SERIALIZED_BYTES - 1024;
   let nodes = 0;
@@ -245,7 +168,7 @@ export function serializeWorkflowError(
       return {
         format: 'midscene-error',
         name: 'Error',
-        message: messageText(String(current)),
+        message: sanitizeReportText(String(current)),
       };
     if (ancestors.has(current)) return shortened();
     ancestors.add(current);
@@ -267,7 +190,7 @@ export function serializeWorkflowError(
         typeof source.name === 'string'
           ? sanitizeReportText(source.name, 200)
           : 'Error',
-      message: messageText(
+      message: sanitizeReportText(
         typeof source.message === 'string' ? source.message : String(current),
       ),
       ...(typeof source.code === 'string'
@@ -287,7 +210,6 @@ export function serializeWorkflowError(
           : undefined;
       const details = sanitizeReportValue(
         encodedDetails ? encodedDetails.value : source.details,
-        { redactSecrets },
       );
       for (const field of ['redactedPaths', 'truncatedPaths'] as const) {
         const paths = encodedDetails?.[field];
@@ -330,9 +252,7 @@ export function serializeWorkflowError(
     if (typeof source.stack === 'string' && source.stack) {
       // Keep the runtime stack, including user frames beyond the message limit.
       // Allocate after causes so the original failure has priority over wrappers.
-      let stack = redactSecrets
-        ? redactCredentials(source.stack)
-        : source.stack;
+      let stack = source.stack;
       const budget = Math.max(0, remainingBytes - 128);
       if (stringByteLength(JSON.stringify(stack)) > budget) {
         const suffix = '\n… [truncated: stack trace size limit]';

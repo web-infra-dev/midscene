@@ -1,10 +1,6 @@
-import { afterEach, describe, expect, it, rs } from '@rstest/core';
+import { describe, expect, it } from '@rstest/core';
 import { load } from 'js-yaml';
 import { parseWorkflowSource } from '../src/parser/source';
-
-afterEach(() => {
-  rs.unstubAllEnvs();
-});
 
 describe('workflow YAML source snapshot', () => {
   it('locates repeated steps, hook phases and aliases at their author positions', () => {
@@ -42,7 +38,7 @@ describe('workflow YAML source snapshot', () => {
     expect(snapshot.locate(['cases', 9, 'steps', 0])).toBeUndefined();
   });
 
-  it('uses original lines despite multiline redaction, CRLF and BOM', () => {
+  it('uses original lines with multiline scalars, CRLF and BOM', () => {
     const snapshot = parseWorkflowSource(
       '\ufeffpassword: |\r\n  first\r\n  second\r\ncases:\r\n  - name: test\r\n    steps:\r\n      - test.record: hello\r\n',
     );
@@ -70,55 +66,9 @@ describe('workflow YAML source snapshot', () => {
     expect(snapshot.parsed).toEqual(load(source));
   });
 
-  it.each([
-    '\ufeffpassword: private\r\nprompt: hello\r\n',
-    'password: "escaped\\u0020secret"\nprompt: hello\n',
-    '"api-key": |\n  private first line\n  private second line\nprompt: hello\n',
-    'empty:\nsecret: {nested: private}\nprompt: hello\n',
-    '{authorization: [private, hidden], prompt: hello}',
-    '? password\n: private\nprompt: hello\n',
-  ])(
-    'redacts structured secret fields without changing parsed execution data: %s',
-    (source) => {
-      const { parsed, sourceYaml } = parseWorkflowSource(source);
-      expect(parsed).toEqual(load(source));
-      expect(sourceYaml.value).not.toMatch(/private|hidden|escaped/);
-      expect(sourceYaml.value).toContain('[REDACTED]');
-      expect(sourceYaml.redactedPaths).toHaveLength(1);
-      expect(load(sourceYaml.value as string)).toMatchObject({
-        prompt: 'hello',
-      });
-    },
-  );
-
-  it('preserves YAML anchors and aliases when report redaction is disabled', () => {
-    rs.stubEnv('MIDSCENE_TEST_REPORT_REDACT', 'false');
-    const source = 'shared: &credential "private"\npassword: *credential\n';
-    expect(parseWorkflowSource(source).sourceYaml).toEqual({ value: source });
-  });
-
-  it('redacts anchor definitions when a secret field uses an alias', () => {
-    const source =
-      'shared: &credential "private"\npassword: *credential\nprompt: hello\n';
-    const { sourceYaml } = parseWorkflowSource(source);
-    expect(sourceYaml.value).not.toContain('private');
-    expect(load(sourceYaml.value as string)).toEqual({
-      shared: '[REDACTED]',
-      password: '[REDACTED]',
-      prompt: 'hello',
-    });
-  });
-
-  it('redacts all aliases of a structured secret value', () => {
-    const source =
-      'token: &credential {nested: private}\ncopy: *credential\nprompt: hello\n';
-    const { sourceYaml } = parseWorkflowSource(source);
-    expect(sourceYaml.value).not.toContain('private');
-    expect(load(sourceYaml.value as string)).toEqual({
-      token: '[REDACTED]',
-      copy: '[REDACTED]',
-      prompt: 'hello',
-    });
+  it('keeps field values and YAML aliases in the snapshot', () => {
+    const source = 'shared: &value example\npassword: *value\n';
+    expect(parseWorkflowSource(source).sourceYaml.value).toBe(source);
   });
 
   it('bounds the snapshot without truncating the parsed workflow', () => {

@@ -138,9 +138,10 @@ const parseCookieHeader = (raw: string, url: string | undefined) => {
 const parseCookieJson = (raw: string): unknown => {
   try {
     return JSON.parse(raw);
-  } catch {
+  } catch (cause) {
     throw new TypeError(
       'setCookies source must contain valid JSON or a Cookie header.',
+      { cause },
     );
   }
 };
@@ -226,9 +227,10 @@ export const resolveCookieInput = async <TAgent>(
       let env: Readonly<Record<string, string | undefined>>;
       try {
         env = (await options.getEnv?.(ctx)) ?? process.env;
-      } catch {
+      } catch (cause) {
         throw new Error(
-          `Failed to resolve cookie environment ${reference.name}; the original error was redacted because it may contain cookie values.`,
+          `Failed to resolve cookie environment ${reference.name}.`,
+          { cause },
         );
       }
       const raw = env[reference.name];
@@ -255,10 +257,10 @@ export const resolveCookieInput = async <TAgent>(
           context: ctx.context,
           signal: ctx.signal,
         });
-      } catch {
-        throw new Error(
-          `Failed to resolve cookie profile ${reference.name}; the original error was redacted because it may contain cookie values.`,
-        );
+      } catch (cause) {
+        throw new Error(`Failed to resolve cookie profile ${reference.name}.`, {
+          cause,
+        });
       }
       break;
     }
@@ -269,9 +271,10 @@ export const resolveCookieInput = async <TAgent>(
           ? await options.resolveStorageStatePath(reference.name, ctx)
           : resolve(process.cwd(), reference.name);
         contents = await readFile(path, 'utf8');
-      } catch {
+      } catch (cause) {
         throw new Error(
-          `Failed to read cookie storage state ${reference.name}; the original error was redacted because it may contain cookie values.`,
+          `Failed to read cookie storage state ${reference.name}.`,
+          { cause },
         );
       }
       source = parseCookieJson(contents);

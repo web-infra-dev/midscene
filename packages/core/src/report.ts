@@ -65,11 +65,6 @@ import {
 } from './test-runner/reporting/merge-report';
 import { collectTestRunReportMetrics } from './test-runner/reporting/metrics';
 import {
-  isReportRedactionEnabled,
-  redactDiagnosticMessage,
-  sanitizeReportText,
-} from './test-runner/reporting/sanitize';
-import {
   type ExecutionDump,
   type IExecutionDump,
   ReportActionDump,
@@ -694,15 +689,12 @@ const prepareTestRunReportSources = (
         ));
       }
     } catch (error) {
-      const message = `Agent source could not be collected: ${String(error)}`;
       diagnostics.push({
         level: 'warning',
         code: 'agent-source-unavailable',
         scopeId: source.scopeId,
         sourcePaths: [source.sourcePath],
-        message: isReportRedactionEnabled()
-          ? redactDiagnosticMessage(message)
-          : sanitizeReportText(message),
+        message: `Agent source could not be collected: ${String(error)}`,
       });
       continue;
     }

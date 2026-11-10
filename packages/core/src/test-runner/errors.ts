@@ -1,5 +1,5 @@
 import type { z } from 'zod/v4';
-import { serializeWorkflowError } from './reporting/sanitize';
+import { sanitizeReportError } from './reporting/sanitize';
 
 const workflowErrorKey = Symbol.for('@midscene/core/workflow-error');
 
@@ -22,7 +22,7 @@ export class WorkflowError extends Error {
   }
 
   toJSON(): Record<string, unknown> {
-    return { ...serializeWorkflowError(this, { redactSecrets: true }) };
+    return { ...sanitizeReportError(this) };
   }
 }
 

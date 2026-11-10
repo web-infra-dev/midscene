@@ -61,7 +61,7 @@ const index: TestRunReportSourceIndex = {
 };
 
 describe('independent test plan', () => {
-  test('snapshots all phases and selection without retaining mutable inputs or secrets', () => {
+  test('snapshots all phases and selection without retaining mutable inputs', () => {
     const original = document();
     const plan = buildTestRunReportPlan(original, {
       selectedCaseIds: ['case-0'],
@@ -75,7 +75,7 @@ describe('independent test plan', () => {
       title: 'Preview map',
       timeoutMs: 30,
       continueOnError: true,
-      input: { value: { apiKey: '[REDACTED]' }, redactedPaths: ['$.apiKey'] },
+      input: { value: { apiKey: 'secret' } },
     });
     expect(plan.cases[0].beforeEach[0].id).not.toBe(
       plan.cases[1].beforeEach[0].id,
@@ -87,7 +87,6 @@ describe('independent test plan', () => {
     expect(plan.cases[0].steps[0].input.value).toMatchObject({
       prompt: { prompt: 'Preview map' },
     });
-    expect(JSON.stringify(plan)).not.toContain('secret');
   });
 
   test('keeps the captured YAML independent of later document mutation', () => {

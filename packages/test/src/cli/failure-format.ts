@@ -1,10 +1,7 @@
 import { isAbsolute, relative, win32 } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inspect, stripVTControlCharacters } from 'node:util';
-import {
-  redactDiagnosticMessage,
-  sanitizeReportValue,
-} from '@midscene/core/internal/test-runner';
+import { sanitizeReportValue } from '@midscene/core/internal/test-runner';
 import type { StepRunResult } from '@midscene/core/internal/test-runner';
 import { formatConciseError } from './error-format';
 
@@ -115,25 +112,23 @@ export function firstBusinessFrame(
   return `${display.replace(/\\/g, '/')}:${match[2]}:${match[3]}`;
 }
 
-/** A few resolved input fields for the terminal failure summary. */
+/** Format a bounded preview of the resolved input. */
 export function formatFailureInput(input: unknown): string[] {
   if (input === undefined) return [];
-  const value = sanitizeReportValue(input, { redactSecrets: true }).value;
+  const value = sanitizeReportValue(input).value;
   const render = (value: unknown) =>
     shorten(
-      redactDiagnosticMessage(
-        typeof value === 'string'
-          ? value
-          : inspect(value, {
-              colors: false,
-              depth: 2,
-              maxArrayLength: 4,
-              maxStringLength: 180,
-              breakLength: Number.POSITIVE_INFINITY,
-              customInspect: false,
-              getters: false,
-            }),
-      ),
+      typeof value === 'string'
+        ? value
+        : inspect(value, {
+            colors: false,
+            depth: 2,
+            maxArrayLength: 4,
+            maxStringLength: 180,
+            breakLength: Number.POSITIVE_INFINITY,
+            customInspect: false,
+            getters: false,
+          }),
       160,
     );
   if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -183,8 +178,9 @@ export function formatFailureDetails(
     if (attempt && (attempt.total > 1 || attempt.index > 0))
       field(label, `${attempt.index + 1}/${attempt.total}`);
   if (body.length) body.push('');
-  const safeMessage = redactDiagnosticMessage(formatConciseError(error));
-  const lines = stripVTControlCharacters(safeMessage).split(/\r?\n/);
+  const lines = stripVTControlCharacters(formatConciseError(error)).split(
+    /\r?\n/,
+  );
   body.push(
     `  Error: ${shorten(lines[0], 320)}`,
     ...lines.slice(1, 6).map((line) => `         ${shorten(line, 320)}`),
@@ -198,5 +194,5 @@ export function formatFailureDetails(
   }
   const frame = firstBusinessFrame(error, context.projectRoot);
   if (frame) body.push('', `  at ${oneLine(frame)}`);
-  return { title: redactDiagnosticMessage(title), body };
+  return { title, body };
 }

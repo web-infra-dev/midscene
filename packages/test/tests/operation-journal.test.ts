@@ -58,10 +58,9 @@ describe('append-only operation journal', () => {
         status: 'failed',
         error: {
           message: 'late failure',
-          details: { value: { token: '[REDACTED]' } },
+          details: { value: { token: 'private' } },
         },
       });
-      expect(written).not.toContain('private');
       expect(events[3].error.stack).toBe(error.stack);
       expect(events[3].error.details.truncatedPaths).toContain('$.nested');
       expect(

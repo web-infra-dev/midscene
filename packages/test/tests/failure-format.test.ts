@@ -1,6 +1,6 @@
 import { runInNewContext } from 'node:vm';
 import { NodeExecutionError } from '@midscene/core/internal/test-runner';
-import { afterEach, describe, expect, it, rs } from '@rstest/core';
+import { describe, expect, it } from '@rstest/core';
 import {
   firstBusinessFrame,
   formatFailureDetails,
@@ -23,10 +23,6 @@ const step = (input: unknown): StepRunResult => ({
   startedAt: '',
   endedAt: '',
   durationMs: 0,
-});
-
-afterEach(() => {
-  rs.unstubAllEnvs();
 });
 
 describe('concise failure details', () => {
@@ -61,17 +57,7 @@ describe('concise failure details', () => {
     );
   });
 
-  it('keeps terminal failures redacted when report redaction is disabled', () => {
-    rs.stubEnv('MIDSCENE_TEST_REPORT_REDACT', 'false');
-    const detail = formatFailureDetails('case', new Error('token=test-value'), {
-      step: step({ apiKey: 'test-value' }),
-    });
-    expect(detail.body.join('\n')).toContain('token=[REDACTED]');
-    expect(detail.body.join('\n')).toContain('apiKey: [REDACTED]');
-    expect(detail.body.join('\n')).not.toContain('test-value');
-  });
-
-  it('redacts credentials and limits failed input fields and lengths', () => {
+  it('limits failed input fields and lengths', () => {
     const rows = formatFailureInput({
       outcome: 'final-failure',
       apiKey: 'private-api-key',
@@ -80,15 +66,15 @@ describe('concise failure details', () => {
       extra: 'not printed',
     });
     expect(rows.join('\n')).toContain('outcome: final-failure');
-    expect(rows.join('\n')).toContain('[REDACTED]');
-    expect(rows.join('\n')).not.toMatch(/private|not printed/);
+    expect(rows.join('\n')).toContain('apiKey: private-api-key');
+    expect(rows.join('\n')).not.toContain('not printed');
     expect(rows).toHaveLength(5);
     expect(rows[3].length).toBeLessThan(180);
     expect(rows[4]).toBe('… 1 more fields (see Summary)');
     expect(formatFailureInput({})).toEqual([]);
     expect(formatFailureInput(undefined)).toEqual([]);
     expect(formatFailureInput('password=private-value')).toEqual([
-      'password=[REDACTED]',
+      'password=private-value',
     ]);
   });
 

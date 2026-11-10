@@ -3,10 +3,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { TestRunReportSourceIndex } from '@midscene/core';
 import { NodeExecutionError } from '@midscene/core/internal/test-runner';
-import { afterEach, describe, expect, it, rs } from '@rstest/core';
-import { WorkflowError } from '../src';
+import { describe, expect, it } from '@rstest/core';
 import type { TestProjectRunResult } from '../src/cli/types';
 import type { StepRunResult } from '../src/engine/types';
+import { WorkflowError } from '../src/errors';
 import {
   buildTestRunReportDump,
   renderTestResultMarkdown,
@@ -145,12 +145,8 @@ const index: TestRunReportSourceIndex = {
   },
 };
 
-afterEach(() => {
-  rs.unstubAllEnvs();
-});
-
 describe('Midscene Test report manifest', () => {
-  it('redacts and truncates arbitrary display data', () => {
+  it('preserves fields and bounds arbitrary display data', () => {
     const cyclic: Record<string, unknown> = {
       password: 'password',
       refresh_token: 'token',
@@ -162,17 +158,16 @@ describe('Midscene Test report manifest', () => {
 
     const sanitized = sanitizeReportValue(cyclic);
     expect(sanitized.value).toMatchObject({
-      password: '[REDACTED]',
-      refresh_token: '[REDACTED]',
+      password: 'password',
+      refresh_token: 'token',
       self: '[Unsupported circular value]',
     });
-    expect(sanitized.redactedPaths).toEqual(['$.password', '$.refresh_token']);
     expect(sanitized.truncatedPaths).toEqual(
       expect.arrayContaining(['$.long', '$.values', '$.fn', '$.self']),
     );
   });
 
-  it('preserves the original error stack while redacting diagnostic details', () => {
+  it('preserves the original error stack and diagnostic details', () => {
     const error = Object.assign(new Error('failed'), {
       code: 'FAILED',
       details: { authorization: 'Bearer secret' },
@@ -184,8 +179,7 @@ describe('Midscene Test report manifest', () => {
       stack: error.stack,
       code: 'FAILED',
       details: {
-        value: { authorization: '[REDACTED]' },
-        redactedPaths: ['$.authorization'],
+        value: { authorization: 'Bearer secret' },
       },
     });
   });
@@ -207,63 +201,18 @@ describe('Midscene Test report manifest', () => {
     expect(reported?.cause?.stack).toBe(cause.stack);
   });
 
-  it('maps a Step trace to exactly one Agent report and keeps safe values', () => {
+  it('maps a Step trace to exactly one Agent report and keeps input and output values', () => {
     const manifest = buildTestRunReportDump(result([step()]), index);
     const reportStep =
       manifest.projects[0].documents[0].cases[0].attempts[0].steps[0];
     expect(reportStep.agentDetails).toEqual([
       { reportId: 'report-1', executionId: 'execution-1' },
     ]);
-    expect(reportStep.input?.value).toMatchObject({ api_key: '[REDACTED]' });
+    expect(reportStep.input?.value).toMatchObject({ api_key: 'secret-key' });
     expect(reportStep.output?.data?.value).toEqual({
-      accessToken: '[REDACTED]',
+      accessToken: 'secret-token',
     });
     expect(manifest.metrics.modelTimeMs).toBe(500);
-  });
-
-  it('redacts standalone SDK error JSON even with report redaction disabled', () => {
-    rs.stubEnv('MIDSCENE_TEST_REPORT_REDACT', 'false');
-    const error = new WorkflowError('token=sdk-credential', {
-      details: { password: 'sdk-credential' },
-      cause: new Error('Bearer sdk-credential'),
-    });
-    const json = JSON.stringify(error);
-    expect(JSON.parse(json)).toMatchObject({
-      message: 'token=[REDACTED]',
-      details: { value: { password: '[REDACTED]' } },
-      cause: { message: 'Bearer [REDACTED]' },
-    });
-    expect(json).not.toContain('sdk-credential');
-  });
-
-  it('preserves report inputs, outputs and errors when redaction is disabled', () => {
-    rs.stubEnv('MIDSCENE_TEST_REPORT_REDACT', 'false');
-    const failed = step();
-    failed.status = 'failed';
-    const message = 'Bearer demo-token';
-    failed.error = new WorkflowError(message, {
-      details: { password: 'test-value' },
-    });
-    const manifest = buildTestRunReportDump(result([failed]), index);
-    const reportStep =
-      manifest.projects[0].documents[0].cases[0].attempts[0].steps[0];
-    expect(reportStep.input).toEqual({ value: failed.input });
-    expect(reportStep.output?.data).toEqual({ value: failed.output?.data });
-    expect(reportStep.error).toMatchObject({
-      message,
-      stack: expect.stringContaining(message),
-      details: { value: { password: 'test-value' } },
-    });
-    expect(
-      sanitizeReportValue({ token: 'x'.repeat(3000) }).truncatedPaths,
-    ).toEqual(['$.token']);
-  });
-
-  it('requires an explicit false to disable redaction', () => {
-    rs.stubEnv('MIDSCENE_TEST_REPORT_REDACT', 'typo');
-    expect(sanitizeReportValue({ password: 'private' }).redactedPaths).toEqual([
-      '$.password',
-    ]);
   });
 
   it('does not guess when a trace cannot be resolved', () => {

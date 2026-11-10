@@ -330,11 +330,9 @@ describe('Test CLI failure diagnostics', () => {
     expect(diagnostic).toContain('Attempt  2/2');
     expect(diagnostic).toContain('Input    outcome: final-failure');
     expect(diagnostic).toContain('caseLabel: Case A');
-    expect(diagnostic).toContain('token: [REDACTED]');
+    expect(diagnostic).toContain('token: private-token');
     expect(diagnostic).toContain('at user-config.ts:42:5');
-    expect(diagnostic).not.toMatch(
-      /private-token|unrelated input marker|NodeExecutionError/,
-    );
+    expect(diagnostic).not.toMatch(/unrelated input marker|NodeExecutionError/);
   });
 
   it('labels document hook failures and whole-file attempts separately', async () => {

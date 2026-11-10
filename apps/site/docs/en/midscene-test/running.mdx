@@ -84,14 +84,6 @@ In CI:
 - With the [Midscene GitHub Action](https://github.com/web-infra-dev/midscene-action), set `run-directory` or `MIDSCENE_RUN_DIR`. Execution and artifact collection use the same directory.
 - Collect files using the printed `Summary:` / `Report:` paths or the SDK's `summaryPath`, `markdownPath`, and `reportPath`. See below for sharing reports.
 
-### Report redaction
-
-By default, reports redact recognized credential fields in step inputs, outputs, and YAML source, and recognizable credentials in error text. Free text such as step summaries and raw result files can still contain plaintext credentials. To turn off report redaction for one run, use the following command.
-
-```bash
-MIDSCENE_TEST_REPORT_REDACT=false pnpm exec midscene-test
-```
-
 ### Exit codes
 
 You can determine the overall outcome of a test run from the CLI exit code:
