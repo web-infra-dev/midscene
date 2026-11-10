@@ -4,6 +4,7 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -24,7 +25,7 @@ afterAll(() => {
 });
 
 describe('midscene-test CLI configuration', () => {
-  it.each(['file', 'directory'])(
+  it.each(['file', 'directory', 'symlink'])(
     'collects a standalone external %s without loading its config',
     async (kind) => {
       const cwd = mkdtempSync(join(tmpdir(), 'cli-standalone-cwd-'));
@@ -38,11 +39,13 @@ describe('midscene-test CLI configuration', () => {
         join(target, 'case.yaml'),
         'cases: [{ name: standalone, steps: [{ wait: { duration: 1, unit: ms } }] }]',
       );
-      const failure = await runFailure(
-        [kind === 'file' ? join(target, 'case.yaml') : target],
-        process.env,
-        cwd,
-      );
+      const targetFile = join(target, 'case.yaml');
+      let input = kind === 'directory' ? target : targetFile;
+      if (kind === 'symlink') {
+        input = join(cwd, 'linked.yaml');
+        symlinkSync(targetFile, input, 'file');
+      }
+      const failure = await runFailure([input], process.env, cwd);
       expect(failure.code).toBe(1);
       expect(failure.stderr).toContain('unknown node "wait"');
       expect(failure.stderr).not.toContain('target config loaded');

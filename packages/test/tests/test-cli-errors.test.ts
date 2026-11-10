@@ -16,6 +16,9 @@ import { WorkflowExecutionFailure } from '@midscene/core/internal/test-runner';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { runCreateCommand } from '../src/cli/create-command';
 import { writeGitHubSummary } from '../src/cli/github-reporter';
+import * as actualPreparation from '../src/cli/prepare-test-run' with {
+  rstest: 'importActual',
+};
 import { runPreparedTestProject } from '../src/cli/run-prepared-project';
 import { runTestCli } from '../src/cli/test-command';
 import type { TestProjectRunResult } from '../src/cli/types';
@@ -35,19 +38,16 @@ rs.mock('../src/cli/test-project-runner', () => ({
 rs.mock('../src/cli/run-prepared-project', () => ({
   runPreparedTestProject: rs.fn(),
 }));
-rs.mock('../src/cli/prepare-test-run', async () => {
-  const actual = await rs.importActual<
-    typeof import('../src/cli/prepare-test-run')
-  >('../src/cli/prepare-test-run');
-  return {
-    ...actual,
-    prepareTestRun: rs.fn(
-      async (
-        options: import('../src/cli/execution-plan').TestProjectRunOptions,
-      ) => ({ projectRoot: actual.resolveRunInput(options).projectRoot }),
-    ),
-  };
-});
+rs.mock('../src/cli/prepare-test-run', () => ({
+  ...actualPreparation,
+  prepareTestRun: rs.fn(
+    async (
+      options: Parameters<typeof actualPreparation.prepareTestRun>[0],
+    ) => ({
+      projectRoot: actualPreparation.resolveRunInput(options).projectRoot,
+    }),
+  ),
+}));
 
 const timing = {
   startedAt: '2026-10-08T00:00:00.000Z',

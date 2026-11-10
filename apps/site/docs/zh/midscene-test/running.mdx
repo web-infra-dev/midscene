@@ -92,9 +92,9 @@ pnpm exec midscene-test ./other-project/cases/order.yaml --config ./other-projec
 
 升级时，请检查以下路径：
 
-- `files.include`、`files.exclude` 和 `output.reportDir` 以配置所在目录为基准。例如，配置位于 `config/`，用例位于同级的 `cases/` 时，匹配规则应为 `../cases/**/*.yaml`。
+- `files.include`、`files.exclude` 和 `output.reportDir` 以配置所在目录为基准。如果配置位于 `config/`，用例位于同级的 `cases/`，请将配置移到两者的共同父目录，并将 `files.include` 设为 `['cases/**/*.yaml']`。
 - 默认产物写入配置目录下的 `midscene_run`。请同步调整 CI 的产物收集路径，或将配置移到项目根目录。
-- `--config`、用例路径和 `--result-dir` 的相对路径仍以 cwd 为基准。
+- 同时指定用例路径和 `--config` 时，`--config` 的相对路径现在以 cwd 为基准。用例路径和 `--result-dir` 的相对路径也以 cwd 为基准。
 
 无配置时仍可查找、收集 YAML，但引用的 Node 必须通过配置注册。这不等于可以零配置执行任意 YAML。
 

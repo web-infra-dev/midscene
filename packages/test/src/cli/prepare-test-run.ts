@@ -92,6 +92,11 @@ export async function prepareTestRun(
   const runId = createTestRunId(startedAt);
   const input = resolveRunInput(options);
   const { configPath } = input;
+  const standalonePath = configPath ? undefined : input.testPath;
+  const discovery =
+    standalonePath && statSync(standalonePath).isFile()
+      ? { files: [standalonePath] }
+      : { discoveryRoot: standalonePath };
   const definition = await loadTestProject<unknown>(configPath);
   const artifactDir = resolveMidsceneRunDir(input.projectRoot);
   return runWithMidsceneRunDir(artifactDir, async () => {
@@ -118,12 +123,7 @@ export async function prepareTestRun(
           definition.test.testTimeout,
           {
             testPath: input.testPath,
-            discoveryRoot:
-              !configPath && input.testPath
-                ? statSync(input.testPath).isDirectory()
-                  ? input.testPath
-                  : dirname(input.testPath)
-                : undefined,
+            ...discovery,
             excludedDirectories: [
               artifactDir,
               resultDir,

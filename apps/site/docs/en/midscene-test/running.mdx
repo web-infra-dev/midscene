@@ -92,9 +92,9 @@ pnpm exec midscene-test ./other-project/cases/order.yaml --config ./other-projec
 
 Check these paths when upgrading:
 
-- `files.include`, `files.exclude`, and `output.reportDir` resolve from the config directory. For example, with sibling `config/` and `cases/` directories and a config inside `config/`, use `../cases/**/*.yaml`.
+- `files.include`, `files.exclude`, and `output.reportDir` resolve from the config directory. If your config is in `config/` and your tests are in a sibling `cases/` directory, move the config to their common parent and set `files.include` to `['cases/**/*.yaml']`.
 - Default artifacts go to `midscene_run` inside the config directory. Update CI artifact collection paths, or move the config to the project root.
-- Relative `--config`, test input, and `--result-dir` paths still resolve from cwd.
+- A relative `--config` path now resolves from cwd, even when you specify a test file or directory. Relative test input and `--result-dir` paths also resolve from cwd.
 
 Without a config, YAML discovery and collection remain available, but referenced Nodes must be registered through a config. This does not enable arbitrary YAML execution without configuration.
 
