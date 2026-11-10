@@ -86,13 +86,11 @@ In CI:
 
 ### Report redaction
 
-Midscene Test masks credential fields such as `password` and `apiKey` in saved step inputs, outputs, and YAML source. It also masks credentials it recognizes in error messages and stack traces. To keep these values for a debugging run, set the environment variable before starting the test:
+Reports redact credentials in step inputs and outputs, YAML source, and error details by default. To turn off report redaction for one run, use the following command.
 
 ```bash
 MIDSCENE_TEST_REPORT_REDACT=false pnpm exec midscene-test
 ```
-
-Reports and saved diagnostics from this run can contain plaintext credentials. The switch affects values available to the runner when it writes the report. If a Node or model already returned a placeholder, the report keeps that placeholder.
 
 ### Exit codes
 

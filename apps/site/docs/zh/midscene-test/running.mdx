@@ -86,13 +86,11 @@ MIDSCENE_RUN_DIR="./artifacts" pnpm exec midscene-test
 
 ### 报告脱敏
 
-Midscene Test 默认会遮盖步骤输入、输出及 YAML 源码中的 `password`、`apiKey` 等凭据字段，也会遮盖错误消息和堆栈中识别到的凭据。需要在一次调试运行中保留这些值时，可以在启动测试前设置环境变量：
+报告默认对步骤输入输出、YAML 源码和错误信息中的凭据脱敏。调试时可用以下命令关闭本次运行的报告脱敏。
 
 ```bash
 MIDSCENE_TEST_REPORT_REDACT=false pnpm exec midscene-test
 ```
-
-这次运行生成的报告和诊断文件可能包含明文凭据。开关作用于 Runner 写入报告时拿到的数据。如果 Node 或模型返回的已经是占位符，报告里也会保留该占位符。
 
 ### 退出码
 
