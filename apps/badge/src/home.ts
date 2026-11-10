@@ -35,7 +35,7 @@ const copy = {
   zh: {
     title: '用 Badge 在 Markdown 中展示 E2E 测试结果',
     intro:
-      '用 SVG badge 展示 E2E 用例的通过情况。选择下方样式，填写通过和失败的用例数，再将 Markdown 复制到 README 或文档中。',
+      '用 SVG badge 展示 E2E 用例的通过情况。选择下方样式，填写通过、失败和跳过的用例数，再将 Markdown 复制到 README 或文档中。',
     previews: '效果预览',
     parameters: '参数说明',
     parameter: '参数',
@@ -44,10 +44,11 @@ const copy = {
     preview: '徽章预览',
     optional: '方括号表示可选参数，使用时不要保留。',
     counts: '必填，0–9999999 的整数，分别表示通过数和失败数。',
+    skipped: '可选，0–9999999 的整数，默认 0；大于 0 时显示跳过数。',
     styles: '可选：flat（默认，20px）、large（28px）、card（双行，60px）。',
     themes: '可选：light（默认）或 dark，仅影响 card 样式。',
     source:
-      '数字由 URL 提供，不会自动读取 CI 或报告。卡片总数为 pass + fail，通过率为 pass / 总数；总数为 0 时显示 0%。失败数为 0 时，失败部分显示灰色。',
+      '数字由 URL 提供，不会自动读取 CI 或报告。卡片总数为 pass + fail + skipped，通过率为 pass / (pass + fail)，不计跳过用例；没有已执行用例时显示 0%。跳过部分和零失败数显示为灰色。',
     cache: '无效参数返回 HTTP 400 和错误说明。SVG 缓存时间为 24 小时。',
     by: '静态的 E2E by Midscene.js 徽章，style 可选 flat（默认）或 large，Markdown 中链接到 Midscene.js 官网。',
     footer: '所有预览均由当前服务实时生成。',
@@ -60,6 +61,7 @@ const copy = {
       '卡片 · 深色',
       '全部通过',
       '暂无测试',
+      '全部跳过',
       'E2E by Midscene.js',
       'E2E by Midscene.js · 大号',
     ],
@@ -70,6 +72,7 @@ const copy = {
       '深色卡片 · 60px',
       '没有失败用例',
       '通过率显示为 0%',
+      '跳过 5 个用例，没有已执行用例',
       '静态徽章 · 20px，无需填写数字',
       '静态徽章 · 28px，无需填写数字',
     ],
@@ -77,7 +80,7 @@ const copy = {
   en: {
     title: 'Show E2E test results with a Markdown badge',
     intro:
-      'Display the pass status of your E2E tests with an SVG badge. Pick a style below, enter your passed and failed counts, then copy the Markdown into your README or docs.',
+      'Display the pass status of your E2E tests with an SVG badge. Pick a style below, enter your passed, failed, and skipped counts, then copy the Markdown into your README or docs.',
     previews: 'Live previews',
     parameters: 'Parameters',
     parameter: 'Parameter',
@@ -86,11 +89,13 @@ const copy = {
     preview: 'badge preview',
     optional: 'Square brackets mark optional parameters; omit the brackets.',
     counts: 'Required integers from 0 to 9999999: passed and failed counts.',
+    skipped:
+      'Optional integer from 0 to 9999999, default 0; shown when greater than 0.',
     styles:
       'Optional: flat (default, 20px), large (28px), card (two lines, 60px).',
     themes: 'Optional: light (default) or dark; only affects card badges.',
     source:
-      'Counts come from the URL, not CI or reports. Cards show the total (pass + fail) and pass rate (pass / total, or 0% for an empty run). Zero failures appear grey.',
+      'Counts come from the URL, not CI or reports. Cards show the total (pass + fail + skipped) and pass rate (pass / (pass + fail), excluding skipped tests, or 0% when none ran). Skipped tests and zero failures appear grey.',
     cache:
       'Invalid parameters return HTTP 400 with an explanation. SVG responses are cached for 24 hours.',
     by: 'A static E2E by Midscene.js badge. style is flat (default) or large; the Markdown links to the Midscene.js website.',
@@ -104,6 +109,7 @@ const copy = {
       'Card · Dark',
       'All passed',
       'No tests',
+      'All skipped',
       'E2E by Midscene.js',
       'E2E by Midscene.js · Large',
     ],
@@ -114,6 +120,7 @@ const copy = {
       'Dark card · 60px',
       'No failed tests',
       'Pass rate shown as 0%',
+      '5 skipped tests, none executed',
       'Static badge · 20px, no counts',
       'Static badge · 28px, no counts',
     ],
@@ -121,12 +128,19 @@ const copy = {
 };
 const SITE = 'https://midscenejs.com';
 const examples = [
-  { path: '/e2e?pass=42&fail=3', alt: 'Midscene Test' },
-  { path: '/e2e?pass=42&fail=3&style=large', alt: 'Midscene Test' },
-  { path: '/e2e?pass=42&fail=3&style=card&theme=light', alt: 'Midscene Test' },
-  { path: '/e2e?pass=42&fail=3&style=card&theme=dark', alt: 'Midscene Test' },
+  { path: '/e2e?pass=42&fail=3&skipped=5', alt: 'Midscene Test' },
+  { path: '/e2e?pass=42&fail=3&skipped=5&style=large', alt: 'Midscene Test' },
+  {
+    path: '/e2e?pass=42&fail=3&skipped=5&style=card&theme=light',
+    alt: 'Midscene Test',
+  },
+  {
+    path: '/e2e?pass=42&fail=3&skipped=5&style=card&theme=dark',
+    alt: 'Midscene Test',
+  },
   { path: '/e2e?pass=45&fail=0', alt: 'Midscene Test' },
   { path: '/e2e?pass=0&fail=0&style=card', alt: 'Midscene Test' },
+  { path: '/e2e?pass=0&fail=0&skipped=5&style=card', alt: 'Midscene Test' },
   { path: '/by-midscene', alt: 'E2E by Midscene.js', link: SITE },
   { path: '/by-midscene?style=large', alt: 'E2E by Midscene.js', link: SITE },
 ];
@@ -247,9 +261,10 @@ export function renderHome(
 <main>
 <div class="hero"><p class="eyebrow"><i></i>GET /e2e · SVG</p><h1>${t.title}</h1><p>${t.intro}</p><p class="powered">${t.poweredBy.replace('{link}', `<a href="${SITE}">Midscene.js</a>`)}</p></div>
 <section id="previews"><div class="section-head"><span>01</span><h2>${t.previews}</h2></div><div class="grid">${cards}</div></section>
-<section id="parameters"><div class="section-head"><span>02</span><h2>${t.parameters}</h2></div><code class="signature"><b>GET</b>${escapeHtml(origin)}/e2e?pass=&lt;n&gt;&amp;fail=&lt;n&gt;[&amp;style=flat|large|card][&amp;theme=light|dark]</code><p class="note">${t.optional}</p>
+<section id="parameters"><div class="section-head"><span>02</span><h2>${t.parameters}</h2></div><code class="signature"><b>GET</b>${escapeHtml(origin)}/e2e?pass=&lt;n&gt;&amp;fail=&lt;n&gt;[&amp;skipped=&lt;n&gt;][&amp;style=flat|large|card][&amp;theme=light|dark]</code><p class="note">${t.optional}</p>
 <div class="table-wrap"><table><thead><tr><th>${t.parameter}</th><th>${t.rule}</th></tr></thead><tbody>
 <tr><td>pass / fail</td><td>${t.counts}</td></tr>
+<tr><td>skipped</td><td>${t.skipped}</td></tr>
 <tr><td>style</td><td>${t.styles}</td></tr>
 <tr><td>theme</td><td>${t.themes}</td></tr>
 </tbody></table></div><ul class="facts"><li>${t.source}</li><li>${t.cache}</li></ul>
