@@ -325,13 +325,13 @@ export class IOSDevice implements AbstractInterface {
       await this.scrollUntilLeft(startingPoint);
     } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
       if (param?.direction === 'down' || !param || !param.direction) {
-        await this.scrollDown(param?.distance || undefined, startingPoint);
+        await this.scrollDown(param?.distance ?? undefined, startingPoint);
       } else if (param.direction === 'up') {
-        await this.scrollUp(param.distance || undefined, startingPoint);
+        await this.scrollUp(param.distance ?? undefined, startingPoint);
       } else if (param.direction === 'left') {
-        await this.scrollLeft(param.distance || undefined, startingPoint);
+        await this.scrollLeft(param.distance ?? undefined, startingPoint);
       } else if (param.direction === 'right') {
-        await this.scrollRight(param.distance || undefined, startingPoint);
+        await this.scrollRight(param.distance ?? undefined, startingPoint);
       } else {
         throw new Error(`Unknown scroll direction: ${param.direction}`);
       }
@@ -760,79 +760,64 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     await this.swipePoint(from, to, duration);
   }
 
-  // Scroll methods
-  async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
+  // A scroll is a bounded gesture from the chosen touch origin. Never move
+  // that origin to accommodate a large distance: it may avoid a nested control.
+  private async scrollInDirection(
+    direction: 'up' | 'down' | 'left' | 'right',
+    distance?: number,
+    startPoint?: Point,
+    duration = 500,
+  ): Promise<void> {
     if (distance === undefined && !startPoint) {
-      return this.scrollDefault('up');
+      return this.scrollDefault(direction);
     }
     const { width, height } = await this.size();
-    const start = startPoint
-      ? { x: Math.round(startPoint.left), y: Math.round(startPoint.top) }
-      : { x: Math.round(width / 2), y: Math.round(height / 2) };
-    const scrollDistance = Math.round(distance || height / 3);
-
-    await this.swipeCoordinates(
-      start.x,
-      start.y,
-      start.x,
-      start.y + scrollDistance,
+    const x = Math.round(startPoint?.left ?? width / 2);
+    const y = Math.round(startPoint?.top ?? height / 2);
+    assert(
+      Number.isFinite(x) &&
+        Number.isFinite(y) &&
+        x >= 0 &&
+        x < width &&
+        y >= 0 &&
+        y < height,
+      'Scroll origin must be inside the viewport',
     );
+    const horizontal = direction === 'left' || direction === 'right';
+    const amount = distance ?? (horizontal ? width * 0.7 : height / 3);
+    assert(
+      Number.isFinite(amount) && amount > 0,
+      'Scroll distance must be positive and finite',
+    );
+    const delta =
+      Math.round(amount) *
+      (direction === 'up' || direction === 'left' ? 1 : -1);
+    const endX = horizontal ? Math.max(1, Math.min(width - 1, x + delta)) : x;
+    const endY = horizontal ? y : Math.max(1, Math.min(height - 1, y + delta));
+    assert(
+      (horizontal ? endX - x : endY - y) * delta > 0,
+      'No room to scroll from this origin in the requested direction',
+    );
+    // Clipping changes the endpoint, not the gesture pace. Accelerating a
+    // clipped Scroll to force paging also flings ordinary scroll containers.
+    // Paging interactions should use Swipe with an explicit path and duration.
+    await this.swipeCoordinates(x, y, endX, endY, duration);
+  }
+
+  async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
+    await this.scrollInDirection('up', distance, startPoint);
   }
 
   async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
-    if (distance === undefined && !startPoint) {
-      return this.scrollDefault('down');
-    }
-    const { width, height } = await this.size();
-    const start = startPoint
-      ? { x: Math.round(startPoint.left), y: Math.round(startPoint.top) }
-      : { x: Math.round(width / 2), y: Math.round(height / 2) };
-    const scrollDistance = Math.round(distance || height / 3);
-
-    await this.swipeCoordinates(
-      start.x,
-      start.y,
-      start.x,
-      start.y - scrollDistance,
-    );
+    await this.scrollInDirection('down', distance, startPoint);
   }
 
   async scrollLeft(distance?: number, startPoint?: Point): Promise<void> {
-    if (distance === undefined && !startPoint) {
-      return this.scrollDefault('left');
-    }
-    const { width, height } = await this.size();
-    // scrollLeft: bring left content into view (swipe finger right)
-    const start = startPoint
-      ? { x: Math.round(startPoint.left), y: Math.round(startPoint.top) }
-      : { x: Math.round(width / 2), y: Math.round(height / 2) };
-    const scrollDistance = Math.round(distance || width * 0.7); // Use 70% of width for sufficient scroll
-
-    await this.swipeCoordinates(
-      start.x,
-      start.y,
-      start.x + scrollDistance,
-      start.y,
-    );
+    await this.scrollInDirection('left', distance, startPoint);
   }
 
   async scrollRight(distance?: number, startPoint?: Point): Promise<void> {
-    if (distance === undefined && !startPoint) {
-      return this.scrollDefault('right');
-    }
-    const { width, height } = await this.size();
-    // scrollRight: bring right content into view (swipe finger left)
-    const start = startPoint
-      ? { x: Math.round(startPoint.left), y: Math.round(startPoint.top) }
-      : { x: Math.round(width / 2), y: Math.round(height / 2) };
-    const scrollDistance = Math.round(distance || width * 0.7); // Use 70% of width for sufficient scroll
-
-    await this.swipeCoordinates(
-      start.x,
-      start.y,
-      start.x - scrollDistance,
-      start.y,
-    );
+    await this.scrollInDirection('right', distance, startPoint);
   }
 
   async scrollUntilTop(startPoint?: Point): Promise<void> {
@@ -926,10 +911,11 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
           start = { x: Math.round(width / 2), y: Math.round(height * 0.8) };
           break;
         case 'left':
-          start = { x: Math.round(width * 0.8), y: Math.round(height / 2) };
+          // Reveal left content by moving the finger right, with room to travel.
+          start = { x: Math.round(width * 0.2), y: Math.round(height / 2) };
           break;
         case 'right':
-          start = { x: Math.round(width * 0.2), y: Math.round(height / 2) };
+          start = { x: Math.round(width * 0.8), y: Math.round(height / 2) };
           break;
       }
     }
@@ -995,51 +981,19 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
           `Performing scroll: ${direction}, distance: ${scrollDistance}`,
         );
 
-        switch (direction) {
-          case 'up':
-            await this.swipeCoordinates(
-              start.x,
-              start.y,
-              start.x,
-              start.y + scrollDistance,
-              300,
-            );
-            break;
-          case 'down':
-            await this.swipeCoordinates(
-              start.x,
-              start.y,
-              start.x,
-              start.y - scrollDistance,
-              300,
-            );
-            break;
-          case 'left':
-            await this.swipeCoordinates(
-              start.x,
-              start.y,
-              start.x + scrollDistance,
-              start.y,
-              300,
-            );
-            break;
-          case 'right':
-            await this.swipeCoordinates(
-              start.x,
-              start.y,
-              start.x - scrollDistance,
-              start.y,
-              300,
-            );
-            break;
-        }
+        await this.scrollInDirection(
+          direction,
+          scrollDistance,
+          { left: start.x, top: start.y },
+          300,
+        );
 
         // Critical: wait for scroll action completion + inertia scrolling to stop
         debugDevice('Waiting for scroll and inertia to complete...');
         await sleep(2000); // 300ms scroll + inertia time + page stabilization time
       } catch (error) {
         debugDevice(`Error during scroll attempt ${i + 1}: ${error}`);
-        await sleep(300);
+        throw error;
       }
     }
 
