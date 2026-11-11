@@ -81,9 +81,6 @@ describe('doubao model adapter', () => {
 
   it('keeps doubao-seed and doubao-vision json parsing behavior aligned', () => {
     expect(doubaoSeedAdapter.jsonParser).toBe(doubaoVisionAdapter.jsonParser);
-    expect(doubaoSeedAdapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningBudget',
-    ]);
   });
 
   it('defaults doubao thinking to disabled when reasoning config is unset', () => {

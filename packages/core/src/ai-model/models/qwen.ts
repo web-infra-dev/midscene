@@ -151,7 +151,6 @@ const buildQwen25ChatCompletionParams = (
 
 const qwen3VlAdapter: ModelAdapterDefinition = {
   chatCompletion: {
-    unsupportedUserConfig: ['reasoningEffort'],
     buildChatCompletionParams: buildQwen3VlChatCompletionParams,
     messageExtraction: {
       kind: 'default',
@@ -176,7 +175,6 @@ const qwen3VlAdapter: ModelAdapterDefinition = {
 
 const qwen3Adapter: ModelAdapterDefinition = {
   chatCompletion: {
-    unsupportedUserConfig: ['reasoningEffort'],
     buildChatCompletionParams: buildQwen3ChatCompletionParams,
     messageExtraction: {
       kind: 'default',
@@ -202,11 +200,6 @@ const qwen3Adapter: ModelAdapterDefinition = {
 export const qwenAdapters = {
   'qwen2.5-vl': {
     chatCompletion: {
-      unsupportedUserConfig: [
-        'reasoningEnabled',
-        'reasoningEffort',
-        'reasoningBudget',
-      ],
       buildChatCompletionParams: buildQwen25ChatCompletionParams,
     },
     imagePreprocess: {

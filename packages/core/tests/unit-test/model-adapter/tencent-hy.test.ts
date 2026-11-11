@@ -117,12 +117,6 @@ describe('tencent-hy model adapter', () => {
     },
   );
 
-  it('declares reasoning budget unsupported', () => {
-    expect(adapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningBudget',
-    ]);
-  });
-
   it.each([
     'https://tokenhub.tencentmaas.com/v1',
     'https://openrouter.ai.example.com/v1',

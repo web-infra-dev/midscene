@@ -172,17 +172,6 @@ describe('qwen model adapter', () => {
       padBlockSize: 28,
     });
     expect(qwen3VlAdapter.imagePreprocess).toEqual({});
-    expect(qwen25Adapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningEnabled',
-      'reasoningEffort',
-      'reasoningBudget',
-    ]);
-    expect(qwen3VlAdapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningEffort',
-    ]);
-    expect(qwen3Adapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningEffort',
-    ]);
   });
 
   it('keeps qwen2.5-vl high-resolution image request flag without reasoning params', () => {

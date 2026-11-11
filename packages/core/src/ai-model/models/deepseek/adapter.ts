@@ -124,7 +124,6 @@ const buildDeepSeekChatCompletionParams = (
 export const deepSeekAdapters = {
   deepseek: {
     chatCompletion: {
-      unsupportedUserConfig: ['reasoningBudget'],
       buildChatCompletionParams: buildDeepSeekChatCompletionParams,
       useReasoningAsContentFallback: true,
       // DeepSeek only requires reasoning_content to be replayed after tool

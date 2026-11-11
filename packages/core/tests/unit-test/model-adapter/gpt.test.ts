@@ -196,9 +196,6 @@ describe('gpt model adapter', () => {
         userConfig: { temperature: 0.7 },
       }).config.temperature,
     ).toBe(0.7);
-    expect(gpt5Adapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningBudget',
-    ]);
     expect(
       gpt5Adapter.resolveImageDetail({
         intent: 'locate',

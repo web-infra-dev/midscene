@@ -46,7 +46,6 @@ export const antLingAdapters = {
   'ant-ling': {
     supportedProtocols: ['openai-chat'],
     chatCompletion: {
-      unsupportedUserConfig: ['reasoningEffort', 'reasoningBudget'],
       buildChatCompletionParams: buildAntLingChatCompletionParams,
     },
     locate: {

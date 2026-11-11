@@ -54,7 +54,6 @@ const buildTencentHyChatCompletionParams = ({
 export const tencentHyAdapters = {
   'tencent-hy': {
     chatCompletion: {
-      unsupportedUserConfig: ['reasoningBudget'],
       buildChatCompletionParams: buildTencentHyChatCompletionParams,
     },
     locate: {

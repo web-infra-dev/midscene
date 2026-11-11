@@ -52,7 +52,6 @@ const buildMimoChatCompletionParams = (
 export const mimoAdapters = {
   'xiaomi-mimo': {
     chatCompletion: {
-      unsupportedUserConfig: ['reasoningEffort', 'reasoningBudget'],
       buildChatCompletionParams: buildMimoChatCompletionParams,
       useReasoningAsContentFallback: true,
     },

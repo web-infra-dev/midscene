@@ -46,10 +46,6 @@ describe('glm model adapter', () => {
     const result = glmAdapter.chatCompletion.buildChatCompletionParams({
       userConfig: {},
     });
-    expect(glmAdapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningEffort',
-      'reasoningBudget',
-    ]);
     expect(result.config).toEqual({
       temperature: 0,
       thinking: { type: 'disabled' },

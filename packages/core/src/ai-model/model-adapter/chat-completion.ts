@@ -63,7 +63,6 @@ export function resolveChatCompletion(
 ): ChatCompletionAdapter {
   const buildChatCompletionParams =
     chatCompletion?.buildChatCompletionParams ?? defaultChatCompletionParams;
-  const unsupportedUserConfig = chatCompletion?.unsupportedUserConfig ?? [];
   const extractContentAndReasoning =
     resolveExtractContentAndReasoning(chatCompletion);
   const useReasoningAsContentFallback =
@@ -72,7 +71,6 @@ export function resolveChatCompletion(
     chatCompletion?.replayRawAssistantMessage ?? false;
 
   return {
-    unsupportedUserConfig,
     buildChatCompletionParams: (input) => {
       const context = {
         ...input,

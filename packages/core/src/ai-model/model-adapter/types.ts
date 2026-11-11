@@ -62,10 +62,6 @@ export interface ModelRequestUserConfig extends ReasoningInput {
   responseFormat?: TModelResponseFormat;
 }
 
-// Chat Completions and Responses declare unsupported fields independently.
-// Their lists may currently match, but parameter support can differ by protocol.
-export type UnsupportedUserConfig = keyof ModelRequestUserConfig;
-
 export interface ModelRequestConfigInput {
   /** API endpoint configured for this model request. */
   baseURL?: string;
@@ -110,7 +106,6 @@ export type BuildResponsesParams = (input: ResponsesCallContext) => {
 
 export interface ResponsesAdapter {
   replayRawAssistantOutput: boolean;
-  unsupportedUserConfig: UnsupportedUserConfig[];
   buildResponsesParams(
     input: ModelRequestConfigInput,
   ): ReturnType<BuildResponsesParams>;
@@ -119,7 +114,6 @@ export interface ResponsesAdapter {
 export interface ResponsesDefinition {
   /** Replay complete output items in later turns. Defaults to false. */
   replayRawAssistantOutput?: boolean;
-  unsupportedUserConfig?: UnsupportedUserConfig[];
   buildResponsesParams?: BuildResponsesParams;
 }
 
@@ -163,7 +157,6 @@ export type ExtractContentAndReasoning = (
 ) => ContentAndReasoning;
 
 export interface ChatCompletionAdapter {
-  unsupportedUserConfig: UnsupportedUserConfig[];
   buildChatCompletionParams(
     input: ModelRequestConfigInput,
   ): ChatCompletionParamsResult;
@@ -187,7 +180,6 @@ type ChatCompletionMessageExtraction =
     };
 
 export type ChatCompletionDefinition = ChatCompletionMessageExtraction & {
-  unsupportedUserConfig?: UnsupportedUserConfig[];
   buildChatCompletionParams?: (
     input: ChatCompletionCallContext,
   ) => ChatCompletionParamsResult;

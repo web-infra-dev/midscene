@@ -142,7 +142,6 @@ const buildKimi3ChatCompletionParams = (
 export const kimiAdapters = {
   kimi: {
     chatCompletion: {
-      unsupportedUserConfig: ['reasoningEffort', 'reasoningBudget'],
       buildChatCompletionParams: buildKimiChatCompletionParams,
       useReasoningAsContentFallback: true,
     },
@@ -157,7 +156,6 @@ export const kimiAdapters = {
   },
   kimi3: {
     chatCompletion: {
-      unsupportedUserConfig: ['reasoningBudget'],
       buildChatCompletionParams: buildKimi3ChatCompletionParams,
       useReasoningAsContentFallback: true,
       // Kimi K3 multi-turn and tool calls must replay the complete assistant

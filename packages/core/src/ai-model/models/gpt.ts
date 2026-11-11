@@ -187,7 +187,6 @@ export const gptAdapters = {
     resolveImageDetail: originalImageDetailForLocateIntent,
     responses: {
       replayRawAssistantOutput: false,
-      unsupportedUserConfig: ['reasoningBudget'],
       buildResponsesParams: buildGpt5ResponsesParams,
     },
     buildCodexAppServerParams: (input) => ({
@@ -196,7 +195,6 @@ export const gptAdapters = {
       },
     }),
     chatCompletion: {
-      unsupportedUserConfig: ['reasoningBudget'],
       buildChatCompletionParams: buildGpt5ChatCompletionParams,
     },
     locate: {
@@ -218,7 +216,6 @@ export const gptAdapters = {
     resolveImageDetail: originalImageDetailForLocateIntent,
     responses: {
       replayRawAssistantOutput: false,
-      unsupportedUserConfig: ['temperature', 'reasoningBudget'],
       buildResponsesParams: buildGpt6ResponsesParams,
     },
     buildCodexAppServerParams: (input) => ({
@@ -227,7 +224,6 @@ export const gptAdapters = {
       },
     }),
     chatCompletion: {
-      unsupportedUserConfig: ['temperature', 'reasoningBudget'],
       buildChatCompletionParams: buildGpt6ChatCompletionParams,
     },
     locate: {

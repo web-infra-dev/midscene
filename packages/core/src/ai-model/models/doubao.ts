@@ -161,7 +161,6 @@ const buildDoubaoChatCompletionParams = (
 const doubaoVisionAdapter: ModelAdapterDefinition = {
   jsonParser: parseModelResponseJson,
   chatCompletion: {
-    unsupportedUserConfig: ['reasoningBudget'],
     buildChatCompletionParams: buildDoubaoChatCompletionParams,
     useReasoningAsContentFallback: true,
   },

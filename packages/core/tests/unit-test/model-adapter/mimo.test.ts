@@ -117,10 +117,6 @@ describe('mimo model adapter', () => {
       },
     });
 
-    expect(mimoAdapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningEffort',
-      'reasoningBudget',
-    ]);
     expect(result.config).toEqual({
       temperature: 0,
       thinking: { type: 'disabled' },

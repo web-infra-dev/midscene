@@ -94,10 +94,6 @@ describe('Ant Ling adapter', () => {
         userConfig: { reasoningEnabled: 'default' },
       }).config,
     ).not.toHaveProperty('thinking');
-    expect(adapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningEffort',
-      'reasoningBudget',
-    ]);
   });
 
   it('maps normalized points using the actual screenshot size without inventing a box', () => {

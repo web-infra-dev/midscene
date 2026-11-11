@@ -179,10 +179,6 @@ describe('kimi model adapter', () => {
       },
     });
 
-    expect(kimiAdapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningEffort',
-      'reasoningBudget',
-    ]);
     expect(result.config).toEqual({
       temperature: undefined,
       thinking: { type: 'disabled' },
@@ -317,9 +313,6 @@ describe('kimi3 model adapter', () => {
       userConfig: { reasoningEffort: 'max', reasoningEnabled: true },
     });
 
-    expect(kimi3Adapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningBudget',
-    ]);
     expect(result.config).toEqual({
       temperature: undefined,
       reasoning_effort: 'max',

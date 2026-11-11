@@ -374,8 +374,5 @@ describe('deepseek model adapter', () => {
     expect(deepSeekAdapter.chatCompletion.replayRawAssistantMessage).toBe(
       false,
     );
-    expect(deepSeekAdapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningBudget',
-    ]);
   });
 });
