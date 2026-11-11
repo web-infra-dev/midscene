@@ -40,7 +40,7 @@ describe('qwen model adapter', () => {
         {
           reasoningEnabled: true,
           native: { enable_thinking: true, thinking_budget: 1024 },
-          openRouter: { reasoning: { enabled: true } },
+          openRouter: { reasoning: { enabled: true, max_tokens: 1024 } },
         },
         {
           reasoningEnabled: 'default',

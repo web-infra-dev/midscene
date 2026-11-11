@@ -42,7 +42,9 @@ describe('deepseek model adapter', () => {
       {
         reasoningEnabled: true,
         native: { thinking: { type: 'enabled' }, reasoning_effort: 'max' },
-        router: { reasoning: { enabled: true, effort: 'max' } },
+        router: {
+          reasoning: { enabled: true, effort: 'max', max_tokens: 1024 },
+        },
         temperature: undefined,
       },
       {
@@ -52,7 +54,7 @@ describe('deepseek model adapter', () => {
         temperature: undefined,
       },
     ] as const)(
-      'maps enabled=$reasoningEnabled and effort without budget',
+      'maps enabled=$reasoningEnabled with endpoint-specific effort and budget',
       ({ reasoningEnabled, native, router, temperature }) => {
         const result = deepSeekAdapter.chatCompletion.buildChatCompletionParams(
           {

@@ -110,7 +110,11 @@ const buildDoubaoChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
   const { baseURL, midsceneDefaults, userConfig } = input;
-  const { reasoningEnabled = false, reasoningEffort } = userConfig;
+  const {
+    reasoningEnabled = false,
+    reasoningEffort,
+    reasoningBudget,
+  } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
 
   if (userConfig.temperature !== undefined) {
@@ -130,11 +134,15 @@ const buildDoubaoChatCompletionParams = (
 
   if (isOpenRouter(baseURL)) {
     // This family targets Seed 2.1 Turbo on OpenRouter, which only declares
-    // support for the reasoning switch, not effort or budget. Seed 2.0 Lite
+    // support for the reasoning switch, not effort. Seed 2.0 Lite
     // supports effort, but this family-level mapping does not forward it.
     // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
     if (reasoningEnabled !== 'default') {
-      modelSpecificConfig.reasoning = { enabled: reasoningEnabled };
+      const reasoning: Record<string, unknown> = { enabled: reasoningEnabled };
+      if (reasoningEnabled === true && reasoningBudget !== undefined) {
+        reasoning.max_tokens = reasoningBudget;
+      }
+      modelSpecificConfig.reasoning = reasoning;
     }
   } else {
     if (reasoningEnabled !== 'default') {

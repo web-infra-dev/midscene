@@ -202,9 +202,13 @@ The code implementation is the source of truth for specific model support and pa
 
 </details>
 
-Parameter support varies by model provider. Refer to the provider's official documentation for accepted values. Midscene ignores explicit settings that the current model does not support.
+Parameter support varies by model provider. Refer to the provider's official documentation for accepted values. For official model endpoints, Midscene ignores explicit settings that the current adapter does not support.
 
-OpenRouter provides [unified reasoning parameters](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens), and Midscene includes the corresponding adaptations for supported models. When `MIDSCENE_MODEL_BASE_URL` is set to `https://openrouter.ai/api/v1`, Midscene uses the corresponding OpenRouter parameters, which OpenRouter maps to the upstream model.
+OpenRouter provides [unified reasoning parameters](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens). When `MIDSCENE_MODEL_BASE_URL` is set to `https://openrouter.ai/api/v1`, Midscene uses the following mappings for adapted models:
+
+- Thinking switch `MIDSCENE_MODEL_REASONING_ENABLED` → `reasoning.enabled` (GPT models use `reasoning.effort` instead).
+- Thinking effort `MIDSCENE_MODEL_REASONING_EFFORT` → `reasoning.effort` (support depends on the specific model).
+- Thinking budget `MIDSCENE_MODEL_REASONING_BUDGET` → `reasoning.max_tokens` (support depends on the specific model).
 
 If your model provider requires additional parameters, use `MIDSCENE_MODEL_EXTRA_BODY_JSON`. For example, to request disabled thinking when calling OpenRouter through a custom proxy:
 

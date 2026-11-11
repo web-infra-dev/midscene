@@ -49,7 +49,16 @@ const buildGpt5ResponsesParams: BuildResponsesParams = (input) => {
   );
   if (isOpenRouter(baseURL)) {
     if (effectiveReasoningEffort !== undefined) {
-      reasoningConfig.reasoning = { effort: effectiveReasoningEffort };
+      const reasoning: Record<string, unknown> = {
+        effort: effectiveReasoningEffort,
+      };
+      if (
+        userConfig.reasoningEnabled === true &&
+        userConfig.reasoningBudget !== undefined
+      ) {
+        reasoning.max_tokens = userConfig.reasoningBudget;
+      }
+      reasoningConfig.reasoning = reasoning;
     }
   } else {
     // Use current-turn reasoning only. Switching to all_turns requires
@@ -86,7 +95,16 @@ const buildGpt6ResponsesParams: BuildResponsesParams = (input) => {
   const effectiveReasoningEffort = resolveGptReasoningEffort(userConfig, 'low');
   if (isOpenRouter(baseURL)) {
     if (effectiveReasoningEffort !== undefined) {
-      reasoningConfig.reasoning = { effort: effectiveReasoningEffort };
+      const reasoning: Record<string, unknown> = {
+        effort: effectiveReasoningEffort,
+      };
+      if (
+        userConfig.reasoningEnabled === true &&
+        userConfig.reasoningBudget !== undefined
+      ) {
+        reasoning.max_tokens = userConfig.reasoningBudget;
+      }
+      reasoningConfig.reasoning = reasoning;
     }
   } else {
     // Use current-turn reasoning only. Switching to all_turns requires
@@ -134,7 +152,16 @@ const buildGpt5ChatCompletionParams = (
   );
   if (isOpenRouter(baseURL)) {
     if (effectiveReasoningEffort !== undefined) {
-      reasoningConfig.reasoning = { effort: effectiveReasoningEffort };
+      const reasoning: Record<string, unknown> = {
+        effort: effectiveReasoningEffort,
+      };
+      if (
+        userConfig.reasoningEnabled === true &&
+        userConfig.reasoningBudget !== undefined
+      ) {
+        reasoning.max_tokens = userConfig.reasoningBudget;
+      }
+      reasoningConfig.reasoning = reasoning;
     }
   } else {
     reasoningConfig.reasoning_effort = effectiveReasoningEffort;
@@ -166,7 +193,16 @@ const buildGpt6ChatCompletionParams = (
   const effectiveReasoningEffort = resolveGptReasoningEffort(userConfig, 'low');
   if (isOpenRouter(baseURL)) {
     if (effectiveReasoningEffort !== undefined) {
-      reasoningConfig.reasoning = { effort: effectiveReasoningEffort };
+      const reasoning: Record<string, unknown> = {
+        effort: effectiveReasoningEffort,
+      };
+      if (
+        userConfig.reasoningEnabled === true &&
+        userConfig.reasoningBudget !== undefined
+      ) {
+        reasoning.max_tokens = userConfig.reasoningBudget;
+      }
+      reasoningConfig.reasoning = reasoning;
     }
   } else {
     reasoningConfig.reasoning_effort = effectiveReasoningEffort;

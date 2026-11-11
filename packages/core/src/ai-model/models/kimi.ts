@@ -42,7 +42,7 @@ const buildKimiChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
   const { baseURL, midsceneDefaults, userConfig } = input;
-  const { reasoningEnabled = false } = userConfig;
+  const { reasoningEnabled = false, reasoningBudget } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
 
   // kimi disallow custom temperature
@@ -61,7 +61,11 @@ const buildKimiChatCompletionParams = (
   if (isOpenRouter(baseURL)) {
     // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
     if (reasoningEnabled !== 'default') {
-      modelSpecificConfig.reasoning = { enabled: reasoningEnabled };
+      const reasoning: Record<string, unknown> = { enabled: reasoningEnabled };
+      if (reasoningEnabled === true && reasoningBudget !== undefined) {
+        reasoning.max_tokens = reasoningBudget;
+      }
+      modelSpecificConfig.reasoning = reasoning;
     }
   } else {
     if (reasoningEnabled !== 'default') {
@@ -96,7 +100,11 @@ const buildKimi3ChatCompletionParams = (
     commonOverrideConfig.response_format = { type: 'json_object' };
   }
 
-  const { reasoningEnabled = false, reasoningEffort } = userConfig;
+  const {
+    reasoningEnabled = false,
+    reasoningEffort,
+    reasoningBudget,
+  } = userConfig;
   const reasoningConfig: Record<string, unknown> = {};
   if (isOpenRouter(baseURL)) {
     // OpenRouter supports disabling K3 reasoning and configuring effort.
@@ -108,6 +116,9 @@ const buildKimi3ChatCompletionParams = (
     if (reasoningEnabled === true) {
       if (reasoningEffort !== undefined) {
         reasoning.effort = reasoningEffort;
+      }
+      if (reasoningBudget !== undefined) {
+        reasoning.max_tokens = reasoningBudget;
       }
     }
     if (Object.keys(reasoning).length > 0) {

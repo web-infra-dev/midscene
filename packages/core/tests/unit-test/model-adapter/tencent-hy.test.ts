@@ -96,7 +96,7 @@ describe('tencent-hy model adapter', () => {
   );
 
   it.each([true, 'default'] as const)(
-    'applies OpenRouter effort only when explicitly enabled: %s',
+    'applies OpenRouter effort and budget only when explicitly enabled: %s',
     (reasoningEnabled) => {
       expect(
         adapter.chatCompletion.buildChatCompletionParams({
@@ -111,7 +111,7 @@ describe('tencent-hy model adapter', () => {
       ).toEqual({
         temperature: 0.5,
         ...(reasoningEnabled === true
-          ? { reasoning: { enabled: true, effort: 'high' } }
+          ? { reasoning: { enabled: true, effort: 'high', max_tokens: 1024 } }
           : {}),
       });
     },

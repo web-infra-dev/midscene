@@ -11,7 +11,7 @@ describe('kimi model adapter', () => {
     { baseURL: 'https://openrouter.ai/api/v1', openRouter: true },
   ])('reasoning parameters for $baseURL', ({ baseURL, openRouter }) => {
     it.each([undefined, false, true, 'default'] as const)(
-      'maps enabled=%s while omitting unsupported effort and budget',
+      'maps enabled=%s with endpoint-specific effort and budget handling',
       (reasoningEnabled) => {
         const result = kimiAdapter.chatCompletion.buildChatCompletionParams({
           baseURL,
@@ -27,7 +27,12 @@ describe('kimi model adapter', () => {
           reasoningEnabled === 'default'
             ? {}
             : openRouter
-              ? { reasoning: { enabled: reasoningEnabled ?? false } }
+              ? {
+                  reasoning: {
+                    enabled: reasoningEnabled ?? false,
+                    ...(reasoningEnabled === true ? { max_tokens: 1024 } : {}),
+                  },
+                }
               : {
                   thinking: {
                     type: reasoningEnabled ? 'enabled' : 'disabled',
@@ -226,14 +231,16 @@ describe('kimi3 model adapter', () => {
     { reasoningEnabled: false, expected: { reasoning: { enabled: false } } },
     {
       reasoningEnabled: true,
-      expected: { reasoning: { enabled: true, effort: 'high' } },
+      expected: {
+        reasoning: { enabled: true, effort: 'high', max_tokens: 1024 },
+      },
     },
     {
       reasoningEnabled: 'default',
       expected: {},
     },
   ] as const)(
-    'maps OpenRouter enabled=$reasoningEnabled and effort without budget',
+    'maps OpenRouter enabled=$reasoningEnabled with effort and budget',
     ({ reasoningEnabled, expected }) => {
       expect(
         kimi3Adapter.chatCompletion.buildChatCompletionParams({

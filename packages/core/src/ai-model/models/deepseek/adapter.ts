@@ -61,7 +61,11 @@ const buildDeepSeekChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
   const { baseURL, midsceneDefaults, userConfig } = input;
-  const { reasoningEnabled = false, reasoningEffort } = userConfig;
+  const {
+    reasoningEnabled = false,
+    reasoningEffort,
+    reasoningBudget,
+  } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
   const isThinkingMode =
     reasoningEnabled === true || reasoningEnabled === 'default';
@@ -94,6 +98,9 @@ const buildDeepSeekChatCompletionParams = (
     if (reasoningEnabled === true) {
       if (reasoningEffort !== undefined) {
         reasoning.effort = reasoningEffort;
+      }
+      if (reasoningBudget !== undefined) {
+        reasoning.max_tokens = reasoningBudget;
       }
     }
     if (Object.keys(reasoning).length > 0) {

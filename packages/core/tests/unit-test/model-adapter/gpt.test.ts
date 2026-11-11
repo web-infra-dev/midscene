@@ -412,8 +412,8 @@ describe.each(['gpt-5', 'gpt-6'] as const)(
           reasoningEffort: 'high',
           reasoningBudget: 1024,
         },
-        gpt5: { effort: 'high' },
-        gpt6: { effort: 'high' },
+        gpt5: { effort: 'high', max_tokens: 1024 },
+        gpt6: { effort: 'high', max_tokens: 1024 },
       },
       {
         userConfig: { reasoningEnabled: 'default' },

@@ -13,7 +13,7 @@ describe('mimo model adapter', () => {
     { baseURL: 'https://openrouter.ai/api/v1', openRouter: true },
   ])('reasoning parameters for $baseURL', ({ baseURL, openRouter }) => {
     it.each([undefined, false, true, 'default'] as const)(
-      'maps enabled=%s while omitting unsupported effort and budget',
+      'maps enabled=%s with endpoint-specific effort and budget handling',
       (reasoningEnabled) => {
         const result = mimoAdapter.chatCompletion.buildChatCompletionParams({
           baseURL,
@@ -30,7 +30,12 @@ describe('mimo model adapter', () => {
           enabled === 'default'
             ? {}
             : openRouter
-              ? { reasoning: { enabled } }
+              ? {
+                  reasoning: {
+                    enabled,
+                    ...(enabled === true ? { max_tokens: 1024 } : {}),
+                  },
+                }
               : { thinking: { type: enabled ? 'enabled' : 'disabled' } };
 
         expect(result.config).toEqual({

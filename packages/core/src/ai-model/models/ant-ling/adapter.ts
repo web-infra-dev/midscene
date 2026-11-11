@@ -10,13 +10,17 @@ const buildAntLingChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
   const { baseURL, midsceneDefaults, userConfig } = input;
-  const { reasoningEnabled = false } = userConfig;
+  const { reasoningEnabled = false, reasoningBudget } = userConfig;
   const reasoningConfig: Record<string, unknown> = {};
 
   if (isOpenRouter(baseURL)) {
     // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
     if (reasoningEnabled !== 'default') {
-      reasoningConfig.reasoning = { enabled: reasoningEnabled };
+      const reasoning: Record<string, unknown> = { enabled: reasoningEnabled };
+      if (reasoningEnabled === true && reasoningBudget !== undefined) {
+        reasoning.max_tokens = reasoningBudget;
+      }
+      reasoningConfig.reasoning = reasoning;
     }
   } else {
     if (reasoningEnabled !== 'default') {

@@ -10,7 +10,7 @@ const buildMimoChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
   const { baseURL, midsceneDefaults, userConfig } = input;
-  const { reasoningEnabled = false } = userConfig;
+  const { reasoningEnabled = false, reasoningBudget } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
 
   // https://platform.xiaomimimo.com/docs/zh-CN/api/chat/openai-api
@@ -30,7 +30,11 @@ const buildMimoChatCompletionParams = (
   if (isOpenRouter(baseURL)) {
     // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
     if (reasoningEnabled !== 'default') {
-      modelSpecificConfig.reasoning = { enabled: reasoningEnabled };
+      const reasoning: Record<string, unknown> = { enabled: reasoningEnabled };
+      if (reasoningEnabled === true && reasoningBudget !== undefined) {
+        reasoning.max_tokens = reasoningBudget;
+      }
+      modelSpecificConfig.reasoning = reasoning;
     }
   } else {
     if (reasoningEnabled !== 'default') {

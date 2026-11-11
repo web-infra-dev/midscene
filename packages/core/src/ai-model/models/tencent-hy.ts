@@ -11,7 +11,11 @@ const buildTencentHyChatCompletionParams = ({
   midsceneDefaults,
   userConfig,
 }: ChatCompletionCallContext): ChatCompletionParamsResult => {
-  const { reasoningEnabled = false, reasoningEffort } = userConfig;
+  const {
+    reasoningEnabled = false,
+    reasoningEffort,
+    reasoningBudget,
+  } = userConfig;
   const reasoningConfig: Record<string, unknown> = {};
 
   if (isOpenRouter(baseURL)) {
@@ -23,6 +27,9 @@ const buildTencentHyChatCompletionParams = ({
     if (reasoningEnabled === true) {
       if (reasoningEffort !== undefined) {
         reasoning.effort = reasoningEffort;
+      }
+      if (reasoningBudget !== undefined) {
+        reasoning.max_tokens = reasoningBudget;
       }
     }
     if (Object.keys(reasoning).length > 0) {

@@ -34,7 +34,7 @@ describe('doubao model adapter', () => {
         {
           reasoningEnabled: true,
           native: { thinking: { type: 'enabled' }, reasoning_effort: 'high' },
-          openRouter: { reasoning: { enabled: true } },
+          openRouter: { reasoning: { enabled: true, max_tokens: 1024 } },
         },
         {
           reasoningEnabled: 'default',

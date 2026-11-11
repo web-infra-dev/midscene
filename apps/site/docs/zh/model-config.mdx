@@ -202,9 +202,13 @@ Midscene 默认关闭模型原生思考，以获得更好的执行速度和稳�
 
 </details>
 
-不同模型服务商对参数的支持情况不同，具体取值请参考对应服务商的官方文档。如果当前模型不支持某项显式配置，Midscene 会忽略该配置。
+不同模型服务商对参数的支持情况不同，具体取值请参考对应服务商的官方文档。对于模型官方接口，如果当前适配不支持某项显式配置，Midscene 会忽略该配置。
 
-其中，OpenRouter 提供了[统一的思考参数](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens)，Midscene 已对支持的模型完成相应适配。当 `MIDSCENE_MODEL_BASE_URL` 设置为 `https://openrouter.ai/api/v1` 时，Midscene 使用对应的 OpenRouter 参数，由 OpenRouter 映射到上游模型。
+其中，OpenRouter 提供了[统一的思考参数](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens)。当 `MIDSCENE_MODEL_BASE_URL` 设置为 `https://openrouter.ai/api/v1` 时，Midscene 对已适配模型使用以下映射：
+
+- 思考开关 `MIDSCENE_MODEL_REASONING_ENABLED` → `reasoning.enabled`（GPT 系列通过 `reasoning.effort` 控制）。
+- 思考力度 `MIDSCENE_MODEL_REASONING_EFFORT` → `reasoning.effort`（具体模型是否支持以实际模型为准）。
+- 思考额度 `MIDSCENE_MODEL_REASONING_BUDGET` → `reasoning.max_tokens`（具体模型是否支持以实际模型为准）。
 
 如果你的模型供应商需要额外指定特殊参数，可以使用 `MIDSCENE_MODEL_EXTRA_BODY_JSON`。例如，通过自建中转调用 OpenRouter 时指定关闭思考：
 

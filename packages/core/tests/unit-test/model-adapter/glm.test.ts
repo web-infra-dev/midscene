@@ -10,7 +10,7 @@ describe('glm model adapter', () => {
     { baseURL: 'https://openrouter.ai/api/v1', openRouter: true },
   ])('reasoning parameters for $baseURL', ({ baseURL, openRouter }) => {
     it.each([undefined, false, true, 'default'] as const)(
-      'maps enabled=%s while omitting unsupported effort and budget',
+      'maps enabled=%s with endpoint-specific effort and budget handling',
       (reasoningEnabled) => {
         const result = glmAdapter.chatCompletion.buildChatCompletionParams({
           baseURL,
@@ -26,7 +26,12 @@ describe('glm model adapter', () => {
           reasoningEnabled === 'default'
             ? {}
             : openRouter
-              ? { reasoning: { enabled: reasoningEnabled ?? false } }
+              ? {
+                  reasoning: {
+                    enabled: reasoningEnabled ?? false,
+                    ...(reasoningEnabled === true ? { max_tokens: 1024 } : {}),
+                  },
+                }
               : {
                   thinking: {
                     type: reasoningEnabled ? 'enabled' : 'disabled',
