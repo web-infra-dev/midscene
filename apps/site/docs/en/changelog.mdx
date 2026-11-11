@@ -2,6 +2,54 @@
 
 {/* release-notes:start */}
 
+## v1.17.8
+
+### Changes
+
+#### Features 🎉
+* feat(core): add Tencent HY model adapter by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3362
+* feat(test): remove automatic credential redaction from run artifacts by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3371
+* feat(badge): support skipped test counts by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3380
+
+#### Fixes 🐞
+* fix(webdriver): enforce request timeout through response body reads by @quanru in https://github.com/web-infra-dev/midscene/pull/3232
+* fix(web-integration): honor explicit slow swipe durations by @quanru in https://github.com/web-infra-dev/midscene/pull/3243
+* fix(core): clarify aiScroll node locator guidance by @codeestX in https://github.com/web-infra-dev/midscene/pull/3353
+* fix(core): update vulnerable runtime dependencies by @quanru in https://github.com/web-infra-dev/midscene/pull/3356
+* fix(badge): don't round a pass rate with failures to 100% by @gjreddy in https://github.com/web-infra-dev/midscene/pull/3343
+* fix(test): show paths literally in the GitHub job summary by @gjreddy in https://github.com/web-infra-dev/midscene/pull/3334
+* fix(workflow): upgrade security dependencies without overrides by @quanru in https://github.com/web-infra-dev/midscene/pull/3358
+* fix(android): measure planning-frame age after clock recalibration by @wannT-1 in https://github.com/web-infra-dev/midscene/pull/3364
+* fix(android): keep the reset packet count in the post-reset timeout error by @gjreddy in https://github.com/web-infra-dev/midscene/pull/3363
+* fix(core): handle GPT image-edge bboxes and separate coordinate semantics by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3368
+* fix(test): omit misleading badges for failed runs by @quanru in https://github.com/web-infra-dev/midscene/pull/3370
+* fix(test): keep parentheses in the file path of a failure frame by @gjreddy in https://github.com/web-infra-dev/midscene/pull/3369
+* fix(ios): bound scroll gestures and propagate boundary failures by @quanru in https://github.com/web-infra-dev/midscene/pull/3253
+* fix(harmony): reject reversed and stationary edge scrolls by @quanru in https://github.com/web-infra-dev/midscene/pull/3241
+* fix(android): reject scrolls without room to move by @quanru in https://github.com/web-infra-dev/midscene/pull/3242
+* fix(core): add quick mappings for scroll and swipe directions by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3156
+* fix(core): deduplicate cumulative planning context by @quanru in https://github.com/web-infra-dev/midscene/pull/3254
+* fix(test): keep project config stable when filtering test paths by @gjreddy in https://github.com/web-infra-dev/midscene/pull/3332
+* fix(web-integration): improve static report playground execution by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3090
+* fix(core): preserve invalid System One responses in reports by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3379
+
+#### Documentation 📖
+* docs(site): add interactive get started guide by @ottomao in https://github.com/web-infra-dev/midscene/pull/3335
+* docs(site): clarify MobileWorld GUI-only scope by @simplyme0823 in https://github.com/web-infra-dev/midscene/pull/2901
+
+#### Testing 🧪
+* test(workflow): finish migration to rstest and document SDK integration by @quanru in https://github.com/web-infra-dev/midscene/pull/3359
+* test(android): isolate anonymous release asset fallback from CI tokens by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3381
+
+#### CI & Chore ⚙️
+* chore(workflow): track midscene-action  v1 tag by @await-ovo in https://github.com/web-infra-dev/midscene/pull/3350
+
+#### New Contributors
+* @gjreddy made their first contribution in https://github.com/web-infra-dev/midscene/pull/3343
+* @wannT-1 made their first contribution in https://github.com/web-infra-dev/midscene/pull/3364
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.17.7...v1.17.8
+
 ## v1.17.7
 
 ### Changes
