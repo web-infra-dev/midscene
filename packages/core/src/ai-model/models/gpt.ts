@@ -22,7 +22,7 @@ const resolveGptReasoningEffort = (
   disabledEffort: 'none' | 'low',
 ): string | undefined => {
   if (reasoningEnabled === 'default') {
-    return reasoningEffort;
+    return undefined;
   }
   return reasoningEnabled === true
     ? (reasoningEffort ?? 'medium')
@@ -54,10 +54,12 @@ const buildGpt5ResponsesParams: BuildResponsesParams = (input) => {
   } else {
     // Use current-turn reasoning only. Switching to all_turns requires
     // responses.replayRawAssistantOutput to preserve reasoning history.
-    reasoningConfig.reasoning = {
-      effort: effectiveReasoningEffort,
-      context: 'current_turn',
-    };
+    if (effectiveReasoningEffort !== undefined) {
+      reasoningConfig.reasoning = {
+        effort: effectiveReasoningEffort,
+        context: 'current_turn',
+      };
+    }
   }
 
   return {
@@ -89,10 +91,12 @@ const buildGpt6ResponsesParams: BuildResponsesParams = (input) => {
   } else {
     // Use current-turn reasoning only. Switching to all_turns requires
     // responses.replayRawAssistantOutput to preserve reasoning history.
-    reasoningConfig.reasoning = {
-      effort: effectiveReasoningEffort,
-      context: 'current_turn',
-    };
+    if (effectiveReasoningEffort !== undefined) {
+      reasoningConfig.reasoning = {
+        effort: effectiveReasoningEffort,
+        context: 'current_turn',
+      };
+    }
   }
 
   return {

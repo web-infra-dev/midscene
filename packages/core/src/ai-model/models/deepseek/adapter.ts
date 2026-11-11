@@ -91,7 +91,7 @@ const buildDeepSeekChatCompletionParams = (
     if (reasoningEnabled !== 'default') {
       reasoning.enabled = reasoningEnabled;
     }
-    if (reasoningEnabled !== false) {
+    if (reasoningEnabled === true) {
       if (reasoningEffort !== undefined) {
         reasoning.effort = reasoningEffort;
       }
@@ -105,7 +105,7 @@ const buildDeepSeekChatCompletionParams = (
         type: reasoningEnabled ? 'enabled' : 'disabled',
       };
     }
-    if (reasoningEnabled !== false) {
+    if (reasoningEnabled === true) {
       if (reasoningEffort !== undefined) {
         modelSpecificConfig.reasoning_effort = reasoningEffort;
       }

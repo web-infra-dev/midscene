@@ -142,7 +142,7 @@ const buildDoubaoChatCompletionParams = (
         type: reasoningEnabled ? 'enabled' : 'disabled',
       };
     }
-    if (reasoningEnabled !== false) {
+    if (reasoningEnabled === true) {
       if (reasoningEffort !== undefined) {
         modelSpecificConfig.reasoning_effort = reasoningEffort;
       }

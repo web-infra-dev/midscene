@@ -234,7 +234,7 @@ describe('kimi3 model adapter', () => {
     },
     {
       reasoningEnabled: 'default',
-      expected: { reasoning: { effort: 'high' } },
+      expected: {},
     },
   ] as const)(
     'maps OpenRouter enabled=$reasoningEnabled and effort without budget',
@@ -271,7 +271,7 @@ describe('kimi3 model adapter', () => {
       reasoningEnabled: true,
       expected: { thinking: { type: 'enabled' }, reasoning_effort: 'max' },
     },
-    { reasoningEnabled: 'default', expected: { reasoning_effort: 'max' } },
+    { reasoningEnabled: 'default', expected: {} },
   ] as const)(
     'maps native enabled=$reasoningEnabled and effort without budget',
     ({ reasoningEnabled, expected }) => {

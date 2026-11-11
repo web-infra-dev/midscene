@@ -86,7 +86,7 @@ describe('GPT Codex App Server parameters', () => {
 
 describe('GPT provider-default reasoning', () => {
   it.each([undefined, 'high', 'max'])(
-    'preserves explicit effort %s with provider defaults',
+    'ignores explicit effort %s with provider defaults',
     (reasoningEffort) => {
       for (const adapter of [gpt5Adapter, gpt6Adapter]) {
         const input = {
@@ -99,11 +99,11 @@ describe('GPT provider-default reasoning', () => {
         const chatConfig =
           adapter.chatCompletion.buildChatCompletionParams(input).config;
         const codexConfig = adapter.buildCodexAppServerParams(input).config;
-        expect(chatConfig.reasoning_effort).toBe(reasoningEffort);
-        expect(codexConfig.effort).toBe(reasoningEffort);
+        expect(chatConfig.reasoning_effort).toBeUndefined();
+        expect(codexConfig.effort).toBeUndefined();
         expect(
           adapter.responses.buildResponsesParams(input).config.reasoning,
-        ).toEqual({ effort: reasoningEffort, context: 'current_turn' });
+        ).toBeUndefined();
         expect(chatConfig).not.toHaveProperty('reasoning_budget');
       }
     },
@@ -429,8 +429,8 @@ describe.each(['gpt-5', 'gpt-6'] as const)(
           reasoningEffort: 'high',
           reasoningBudget: 1024,
         },
-        gpt5: { effort: 'high' },
-        gpt6: { effort: 'high' },
+        gpt5: undefined,
+        gpt6: undefined,
       },
       {
         userConfig: { reasoningEnabled: 'default', reasoningBudget: 1024 },

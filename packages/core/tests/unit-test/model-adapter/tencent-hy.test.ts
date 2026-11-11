@@ -49,7 +49,7 @@ describe('tencent-hy model adapter', () => {
     ).toEqual({ temperature: 0, thinking: { type: 'disabled' } });
   });
 
-  it('passes native effort without overriding the default thinking switch', () => {
+  it('omits native effort and budget when using provider defaults', () => {
     expect(
       adapter.chatCompletion.buildChatCompletionParams({
         baseURL: 'https://tokenhub.tencentmaas.com/v1',
@@ -59,7 +59,7 @@ describe('tencent-hy model adapter', () => {
           reasoningBudget: 1024,
         },
       }).config,
-    ).toEqual({ temperature: 0, reasoning_effort: 'high' });
+    ).toEqual({ temperature: 0 });
   });
 
   it.each([undefined, false, true, 'default'] as const)(
@@ -96,11 +96,11 @@ describe('tencent-hy model adapter', () => {
   );
 
   it.each([true, 'default'] as const)(
-    'passes OpenRouter effort but omits unsupported budget with enabled=%s',
+    'applies OpenRouter effort only when explicitly enabled: %s',
     (reasoningEnabled) => {
       expect(
         adapter.chatCompletion.buildChatCompletionParams({
-          baseURL: 'https://openrouter.ai/api/v1/',
+          baseURL: 'https://openrouter.ai/api/v1',
           userConfig: {
             reasoningEnabled,
             reasoningEffort: 'high',
@@ -110,12 +110,9 @@ describe('tencent-hy model adapter', () => {
         }).config,
       ).toEqual({
         temperature: 0.5,
-        reasoning: {
-          ...(reasoningEnabled === 'default'
-            ? {}
-            : { enabled: reasoningEnabled }),
-          effort: 'high',
-        },
+        ...(reasoningEnabled === true
+          ? { reasoning: { enabled: true, effort: 'high' } }
+          : {}),
       });
     },
   );

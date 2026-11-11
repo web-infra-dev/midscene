@@ -47,8 +47,8 @@ describe('deepseek model adapter', () => {
       },
       {
         reasoningEnabled: 'default',
-        native: { reasoning_effort: 'max' },
-        router: { reasoning: { effort: 'max' } },
+        native: {},
+        router: {},
         temperature: undefined,
       },
     ] as const)(
@@ -360,7 +360,6 @@ describe('deepseek model adapter', () => {
     });
     expect(providerDefaultResult.config).toEqual({
       temperature: undefined,
-      reasoning_effort: 'max',
     });
     expect(reasoningDisabledResult.config).toEqual({
       temperature: 0.7,

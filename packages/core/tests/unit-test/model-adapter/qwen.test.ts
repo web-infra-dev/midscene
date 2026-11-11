@@ -44,7 +44,7 @@ describe('qwen model adapter', () => {
         },
         {
           reasoningEnabled: 'default',
-          native: { thinking_budget: 1024 },
+          native: {},
           openRouter: {},
         },
       ] as const)(
@@ -360,6 +360,17 @@ describe('qwen model adapter', () => {
     });
   });
 
+  it.each([undefined, false] as const)(
+    'omits qwen3-vl budget when thinking is disabled: %s',
+    (reasoningEnabled) => {
+      expect(
+        qwen3VlAdapter.chatCompletion.buildChatCompletionParams({
+          userConfig: { reasoningEnabled, reasoningBudget: 16384 },
+        }).config,
+      ).toEqual({ temperature: 0, enable_thinking: false });
+    },
+  );
+
   it('maps reasoningBudget to thinking_budget for qwen3-vl', () => {
     const result = qwen3VlAdapter.chatCompletion.buildChatCompletionParams({
       userConfig: {
@@ -395,19 +406,6 @@ describe('qwen model adapter', () => {
     expect(result.config).toEqual({
       temperature: 0,
       enable_thinking: false,
-    });
-  });
-
-  it('maps reasoningBudget alone without reasoningEnabled for qwen3-vl', () => {
-    const result = qwen3VlAdapter.chatCompletion.buildChatCompletionParams({
-      userConfig: {
-        reasoningBudget: 16384,
-      },
-    });
-    expect(result.config).toEqual({
-      temperature: 0,
-      enable_thinking: false,
-      thinking_budget: 16384,
     });
   });
 

@@ -38,7 +38,7 @@ describe('doubao model adapter', () => {
         },
         {
           reasoningEnabled: 'default',
-          native: { reasoning_effort: 'high' },
+          native: {},
           openRouter: {},
         },
       ] as const)(
@@ -212,7 +212,7 @@ describe('doubao model adapter', () => {
     });
   });
 
-  it('follows provider default and preserves effort for doubao when reasoningEnabled=default', () => {
+  it('follows provider default and ignores effort for doubao when reasoningEnabled=default', () => {
     const result = doubaoSeedAdapter.chatCompletion.buildChatCompletionParams({
       userConfig: {
         reasoningEnabled: 'default',
@@ -221,7 +221,6 @@ describe('doubao model adapter', () => {
     });
     expect(result.config).toEqual({
       temperature: 0,
-      reasoning_effort: 'high',
     });
   });
 

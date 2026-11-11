@@ -105,7 +105,7 @@ const buildKimi3ChatCompletionParams = (
     if (reasoningEnabled !== 'default') {
       reasoning.enabled = reasoningEnabled;
     }
-    if (reasoningEnabled !== false) {
+    if (reasoningEnabled === true) {
       if (reasoningEffort !== undefined) {
         reasoning.effort = reasoningEffort;
       }
@@ -123,7 +123,7 @@ const buildKimi3ChatCompletionParams = (
         type: reasoningEnabled ? 'enabled' : 'disabled',
       };
     }
-    if (reasoningEnabled !== false) {
+    if (reasoningEnabled === true) {
       if (reasoningEffort !== undefined) {
         reasoningConfig.reasoning_effort = reasoningEffort;
       }

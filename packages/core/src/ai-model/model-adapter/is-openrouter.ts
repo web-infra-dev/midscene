@@ -1,3 +1,3 @@
 export function isOpenRouter(baseURL?: string): boolean {
-  return baseURL ? new URL(baseURL).hostname === 'openrouter.ai' : false;
+  return baseURL === 'https://openrouter.ai/api/v1';
 }

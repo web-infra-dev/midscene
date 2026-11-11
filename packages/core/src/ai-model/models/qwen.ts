@@ -66,6 +66,8 @@ const buildQwen3VlChatCompletionParams = (
 
   if (reasoningEnabled !== 'default') {
     modelSpecificConfig.enable_thinking = reasoningEnabled ?? false;
+  }
+  if (reasoningEnabled === true) {
     if (reasoningBudget !== undefined) {
       modelSpecificConfig.thinking_budget = reasoningBudget;
     }
@@ -112,7 +114,7 @@ const buildQwen3ChatCompletionParams = (
     if (reasoningEnabled !== 'default') {
       modelSpecificConfig.enable_thinking = reasoningEnabled;
     }
-    if (reasoningEnabled !== false) {
+    if (reasoningEnabled === true) {
       if (reasoningBudget !== undefined) {
         modelSpecificConfig.thinking_budget = reasoningBudget;
       }
