@@ -379,7 +379,9 @@ export function getNodeAttributes(
 
   const attributesList = Array.from(node.attributes).map((attr) => {
     if (attr.name === 'class') {
-      return [attr.name, `.${attr.value.split(' ').join('.')}`];
+      // Class names can be separated by any whitespace, e.g. a list split over lines.
+      const classNames = attr.value.split(/\s+/).filter(Boolean);
+      return [attr.name, `.${classNames.join('.')}`];
     }
 
     let value = attr.value;
