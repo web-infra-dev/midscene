@@ -21,6 +21,69 @@ const qwen36Adapter = new ResolvedModelAdapter(
 );
 
 describe('qwen model adapter', () => {
+  describe.each(['qwen3', 'qwen3.5', 'qwen3.6'] as const)(
+    '%s reasoning parameters',
+    (family) => {
+      const adapter = new ResolvedModelAdapter(qwenAdapters[family], family);
+
+      it.each([
+        {
+          reasoningEnabled: undefined,
+          native: { enable_thinking: false },
+          openRouter: { reasoning: { enabled: false } },
+        },
+        {
+          reasoningEnabled: false,
+          native: { enable_thinking: false },
+          openRouter: { reasoning: { enabled: false } },
+        },
+        {
+          reasoningEnabled: true,
+          native: { enable_thinking: true, thinking_budget: 1024 },
+          openRouter: { reasoning: { enabled: true } },
+        },
+        {
+          reasoningEnabled: 'default',
+          native: { thinking_budget: 1024 },
+          openRouter: {},
+        },
+      ] as const)(
+        'maps enabled=$reasoningEnabled for both endpoints',
+        ({ reasoningEnabled, native, openRouter }) => {
+          for (const [baseURL, expected] of [
+            ['https://dashscope.aliyuncs.com/compatible-mode/v1', native],
+            ['https://openrouter.ai/api/v1', openRouter],
+          ] as const) {
+            const result = adapter.chatCompletion.buildChatCompletionParams({
+              baseURL,
+              expectedJsonObjectResponse: true,
+              userConfig: {
+                reasoningEnabled,
+                reasoningEffort: 'high',
+                reasoningBudget: 1024,
+                temperature: 0.7,
+              },
+            });
+            expect(result.config).toEqual({
+              temperature: 0.7,
+              ...expected,
+            });
+          }
+        },
+      );
+
+      it('omits reasoning configuration when using default without budget', () => {
+        for (const baseURL of [undefined, 'https://openrouter.ai/api/v1']) {
+          const result = adapter.chatCompletion.buildChatCompletionParams({
+            baseURL,
+            userConfig: { reasoningEnabled: 'default' },
+          });
+          expect(result.config).toEqual({ temperature: 0 });
+        }
+      });
+    },
+  );
+
   it.each([
     ['qwen2.5-vl', qwen25Adapter],
     ['qwen3-vl', qwen3VlAdapter],

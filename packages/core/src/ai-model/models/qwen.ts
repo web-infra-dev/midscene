@@ -1,4 +1,5 @@
 import type { TModelFamily } from '@midscene/shared/env';
+import { isOpenRouter } from '../model-adapter/is-openrouter';
 import type {
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
@@ -49,11 +50,41 @@ function parseQwen25RawLocateValue(input: unknown): LocateResultValue {
   ]);
 }
 
-const buildQwenChatCompletionParams = (
+const buildQwen3VlChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
   const { midsceneDefaults, userConfig } = input;
   const { reasoningEnabled, reasoningBudget } = userConfig;
+
+  const commonOverrideConfig: Record<string, unknown> = {};
+
+  if (userConfig.temperature !== undefined) {
+    commonOverrideConfig.temperature = userConfig.temperature;
+  }
+
+  const modelSpecificConfig: Record<string, unknown> = {};
+
+  if (reasoningEnabled !== 'default') {
+    modelSpecificConfig.enable_thinking = reasoningEnabled ?? false;
+    if (reasoningBudget !== undefined) {
+      modelSpecificConfig.thinking_budget = reasoningBudget;
+    }
+  }
+
+  return {
+    config: {
+      ...midsceneDefaults,
+      ...commonOverrideConfig,
+      ...modelSpecificConfig,
+    },
+  };
+};
+
+const buildQwen3ChatCompletionParams = (
+  input: ChatCompletionCallContext,
+): ChatCompletionParamsResult => {
+  const { baseURL, midsceneDefaults, userConfig } = input;
+  const { reasoningEnabled = false, reasoningBudget } = userConfig;
 
   const commonOverrideConfig: Record<string, unknown> = {};
 
@@ -71,10 +102,20 @@ const buildQwenChatCompletionParams = (
 
   const modelSpecificConfig: Record<string, unknown> = {};
 
-  if (reasoningEnabled !== 'default') {
-    modelSpecificConfig.enable_thinking = reasoningEnabled ?? false;
-    if (reasoningBudget !== undefined) {
-      modelSpecificConfig.thinking_budget = reasoningBudget;
+  if (isOpenRouter(baseURL)) {
+    // Qwen3.5/3.6/3.7 Plus declare a reasoning switch, but no effort or budget.
+    // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
+    if (reasoningEnabled !== 'default') {
+      modelSpecificConfig.reasoning = { enabled: reasoningEnabled };
+    }
+  } else {
+    if (reasoningEnabled !== 'default') {
+      modelSpecificConfig.enable_thinking = reasoningEnabled;
+    }
+    if (reasoningEnabled !== false) {
+      if (reasoningBudget !== undefined) {
+        modelSpecificConfig.thinking_budget = reasoningBudget;
+      }
     }
   }
 
@@ -106,10 +147,35 @@ const buildQwen25ChatCompletionParams = (
   };
 };
 
+const qwen3VlAdapter: ModelAdapterDefinition = {
+  chatCompletion: {
+    unsupportedUserConfig: ['reasoningEffort'],
+    buildChatCompletionParams: buildQwen3VlChatCompletionParams,
+    messageExtraction: {
+      kind: 'default',
+      // DashScope returns Qwen thinking as `reasoning_content`. vLLM's
+      // OpenAI-compatible server is migrating the recommended field to
+      // `reasoning`, so Qwen adapters accept both serving conventions:
+      // https://github.com/vllm-project/vllm/issues/27755
+      reasoningContentKeys: ['reasoning_content', 'reasoning'],
+    },
+    useReasoningAsContentFallback: true,
+  },
+  locate: {
+    element: {
+      resultFormat: {
+        resultKey: 'bbox_2d',
+        resultKeyAliases: ['bbox'],
+        coordinates: qwen3BboxCoordinatesMeta,
+      },
+    },
+  },
+};
+
 const qwen3Adapter: ModelAdapterDefinition = {
   chatCompletion: {
     unsupportedUserConfig: ['reasoningEffort'],
-    buildChatCompletionParams: buildQwenChatCompletionParams,
+    buildChatCompletionParams: buildQwen3ChatCompletionParams,
     messageExtraction: {
       kind: 'default',
       // DashScope returns Qwen thinking as `reasoning_content`. vLLM's
@@ -155,7 +221,7 @@ export const qwenAdapters = {
       },
     },
   },
-  'qwen3-vl': qwen3Adapter,
+  'qwen3-vl': qwen3VlAdapter,
   qwen3: qwen3Adapter,
   'qwen3.5': qwen3Adapter,
   'qwen3.6': qwen3Adapter,
