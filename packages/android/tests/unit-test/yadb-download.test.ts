@@ -12,6 +12,7 @@ const tempDirs: string[] = [];
 
 describe('yadb download script', () => {
   afterEach(async () => {
+    rs.unstubAllEnvs();
     await Promise.all(
       tempDirs
         .splice(0)
@@ -54,7 +55,9 @@ describe('yadb download script', () => {
     );
   });
 
-  it('falls back to the GitHub asset API when the browser download URL fails', async () => {
+  it('falls back to the GitHub asset API anonymously when the browser download URL fails', async () => {
+    rs.stubEnv('GITHUB_TOKEN', undefined);
+    rs.stubEnv('GH_TOKEN', undefined);
     const dirPath = await fs.mkdtemp(path.join(os.tmpdir(), 'midscene-yadb-'));
     tempDirs.push(dirPath);
 
