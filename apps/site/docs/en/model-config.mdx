@@ -187,36 +187,32 @@ The following environment variables provide a unified Midscene abstraction over 
 `MIDSCENE_MODEL_REASONING_ENABLED` explicitly controls whether model-native thinking is enabled:
 
 - `false`: Force-disable model-native thinking. This is the Midscene default.
-- `true`: Force-enable model-native thinking.
-- `default`: Follow the model's default behavior. Midscene does not send a parameter that enables or disables thinking, and it ignores explicit `MIDSCENE_MODEL_REASONING_BUDGET` and `MIDSCENE_MODEL_REASONING_EFFORT` settings.
+- `true`: Force-enable model-native thinking and apply explicitly configured effort and budget settings supported by the model.
+- `default`: Follow the model's default behavior. Midscene does not send a parameter that enables or disables thinking, and it ignores explicit `MIDSCENE_MODEL_REASONING_BUDGET` and `MIDSCENE_MODEL_REASONING_EFFORT` settings. This lets you change just one setting to leave thinking behavior entirely to the model provider.
 
 <details>
-<summary>Model-specific support and parameter mappings</summary>
+<summary>Model-specific thinking parameter mappings</summary>
 
-The following model families currently support `MIDSCENE_MODEL_REASONING_ENABLED`:
+Models differ in their support for thinking effort and budget parameters.
 
-- Qwen: Maps to `enable_thinking`.
-- Doubao: Maps to `thinking.type`.
-- DeepSeek: Maps to `thinking.type`.
-- Zhipu GLM: Maps to `thinking.type`.
-- GPT-5: Maps to `reasoning_effort`. Midscene uses `medium` when enabled and `none` when disabled.
-- Gemini: Maps to `thinking_config.thinking_level`. Midscene uses `medium` when enabled and `minimal` when disabled.
-- Kimi K2 series: Maps to `thinking.type`.
-- Xiaomi MiMo: Maps to `thinking.type`.
+- `MIDSCENE_MODEL_REASONING_BUDGET` controls the thinking token budget. Qwen Plus and other model series support this setting.
+- `MIDSCENE_MODEL_REASONING_EFFORT` controls thinking effort. Doubao, DeepSeek, Gemini, GPT, Tencent Hunyuan, Kimi, and other model series support this setting.
 
-`MIDSCENE_MODEL_REASONING_BUDGET` controls the thinking budget. Qwen currently supports this setting through `thinking_budget`.
-
-`MIDSCENE_MODEL_REASONING_EFFORT` controls thinking effort. The following model families currently support it:
-
-- Doubao: Maps to `reasoning_effort`.
-- DeepSeek: Maps to `reasoning_effort`.
-- Gemini: Maps to `thinking_config.thinking_level`.
-- GPT-5: Maps to `reasoning_effort`.
-- Kimi K3 series: Maps to `reasoning_effort`.
+The code implementation is the source of truth for specific model support and parameter mappings.
 
 </details>
 
-Provider support and accepted values vary. See each provider's official documentation for supported model versions and values. If the current model does not support an explicit setting, Midscene ignores it instead of guessing a provider-specific private parameter.
+Parameter support varies by model provider. Refer to the provider's official documentation for accepted values. Midscene ignores explicit settings that the current model does not support.
+
+OpenRouter provides [unified reasoning parameters](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens), and Midscene includes the corresponding adaptations for supported models. When `MIDSCENE_MODEL_BASE_URL` is set to `https://openrouter.ai/api/v1`, Midscene uses the corresponding OpenRouter parameters, which OpenRouter maps to the upstream model.
+
+If your model provider requires additional parameters, use `MIDSCENE_MODEL_EXTRA_BODY_JSON`. For example, to request disabled thinking when calling OpenRouter through a custom proxy:
+
+```bash
+MIDSCENE_MODEL_EXTRA_BODY_JSON='{"reasoning":{"enabled":false}}'
+```
+
+Extra JSON is merged after adapter parameters. Matching top-level fields are replaced in full, not deep-merged. Whether parameters take effect depends on endpoint and model support.
 
 ## Troubleshooting
 
