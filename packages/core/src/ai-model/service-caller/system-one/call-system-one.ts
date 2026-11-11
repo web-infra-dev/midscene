@@ -1,5 +1,6 @@
 import { assert } from '@midscene/shared/utils';
 import type { ModelCallContext, ModelCallResult } from '../types';
+import { AIResponseParseError } from '../utils';
 import type { prepareSystemOne } from './prepare-system-one';
 import { systemOneResponseSchema } from './schema';
 
@@ -28,20 +29,30 @@ export async function callSystemOne(
         `Jev request failed (${response.status}): ${body.slice(0, 4000)}`,
       );
     }
-    const result = systemOneResponseSchema.parse(JSON.parse(body));
-    for (const [name, question] of Object.entries(prepared.questions)) {
-      assert(
-        result.answers[name]?.type === question.type,
-        `Missing or invalid Jev answer: ${name}`,
-      );
-      const answer = result.answers[name];
-      if (question.type === 'choice' && answer.type === 'choice') {
-        assert(
-          Object.hasOwn(question.criteria, answer.choice),
-          `Invalid Jev choice: ${name}`,
+    const result = (() => {
+      try {
+        const result = systemOneResponseSchema.parse(JSON.parse(body));
+        for (const [name, question] of Object.entries(prepared.questions)) {
+          assert(
+            result.answers[name]?.type === question.type,
+            `Missing or invalid Jev answer: ${name}`,
+          );
+          const answer = result.answers[name];
+          if (question.type === 'choice' && answer.type === 'choice') {
+            assert(
+              Object.hasOwn(question.criteria, answer.choice),
+              `Invalid Jev choice: ${name}`,
+            );
+          }
+        }
+        return result;
+      } catch (error) {
+        throw new AIResponseParseError(
+          `Invalid System One response: ${error instanceof Error ? error.message : String(error)}`,
+          body,
         );
       }
-    }
+    })();
     const input = result.usage?.input_tokens;
     const output = result.usage?.output_tokens;
     const final: ModelCallResult = {
