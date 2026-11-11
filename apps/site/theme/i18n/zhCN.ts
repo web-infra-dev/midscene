@@ -61,8 +61,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   openSource: '完全开源',
 
   // Banner - Stats
-  githubStars: 'Github Stars',
-  activeUsers: 'Github 趋势榜第2名',
+  githubStars: 'GitHub Stars',
+  activeUsers: 'GitHub 趋势榜第 2 名',
 
   // Banner - CTA Buttons
   introduction: '使用文档',
@@ -76,7 +76,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   exampleHeading: '用自然语言描述步骤与预期',
   exampleCase: '筛选 100 美元以下的耳机',
   exampleAct: '搜索耳机，然后将结果筛选为价格低于 100 美元',
-  exampleWait: '筛选后的搜索结果已显示',
+  exampleWait: '页面已显示筛选后的搜索结果',
   exampleAssert: '搜索结果中有商品，且每件商品价格都低于 100 美元',
 
   // Platforms
@@ -90,7 +90,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   visionStepObserve: '观察屏幕',
   visionStepObserveDesc: '读取截图，不依赖 DOM',
   visionStepAct: '执行操作',
-  visionStepActDesc: '找到目标，点击、输入或滚动',
+  visionStepActDesc: '定位目标元素，执行点击、输入或滚动',
   visionStepVerify: '检查结果',
   visionStepVerifyDesc: '断言用户实际看到的内容',
   visionShowcaseLink: '查看实际案例',
@@ -117,7 +117,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
     '支持豆包、DeepSeek、Qwen、GPT、Gemini、Kimi 等模型，按效果与预算选择。',
   modelCostName: '低模型调用成本',
   modelCostDesc:
-    '以豆包 Seed 2.1 Turbo 为例：该次 AppControlBench 评测中，60 项任务通过 58 项，模型调用总费用为 $0.59。',
+    '以豆包 Seed 2.1 Turbo 为例：在这次 AppControlBench 评测的 60 项任务中通过了 58 项，模型调用总费用为 $0.59。',
   modelCostExample: '评测案例 · AppControlBench',
   modelCostReport: '查看评测报告',
   modelCostMetric: '模型调用总费用',
@@ -135,7 +135,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
     'aiAct、aiAssert 等接口读取界面截图，按自然语言指令操作和断言。',
   frameworkNodeTitle: '业务操作',
   frameworkNodeDesc:
-    '通过自定义 Node，用 TypeScript 准备测试数据、校验接口并清理资源。',
+    '在自定义 Node 中用 TypeScript 准备测试数据、校验接口并清理资源。',
   frameworkStartLink: '创建测试项目',
   frameworkLink: '了解框架设计',
   frameworkCaseName: '已支付订单支持全额退款',
@@ -144,9 +144,9 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Test project
   projectEyebrow: '测试工程',
-  projectHeading: '定制属于自己的测试工程',
+  projectHeading: '定制自己的测试工程',
   projectDesc:
-    'Midscene Test 提供扩展机制，用 TypeScript 将业务操作定义为 Node，注册后即可在 YAML 中调用。再生成 Markdown Node Spec，描述当前执行项目注册的全部 Node 及其输入参数，包括 AI、平台和自定义业务操作，让人和 AI 都能据此在用例中引用这些 Node。',
+    'Midscene Test 提供扩展机制：用 TypeScript 把业务操作定义为 Node，注册后即可在 YAML 中调用。框架还会生成 Markdown 格式的 Node Spec，列出当前测试工程注册的全部 Node（包括 AI 操作、平台操作和自定义业务操作）及其输入参数，人和 AI Agent 都可以据此在用例中引用这些 Node。',
   projectNodesRole: '定义自己的操作',
   projectNodesDesc: '用 TypeScript 实现业务逻辑，并声明操作的输入参数。',
   projectSpecOperation: '已注册的 Node 名称',
@@ -160,7 +160,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   projectSpecRole: '由 midscene-test nodes 生成',
   projectSpecDesc: '列出所有已注册的 Node 及其输入 Schema。',
   projectCasesRole: '测试工程师 · AI Agent',
-  projectCasesDesc: '根据 Spec 中的 Node 组合用例，无需阅读 TypeScript 代码。',
+  projectCasesDesc:
+    '根据 Spec 中的 Node 组合用例，无需阅读 Node 的 TypeScript 实现。',
   projectLink: '开发自定义 Node',
   projectNodeDescription: '创建测试订单',
   projectCaseName: '全额退款',
@@ -172,7 +173,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   debuggingHeading: '接入、回放与调试',
   toolkitFrameworkTitle: 'AI Native E2E 测试框架',
   toolkitFrameworkDesc:
-    '用 YAML 与自然语言写用例，用 TypeScript 扩展业务节点，组合 AI 操作与业务逻辑。',
+    '用 YAML 与自然语言写用例，用 TypeScript 编写业务 Node，把 AI 操作与业务逻辑组合在一起。',
   toolkitYaml: '描述用例与预期',
   toolkitTs: '扩展业务节点',
   toolkitEngineering: '脚手架与平台预设、生命周期、重试、隔离与并发执行。',
@@ -184,20 +185,20 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
     '通过 Midscene Skills，让 AI 编程 Agent 操作应用、验证界面，查看执行结果。',
   toolkitApiTitle: '丰富而灵活的 API',
   toolkitApiDesc:
-    '覆盖自动规划、精细操作、视觉断言与数据提取，灵活接入已有测试工程。',
+    '覆盖自动规划、精细操作、视觉断言与数据提取，可以灵活接入已有的测试工程。',
   toolkitPlan: '自动规划',
   toolkitAction: '精细操作',
   toolkitAssert: '视觉断言',
   toolkitQuery: '数据提取',
   toolkitIntegration:
-    '接入 Playwright、Puppeteer 或 JavaScript 工程；AI 编程 Agent 也可通过 Skills 操作界面。',
+    '可以接入 Playwright、Puppeteer 或 JavaScript 工程；AI 编程 Agent 也可以通过 Skills 操作界面。',
   toolkitApiLink: '查看 API',
   toolkitSkillsLink: 'Skills',
   toolkitReportTitle: '回放执行，交互调试',
   toolkitReportDesc:
     '通过报告回看截图、AI 决策与执行结果，在 Playground 中试验和调整指令。',
   toolkitPlaygroundDesc:
-    '结合运行日志定位问题，在 Playground 中试验和调整指令。',
+    '对照运行日志定位问题，在 Playground 中试验并调整指令。',
   toolkitReportAlt: 'Midscene HTML 报告：步骤列表、执行时间线与界面操作回放',
   toolkitReportLink: '查看报告能力',
   toolkitPlaygroundLink: '体验 Playground',
