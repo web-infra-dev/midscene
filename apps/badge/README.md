@@ -4,7 +4,7 @@ A Cloudflare Worker that renders Midscene Test results as an SVG badge for
 Markdown.
 
 ```md
-![Midscene Test](https://<your-domain>/e2e?pass=42&fail=3)
+![Midscene Test](https://<your-domain>/e2e?pass=42&fail=3&skipped=5)
 ```
 
 ## Query parameters
@@ -13,8 +13,13 @@ Markdown.
 | ------- | -------- | ---------------------------------------- |
 | `pass`  | yes      | integer, 0 – 9999999                     |
 | `fail`  | yes      | integer, 0 – 9999999                     |
+| `skipped` | no    | integer, 0 – 9999999; defaults to `0`    |
 | `style` | no       | `flat` (default, 20px), `large` (28px), `card` (two lines) |
 | `theme` | no       | `light` (default) or `dark`, only for `card` |
+
+Skipped counts appear in grey when greater than zero in every style. Cards
+include skipped tests in the total and ratio bar, but exclude them from the pass
+rate: `pass / (pass + fail)`. When no tests ran, the pass rate is `0%`.
 
 Invalid parameters return `400` with a plain-text reason.
 
@@ -47,7 +52,7 @@ cached the badge keep the old one for up to 24h.
 
 ```bash
 pnpm --filter @midscene/badge dev        # wrangler dev on http://localhost:8787
-npx nx test @midscene/badge
+pnpm exec nx test @midscene/badge
 pnpm --filter @midscene/badge typecheck
 ```
 
