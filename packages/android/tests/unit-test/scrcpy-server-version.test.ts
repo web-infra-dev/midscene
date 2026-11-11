@@ -16,6 +16,7 @@ const tempDirs: string[] = [];
 
 describe('scrcpy server version helper', () => {
   afterEach(async () => {
+    rs.unstubAllEnvs();
     await Promise.all(
       tempDirs
         .splice(0)
@@ -76,7 +77,9 @@ describe('scrcpy server version helper', () => {
     );
   });
 
-  it('falls back to the GitHub asset API when the browser download URL fails', async () => {
+  it('falls back to the GitHub asset API anonymously when the browser download URL fails', async () => {
+    rs.stubEnv('GITHUB_TOKEN', undefined);
+    rs.stubEnv('GH_TOKEN', undefined);
     const dirPath = await fs.mkdtemp(
       path.join(os.tmpdir(), 'midscene-scrcpy-server-'),
     );
