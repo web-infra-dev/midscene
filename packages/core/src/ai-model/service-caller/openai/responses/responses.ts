@@ -45,6 +45,11 @@ export async function prepareResponses({
       requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
     });
   const requestParams = { ...config, ...modelConfig.extraBody };
+  if (modelConfig.authMode === 'siwc') {
+    // SIWC does not support temperature, including explicit user overrides.
+    // https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations#responses-api-requirements
+    requestParams.temperature = undefined;
+  }
   if (requestParams.background === true) {
     throw new Error('Responses background mode is not supported');
   }
