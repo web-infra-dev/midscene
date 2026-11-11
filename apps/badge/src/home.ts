@@ -37,6 +37,18 @@ const copy = {
     intro:
       '用 SVG badge 展示 E2E 用例的通过情况。选择下方样式，填写通过、失败和跳过的用例数，再将 Markdown 复制到 README 或文档中。',
     previews: '效果预览',
+    previewGroups: [
+      {
+        title: '不含 skipped',
+        detail:
+          '只展示通过和失败数。不传 skipped 或设为 0 时，均使用这些样式。',
+      },
+      {
+        title: '含 skipped',
+        detail: '在相同的通过和失败数上增加 skipped=5，单独展示跳过数。',
+      },
+      { title: '静态徽章', detail: '无需提供测试数量。' },
+    ],
     parameters: '参数说明',
     parameter: '参数',
     rule: '规则',
@@ -82,6 +94,19 @@ const copy = {
     intro:
       'Display the pass status of your E2E tests with an SVG badge. Pick a style below, enter your passed, failed, and skipped counts, then copy the Markdown into your README or docs.',
     previews: 'Live previews',
+    previewGroups: [
+      {
+        title: 'Without skipped',
+        detail:
+          'Show passed and failed counts only. Omit skipped or set it to 0 for these styles.',
+      },
+      {
+        title: 'With skipped',
+        detail:
+          'Add skipped=5 to the same passed and failed counts to show skipped tests separately.',
+      },
+      { title: 'Static badges', detail: 'No test counts needed.' },
+    ],
     parameters: 'Parameters',
     parameter: 'Parameter',
     rule: 'Rule',
@@ -128,14 +153,14 @@ const copy = {
 };
 const SITE = 'https://midscenejs.com';
 const examples = [
-  { path: '/e2e?pass=42&fail=3&skipped=5', alt: 'Midscene Test' },
-  { path: '/e2e?pass=42&fail=3&skipped=5&style=large', alt: 'Midscene Test' },
+  { path: '/e2e?pass=42&fail=3', alt: 'Midscene Test' },
+  { path: '/e2e?pass=42&fail=3&style=large', alt: 'Midscene Test' },
   {
-    path: '/e2e?pass=42&fail=3&skipped=5&style=card&theme=light',
+    path: '/e2e?pass=42&fail=3&style=card&theme=light',
     alt: 'Midscene Test',
   },
   {
-    path: '/e2e?pass=42&fail=3&skipped=5&style=card&theme=dark',
+    path: '/e2e?pass=42&fail=3&style=card&theme=dark',
     alt: 'Midscene Test',
   },
   { path: '/e2e?pass=45&fail=0', alt: 'Midscene Test' },
@@ -143,6 +168,12 @@ const examples = [
   { path: '/e2e?pass=0&fail=0&skipped=5&style=card', alt: 'Midscene Test' },
   { path: '/by-midscene', alt: 'E2E by Midscene.js', link: SITE },
   { path: '/by-midscene?style=large', alt: 'E2E by Midscene.js', link: SITE },
+];
+
+const previewGroups = [
+  { id: 'without-skipped', indices: [0, 1, 2, 3, 4, 5], withSkipped: false },
+  { id: 'with-skipped', indices: [0, 1, 2, 3, 6], withSkipped: true },
+  { id: 'static-badges', indices: [7, 8], withSkipped: false },
 ];
 
 function escapeHtml(value: string) {
@@ -188,7 +219,10 @@ h2{margin:0;font-size:22px;font-weight:600;letter-spacing:-.02em}
 article{min-width:0;border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden;transition:border-color .15s}
 article:hover{border-color:var(--line-2)}
 .card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 16px}
-h3{margin:0;font-size:15px;font-weight:600;letter-spacing:-.01em}
+.preview-group+.preview-group{margin-top:32px}
+.preview-group>h3{margin:0;font-size:18px;font-weight:600}
+.preview-group>.note{margin:6px 0 16px}
+h4{margin:0;font-size:15px;font-weight:600;letter-spacing:-.01em}
 .card-head p{margin:2px 0 0;font-size:13px;color:var(--muted)}
 .open{flex:none;font-size:13px;color:var(--muted);text-decoration:none;padding:2px 0}
 .open:hover{color:var(--fg)}
@@ -227,15 +261,27 @@ export function renderHome(
       ? 'Midscene Test Badge — Markdown E2E 测试结果徽章'
       : 'Midscene Test Badge — E2E test results for Markdown';
   const canonical = `${BADGE_ORIGIN}/?lang=${language}`;
-  const cards = examples
-    .map(({ path: rawPath, alt, link }, index) => {
-      const path = escapeHtml(rawPath);
-      const url = escapeHtml(`${origin}${rawPath}`);
-      const dark = rawPath.includes('theme=dark') ? ' dark' : '';
-      const markdown = link
-        ? `[![${alt}](${url})](${link})`
-        : `![${alt}](${url})`;
-      return `<article><div class="card-head"><div><h3>${t.names[index]}</h3><p>${t.details[index]}</p></div><a class="open" href="${path}">${t.open} ↗</a></div><div class="preview${dark}"><img src="${path}" alt="${t.names[index]} ${t.preview}"></div><dl class="snippets"><div><dt>URL</dt><dd><code>${url}</code></dd></div><div><dt>Markdown</dt><dd><code>${markdown}</code></dd></div></dl></article>`;
+  const groups = previewGroups
+    .map(({ id, indices, withSkipped }, groupIndex) => {
+      const cards = indices
+        .map((index) => {
+          const example = examples[index];
+          const { alt, link } = example;
+          const rawPath =
+            withSkipped && !example.path.includes('skipped=')
+              ? `${example.path}&skipped=5`
+              : example.path;
+          const path = escapeHtml(rawPath);
+          const url = escapeHtml(`${origin}${rawPath}`);
+          const dark = rawPath.includes('theme=dark') ? ' dark' : '';
+          const markdown = link
+            ? `[![${alt}](${url})](${link})`
+            : `![${alt}](${url})`;
+          return `<article><div class="card-head"><div><h4>${t.names[index]}</h4><p>${t.details[index]}</p></div><a class="open" href="${path}">${t.open} ↗</a></div><div class="preview${dark}"><img src="${path}" alt="${t.names[index]} ${t.preview}"></div><dl class="snippets"><div><dt>URL</dt><dd><code>${url}</code></dd></div><div><dt>Markdown</dt><dd><code>${markdown}</code></dd></div></dl></article>`;
+        })
+        .join('');
+      const group = t.previewGroups[groupIndex];
+      return `<div class="preview-group" role="group" aria-labelledby="${id}"><h3 id="${id}">${group.title}</h3><p class="note">${group.detail}</p><div class="grid">${cards}</div></div>`;
     })
     .join('');
   return `<!doctype html>
@@ -260,7 +306,7 @@ export function renderHome(
 <header class="nav"><div class="nav-inner"><a class="brand" href="${SITE}"><img class="logo" src="${LOGO_96}" alt="Midscene" width="23" height="22">Midscene Test<span>/ Badge</span></a><nav class="languages" aria-label="${t.language}"><a href="/?lang=zh" lang="zh-CN"${language === 'zh' ? ' aria-current="page"' : ''}>中文</a><a href="/?lang=en" lang="en"${language === 'en' ? ' aria-current="page"' : ''}>English</a></nav></div></header>
 <main>
 <div class="hero"><p class="eyebrow"><i></i>GET /e2e · SVG</p><h1>${t.title}</h1><p>${t.intro}</p><p class="powered">${t.poweredBy.replace('{link}', `<a href="${SITE}">Midscene.js</a>`)}</p></div>
-<section id="previews"><div class="section-head"><span>01</span><h2>${t.previews}</h2></div><div class="grid">${cards}</div></section>
+<section id="previews"><div class="section-head"><span>01</span><h2>${t.previews}</h2></div>${groups}</section>
 <section id="parameters"><div class="section-head"><span>02</span><h2>${t.parameters}</h2></div><code class="signature"><b>GET</b>${escapeHtml(origin)}/e2e?pass=&lt;n&gt;&amp;fail=&lt;n&gt;[&amp;skipped=&lt;n&gt;][&amp;style=flat|large|card][&amp;theme=light|dark]</code><p class="note">${t.optional}</p>
 <div class="table-wrap"><table><thead><tr><th>${t.parameter}</th><th>${t.rule}</th></tr></thead><tbody>
 <tr><td>pass / fail</td><td>${t.counts}</td></tr>

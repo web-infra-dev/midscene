@@ -48,3 +48,50 @@ describe('homepage language and navigation', () => {
     },
   );
 });
+
+describe('homepage skipped examples', () => {
+  it.each(['zh', 'en'])(
+    'separates examples with and without skipped in %s',
+    async (language) => {
+      const html = await handleRequest(
+        new Request(`https://badge.example/?lang=${language}`),
+      ).text();
+      const without = html
+        .split('id="without-skipped"')[1]
+        .split('aria-labelledby="with-skipped"')[0];
+      const withSkipped = html
+        .split('id="with-skipped"')[1]
+        .split('aria-labelledby="static-badges"')[0];
+      expect(without).toContain(
+        language === 'zh' ? '不含 skipped' : 'Without skipped',
+      );
+      expect(withSkipped).toContain(
+        language === 'zh' ? '含 skipped' : 'With skipped',
+      );
+      const paths = (group: string) =>
+        [...group.matchAll(/<img src="([^"]+)"/g)].map(([, path]) =>
+          path.replaceAll('&amp;', '&'),
+        );
+      const withoutPaths = paths(without);
+      const withPaths = paths(withSkipped);
+      expect(withoutPaths).toHaveLength(6);
+      expect(withPaths).toHaveLength(5);
+      for (const path of withoutPaths) {
+        expect(
+          new URL(path, 'https://badge.example').searchParams.has('skipped'),
+        ).toBe(false);
+      }
+      for (const [index, path] of withPaths.entries()) {
+        const url = new URL(path, 'https://badge.example');
+        expect(url.searchParams.get('skipped')).toBe('5');
+        expect(await handleRequest(new Request(url)).text()).toContain(
+          '>5 skipped</text>',
+        );
+        if (index < 4) {
+          url.searchParams.delete('skipped');
+          expect(`${url.pathname}${url.search}`).toBe(withoutPaths[index]);
+        }
+      }
+    },
+  );
+});
