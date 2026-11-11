@@ -1,4 +1,5 @@
 import type { TModelFamily } from '@midscene/shared/env';
+import { isOpenRouter } from '../../model-adapter/is-openrouter';
 import type {
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
@@ -8,8 +9,22 @@ import type {
 const buildAntLingChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
-  const { midsceneDefaults, userConfig } = input;
-  const { reasoningEnabled } = userConfig;
+  const { baseURL, midsceneDefaults, userConfig } = input;
+  const { reasoningEnabled = false } = userConfig;
+  const reasoningConfig: Record<string, unknown> = {};
+
+  if (isOpenRouter(baseURL)) {
+    // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
+    if (reasoningEnabled !== 'default') {
+      reasoningConfig.reasoning = { enabled: reasoningEnabled };
+    }
+  } else {
+    if (reasoningEnabled !== 'default') {
+      reasoningConfig.thinking = {
+        type: reasoningEnabled ? 'enabled' : 'disabled',
+      };
+    }
+  }
 
   return {
     config: {
@@ -22,13 +37,7 @@ const buildAntLingChatCompletionParams = (
       input.expectedJsonObjectResponse
         ? { response_format: { type: 'json_object' } }
         : {}),
-      ...(reasoningEnabled !== 'default'
-        ? {
-            thinking: {
-              type: (reasoningEnabled ?? false) ? 'enabled' : 'disabled',
-            },
-          }
-        : {}),
+      ...reasoningConfig,
     },
   };
 };

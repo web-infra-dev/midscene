@@ -11,6 +11,43 @@ const parse = (content: string) =>
   protocol.parseRawResponse(content, resultCodec.promptSpec);
 
 describe('Ant Ling adapter', () => {
+  describe.each([
+    { baseURL: 'https://api.ant-ling.com/v1', openRouter: false },
+    { baseURL: 'https://openrouter.ai/api/v1', openRouter: true },
+  ])('reasoning parameters for $baseURL', ({ baseURL, openRouter }) => {
+    it.each([undefined, false, true, 'default'] as const)(
+      'maps enabled=%s while omitting unsupported effort and budget',
+      (reasoningEnabled) => {
+        const result = adapter.chatCompletion.buildChatCompletionParams({
+          baseURL,
+          expectedJsonObjectResponse: true,
+          userConfig: {
+            reasoningEnabled,
+            reasoningEffort: 'high',
+            reasoningBudget: 1024,
+            temperature: 0.7,
+          },
+        });
+        const thinkingConfig =
+          reasoningEnabled === 'default'
+            ? {}
+            : openRouter
+              ? { reasoning: { enabled: reasoningEnabled ?? false } }
+              : {
+                  thinking: {
+                    type: reasoningEnabled ? 'enabled' : 'disabled',
+                  },
+                };
+
+        expect(result.config).toEqual({
+          temperature: 0.7,
+          response_format: { type: 'json_object' },
+          ...thinkingConfig,
+        });
+      },
+    );
+  });
+
   it('supports Chat element localization without automatic image resizing', () => {
     expect(adapter.allowedTaskTypes).toBeUndefined();
     expect(adapter.supportedProtocols).toEqual(['openai-chat']);
