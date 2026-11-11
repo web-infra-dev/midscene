@@ -162,3 +162,21 @@ Midscene 提供了官方的 [midscene-action](https://github.com/marketplace/act
 - 支持按需将测试报告发布到 **Cloudflare Workers**，生成在线预览链接。
 
 关于完整的配置参数与进阶用法，请参阅 [GitHub Marketplace 上的 midscene-action 文档](https://github.com/marketplace/actions/midscene-action)。
+
+### 用徽章(badge)展示测试结果
+
+Midscene 提供了官方的 [Midscene Test 徽章服务](https://badge.midscenejs.com)，可以把测试通过数和失败数渲染为 SVG 徽章，并嵌入任意 Markdown 文件，例如仓库的 README：
+
+```md
+![Midscene Test: 42 passed, 3 failed](https://badge.midscenejs.com/e2e?pass=42&fail=3)
+```
+
+![Midscene Test: 42 passed, 3 failed](https://badge.midscenejs.com/e2e?pass=42&fail=3)
+
+同时提供双行卡片样式，并支持浅色与深色主题：
+
+![Midscene Test: 42 passed, 3 failed](https://badge.midscenejs.com/e2e?pass=42&fail=3&style=card&theme=light)
+
+徽章上的数字完全来自 URL 中的 `pass` 和 `fail` 查询参数，服务本身不会读取 CI 数据或测试报告，需要在每次运行后更新 URL，或在工作流中自动生成。在 GitHub Actions 中运行时，任务的 Summary 页面已经会附带一个根据本次运行结果生成的徽章，同一行内容也会写入 `result.md`，可以直接复制使用。
+
+完整的参数与样式说明——包括 `flat`、`large`、`card` 三种样式、深色主题，以及无需填写数字的静态 “E2E by Midscene.js” 归属徽章——请参阅[徽章服务首页](https://badge.midscenejs.com)，页面提供实时预览和可直接复制的 Markdown。

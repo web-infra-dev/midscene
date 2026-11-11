@@ -162,3 +162,21 @@ Midscene provides [midscene-action](https://github.com/marketplace/actions/midsc
 - Optionally publish reports to **Cloudflare Workers** for online previews.
 
 For setup instructions, configuration parameters, and complete examples, see [midscene-action on GitHub Marketplace](https://github.com/marketplace/actions/midscene-action).
+
+### Show test results with a badge
+
+The official [Midscene Test badge service](https://badge.midscenejs.com) renders pass/fail counts as an SVG badge that can be embedded in any Markdown file, such as your repository README:
+
+```md
+![Midscene Test: 42 passed, 3 failed](https://badge.midscenejs.com/e2e?pass=42&fail=3)
+```
+
+![Midscene Test: 42 passed, 3 failed](https://badge.midscenejs.com/e2e?pass=42&fail=3)
+
+A two-line card style is also available, with light and dark themes:
+
+![Midscene Test: 42 passed, 3 failed](https://badge.midscenejs.com/e2e?pass=42&fail=3&style=card&theme=light)
+
+The counts come entirely from the `pass` and `fail` query parameters; the service does not read CI data or reports, so you update the URL or generate it in your workflow after each run. When running inside GitHub Actions, the job Summary already includes a badge generated from the current run's results, and the same line appears in `result.md`, ready to copy.
+
+For all supported parameters and styles — including `flat`, `large`, `card`, the dark theme, and the static "E2E by Midscene.js" attribution badge — see the [badge service homepage](https://badge.midscenejs.com), which provides live previews and ready-to-paste Markdown.
