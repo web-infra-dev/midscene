@@ -26,7 +26,10 @@ export async function prepareResponses({
     baseURL: modelConfig.openaiBaseURL,
     intent: modelConfig.intent,
     userConfig: {
-      temperature: modelConfig.temperature,
+      temperature:
+        modelConfig.temperature === 'unset'
+          ? undefined
+          : modelConfig.temperature,
       reasoningEnabled: modelConfig.reasoningEnabled,
       reasoningEffort: modelConfig.reasoningEffort,
       reasoningBudget: modelConfig.reasoningBudget,
@@ -44,7 +47,11 @@ export async function prepareResponses({
       intent: modelConfig.intent,
       requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
     });
-  const requestParams = { ...config, ...modelConfig.extraBody };
+  const requestParams: Record<string, unknown> = {
+    ...config,
+    ...(modelConfig.temperature === 'unset' ? { temperature: undefined } : {}),
+    ...modelConfig.extraBody,
+  };
   if (modelConfig.authMode === 'siwc') {
     // SIWC does not support temperature, including explicit user overrides.
     // https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations#responses-api-requirements

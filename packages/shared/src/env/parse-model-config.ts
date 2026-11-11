@@ -175,7 +175,12 @@ const normalizeOpenaiExtraConfig = (
   return rest;
 };
 
-const parseTemperature = (rawValue: string | undefined): number | undefined => {
+const parseTemperature = (
+  rawValue: string | undefined,
+): IModelConfig['temperature'] => {
+  if (rawValue === 'unset') {
+    return 'unset';
+  }
   if (rawValue === undefined || rawValue === '') {
     return undefined;
   }

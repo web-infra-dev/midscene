@@ -650,7 +650,7 @@ export interface IModelConfig {
   /**
    * Temperature for model sampling.
    */
-  temperature?: number;
+  temperature?: number | 'unset';
   streamMode?: TModelStreamMode;
   authMode?: TModelAuthMode;
   /**
