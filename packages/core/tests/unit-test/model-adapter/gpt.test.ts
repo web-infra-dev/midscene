@@ -86,7 +86,7 @@ describe('GPT Codex App Server parameters', () => {
 
 describe('GPT provider-default reasoning', () => {
   it.each([undefined, 'high', 'max'])(
-    'omits reasoning controls even with effort %s',
+    'preserves explicit effort %s with provider defaults',
     (reasoningEffort) => {
       for (const adapter of [gpt5Adapter, gpt6Adapter]) {
         const input = {
@@ -99,12 +99,11 @@ describe('GPT provider-default reasoning', () => {
         const chatConfig =
           adapter.chatCompletion.buildChatCompletionParams(input).config;
         const codexConfig = adapter.buildCodexAppServerParams(input).config;
-        expect(JSON.parse(JSON.stringify(chatConfig))).not.toHaveProperty(
-          'reasoning_effort',
-        );
-        expect(JSON.parse(JSON.stringify(codexConfig))).not.toHaveProperty(
-          'effort',
-        );
+        expect(chatConfig.reasoning_effort).toBe(reasoningEffort);
+        expect(codexConfig.effort).toBe(reasoningEffort);
+        expect(
+          adapter.responses.buildResponsesParams(input).config.reasoning,
+        ).toEqual({ effort: reasoningEffort, context: 'current_turn' });
         expect(chatConfig).not.toHaveProperty('reasoning_budget');
       }
     },
@@ -388,3 +387,78 @@ describe.each(['gpt-5', 'gpt-6'] as const)('%s bbox boundaries', (family) => {
     }
   });
 });
+
+describe.each(['gpt-5', 'gpt-6'] as const)(
+  '%s OpenRouter reasoning',
+  (family) => {
+    const adapter = new ResolvedModelAdapter(gptAdapters[family], family);
+
+    it.each([
+      { userConfig: {}, gpt5: { effort: 'none' }, gpt6: { effort: 'low' } },
+      {
+        userConfig: {
+          reasoningEnabled: false,
+          reasoningEffort: 'high',
+          reasoningBudget: 1024,
+        },
+        gpt5: { effort: 'none' },
+        gpt6: { effort: 'low' },
+      },
+      {
+        userConfig: { reasoningEnabled: true },
+        gpt5: { effort: 'medium' },
+        gpt6: { effort: 'medium' },
+      },
+      {
+        userConfig: {
+          reasoningEnabled: true,
+          reasoningEffort: 'high',
+          reasoningBudget: 1024,
+        },
+        gpt5: { effort: 'high' },
+        gpt6: { effort: 'high' },
+      },
+      {
+        userConfig: { reasoningEnabled: 'default' },
+        gpt5: undefined,
+        gpt6: undefined,
+      },
+      {
+        userConfig: {
+          reasoningEnabled: 'default',
+          reasoningEffort: 'high',
+          reasoningBudget: 1024,
+        },
+        gpt5: { effort: 'high' },
+        gpt6: { effort: 'high' },
+      },
+      {
+        userConfig: { reasoningEnabled: 'default', reasoningBudget: 1024 },
+        gpt5: undefined,
+        gpt6: undefined,
+      },
+    ] as const)(
+      'maps %j across Chat and Responses',
+      ({ userConfig, gpt5, gpt6 }) => {
+        const input = {
+          baseURL: 'https://openrouter.ai/api/v1',
+          userConfig,
+          expectedJsonObjectResponse: true,
+        };
+        const chat =
+          adapter.chatCompletion.buildChatCompletionParams(input).config;
+        const responses = adapter.responses.buildResponsesParams(input).config;
+        for (const config of [chat, responses]) {
+          expect(config.reasoning).toEqual(family === 'gpt-5' ? gpt5 : gpt6);
+          expect(config).not.toHaveProperty('reasoning_effort');
+          expect(config).not.toHaveProperty('reasoning_budget');
+          if ((family === 'gpt-5' ? gpt5 : gpt6) === undefined) {
+            expect(config).not.toHaveProperty('reasoning');
+          }
+        }
+        expect(chat.response_format).toEqual({ type: 'json_object' });
+        expect(responses.text).toEqual({ format: { type: 'json_object' } });
+      },
+    );
+  },
+);
