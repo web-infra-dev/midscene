@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-005",
+  "platform": "web",
+  "category": {
+    "item": "Small Target",
+    "reason": "The close icon on the travel advertisement is a small target that requires precise localization."
+  },
+  "instruction": {
+    "en": "Close the travel-related advertisement.",
+    "zh": "关闭关于旅行的广告。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [186.0, 247.1, 201.2, 231.8],
+  "reference": {
+    "url": "https://github.com/xlang-ai/OSWorld-G/blob/daa6bd8e0e629f0917ad2984df930bf0bd967540/benchmark/OSWorld-G.json",
+    "dataset": "OSWorld-G",
+    "recordId": "zU0WHpKAjl-0",
+    "image": {
+      "format": "png",
+      "sha256": "d11a609c2ad42190b4e23018932e7f9806b7608e8b7a608059a56f04f0bc4a9a"
+    },
+    "patch": "Replaced the original instruction with a request to close the travel-related advertisement, removing the explicit left-side position and the exact advertising slogan. Added instruction.zh by translating the revised English instruction. Classified category.item as Small Target and updated category.reason to describe the small close icon.",
+    "collectedAt": 1793763122996
+  }
+}

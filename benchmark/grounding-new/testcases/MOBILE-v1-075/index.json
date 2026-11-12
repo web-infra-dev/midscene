@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-075",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is the Performance setting in the battery mode selector, identified by its effect on device performance."
+  },
+  "instruction": {
+    "en": "Enable Performance mode.",
+    "zh": "启用性能模式。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [880, 1024, 1027, 730],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L2414",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#201",
+    "image": {
+      "format": "jpeg",
+      "sha256": "131b137949667565c64ecc1cb770b2ef5629ff5370a063b2b598a4a47a4a8c5e"
+    },
+    "patch": "Replaced the original instruction “check battery options” with a request to enable Performance mode, and added a corresponding Chinese instruction. Changed groundTruth from [106, 1049, 248, 894] to [880, 1024, 1027, 730] in [top, right, bottom, left] pixel coordinates, moving the target from the settings icon to the Performance mode option. Updated category.reason to explain the Performance setting’s function.",
+    "collectedAt": 1794194697239
+  }
+}

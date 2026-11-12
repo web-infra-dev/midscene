@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-038",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires identifying the topic of the current question and applying conditional rules to choose the corresponding action."
+  },
+  "instruction": {
+    "en": "If the current question is about politics, toggle web search; if it is about a four-stroke engine, submit the current question; if it is about DeepSeek itself, toggle deep thinking.",
+    "zh": "如果当前问题是关于政治的则切换联网搜索开关，如果当前问题是关于四冲程发动机的则提交当前的问题，如果当前问题是关于 DeepSeek 本身的则切换深度思考开关。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1056.0, 2736.0, 1121.0, 2671.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L464",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#33",
+    "image": {
+      "format": "png",
+      "sha256": "68ad8b7bdee915fd668f4c0a7cddc08f8eacb25522fca308d5f7781191919471"
+    },
+    "patch": "Replaced the original English and Chinese instructions to submit the current question with conditional rules that map the question's topic to one of three actions. Changed category.item from Functional to Reasoning and updated category.reason to describe the conditional decision.",
+    "collectedAt": 1792485870802
+  }
+}

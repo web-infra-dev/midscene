@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-096",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The target action depends on determining whether an overlay or pop-up covers any part of the LEGO toy details."
+  },
+  "instruction": {
+    "en": "I want to view the LEGO toy details. If an overlay or pop-up is partially or completely covering them, close the overlay or pop-up; otherwise, click the LEGO toy details.",
+    "zh": "我想查看乐高玩具详情，如果它被浮层或弹窗部分或完全挡住了则关闭浮层或弹窗，否则点击乐高玩具详情。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [908, 576, 930, 554],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/276",
+    "image": {
+      "format": "png",
+      "sha256": "4ed9ae36b6c6cb7a3c86b4e8ede7f0d76a787cef6c6dfea16a8300f72f434cf4"
+    },
+    "patch": "Replaced the original instruction “what's the deal of the day” with a conditional request to close any overlay covering the LEGO toy details or otherwise open those details, and added a corresponding Chinese instruction. Changed groundTruth from [128.9, 193.8, 144.9, 102.5] to [908, 576, 930, 554] in [top, right, bottom, left] pixel coordinates, moving the target from the Deal of the Day navigation item to the close button on the chat overlay that partially covers the LEGO product card. Changed category.item from Basic Element to Reasoning and updated category.reason to describe the conditional selection.",
+    "collectedAt": 1794206764959
+  }
+}

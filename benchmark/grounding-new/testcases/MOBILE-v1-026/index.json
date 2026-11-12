@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-026",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task tests associating the requested message-clearing function with a toolbar control among other messaging actions."
+  },
+  "instruction": {
+    "en": "Clear all unread messages with one tap.",
+    "zh": "一键清除所有未读消息。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [119.0, 932.0, 188.0, 867.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L3110",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#row=222",
+    "image": {
+      "format": "png",
+      "sha256": "b66c43575b63193d0c2a0ecc45b2019a2125cae21ee7a7ae2e6e70ab630b5686"
+    },
+    "patch": "Revised the English and Chinese instructions to specify clearing all unread messages with one tap. Revised category.reason to describe associating the message-clearing function with a toolbar control.",
+    "collectedAt": 1792485870241
+  }
+}

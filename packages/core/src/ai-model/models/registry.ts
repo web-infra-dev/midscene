@@ -7,6 +7,7 @@ import type {
 } from '../model-adapter/types';
 import { antLingAdapters } from './ant-ling/adapter';
 import { autoGlmAdapters } from './auto-glm/adapter';
+import { claudeAdapters } from './claude';
 import { deepSeekAdapters } from './deepseek/adapter';
 import { defaultOpenAICompatibleAdapterConfig } from './default';
 import { doubaoAdapters } from './doubao';
@@ -34,6 +35,7 @@ export const MODEL_ADAPTER_CONFIGS = {
   ...autoGlmAdapters,
   ...gptAdapters,
   ...tencentHyAdapters,
+  ...claudeAdapters,
   ...kimiAdapters,
   ...mimoAdapters,
 } satisfies Record<TModelFamily, ModelAdapterDefinition>;

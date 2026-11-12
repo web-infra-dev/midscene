@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-091",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task combines a festival-date boundary, weekday exclusion, minimum-price comparison, and chronological tie-break, requiring several constraints to be evaluated."
+  },
+  "instruction": {
+    "en": "Among all non-Wednesday dates before Qixi Festival, select the earliest departure date with the lowest price.",
+    "zh": "在七夕节前的所有非周三日期中，选择价格最低、出发日期最早的日期。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1051.0, 436.0, 1148.0, 344.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L72",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#5",
+    "image": {
+      "format": "png",
+      "sha256": "bcbcfed9de190b31553afcbdcc29ba74179850fd16d5df4a8cc957a394f34731"
+    },
+    "patch": "Changed the instruction from selecting the lowest-priced Wednesday in August 2025 to selecting the earliest of the lowest-priced non-Wednesday dates before Qixi Festival, updated the category reason, and moved the ground truth from August 27 to August 19.",
+    "collectedAt": 1792485870496
+  }
+}

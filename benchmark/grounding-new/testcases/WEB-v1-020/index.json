@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-020",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires interpreting recurring donations and comparing the available monthly amounts against an annual budget."
+  },
+  "instruction": {
+    "en": "I plan to make ongoing donations totaling no more than $550 per year. Select the highest donation amount that meets this budget.",
+    "zh": "我计划每年总捐赠不超过 550 美元并持续捐赠，帮我选择最合适的、金额最高的捐赠选项。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [329.0, 1119.0, 393.0, 903.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=364",
+    "image": {
+      "format": "png",
+      "sha256": "7fa3b69cf0afc24725e7a8886fd0f5a7da2612749c5837aa678da84a0686cb79"
+    },
+    "patch": "Replaced the original instruction “Click on \"NEXT\".” with a request to choose the highest ongoing donation amount within an annual budget of $550, and added a corresponding Chinese instruction. Changed groundTruth from [427.7, 1216.0, 479.7, 692.0] to [329.0, 1119.0, 393.0, 903.0] in [top, right, bottom, left] pixel coordinates to target the qualifying monthly donation amount in the revised screenshot. Reconstructed and enhanced the screenshot with image generation, removing the custom donation amount control while retaining the monthly selection and preset amounts; the image dimensions changed from 1280 × 720 to 1672 × 941. Classified category.item as Reasoning and updated category.reason accordingly.",
+    "collectedAt": 1794362925648
+  }
+}

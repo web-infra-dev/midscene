@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-009",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the Google model card visible on the page."
+  },
+  "instruction": {
+    "en": "View Google's model.",
+    "zh": "查看 Google 的模型。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1038, 347, 1096, 57],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/36",
+    "image": {
+      "format": "png",
+      "sha256": "501ac161012f7408a730ae128e1ceaef5325c6eeda5602ca07dcd0f73a2428b6"
+    },
+    "patch": "Replaced the original instruction “Navigate to the Models section” with a request to view a Google model and added a corresponding Chinese instruction. Changed groundTruth from [17.5, 390.2, 46.0, 304.7] to [1038, 347, 1096, 57] in [top, right, bottom, left] pixel coordinates, moving the target from the Models navigation link to the visible google/gemma-3-27b-it model card. Updated category.reason to identify the Google model card.",
+    "collectedAt": 1793870229082
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-043",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires determining which options apply to the described pregnancy, checking whether all applicable options are selected, and using their order to identify the next action."
+  },
+  "instruction": {
+    "en": "I conceived naturally and am pregnant with multiples. This pregnancy was planned, it is my first pregnancy, and I do not plan to become pregnant again. Check that all applicable options are selected. If they are, proceed to the next step; otherwise, select the next applicable option from left to right.",
+    "zh": "我通过自然怀孕怀上了多胞胎，这次怀孕在计划之内，这是我的首次怀孕并且我之后不再打算继续怀孕。请检查并确保已勾选所有符合的选项，如果已满足要求则进入下一步，否则帮我按照从左至右的顺序继续选中我需要选中的下一个选项。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [373, 623, 532, 465],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=226",
+    "image": {
+      "format": "jpeg",
+      "sha256": "6062b5dbf60025584f465c2ffa82a7211e2eb265e90d7eb77fccbcb966c49e93"
+    },
+    "patch": "Replaced the original instruction “Click on \"NEXT\".” with a conditional request to check whether all options applicable to a described pregnancy are selected, proceed to the next step if they are, or select the next applicable option from left to right otherwise; added a corresponding Chinese instruction. Changed groundTruth from [574, 790, 624, 490] to [373, 623, 532, 465] in [top, right, bottom, left] pixel coordinates, moving the target from the NEXT button to the unselected Multiples option. Changed category.item from Basic Element to Reasoning and updated category.reason to explain the required interpretation and selection.",
+    "collectedAt": 1794194795907
+  }
+}

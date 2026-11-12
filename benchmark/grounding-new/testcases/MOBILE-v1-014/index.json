@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-014",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires identifying the relevant app category and ranking multiple visible download counts before selecting an entry."
+  },
+  "instruction": {
+    "en": "Browse the game app with the second-highest download count.",
+    "zh": "浏览下载量第二高的游戏类应用。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1460.0, 1030.0, 1653.0, 33.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L49517",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "2606",
+    "image": {
+      "format": "png",
+      "sha256": "89a4fdc7a581b77ca874d8b383d80861188ce085188e3988af8b8e7e62584508"
+    },
+    "patch": "Added instruction.zh by translating the revised English instruction. The original instruction requested the mobile version of the League of Legends auto-chess game, but the screenshot does not establish that franchise relationship. Revised the instruction to request the game app with the second-highest download count, requiring comparison of the displayed game apps rather than external franchise knowledge. 金铲铲之战 shows 85.61 million downloads and 捕鱼大作战-高爆率 shows 35.65 million, making the latter the target. Changed groundTruth from [1064.2, 845.0, 1257.3, 33.0] to [1460.0, 1030.0, 1653.0, 33.0] in [top, right, bottom, left] pixel coordinates, moving it from the original 金铲铲之战 card to the 捕鱼大作战-高爆率 row, including its icon, details, and Install button. Updated category.reason to describe the game identification and download-count comparison.",
+    "collectedAt": 1792485870214
+  }
+}

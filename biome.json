@@ -7,6 +7,9 @@
     "ignore": [
       ".agents/**",
       ".pnpm-store/**",
+      "benchmark/grounding-new/candidates/pool/**",
+      "benchmark/grounding-new/evaluation/output/**",
+      "benchmark/grounding-new/evaluation/experiments/output/**",
       "static/**",
       "node_modules/**",
       "**/midscene_run",

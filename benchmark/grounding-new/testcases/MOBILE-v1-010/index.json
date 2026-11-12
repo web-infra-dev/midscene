@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-010",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires comparing the displayed item counts of the folders to identify the one with the highest count."
+  },
+  "instruction": {
+    "en": "Find the folder containing the most items.",
+    "zh": "找到包含子项目最多的文件夹。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1825, 1030, 2170, 780],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L1946",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#162",
+    "image": {
+      "format": "jpeg",
+      "sha256": "eaa9159e921929093a7133f7594480be810c446283c52cb6fbac17a46dc4cf93"
+    },
+    "patch": "Replaced the original instruction “search in this page” with an instruction to find the folder containing the most items. Changed groundTruth from [89, 747, 219, 625] to [1825, 1030, 2170, 780] in [top, right, bottom, left] pixel coordinates, moving the target from the search icon to the DCIM folder with the highest displayed item count and covering its icon, name, date, and item count. Added instruction.zh by translating the revised English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

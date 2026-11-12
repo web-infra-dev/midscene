@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-026",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The target is the silver color option on the M4 Max MacBook Pro card, which must be distinguished from the color options on the M4 Pro cards."
+  },
+  "instruction": {
+    "en": "View the silver MacBook Pro with the M4 Max chip.",
+    "zh": "查看 M4 Max 芯片银白色配色的 MacBook Pro。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [925, 808, 949, 784],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/454",
+    "image": {
+      "format": "png",
+      "sha256": "a38c1b70af05c05af3a908af2da364231d90189a99757adb553d8b278a6888b6"
+    },
+    "patch": "Replaced the original instruction “Show all MacBook Pro models regardless of chip type” with a request to view the silver MacBook Pro with the M4 Max chip, and added a corresponding Chinese instruction. Changed groundTruth from [582.0, 488.8, 618.1, 403.3] to [925, 808, 949, 784] in [top, right, bottom, left] pixel coordinates, moving the target from the All Chips filter to the silver color swatch on the M4 Max product card. Changed category.item from Functional to Reasoning and updated category.reason to explain the distinction between product cards and color options.",
+    "collectedAt": 1793867311106
+  }
+}

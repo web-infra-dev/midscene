@@ -1,0 +1,152 @@
+{
+  "GroundUI-1K": [],
+  "UI-I2E-Bench": [
+    {
+      "recordId": "I2E-bench-annotation.jsonl#684",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#931",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1175",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#59",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#38",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#674",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#783",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#700",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#898",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#616",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1232",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#730",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#929",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1084",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#797",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#930",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#676",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1239",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1067",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1154",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#780",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#838",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#610",
+      "reason": "Not selected after reviewing the screenshot and the source target."
+    }
+  ],
+  "ScreenSpot-v2": [],
+  "WebClick": [
+    {
+      "recordId": "default/test/1459",
+      "reason": "Not selected after preliminary screenshot and target review; reassess before use."
+    },
+    {
+      "recordId": "default/test/1302",
+      "reason": "Not selected after preliminary screenshot and target review; reassess before use."
+    },
+    {
+      "recordId": "default/test/1221",
+      "reason": "Not selected after preliminary screenshot and target review; reassess before use."
+    },
+    {
+      "recordId": "default/test/1206",
+      "reason": "Not selected after preliminary screenshot and target review; reassess before use."
+    },
+    {
+      "recordId": "default/test/476",
+      "reason": "Not selected after preliminary screenshot and target review; reassess before use."
+    },
+    {
+      "recordId": "default/test/209",
+      "reason": "Not selected after preliminary screenshot and target review; reassess before use."
+    },
+    {
+      "recordId": "default/test/364",
+      "reason": "Not selected after preliminary screenshot and target review; reassess before use."
+    },
+    {
+      "recordId": "default/test/1017",
+      "reason": "Not selected after preliminary screenshot and target review; reassess before use."
+    },
+    {
+      "recordId": "default/test/587",
+      "reason": "Not selected after preliminary screenshot and target review; reassess before use."
+    },
+    {
+      "recordId": "default/test/317",
+      "reason": "Not selected after preliminary screenshot and target review; reassess before use."
+    },
+    {
+      "recordId": "default/test/735",
+      "reason": "Not selected after preliminary screenshot and target review; reassess before use."
+    },
+    {
+      "recordId": "default/test/822",
+      "reason": "Not selected after preliminary screenshot and target review; reassess before use."
+    },
+    {
+      "recordId": "default/test/58",
+      "reason": "Not selected after preliminary screenshot and target review; reassess before use."
+    }
+  ]
+}

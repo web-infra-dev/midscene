@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-074",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task asks to display a subset of chat messages, requiring recognition of which interface control performs that function."
+  },
+  "instruction": {
+    "en": "Display flagged messages.",
+    "zh": "显示已标记的消息。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [252.0, 910.0, 386.0, 621.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L2834",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#236",
+    "image": {
+      "format": "png",
+      "sha256": "7e1b7c7ec0741ffdaa5351a573fce665c36a9b6aa31ba30f8708ae7fccf357e2"
+    },
+    "patch": "Corrected the original English instruction from \"display flagged massages\" to \"Display flagged messages.\" to match the Flagged tab in the chat interface; added instruction.zh by translating the corrected instruction. Updated category.reason to explain the function of displaying flagged messages.",
+    "collectedAt": 1792485870423
+  }
+}

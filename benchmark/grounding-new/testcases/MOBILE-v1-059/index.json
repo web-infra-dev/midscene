@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-059",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the watch face showing a cartoon dog."
+  },
+  "instruction": {
+    "en": "Select the watch face with a cartoon dog.",
+    "zh": "选择有卡通小狗图案的表盘。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [574, 809, 1026, 424],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L5858",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#488",
+    "image": {
+      "format": "jpeg",
+      "sha256": "42454748f8fcd335372cabe4ca53c92bb1e9e18befd7c280ef757040a8e1ae70"
+    },
+    "patch": "Replaced the original instruction “select snoopy as watch face” with an instruction to select the watch face featuring a cartoon dog, and added instruction.zh by translating the revised English instruction. Adjusted groundTruth from [538, 817, 1106, 419] to [574, 809, 1026, 424] in [top, right, bottom, left] pixel coordinates, enclosing the watch face itself. Updated category.reason to describe the watch face with a cartoon dog.",
+    "collectedAt": 1793867704202
+  }
+}

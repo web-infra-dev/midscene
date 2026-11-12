@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-055",
+  "platform": "mobile",
+  "category": {
+    "item": "Refusal",
+    "reason": "The requested apple.com.gov account is absent from the visible password list, so there is no matching entry to locate."
+  },
+  "instruction": {
+    "en": "Manage the password for apple.com.gov.",
+    "zh": "管理 apple.com.gov 的密码。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L3254",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#271",
+    "image": {
+      "format": "png",
+      "sha256": "f28a92a38791710b1b3749a91907528094655a8134e40a3c2664a49656576859"
+    },
+    "patch": "Replaced the original instruction “manage the password for aliyunidaas.com” with a request to manage the password for apple.com.gov, and added a corresponding Chinese instruction. Changed groundTruth from [1112, 1125, 1289, 46] to REFUSAL because apple.com.gov is absent from the visible list. Classified category.item as Refusal and updated category.reason accordingly. Replaced the account usernames in the screenshot with mosaic blocks to protect privacy, preserving the original image dimensions and all pixels outside the redacted regions.",
+    "collectedAt": 1794363025651
+  }
+}

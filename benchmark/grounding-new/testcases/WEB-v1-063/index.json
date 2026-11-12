@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-063",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the application-installation function associated with obtaining the desktop client."
+  },
+  "instruction": {
+    "en": "Download the Spotify desktop client.",
+    "zh": "下载 Spotify 桌面客户端。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [31.0, 2713.0, 95.0, 2485.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L7940",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#567",
+    "image": {
+      "format": "png",
+      "sha256": "9ed320fd18a06b61c252be6d623638c79a52fe5668827e05607be5fdf9a5ec3b"
+    },
+    "patch": "Revised category.reason to explain the testcase-specific localization basis: The task requires identifying the application-installation function associated with obtaining the desktop client.",
+    "collectedAt": 1792485870930
+  }
+}

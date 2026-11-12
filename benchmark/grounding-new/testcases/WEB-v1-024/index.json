@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-024",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires filtering train schedules by departure and arrival times, then comparing departure times to identify the latest qualifying train."
+  },
+  "instruction": {
+    "en": "Click the booking button for the latest-departing train that departs at or after 14:15 and arrives at or before 20:30.",
+    "zh": "点击 20 点 30 分及之前到达且在 14 点 15 分及以后出发的车次中，出发最晚的车票的预定按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1456.0, 2012.0, 1548.0, 1919.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L4510",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#322",
+    "image": {
+      "format": "png",
+      "sha256": "b872d125f50f68b0ab16cb83c45f0a3a076cbc5cb733c8608e14dd39ecc0ef12"
+    },
+    "patch": "Changed both instructions to select the booking button for the latest-departing train among those departing at or after 14:15 and arriving at or before 20:30, instead of the train departing at 14:00 and arriving before 20:00. Moved the ground truth from the G18 booking button to the G20 booking button and updated category.reason to describe the time filtering and comparison.",
+    "collectedAt": 1792485870686
+  }
+}

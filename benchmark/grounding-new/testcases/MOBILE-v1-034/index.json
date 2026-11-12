@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-034",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The heart-shaped control performs the requested function of saving the current location."
+  },
+  "instruction": {
+    "en": "Save the current location.",
+    "zh": "收藏当前地点。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1712.0, 1039.0, 1782.0, 958.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L6442",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#row=460",
+    "image": {
+      "format": "png",
+      "sha256": "2a95c9a354ad978802edee11a346f474cc42c722419748c72a5661a8a5a21247"
+    },
+    "patch": "Expanded the ground-truth box by 5 pixels on each side to provide more space around the heart-shaped icon. Changed category.item from Small Target to Functional and updated category.reason to describe the save-location function.",
+    "collectedAt": 1792485870288
+  }
+}

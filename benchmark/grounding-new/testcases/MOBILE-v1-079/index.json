@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-079",
+  "platform": "mobile",
+  "category": {
+    "item": "Small Target",
+    "reason": "The target is the tiny red notification dot at the upper right of the envelope icon, requiring precise localization within the larger icon."
+  },
+  "instruction": {
+    "en": "Locate the small red notification dot at the top right of the envelope icon.",
+    "zh": "定位信封图标右上角的红色通知小圆点。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [111.5, 1070.5, 149.5, 1032.5],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L7774",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "409",
+    "image": {
+      "format": "png",
+      "sha256": "9e6e534754dd32d408052ad095403b6f13015c1ae470f824e314a9bd084ad23f"
+    },
+    "patch": "Revised the original English instruction to target the small red notification dot at the top right of the envelope icon, rather than the envelope, and added the corresponding Chinese instruction. Changed the ground-truth box from [117.0, 1064.0, 196.0, 983.0] to [111.5, 1070.5, 149.5, 1032.5] (top, right, bottom, left) to center it on the dot with a surrounding margin. Updated category.reason to reflect the smaller target.",
+    "collectedAt": 1792485870446
+  }
+}

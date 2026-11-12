@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-043",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the control for the song-identification function from its microphone icon."
+  },
+  "instruction": {
+    "en": "Identify a song by listening to it.",
+    "zh": "听歌识曲。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [128.0, 1037.0, 193.0, 978.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L2732",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#row=195",
+    "image": {
+      "format": "png",
+      "sha256": "390351916f29f9af774997f1c3d4c179b4e56ba8997215e403e0ff41bcab7e6d"
+    },
+    "patch": "Expanded groundTruth from [128, 1032, 193, 983] to [128, 1037, 193, 978] in [top, right, bottom, left] pixel coordinates, providing more space around the microphone icon. Changed category.item from Small Target to Functional and updated category.reason to explain the icon’s song-identification function.",
+    "collectedAt": 1792485870303
+  }
+}

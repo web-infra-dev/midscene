@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-075",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The full asset filename is explicitly supplied, allowing direct text matching among download items."
+  },
+  "instruction": {
+    "en": "Select “midscene-studio-beta-v1.17.7-darwin-arm64.zip” from the assets list.",
+    "zh": "在资产列表中选择“midscene-studio-beta-v1.17.7-darwin-arm64.zip”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [934.0, 1275.0, 970.0, 610.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L13190",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#942",
+    "image": {
+      "format": "png",
+      "sha256": "754a271aab0b44f5afd7cbfef313112894557acbabe780833f2ab9303c913d54"
+    },
+    "patch": "Replaced the original repository release screenshot with a Midscene repository release screenshot to make the same asset-selection task more engaging in the Midscene context. Updated both instructions to select midscene-studio-beta-v1.17.7-darwin-arm64.zip instead of etcd-v3.6.4-linux-ppc64le.tar.gz. Changed groundTruth from [1296.0, 2978.0, 1371.0, 1238.0] to [934.0, 1275.0, 970.0, 610.0] in [top, right, bottom, left] pixel coordinates to cover the corresponding asset link in the new screenshot. Updated category.reason to describe the filename-matching task.",
+    "collectedAt": 1792485870970
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-090",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The target requires filtering applications by total downloads, rating and package size, comparing their download counts over the last seven days, and locating the SHA-256 in the selected row."
+  },
+  "instruction": {
+    "en": "Among the apps with more than 10 million total downloads, a rating of at least 4.7, and a package size between 100 and 350 MB inclusive, find the package SHA-256 of the app with the fewest downloads in the last 7 days.",
+    "zh": "在总下载量超过 1,000 万、评分不低于 4.7 且安装包体积为 100 至 350 MB（含边界）的应用中，找到近 7 天下载量最少的应用的安装包 SHA-256。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [1263, 3456, 1311, 2567],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "be53afd8ea793b709d4cfa4cf5206dd837479148209721154a561c2f5ac65f5f"
+    },
+    "patch": "Added instruction.en by translating the original Chinese instruction.",
+    "collectedAt": 1794379601126
+  }
+}

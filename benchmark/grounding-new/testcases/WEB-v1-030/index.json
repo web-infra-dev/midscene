@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-030",
+  "platform": "web",
+  "category": {
+    "item": "Small Target",
+    "reason": "The completion control for the dated subtask is small and requires precise localization."
+  },
+  "instruction": {
+    "en": "Find the subtask scheduled for December 12–14 among the tasks in the third phase, and click to complete it.",
+    "zh": "找到第三阶段任务中时间是 12 月 12 – 14 日的子任务，点击完成该子任务。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1019.0, 2000.0, 1056.0, 1965.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L8276",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#591",
+    "image": {
+      "format": "png",
+      "sha256": "c4c391c200c7c52eab9dc6581326c01065bc611642483f9fde00bfc65aba00f1"
+    },
+    "patch": "Clarified in both instructions that the target dated December 12–14 is a subtask of a third-phase task, and updated category.reason to describe the small completion control. The ground truth remains on the same completion control. Classified category.item as Small Target.",
+    "collectedAt": 1792485870709
+  }
+}

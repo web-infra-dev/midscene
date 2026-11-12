@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-081",
+  "platform": "web",
+  "category": {
+    "item": "Small Target",
+    "reason": "The label identifies the option directly; the challenge is accurately locating its small checkbox."
+  },
+  "instruction": {
+    "en": "Find the checkbox for the “Remember me” option.",
+    "zh": "找到“Remember me”选项的复选框。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [879.0, 303.0, 925.0, 259.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L2918",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2_243",
+    "image": {
+      "format": "png",
+      "sha256": "ea487493e4ed4807556b680b8b36e25d6490f480fac16de62fd46fe8adcdfdc9"
+    },
+    "patch": "Reworded the English instruction to locate the checkbox for the Remember me option and added instruction.zh by translating it, preserving the displayed label capitalization. Shifted the ground truth 2 pixels right and 1 pixel down to center the checkbox.",
+    "collectedAt": 1792485870979
+  }
+}

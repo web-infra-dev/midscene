@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-027",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The target stock is distinguished from similar rows by the combination of its RSI and Mom value ranges."
+  },
+  "instruction": {
+    "en": "Find the ticker symbol of the stock with an RSI between 50 and 54 and a Mom between 0 and 1, inclusive of both endpoints.",
+    "zh": "找到 RSI 为 50 至 54、Mom 为 0 至 1 的股票代码，范围均包含边界。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1155.0, 424.0, 1202.0, 311.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L9032",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#645",
+    "image": {
+      "format": "png",
+      "sha256": "c23f0f3e95ad22d55130f2dd2bd721480e96094e2a5ae64f4b2028a370dc68c7"
+    },
+    "patch": "The original instruction identified a stock by exact RSI 53.78 and Mom 0.78 values without specifying which part of its row to locate, while the ground truth covers only its ticker symbol. Rewrote both instructions to request the ticker symbol of the stock whose RSI is between 50 and 54 and Mom is between 0 and 1, inclusive. The ranges preserve CSCO as the unique matching stock while requiring comparison across rows. The ground truth is unchanged, and category.reason was updated to reflect the range-based criteria. Classified category.item as Reasoning.",
+    "collectedAt": 1792485870696
+  }
+}

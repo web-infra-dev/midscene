@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-001",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires determining next Friday from the displayed calendar and identifying the event whose time interval contains the requested time."
+  },
+  "instruction": {
+    "en": "View the event taking place at 5:58 PM next Friday.",
+    "zh": "查看下周五 17:58 的日程安排。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1525.0, 1038.0, 1662.0, 168.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L927",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#927",
+    "image": {
+      "format": "png",
+      "sha256": "19ab770be299a446508be885cd8048a0a389dfb2cefb53bdcbda22284ac0af31"
+    },
+    "patch": "Replaced the original instruction “Click the icon on the left of the calendar” with a request to view the event taking place at 5:58 PM next Friday, and added a corresponding Chinese instruction. Changed groundTruth from [156, 806, 282, 679] to [1525.0, 1038.0, 1662.0, 168.0] in [top, right, bottom, left] pixel coordinates to target the matching calendar event instead of the search icon. Classified category.item as Reasoning and updated category.reason to describe the date and time reasoning required.",
+    "collectedAt": 1794362985002
+  }
+}

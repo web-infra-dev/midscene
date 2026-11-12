@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-015",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target artist image is identified by its position relative to another image in the top row, rather than by its name."
+  },
+  "instruction": {
+    "en": "Find the artist image immediately to the right of the first artist image in the top row.",
+    "zh": "找到顶行中紧邻第一个艺术家图像右侧的艺术家图像。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [501.0, 1920.0, 761.0, 1661.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/spatial_grounding.json#L12798",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/spatial_grounding.json#914",
+    "image": {
+      "format": "png",
+      "sha256": "db9c578ccaf97f7fb9b9722edff3b91f61a248bd58cf5576f018878f6a547ff0"
+    },
+    "patch": "Reworded the English and Chinese instructions to remove redundant wording while preserving the original positional relationship.",
+    "collectedAt": 1792485870651
+  }
+}

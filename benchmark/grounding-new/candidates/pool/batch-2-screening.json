@@ -1,0 +1,156 @@
+{
+  "UI-I2E-Bench": [
+    {
+      "recordIndex": 1421,
+      "reason": "source describes a tab as a toggle"
+    },
+    {
+      "recordIndex": 1474,
+      "reason": "source describes a tab as a toggle"
+    },
+    {
+      "recordIndex": 680,
+      "reason": "source describes a tab as a toggle"
+    },
+    {
+      "recordIndex": 1363,
+      "reason": "source describes a tab as a toggle"
+    },
+    {
+      "recordIndex": 1149,
+      "reason": "specialized map and scientific dashboard"
+    },
+    {
+      "recordIndex": 810,
+      "reason": "specialized astronomy interface"
+    }
+  ],
+  "ScreenSpot-v2": [
+    {
+      "recordId": "screenspot_web_v2.json#304",
+      "reason": "login form includes account details"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#319",
+      "reason": "same screenshot as first batch"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#189",
+      "reason": "same screenshot as first batch"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#200",
+      "reason": "X social-link target does not establish login with X"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#111",
+      "reason": "add a new one omits the object"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#378",
+      "reason": "target appears to mute a channel, rather than view muted channels"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#487",
+      "reason": "GT points to notifications, not the Fahrenheit option"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#380",
+      "reason": "professional software promotion"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#112",
+      "reason": "same screenshot as earlier candidate in this batch"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#150",
+      "reason": "instruction says book but screenshot contains forums"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#455",
+      "reason": "GT is the abc key rather than uppercase/shift"
+    }
+  ],
+  "WebClick": [
+    {
+      "recordId": "default/test/25",
+      "reason": "screenshot already used"
+    },
+    {
+      "recordId": "default/test/124",
+      "reason": "screenshot already used"
+    },
+    {
+      "recordId": "default/test/1545",
+      "reason": "professional software or technical product site"
+    },
+    {
+      "recordId": "default/test/967",
+      "reason": "professional software or technical product site"
+    },
+    {
+      "recordId": "default/test/215",
+      "reason": "screenshot already used"
+    },
+    {
+      "recordId": "default/test/371",
+      "reason": "screenshot already used"
+    },
+    {
+      "recordId": "default/test/188",
+      "reason": "professional software or technical product site"
+    },
+    {
+      "recordId": "default/test/1101",
+      "reason": "screenshot already used"
+    },
+    {
+      "recordId": "default/test/1311",
+      "reason": "screenshot already used"
+    },
+    {
+      "recordId": "default/test/252",
+      "reason": "screenshot already used"
+    },
+    {
+      "recordId": "default/test/1211",
+      "reason": "screenshot already used"
+    },
+    {
+      "recordId": "default/test/733",
+      "reason": "screenshot already used"
+    },
+    {
+      "recordId": "default/test/510",
+      "reason": "screenshot already used"
+    }
+  ],
+  "OSWorld-G": [
+    {
+      "recordId": "Plv7sx72z6-0",
+      "reason": "Screenshot also exposes an email client with account details; deferred for privacy review."
+    }
+  ],
+  "Cross-source": [
+    {
+      "dataset": "ScreenSpot-v2",
+      "recordId": "screenspot_mobile_v2.json#419",
+      "reason": "Screenshot duplicates a GroundUI-1K candidate in this batch."
+    },
+    {
+      "dataset": "ScreenSpot-v2",
+      "recordId": "screenspot_mobile_v2.json#68",
+      "reason": "Screenshot duplicates a GroundUI-1K candidate in this batch."
+    },
+    {
+      "dataset": "ScreenSpot-v2",
+      "recordId": "screenspot_web_v2.json#77",
+      "reason": "Screenshot duplicates a GroundUI-1K candidate in this batch."
+    },
+    {
+      "dataset": "ScreenSpot-v2",
+      "recordId": "screenspot_mobile_v2.json#319",
+      "reason": "Screenshot duplicates a GroundUI-1K candidate in this batch."
+    }
+  ]
+}

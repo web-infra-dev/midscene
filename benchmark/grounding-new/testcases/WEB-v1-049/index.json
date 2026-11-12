@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-049",
+  "platform": "web",
+  "category": {
+    "item": "Small Target",
+    "reason": "The target is the small checkbox for the No prepayment filter."
+  },
+  "instruction": {
+    "en": "Find the checkbox for the “No prepayment” filter.",
+    "zh": "找到无需提前付款筛选项的复选框。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [181.0, 878.0, 224.0, 838.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L2018",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#144",
+    "image": {
+      "format": "png",
+      "sha256": "0a1be38c10082077e35c284cc57dfcdbea1f6c8144db6c7649c656558ef8456e"
+    },
+    "patch": "Rephrased the English and Chinese instructions to explicitly locate the checkbox for the No prepayment filter, and updated the category reason accordingly.",
+    "collectedAt": 1792485870855
+  }
+}

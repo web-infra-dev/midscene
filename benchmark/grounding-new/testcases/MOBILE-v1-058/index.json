@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-058",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The task identifies a text element by its specified visible prefix, requiring direct text matching."
+  },
+  "instruction": {
+    "en": "Find the complete text element that begins with \"巴赫G弦上的咏叹\".",
+    "zh": "找到开头内容为“巴赫G弦上的咏叹”的完整文本元素。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2094.0, 761.0, 2145.0, 179.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L8654",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#618",
+    "image": {
+      "format": "png",
+      "sha256": "12947b792ccc7d06dcc1ebed05c6bb130b3b000b3fab4889eea029312337b629"
+    },
+    "patch": "Revised the English and Chinese instructions to identify the full text element by the visible Chinese prefix 巴赫G弦上的咏叹, replacing the translated or truncated title in the original instructions. Updated category.reason to describe direct prefix matching; the ground truth remains on the text element.",
+    "collectedAt": 1792485870333
+  }
+}

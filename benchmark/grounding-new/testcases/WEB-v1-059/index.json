@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-059",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The target is distinguished from other rating stars by its position in the rating scale."
+  },
+  "instruction": {
+    "en": "Rate this product with four stars.",
+    "zh": "给该商品评四星。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [395, 646, 450, 615],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L4382",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#365",
+    "image": {
+      "format": "png",
+      "sha256": "cc120f6c35eaa5a86e97db1ee410f91f1ecbbdbf0d94d08c0f104af67b5c8998"
+    },
+    "patch": "Standardized the capitalization and punctuation of the original English instruction. Added instruction.zh by translating it. Classified category.item as Reasoning.",
+    "collectedAt": 1793776824833
+  }
+}

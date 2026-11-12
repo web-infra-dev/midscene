@@ -1,0 +1,3254 @@
+{
+  "GroundUI-1K": [
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=391",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=259",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=136",
+      "reason": "The From selector establishes a starting year, not a filter restricted to 2010."
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=216",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=481",
+      "reason": "Near-duplicate setting screenshot and task previously emitted in batch 4."
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=210",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=307",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=165",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=357",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=326",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=315",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=305",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=407",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=265",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=298",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=179",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=334",
+      "reason": "Multiple notification bell icons are visible and the source instruction does not disambiguate them."
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=419",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=102",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=290",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=460",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=405",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=42",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=227",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=429",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=351",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=380",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=380",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=228",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=201",
+      "reason": "Not selected after preliminary screenshot and annotation review; reassess before use."
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=135",
+      "reason": "Screenshot includes a full email address in the page header."
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=99",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=434",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=329",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=371",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=275",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=41",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=229",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=134",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=343",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=354",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=246",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=253",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=284",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=469",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=254",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=154",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=181",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=315",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=412",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=449",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=269",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=366",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=316",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=226",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=382",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=97",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=239",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=388",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=346",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=328",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=87",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=238",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=149",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=420",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=358",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=202",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=349",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=221",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=252",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=392",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=131",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=230",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=335",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=400",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=234",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=86",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=275",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=304",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=148",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=284",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=248",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=57",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=35",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=365",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=48",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=58",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=108",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=144",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=289",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=56",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=49",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=130",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=316",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=418",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=200",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=334",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=241",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=255",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=310",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=278",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=414",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=281",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=29",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=354",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=489",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=68",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=269",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=103",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=113",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=343",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=427",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=237",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=76",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=329",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=299",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=424",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=483",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=359",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=273",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=340",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=293",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=372",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=180",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=389",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=417",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=422",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=302",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=314",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=204",
+      "reason": "image already used"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=26",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=229",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=37",
+      "reason": "excluded during earlier screening"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=264",
+      "reason": "invalid box or instruction refers to annotation overlay"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=74",
+      "reason": "image already used"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=71",
+      "reason": "image already used"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=82",
+      "reason": "image already used"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=39",
+      "reason": "image already used"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=44",
+      "reason": "image already used"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=62",
+      "reason": "image already used"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=73",
+      "reason": "image already used"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=386",
+      "reason": "image already used"
+    },
+    {
+      "recordId": "data/train-00001-of-00002.parquet#row=241",
+      "reason": "invalid box or instruction refers to annotation overlay"
+    },
+    {
+      "recordId": "data/train-00000-of-00002.parquet#row=61",
+      "reason": "image already used"
+    }
+  ],
+  "UI-I2E-Bench": [
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1016",
+      "reason": "The GT label refers to the latest feature, not clearly the requested special reports."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1131",
+      "reason": "The requested month is unspecified and not shown in the closed dropdown."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#536",
+      "reason": "The previous-question arrow appears disabled."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#977",
+      "reason": "An email composition screen contains a user-specific link."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1049",
+      "reason": "There are two visible plus icons."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#894",
+      "reason": "The astronomy-specific interface is outside the preferred general scenes."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#851",
+      "reason": "The GT is a duration label, not an editable end-time input."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1437",
+      "reason": "The GT is the unit dropdown rather than an input field."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1228",
+      "reason": "The tiny login checkbox target cannot be confidently verified."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#903",
+      "reason": "The page is already at the specified domain and the GT is not a clear URL input."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#686",
+      "reason": "The requested query is already present."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#21",
+      "reason": "The target email input is not clearly distinguishable at this scale."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#670",
+      "reason": "Specialized drawing interface outside the preferred scenes."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#816",
+      "reason": "The referenced second data file is not uniquely identifiable."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1111",
+      "reason": "The reminder list contains personal event names."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1398",
+      "reason": "The domain is already present and the target is not a clear URL field."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1042",
+      "reason": "The requested query is already present."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#641",
+      "reason": "The annotated filter chip is not a toggle."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#883",
+      "reason": "The requested query is already present."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#162",
+      "reason": "The marked search field is too small to verify."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#986",
+      "reason": "More than one orange button is near Culture."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#625",
+      "reason": "The marked result is not clearly an editable input."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1113",
+      "reason": "The requested font size is already selected."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#688",
+      "reason": "The reminder list contains personal event details."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#138",
+      "reason": "The target dropdown is not clear in the screenshot."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1268",
+      "reason": "The requested sort option is not visible in the closed dropdown."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1376",
+      "reason": "The annotated control is a button, not a toggle."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#820",
+      "reason": "The screenshot does not show an identifiable map-view control."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#68",
+      "reason": "The email input is too small to verify confidently."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1441",
+      "reason": "The annotated control is a radio option, not a toggle."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#647",
+      "reason": "The requested number is already displayed in another currency and the target is a result."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#605",
+      "reason": "The screenshot includes a user identifier."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#649",
+      "reason": "The screenshot contains an email draft."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#81",
+      "reason": "The requested sorting selection is already active."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#967",
+      "reason": "The requested query is already present."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1374",
+      "reason": "The requested email label is already selected."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#734",
+      "reason": "The marked vibrate control is a checkbox rather than a switch."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#88",
+      "reason": "The subscription target is too small to verify."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#682",
+      "reason": "The screenshot contains personal email content."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#886",
+      "reason": "The ordering of the top-right icons is ambiguous."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#95",
+      "reason": "The requested category is unspecified in the closed dropdown."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#175",
+      "reason": "The requested language is unspecified in the closed dropdown."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1072",
+      "reason": "The screenshot contains an account identifier."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1030",
+      "reason": "The marked item is a filter tab rather than an event-setting toggle."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1238",
+      "reason": "The target input is too small to verify."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1152",
+      "reason": "Specialized scientific dashboard outside the preferred scenes."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#876",
+      "reason": "The same recordings screen is already represented in this batch."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#778",
+      "reason": "The marked label does not clearly represent a selectable tool."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1157",
+      "reason": "The requested sorting option is unspecified in the closed dropdown."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#827",
+      "reason": "Specialized drawing interface outside the preferred scenes."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#80",
+      "reason": "The target icon is too small to verify."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1405",
+      "reason": "The requested month view is already active."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#862",
+      "reason": "The requested domain is already displayed."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1038",
+      "reason": "Skipped after screenshot and target review."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#466",
+      "reason": "Skipped after screenshot and target review."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#65",
+      "reason": "Skipped after screenshot and target review."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1118",
+      "reason": "Skipped after screenshot and target review."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#698",
+      "reason": "Skipped after screenshot and target review."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#844",
+      "reason": "Skipped after screenshot and target review."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#924",
+      "reason": "Skipped after screenshot and target review."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#103",
+      "reason": "Skipped after screenshot and target review."
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1422",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1434",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1475",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#681",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1364",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1150",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#811",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1120",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#609",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#786",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#58",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#739",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1367",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1197",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#965",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#787",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#715",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1442",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#3",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1137",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1044",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1454",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1133",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1195",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#850",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#819",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1222",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1135",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1247",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1161",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#161",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1244",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#839",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#971",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1326",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#44",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1221",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#632",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#968",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#799",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1436",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#982",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#713",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1178",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1198",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1201",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#128",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1148",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#966",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#519",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1211",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1182",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#970",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#656",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1163",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#46",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1184",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#712",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#569",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1009",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1102",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1018",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1156",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1207",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#111",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1435",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1202",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1400",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1173",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1001",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#54",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1467",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#159",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#885",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1162",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1134",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#57",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1408",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1351",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#627",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#711",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1028",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#863",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#151",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#572",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1122",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#987",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1048",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1474",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#160",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#755",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1186",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#753",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1462",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#671",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#997",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1246",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1424",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1190",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1237",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#28",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1069",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#663",
+      "reason": "previous screening exclusion"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#425",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1126",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1455",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1203",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1460",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#812",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1210",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1259",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1466",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1252",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1123",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1449",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1476",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1219",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1426",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1138",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1193",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1429",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1192",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1380",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1251",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1452",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#119",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1438",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1160",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1383",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1145",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1439",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#583",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1373",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1263",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1445",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1223",
+      "reason": "image path previously used"
+    },
+    {
+      "recordId": "I2E-bench-annotation.jsonl#1085",
+      "reason": "out-of-bounds GT"
+    }
+  ],
+  "ScreenSpot-v2": [
+    {
+      "recordId": "screenspot_mobile_v2.json#419",
+      "reason": "Screenshot already appears in candidate-00280"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#304",
+      "reason": "login form includes account details"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#68",
+      "reason": "Screenshot already appears in candidate-00220"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#319",
+      "reason": "same screenshot as first batch"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#189",
+      "reason": "same screenshot as first batch"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#200",
+      "reason": "X social-link target does not establish login with X"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#111",
+      "reason": "add a new one omits the object"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#378",
+      "reason": "target appears to mute a channel, rather than view muted channels"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#487",
+      "reason": "GT points to notifications, not the Fahrenheit option"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#380",
+      "reason": "professional software promotion"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#77",
+      "reason": "Screenshot already appears in candidate-00272"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#112",
+      "reason": "same screenshot as earlier candidate in this batch"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#150",
+      "reason": "instruction says book but screenshot contains forums"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#455",
+      "reason": "GT is the abc key rather than uppercase/shift"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#319",
+      "reason": "Screenshot already appears in candidate-00180"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#113",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#233",
+      "reason": "Account information visible in screenshot"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#256",
+      "reason": "Precise device location visible in screenshot"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#366",
+      "reason": "Approximate location selection alone does not perform the requested permission action"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#445",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#146",
+      "reason": "Contacts and organization information visible in screenshot"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#337",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#76",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#341",
+      "reason": "Network addresses visible in screenshot"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#398",
+      "reason": "Checkbox state is not sufficiently clear"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#250",
+      "reason": "Browser chrome target outside webpage scenario"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#220",
+      "reason": "Personal health information visible in screenshot"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#266",
+      "reason": "Screenshot already appears in WEB-v1-009"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#176",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#424",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#11",
+      "reason": "Private document titles visible in screenshot"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#126",
+      "reason": "Screenshot already appears in GroundUI batch item-038"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#249",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#436",
+      "reason": "Screenshot already appears in GroundUI batch item-045"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#431",
+      "reason": "Screenshot does not establish AirPods as the target output device"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#432",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#16",
+      "reason": "Tablet system control center outside desired scenario"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#15",
+      "reason": "Tablet calendar source instruction does not specify an action"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#24",
+      "reason": "Private document titles visible in screenshot"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#245",
+      "reason": "Tablet system appearance settings outside desired scenario"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#114",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#404",
+      "reason": "User information visible in social feed"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#188",
+      "reason": "Near-duplicate screenshot of earlier record #192"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#34",
+      "reason": "User profile information visible in screenshot"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#291",
+      "reason": "Precise location visible in screenshot"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#2",
+      "reason": "Tablet desktop screenshot outside desired scenario"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#412",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#40",
+      "reason": "Wireless network information visible in screenshot"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#410",
+      "reason": "Social media account information visible in screenshot"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#347",
+      "reason": "Account information visible in screenshot"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#130",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#318",
+      "reason": "Screenshot already appears in candidate-00038"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#103",
+      "reason": "Account contact details visible in screenshot"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#282",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#145",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#191",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#383",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#332",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#429",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#465",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#402",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#108",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#117",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#71",
+      "reason": "Image already present in candidate-00220"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#353",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#423",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#316",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#260",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#351",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#118",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#114",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#27",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#110",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#174",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#417",
+      "reason": "Image already present in candidate-00280"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#222",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#255",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#363",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#265",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#6",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#210",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#102",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#376",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#453",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#30",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#328",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#410",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#68",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#411",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#238",
+      "reason": "Image already present in candidate-00160"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#345",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#345",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#435",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#147",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#422",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#404",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#316",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#97",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#163",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#353",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#281",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#78",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#105",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#237",
+      "reason": "Image already present in MOBILE-v1-074"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#302",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#181",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#99",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#109",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#277",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#214",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#168",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#237",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#79",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#96",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#161",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#172",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#184",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#217",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#85",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#403",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#98",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#153",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#8",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#420",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#72",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#206",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#233",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#100",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#212",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#5",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#107",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#155",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#235",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#31",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#63",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#248",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#250",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#122",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#128",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#489",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#129",
+      "reason": "Image already present in WEB-v1-083"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#60",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#326",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#493",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#289",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#21",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#53",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#364",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#415",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#401",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#94",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#159",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#239",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#130",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#373",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#343",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#38",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#36",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#4",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#297",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#124",
+      "reason": "Image already present in candidate-00453"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#67",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#38",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#143",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#42",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#36",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#333",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#167",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#327",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#26",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#120",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#196",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#297",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#336",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#448",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#386",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#160",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#381",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#203",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#346",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#153",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#55",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#245",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#230",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#54",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#87",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#170",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#116",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#16",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#97",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#131",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#154",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#83",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#57",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#46",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#400",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#350",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#84",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#389",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#44",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#338",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#447",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#441",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#181",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#44",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#306",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#15",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#147",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#290",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#434",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#20",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#228",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#231",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#331",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#144",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#191",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#17",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#155",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#307",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#7",
+      "reason": "screenshot already in testcase or candidate"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#244",
+      "reason": "Source instruction contains a spelling error in the named target."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#295",
+      "reason": "Source instruction contains a spelling error in the named target."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#45",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#242",
+      "reason": "Image already present in WEB-v1-081"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#371",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#154",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#209",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#49",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#95",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#286",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#399",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#227",
+      "reason": "Image already present in candidate-00589"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#28",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#387",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#105",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#156",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#349",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#3",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#202",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#329",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#119",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#403",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#292",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#39",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#71",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#115",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#157",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#80",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#449",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#10",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#234",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#442",
+      "reason": "Image already present in candidate-00385"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#143",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#320",
+      "reason": "Image already present in candidate-00180"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#65",
+      "reason": "Image already present in MOBILE-v1-077"
+    },
+    {
+      "recordId": "screenspot_web_v2.json#268",
+      "reason": "Image already present in WEB-v1-090"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#471",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#254",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#262",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#369",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#123",
+      "reason": "Image already present in candidate-00453"
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#149",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#389",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_mobile_v2.json#246",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#84",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    },
+    {
+      "recordId": "screenspot_web_v2.json#387",
+      "reason": "Not selected after preliminary screenshot, instruction and target review; reassess before use."
+    }
+  ],
+  "WebClick": [
+    {
+      "recordId": "default/test/564",
+      "reason": "The annotated region is blank and does not cover an actionable question input."
+    },
+    {
+      "recordId": "default/test/1528",
+      "reason": "Account signup CAPTCHA; candidate omitted in preliminary review"
+    },
+    {
+      "recordId": "default/test/418",
+      "reason": "Specialized mathematical plotting interface"
+    },
+    {
+      "recordId": "default/test/1305",
+      "reason": "Scientific paper-listing task outside current focus"
+    },
+    {
+      "recordId": "default/test/1062",
+      "reason": "The annotation does not clearly identify the requested natural-language-understanding topic"
+    },
+    {
+      "recordId": "default/test/580",
+      "reason": "Checkout screenshot contains an account email address"
+    },
+    {
+      "recordId": "default/test/1383",
+      "reason": "Specialized scientific submission documentation"
+    },
+    {
+      "recordId": "default/test/1036",
+      "reason": "The target for clearing all selected condition filters is unclear"
+    },
+    {
+      "recordId": "default/test/355",
+      "reason": "Specialized software-library documentation"
+    },
+    {
+      "recordId": "default/test/386",
+      "reason": "Specialized computational mathematics interface"
+    },
+    {
+      "recordId": "default/test/1407",
+      "reason": "The FigJam navigation link does not directly join a session"
+    },
+    {
+      "recordId": "default/test/805",
+      "reason": "The named link occurs in more than one search result"
+    },
+    {
+      "recordId": "default/test/516",
+      "reason": "Near-duplicate cookie banner scene already represented"
+    },
+    {
+      "recordId": "default/test/1638",
+      "reason": "The apparent last day may be disabled or unavailable"
+    },
+    {
+      "recordId": "default/test/25",
+      "reason": "screenshot already used"
+    },
+    {
+      "recordId": "default/test/124",
+      "reason": "screenshot already used"
+    },
+    {
+      "recordId": "default/test/1545",
+      "reason": "professional software or technical product site"
+    },
+    {
+      "recordId": "default/test/967",
+      "reason": "professional software or technical product site"
+    },
+    {
+      "recordId": "default/test/215",
+      "reason": "screenshot already used"
+    },
+    {
+      "recordId": "default/test/371",
+      "reason": "screenshot already used"
+    },
+    {
+      "recordId": "default/test/188",
+      "reason": "professional software or technical product site"
+    },
+    {
+      "recordId": "default/test/1101",
+      "reason": "screenshot already used"
+    },
+    {
+      "recordId": "default/test/1311",
+      "reason": "screenshot already used"
+    },
+    {
+      "recordId": "default/test/252",
+      "reason": "screenshot already used"
+    },
+    {
+      "recordId": "default/test/1211",
+      "reason": "screenshot already used"
+    },
+    {
+      "recordId": "default/test/733",
+      "reason": "screenshot already used"
+    },
+    {
+      "recordId": "default/test/510",
+      "reason": "screenshot already used"
+    },
+    {
+      "recordId": "default/test/920",
+      "reason": "CAPTCHA must be completed before the requested action"
+    },
+    {
+      "recordId": "default/test/177",
+      "reason": "the requested date may be disabled or in the past"
+    },
+    {
+      "recordId": "default/test/724",
+      "reason": "sign-in link is behind an open sidebar overlay"
+    },
+    {
+      "recordId": "default/test/1064",
+      "reason": "the target is a radio button rather than the stated checkbox"
+    },
+    {
+      "recordId": "default/test/1118",
+      "reason": "specialized developer documentation"
+    },
+    {
+      "recordId": "default/test/1516",
+      "reason": "medical information page omitted for scenario focus"
+    },
+    {
+      "recordId": "default/test/1439",
+      "reason": "the target for events after 2 PM is not clearly visible"
+    },
+    {
+      "recordId": "default/test/1626",
+      "reason": "the instruction refers to inventory but the screenshot shows a shopping cart"
+    },
+    {
+      "recordId": "default/test/849",
+      "reason": "specialized developer documentation"
+    },
+    {
+      "recordId": "default/test/100",
+      "reason": "specialized developer tool"
+    },
+    {
+      "recordId": "default/test/706",
+      "reason": "specialized research page"
+    },
+    {
+      "recordId": "default/test/1593",
+      "reason": "specialized scientific listing"
+    },
+    {
+      "recordId": "default/test/460",
+      "reason": "the screenshot is already on the Stripe homepage"
+    },
+    {
+      "recordId": "default/test/290",
+      "reason": "screenshot contains an account email address"
+    },
+    {
+      "recordId": "default/test/1204",
+      "reason": "professional model documentation"
+    },
+    {
+      "recordId": "default/test/1475",
+      "reason": "the first date appears disabled"
+    },
+    {
+      "recordId": "default/test/1423",
+      "reason": "the requested document submission requires an unspecified security code"
+    },
+    {
+      "recordId": "default/test/789",
+      "reason": "date in instruction is ambiguous between day/month conventions"
+    },
+    {
+      "recordId": "default/test/1534",
+      "reason": "technical research dataset table outside primary user scenarios"
+    },
+    {
+      "recordId": "default/test/692",
+      "reason": "requires clicking the previous-month arrow twice, beyond a single target action"
+    },
+    {
+      "recordId": "default/test/73",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/915",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/959",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1582",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1199",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/313",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/941",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/491",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/958",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1416",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1208",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/609",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1201",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/954",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/541",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1548",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1142",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/637",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/405",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/868",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/593",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/51",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/256",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/71",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/167",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/129",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/116",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/874",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1247",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/651",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1315",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/565",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1071",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1630",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1021",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/773",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/259",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/964",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1469",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/349",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1477",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/659",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/115",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1288",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/468",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1263",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/203",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/730",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1579",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/729",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/971",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1065",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/575",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/740",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1601",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/310",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1532",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1227",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/702",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1600",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/778",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1155",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/647",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/751",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/621",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/842",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/424",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/406",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1455",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1400",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1293",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/639",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1635",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/765",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/968",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1332",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1364",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/176",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/846",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/352",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/26",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/776",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1066",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/377",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/686",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/44",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/235",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/910",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1158",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1290",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/457",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/568",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/592",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1437",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1057",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1591",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1040",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/595",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/837",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1436",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/439",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1624",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/603",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1295",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1520",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1493",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1061",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1625",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/785",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/605",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/91",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1149",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/622",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/499",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1614",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1043",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/61",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1162",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1250",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/811",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1476",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/802",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/839",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/341",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/231",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1235",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/298",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1430",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1192",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/848",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1333",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1131",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/646",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1414",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1314",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1076",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/221",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/977",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/708",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/157",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1150",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/974",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/370",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/625",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/419",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/479",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1560",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1115",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1296",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/141",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1003",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/338",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/8",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/685",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/1485",
+      "reason": "duplicate screenshot"
+    },
+    {
+      "recordId": "default/test/859",
+      "reason": "duplicate screenshot"
+    }
+  ]
+}

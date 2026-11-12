@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-005",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The instruction describes a desired playback behavior, requiring the model to identify the control that provides the sleep timer function."
+  },
+  "instruction": {
+    "en": "Enable the function that stops audio playback after you might have fallen asleep.",
+    "zh": "启用在你可能已经入睡后停止音频播放的功能。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1929.0, 1092.0, 2007.0, 1022.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L57155",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "3008",
+    "image": {
+      "format": "png",
+      "sha256": "ddf8d09d4e2bd91ef69274a8a99827babc5ef2285f32dfe308d849bd42de40c2"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction. Classified category.item as Functional.",
+    "collectedAt": 1792485870186
+  }
+}

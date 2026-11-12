@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-092",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires comparing the visible post counts across tags and identifying the smallest value."
+  },
+  "instruction": {
+    "en": "Find the name of the tag with the fewest posts among tags whose post counts are visible.",
+    "zh": "在帖子数量可见的标签中，找到帖子数量最少的标签名称。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1828.0, 762.0, 1891.0, 249.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L3348",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#239",
+    "image": {
+      "format": "png",
+      "sha256": "a71b772ffd3e414a76f5649b813199a93f793969a1ac03b368f3cd26e4ce46ac"
+    },
+    "patch": "Restricted the instruction to tags with visible post counts because a partially visible tag has no readable post count; updated the category reason accordingly.",
+    "collectedAt": 1792485870497
+  }
+}

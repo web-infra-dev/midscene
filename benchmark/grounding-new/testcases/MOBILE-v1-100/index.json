@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-100",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The activity ring is the control for opening the corresponding day’s activity record."
+  },
+  "instruction": {
+    "en": "View yesterday's activity record.",
+    "zh": "查看昨日的运动记录。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [349, 483, 469, 361],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L3662",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#305",
+    "image": {
+      "format": "png",
+      "sha256": "81c82a808cd0cbe6f93c450401d3144180028ec58bb0d412c3330afcfcb874fe"
+    },
+    "patch": "Replaced the original instruction “open exercise log calendar” with a request to view yesterday’s activity record, and added a corresponding Chinese instruction. Changed groundTruth from [141, 978, 282, 846] to [349, 483, 469, 361] in [top, right, bottom, left] pixel coordinates, moving the target from the calendar button to the previous day’s activity ring. Updated category.reason to describe the activity ring’s function.",
+    "collectedAt": 1794206851829
+  }
+}

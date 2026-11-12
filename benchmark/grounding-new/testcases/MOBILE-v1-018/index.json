@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-018",
+  "platform": "mobile",
+  "category": {
+    "item": "Small Target",
+    "reason": "The target is a narrow position marker within a slider scale, so precise localization must distinguish it from adjacent ticks and the broader control."
+  },
+  "instruction": {
+    "en": "Locate the current position of the color temperature adjustment slider.",
+    "zh": "定位色温调节滑块的当前位置。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2112.0, 594.0, 2201.0, 580.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/mobile/ANumericRange240json/A1Slider100.json#L16",
+    "dataset": "FineState-Bench",
+    "recordId": "mobile/ANumericRange240json/A1Slider100.json#15",
+    "image": {
+      "format": "png",
+      "sha256": "b7c70f899ed412e2da18d9ceb3c51ca674cdf64908b74c966377eb48f71fa87f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction. The original ground-truth region included space beneath the visible long black current-position tick on the color-temperature scale and was wide enough to include neighboring short ticks, so point-in-box scoring could accept locations outside the position marker itself. Replaced groundTruth from [2117.0, 602.0, 2253.0, 568.0] to [2112.0, 594.0, 2201.0, 580.0], in [top, right, bottom, left] pixel coordinates, to focus the accepted region on the long marker and exclude the adjacent ticks and lower blank area. Updated category.reason to describe this visible marker as the fine-grained target rather than the whole slider or circular controls. This revision defines a tighter visual localization region; it does not assert that the original annotation was an invalid interactive hit area. Classified category.item as Small Target.",
+    "collectedAt": 1792485870221
+  }
+}

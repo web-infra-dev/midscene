@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-006",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires identifying the verification target, counting matching images, and applying a conditional rule to select the appropriate image."
+  },
+  "instruction": {
+    "en": "Follow the human verification prompt to find the matching images. If exactly one image matches, select it; if none match, select the bucket; if more than one matches, select the hat.",
+    "zh": "根据人类检测提示寻找图片，如果有且仅有一个符合要求的图片则选择符合要求的图片，如果没有符合要求的则选择水桶，如果有多个符合要求的则选择帽子。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [304.2, 722.1, 412.2, 614.1],
+  "reference": {
+    "url": "https://github.com/xlang-ai/OSWorld-G/blob/daa6bd8e0e629f0917ad2984df930bf0bd967540/benchmark/OSWorld-G.json",
+    "dataset": "OSWorld-G",
+    "recordId": "CSX8vMhbjY-0",
+    "image": {
+      "format": "png",
+      "sha256": "28d312124f28cf5a7c3f8eb0f745ab69c88a1266797b96c1f87ddf39ba9b2de7"
+    },
+    "patch": "Replaced the original instruction to select the middle picture in the second row with conditional rules based on the human verification prompt, and added instruction.zh by translating the revised English instruction. The ground truth remains on the hat, which is selected when multiple images match the prompt.",
+    "collectedAt": 1793763122996
+  }
+}

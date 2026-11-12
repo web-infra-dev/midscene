@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-011",
+  "platform": "web",
+  "category": {
+    "item": "Small Target",
+    "reason": "The target is the insertion position immediately after the word extension in the text field, requiring a precise point rather than selecting the entire field."
+  },
+  "instruction": {
+    "en": "Find the correct text cursor position to add \"s\" after the word \"extension\".",
+    "zh": "期望在单词“extension”后添加“s”，找到正确的输入光标位置。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [415.4, 693.5, 457.0, 684.1],
+  "reference": {
+    "url": "https://raw.githubusercontent.com/xlang-ai/OSWorld-G/daa6bd8e0e629f0917ad2984df930bf0bd967540/benchmark/OSWorld-G.json#L10905",
+    "dataset": "OSWorld-G",
+    "recordId": "rpngAhRMhE-1",
+    "image": {
+      "format": "png",
+      "sha256": "02725866456bfab43a6bab60c07d6c5726dc69ce8e029524d59da21a32daae21"
+    },
+    "patch": "Reworded the original English instruction to explicitly request the text cursor position needed to add 's' after 'extension' and added instruction.zh by translating it. Narrowed the ground truth's right edge from 700.1 to 693.5, approximately halfway through the space after 'extension', to exclude clicks that would place the cursor after the space. Updated category.reason to describe the fine-grained cursor localization required. Classified category.item as Small Target.",
+    "collectedAt": 1792485870640
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-014",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target is identified by its position within the second comment, distinguishing it from the identical buttons on other comments."
+  },
+  "instruction": {
+    "en": "Find the More button in the upper-right corner of the second comment.",
+    "zh": "找到第二条评论右上角的“更多”按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [415.5, 2600.5, 441.5, 2559.5],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/spatial_grounding.json#L8458",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/spatial_grounding.json#604",
+    "image": {
+      "format": "png",
+      "sha256": "3705bb484818736684c329c1dd9f4f904c6c21cb72276cbf6e87104935bd3d82"
+    },
+    "patch": "Changed the instruction to locate the More button on the second comment instead of the icon above the first comment, and moved the ground truth to the second comment's More button.",
+    "collectedAt": 1792485870646
+  }
+}

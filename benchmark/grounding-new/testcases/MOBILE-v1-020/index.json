@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-020",
+  "platform": "mobile",
+  "category": {
+    "item": "Small Target",
+    "reason": "The task requires precise localization of a narrow playback-position indicator within the currently playing audio control, rather than the entire message."
+  },
+  "instruction": {
+    "en": "Find the current playback position indicator of the voice message that is currently playing.",
+    "zh": "找到目前正在播放的语音消息的当前播放位置指示条。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [274.0, 804.0, 384.0, 757.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/mobile/ANumericRange240json/A4SeekBar40.json#L2",
+    "dataset": "FineState-Bench",
+    "recordId": "mobile/ANumericRange240json/A4SeekBar40.json#1",
+    "image": {
+      "format": "png",
+      "sha256": "58986ce1930816f15b353353f22fc56637d0cfb56a6b6cafefd79a5956887c3e"
+    },
+    "patch": "Added instruction.zh by translating the revised English instruction. The original instruction requested the current playback position of the first voice message. Revised the instruction to identify the voice message that is currently playing and explicitly request its playback position indicator, removing the ordinal clue and clarifying the target. The ground-truth box remains on the indicator of the same message. Classified category.item as Small Target.",
+    "collectedAt": 1792485870226
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-015",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires evaluating a conjunction of a rating threshold and a photographer identity, then choosing an action based on the result."
+  },
+  "instruction": {
+    "en": "If this work has a rating above 9 and its photographer is not 孙霄, tap \"想读\" to save it; otherwise, tap the back button.",
+    "zh": "如果这部作品的评分高于 9 分并且摄影师不是孙霄，就点击“想读”进行收藏；否则点击返回。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [110.0, 90.0, 202.0, 18.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L55331",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "2912",
+    "image": {
+      "format": "png",
+      "sha256": "a807380e91b7e732769bfa3f47049398afedbc182899db09b3d292da16ae7555"
+    },
+    "patch": "Replaced the original instruction to explore other books by the author with a conditional choice: save the work if its rating exceeds 9 and its photographer is not 孙霄; otherwise go back. Added instruction.zh by translating the revised English instruction. The screenshot shows a 9.2 rating and 孙霄 as photographer, so the correct choice is to go back. Moved groundTruth from the author card [1639.9, 763.0, 1834.8, 42.0] to the back button [110.0, 90.0, 202.0, 18.0] (top, right, bottom, left), and updated category.reason to explain the conditional reasoning.",
+    "collectedAt": 1792485870216
+  }
+}

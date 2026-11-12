@@ -1,0 +1,25 @@
+{
+  "name": "WEB-v1-087",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the cookie consent control that rejects all cookies."
+  },
+  "instruction": {
+    "en": "Reject all cookies.",
+    "zh": "拒绝所有 cookies。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [810.0, 813.0, 851.0, 20.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/574",
+    "image": {
+      "format": "png",
+      "sha256": "c37514d5c94340a3933ea8ff203d53cfafdc9b196cf118e04a7bd92100fcffc6"
+    },
+    "patch": "Replaced the original instruction to locate the “Try it now” button with an instruction to reject all cookies, and added instruction.zh by translating the revised English instruction. Changed groundTruth from [431.0, 124.9, 471.0, 16.0] to [810.0, 813.0, 851.0, 20.0] in [top, right, bottom, left] pixel coordinates, moving the target to the Reject all cookies button. Changed category.item from Basic Element to Functional and updated category.reason to describe the cookie-consent action.",
+    "collectedAt": 1792485871004
+  }
+}

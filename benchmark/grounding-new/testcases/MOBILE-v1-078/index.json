@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-078",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target is identified by comparing the locations of Line 11 stations with the current-location marker on the map."
+  },
+  "instruction": {
+    "en": "Find the Line 11 metro station closest to my current location on the map.",
+    "zh": "在地图上找到离我最近的 11 号线地铁站。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1150.0, 366.0, 1230.0, 210.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L7356",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "387",
+    "image": {
+      "format": "png",
+      "sha256": "1367733c35e0f27e2bf6c69a7ee2e870e99187a976fc75866d5c58239adb8f35"
+    },
+    "patch": "Replaced the original description of the Longyao Road (龙耀路) station marker with a request for the Line 11 metro station closest to the current location, and added a corresponding Chinese instruction. The original description incorrectly placed the station marker inside a white rectangular box and described the Line 11 badge as a red circle. Extended the groundTruth box’s left boundary from 216 to 210 pixels in [top, right, bottom, left] pixel coordinates. Changed category.item from Basic Element to Relative Position and updated category.reason to explain the location comparison.",
+    "collectedAt": 1792485870444
+  }
+}

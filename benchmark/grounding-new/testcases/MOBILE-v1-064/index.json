@@ -1,0 +1,25 @@
+{
+  "name": "MOBILE-v1-064",
+  "platform": "mobile",
+  "category": {
+    "item": "Color Recognition",
+    "reason": "The target text is distinguished from the surrounding text by its purple background and black foreground."
+  },
+  "instruction": {
+    "en": "Find the text with a purple background and black foreground.",
+    "zh": "找到紫色背景色、黑色前景色的文字。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1150, 354, 1217, 84],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1413",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1413",
+    "image": {
+      "format": "png",
+      "sha256": "3a032c84e7623f3fd0208c128323cb374e794c26e6aace4968cbe3393fe7343d"
+    },
+    "patch": "Replaced the original instruction “Select the second toggle in repeat section” with a request to find the text with a purple background and black foreground, and added instruction.zh by translating the revised English instruction. Changed groundTruth from [1790, 336, 1869, 215] to [1150, 354, 1217, 84] in [top, right, bottom, left] pixel coordinates, moving the target from the Monday repeat option to the “Thu, Dec 21” text on a purple background. Changed category.item from Relative Position to Color Recognition and updated category.reason to explain the color-based identification.",
+    "collectedAt": 1793867814756
+  }
+}
