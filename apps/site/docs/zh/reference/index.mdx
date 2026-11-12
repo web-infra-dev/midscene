@@ -930,7 +930,7 @@ function aiPinch(
   - `locate: string | object | undefined` - 用自然语言描述的缩放目标元素，或[使用图片作为提示词](#使用图片作为提示词)。如果未传入，缩放将在屏幕中心执行。
   - `opt: object` - 配置对象，包含：
     - `direction: 'in' | 'out'` - **必填。** `"in"` = 双指收拢（缩小），`"out"` = 双指张开（放大）。
-    - `distance?: number` - 每根手指移动的距离（像素）。默认值为屏幕较短边的四分之一。
+    - `distance?: number` - 双指间距的变化量，单位为设备的逻辑像素，也就是自定义设备接入时 `size()` 返回的宽高所使用的坐标单位。默认值为屏幕较短边的四分之一。
     - `duration?: number` - 缩放手势持续时间（毫秒），默认值为 `500`。
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。默认值为 false。
     - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
