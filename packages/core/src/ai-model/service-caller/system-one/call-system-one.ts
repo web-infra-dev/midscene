@@ -16,7 +16,10 @@ export async function callSystemOne(
   try {
     const response = await fetch(prepared.url, {
       method: 'POST',
-      headers: prepared.headers,
+      headers: {
+        ...prepared.headers,
+        'x-midscene-execution-id': context.executionId,
+      },
       body: prepared.body,
       signal: context.requestSignal,
       ...(prepared.dispatcher ? { dispatcher: prepared.dispatcher } : {}),
