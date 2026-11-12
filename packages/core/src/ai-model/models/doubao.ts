@@ -1,4 +1,5 @@
 import type { TModelFamily } from '@midscene/shared/env';
+import { isOpenRouter } from '../model-adapter/is-openrouter';
 import type {
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
@@ -108,8 +109,12 @@ export function parseDoubaoRawLocateValue(input: unknown): LocateResultValue {
 const buildDoubaoChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
-  const { midsceneDefaults, userConfig } = input;
-  const { reasoningEnabled, reasoningEffort } = userConfig;
+  const { baseURL, midsceneDefaults, userConfig } = input;
+  const {
+    reasoningEnabled = false,
+    reasoningEffort,
+    reasoningBudget,
+  } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
 
   if (userConfig.temperature !== undefined) {
@@ -127,12 +132,28 @@ const buildDoubaoChatCompletionParams = (
 
   const modelSpecificConfig: Record<string, unknown> = {};
 
-  if (reasoningEnabled !== 'default') {
-    modelSpecificConfig.thinking = {
-      type: (reasoningEnabled ?? false) ? 'enabled' : 'disabled',
-    };
-    if (reasoningEffort) {
-      modelSpecificConfig.reasoning_effort = reasoningEffort;
+  if (isOpenRouter(baseURL)) {
+    // This family targets Seed 2.1 Turbo on OpenRouter, which only declares
+    // support for the reasoning switch, not effort. Seed 2.0 Lite
+    // supports effort, but this family-level mapping does not forward it.
+    // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
+    if (reasoningEnabled !== 'default') {
+      const reasoning: Record<string, unknown> = { enabled: reasoningEnabled };
+      if (reasoningEnabled === true && reasoningBudget !== undefined) {
+        reasoning.max_tokens = reasoningBudget;
+      }
+      modelSpecificConfig.reasoning = reasoning;
+    }
+  } else {
+    if (reasoningEnabled !== 'default') {
+      modelSpecificConfig.thinking = {
+        type: reasoningEnabled ? 'enabled' : 'disabled',
+      };
+    }
+    if (reasoningEnabled === true) {
+      if (reasoningEffort !== undefined) {
+        modelSpecificConfig.reasoning_effort = reasoningEffort;
+      }
     }
   }
 
@@ -148,7 +169,6 @@ const buildDoubaoChatCompletionParams = (
 const doubaoVisionAdapter: ModelAdapterDefinition = {
   jsonParser: parseModelResponseJson,
   chatCompletion: {
-    unsupportedUserConfig: ['reasoningBudget'],
     buildChatCompletionParams: buildDoubaoChatCompletionParams,
     useReasoningAsContentFallback: true,
   },

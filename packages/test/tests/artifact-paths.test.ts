@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import * as common from '@midscene/shared/common';
 import { getDebug } from '@midscene/shared/logger';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { runTestProject } from '../src/cli';
 
 const roots: string[] = [];
@@ -59,12 +59,12 @@ let state: {
   pause?: () => Promise<void>;
 };
 beforeEach(() => {
-  vi.stubEnv('MIDSCENE_RUN_DIR', undefined);
+  rs.stubEnv('MIDSCENE_RUN_DIR', undefined);
   state = { common, cjs, getDebug, seen: [] };
   (globalThis as any).__artifactPaths = state;
 });
 afterEach(() => {
-  vi.unstubAllEnvs();
+  rs.unstubAllEnvs();
   (globalThis as any).__artifactPaths = undefined;
   for (const root of roots.splice(0))
     rmSync(root, { recursive: true, force: true });
@@ -73,7 +73,7 @@ afterEach(() => {
 describe('one artifact root for native Test', () => {
   it('ignores generated YAML when the artifact root is the project itself', async () => {
     const root = fixture();
-    vi.stubEnv('MIDSCENE_RUN_DIR', '.');
+    rs.stubEnv('MIDSCENE_RUN_DIR', '.');
     project(root);
     for (const directory of ['cache', 'log', 'output', 'tmp', 'dump'])
       write(root, `${directory}/copy.yaml`, 'invalid generated YAML');
@@ -94,7 +94,7 @@ describe('one artifact root for native Test', () => {
           ? join(fixture(), directory)
           : join(root, directory);
       if (source !== 'default')
-        vi.stubEnv(
+        rs.stubEnv(
           'MIDSCENE_RUN_DIR',
           source === 'environment' ? directory : artifactRoot,
         );
@@ -126,7 +126,7 @@ describe('one artifact root for native Test', () => {
       expect(resolve(dirname(result.summaryPath), summary.report)).toBe(
         result.reportPath,
       );
-      await vi.waitFor(() =>
+      await rs.waitFor(() =>
         expect(
           readFileSync(
             join(artifactRoot, 'log', 'test-artifact-paths.log'),
@@ -140,7 +140,7 @@ describe('one artifact root for native Test', () => {
   it('preserves explicit result/report locations and old results without collecting their YAML', async () => {
     const root = fixture();
     const cwd = fixture();
-    vi.stubEnv('MIDSCENE_RUN_DIR', 'artifacts');
+    rs.stubEnv('MIDSCENE_RUN_DIR', 'artifacts');
     project(root, "{reportDir:'reports'}");
     const resultDir = join(root, 'results');
     write(root, 'results/old/copy.yaml', 'invalid generated YAML');
@@ -172,7 +172,7 @@ describe('one artifact root for native Test', () => {
     async (directory) => {
       const root = fixture();
       project(root);
-      vi.stubEnv('MIDSCENE_RUN_DIR', directory);
+      rs.stubEnv('MIDSCENE_RUN_DIR', directory);
       await expect(runTestProject({ projectRoot: root })).rejects.toThrow(
         'non-empty path',
       );
@@ -185,7 +185,7 @@ describe('one artifact root for native Test', () => {
     const root = fixture();
     project(root);
     write(root, 'artifact-root', 'keep this file');
-    vi.stubEnv('MIDSCENE_RUN_DIR', 'artifact-root');
+    rs.stubEnv('MIDSCENE_RUN_DIR', 'artifact-root');
     await expect(runTestProject({ projectRoot: root })).rejects.toThrow();
     expect(state.seen).toHaveLength(0);
     expect(readFileSync(join(root, 'artifact-root'), 'utf8')).toBe(
@@ -201,7 +201,7 @@ describe('one artifact root for native Test', () => {
       const second = fixture();
       const directory =
         source === 'default' ? 'midscene_run' : 'artifacts [local]';
-      if (source === 'environment') vi.stubEnv('MIDSCENE_RUN_DIR', directory);
+      if (source === 'environment') rs.stubEnv('MIDSCENE_RUN_DIR', directory);
       project(first);
       project(second);
       let entered = 0;
@@ -228,7 +228,7 @@ describe('one artifact root for native Test', () => {
       }
       expect(common.getMidsceneRunDir()).toBe(before);
       for (const root of [first, second])
-        await vi.waitFor(() => {
+        await rs.waitFor(() => {
           const log = readFileSync(
             join(root, directory, 'log/test-artifact-paths.log'),
             'utf8',

@@ -283,7 +283,7 @@ See the Report e2e guidelines in
 
 If you've fixed a bug or added code that should be tested, then add some tests.
 
-You can add unit test cases in the `<PACKAGE_DIR>/tests` folder. The test runner is based on [Vitest](https://vitest.dev/).
+You can add unit test cases in the `<PACKAGE_DIR>/tests` folder. The test runner is based on [Rstest](https://rstest.rs/).
 
 ### Run Unit Tests
 
@@ -331,7 +331,9 @@ cd packages/web-integration && pnpm run test:ai -- adb
 
 ### Run native default-scroll regression tests
 
-The Android Emulator and iOS Simulator workflows run a model-free scroll regression before their existing smoke and AI tests. Native lists and pagers measure content offsets while the built SDK executes the `Scroll` action. Each platform runs 32 cases covering both orientations, all four directions, stability at top/bottom boundaries, and scrolling from the middle to the top/bottom.
+The Android Emulator and iOS Simulator workflows run a model-free scroll regression before their existing smoke and AI tests. Native lists and pagers measure content offsets while the built SDK executes the `Scroll` action. Each platform runs 32 cases covering both orientations, all four directions, stability at top/bottom boundaries, and scrolling from the middle to the top/bottom. iOS also runs 36 bounded horizontal gesture cases: oversized distances from 15%, 50%, and 85% of the screen width, in both directions and orientations, with three trials per combination. These inspect the real WDA dispatch: preserve the chosen origin and 500 ms duration, clamp the endpoint, and prohibit reverse content motion. A clipped Scroll may settle on the same native page. An additional 16 iOS cases reject invalid distances through the Scroll action entry point, and 12 cases exercise explicit Swipe paging paths at three vertical positions in both directions and orientations. Eight more cases start in the middle of native horizontal pagers and non-paging scroll views and require scrollToLeft/scrollToRight to reach the measured content boundary in both orientations. The iOS runner executes 104 cases in total.
+
+A valid Scroll gesture does not guarantee a page transition: very short clipped paths can snap back, and system-reserved or non-interactive regions may ignore a touch. Do not move a located origin silently or infer a universal minimum paging distance from this fixture. For a paging interaction, use Swipe with an explicit path inside the target control and verify the resulting page. Clipping does not shorten the Scroll duration: accelerating the gesture can cause an ordinary scroll container to fling. Explicit Swipe controls its own duration.
 
 Build the target package first (`pnpm exec nx build @midscene/android` or `pnpm exec nx build @midscene/ios`). Then run from the repository root:
 

@@ -287,7 +287,7 @@ pnpm add -D playwright
 
 **安全设置 Cookie**：调用 `setCookies` 时，**不支持在 YAML 中直接明文填写 Cookie 值**。这是因为 Midscene Test 会将 Node 的输入参数记录到运行结果文件中，明文填写会导致敏感凭证泄露。
 
-你必须在 `cookiesEnv`（环境变量名）、`profile`（预置配置名）或 `storageStatePath`（Playwright 状态文件路径）三者中任选其一，以**引用方式**传入 Cookie。`setCookies` 仅在执行瞬间读取真实 Cookie 并注入 `BrowserContext`，而在运行结果中只记录引用名称与 Cookie 条数，从而避免敏感信息进入测试报告或结果文件：
+你必须在 `cookiesEnv`（环境变量名）、`profile`（预置配置名）或 `storageStatePath`（Playwright 状态文件路径）三者中任选其一，以**引用方式**传入 Cookie。`setCookies` 仅在执行瞬间读取真实 Cookie 并注入 `BrowserContext`。成功时的输出记录引用名称和 Cookie 条数。失败时，底层错误可能包含 Cookie 值。
 
 ```yaml
 beforeEach:
@@ -307,11 +307,11 @@ beforeEach:
 
 - 环境变量默认从 `process.env` 读取，内容可以是 `Cookie` 请求头字符串、Cookie JSON 数组或 Playwright `storageState` JSON。
 - 相对路径的 `storageStatePath` 默认相对于当前工作目录解析。如需自定义环境变量读取、Profile 映射或路径解析逻辑，可在实例化 Agent 时通过 `testRunner` 选项传入 `getEnv`、`getCookieProfile` 或 `resolveStorageStatePath` 回调（回调中的 `context` 为当前 Agent 实例）。
-- 引用机制仅用于防止 Cookie 被写入 Midscene Test 的持久化结果中；环境变量、Profile 和 `storageState` 文件本身仍需妥善保管，切勿将包含真实 Cookie 的文件提交到代码仓库。
+- 请妥善保管环境变量、Profile 和 `storageState` 文件，切勿将包含真实 Cookie 的文件提交到代码仓库。
 
 ### Puppeteer
 
-Puppeteer 同样提供同名的 `gotoUrl`、`setCookies`、`clearCookies` 和 `setViewportSize` Node，参数结构与 Cookie 脱敏规则与 Playwright 完全一致。使用时需安装 `puppeteer` 并将 `PuppeteerAgent`（或 `PuppeteerBrowserAgent`）传给 `createMidsceneNodes()`：
+Puppeteer 同样提供同名的 `gotoUrl`、`setCookies`、`clearCookies` 和 `setViewportSize` Node，参数结构与 Cookie 引用方式与 Playwright 完全一致。使用时需安装 `puppeteer` 并将 `PuppeteerAgent`（或 `PuppeteerBrowserAgent`）传给 `createMidsceneNodes()`：
 
 ```bash
 pnpm add -D puppeteer

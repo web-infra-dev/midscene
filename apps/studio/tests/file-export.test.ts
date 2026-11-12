@@ -10,8 +10,8 @@ import {
 } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import type { IpcMainInvokeEvent } from 'electron';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { registerFileExportHandlers } from '../src/main/file-export';
 import { IPC_CHANNELS } from '../src/shared/electron-contract';
 
@@ -21,7 +21,7 @@ function setup() {
   const frame = { url: 'file:///studio/index.html' };
   const contents = Object.assign(new EventEmitter(), { mainFrame: frame });
   const window = { webContents: contents, isDestroyed: () => false };
-  const dialog = { showSaveDialog: vi.fn() };
+  const dialog = { showSaveDialog: rs.fn() };
   registerFileExportHandlers({
     ipcMain: {
       handle: (channel, handler) => {

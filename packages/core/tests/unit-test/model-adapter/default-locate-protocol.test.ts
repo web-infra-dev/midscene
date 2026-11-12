@@ -7,7 +7,10 @@ import {
   buildSearchAreaLocateSystemPrompt,
 } from '@/ai-model/prompt/locate';
 import { parseModelResponseJson } from '@/ai-model/shared/json';
-import { createLocateResultCodec } from '@/ai-model/shared/model-locate-result';
+import {
+  createLocateResultCodec,
+  resolveLocateResultCoordinates,
+} from '@/ai-model/shared/model-locate-result';
 import { createLocateResultPromptSpec } from '@/ai-model/shared/model-locate-result/prompt-spec';
 import { describe, expect, it, rs } from '@rstest/core';
 
@@ -77,12 +80,14 @@ describe('default locate protocol', () => {
     const searchAreaProtocol = createDefaultSearchAreaProtocol({
       jsonParser: parseModelResponseJson,
     });
-    const locatePromptSpec = createLocateResultPromptSpec({
-      shape: 'bbox',
-      order: 'xy',
-      normalizedBy: 1000,
-      rounding: 'round',
-    });
+    const locatePromptSpec = createLocateResultPromptSpec(
+      resolveLocateResultCoordinates({
+        shape: 'bbox',
+        order: 'xy',
+        normalizedBy: 1000,
+        rounding: 'round',
+      }),
+    );
     const systemPrompt = buildElementLocateSystemPrompt({
       systemPromptIntroduction: elementProtocol.systemPromptIntroduction,
       responseInstructions:
@@ -118,12 +123,14 @@ describe('default locate protocol', () => {
     const searchAreaProtocol = createDefaultSearchAreaProtocol({
       jsonParser: parseModelResponseJson,
     });
-    const locatePromptSpec = createLocateResultPromptSpec({
-      shape: 'bbox',
-      order: 'xy',
-      normalizedBy: 1000,
-      rounding: 'round',
-    });
+    const locatePromptSpec = createLocateResultPromptSpec(
+      resolveLocateResultCoordinates({
+        shape: 'bbox',
+        order: 'xy',
+        normalizedBy: 1000,
+        rounding: 'round',
+      }),
+    );
 
     expect(
       elementProtocol.parseRawResponse(
@@ -158,12 +165,14 @@ describe('default locate protocol', () => {
     const searchAreaProtocol = createDefaultSearchAreaProtocol({
       jsonParser: parseModelResponseJson,
     });
-    const locatePromptSpec = createLocateResultPromptSpec({
-      shape: 'bbox',
-      order: 'xy',
-      normalizedBy: 1000,
-      rounding: 'round',
-    });
+    const locatePromptSpec = createLocateResultPromptSpec(
+      resolveLocateResultCoordinates({
+        shape: 'bbox',
+        order: 'xy',
+        normalizedBy: 1000,
+        rounding: 'round',
+      }),
+    );
 
     expect(() =>
       elementProtocol.parseRawResponse(
@@ -195,12 +204,14 @@ describe('default locate protocol', () => {
     const jsonParser = rs.fn(() => ({ bbox: [100, 200, 300, 400] }));
     const elementProtocol = createDefaultElementProtocol({ jsonParser });
     const searchAreaProtocol = createDefaultSearchAreaProtocol({ jsonParser });
-    const locatePromptSpec = createLocateResultPromptSpec({
-      shape: 'bbox',
-      order: 'xy',
-      normalizedBy: 1000,
-      rounding: 'round',
-    });
+    const locatePromptSpec = createLocateResultPromptSpec(
+      resolveLocateResultCoordinates({
+        shape: 'bbox',
+        order: 'xy',
+        normalizedBy: 1000,
+        rounding: 'round',
+      }),
+    );
 
     expect(
       elementProtocol.parseRawResponse(
@@ -227,12 +238,14 @@ describe('default locate protocol', () => {
       { bbox: [500, 600, 700, 800] },
     ]);
     const elementProtocol = createDefaultElementProtocol({ jsonParser });
-    const locatePromptSpec = createLocateResultPromptSpec({
-      shape: 'bbox',
-      order: 'xy',
-      normalizedBy: 1000,
-      rounding: 'round',
-    });
+    const locatePromptSpec = createLocateResultPromptSpec(
+      resolveLocateResultCoordinates({
+        shape: 'bbox',
+        order: 'xy',
+        normalizedBy: 1000,
+        rounding: 'round',
+      }),
+    );
 
     expect(() =>
       elementProtocol.parseRawResponse(

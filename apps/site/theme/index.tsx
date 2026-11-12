@@ -41,3 +41,20 @@ export {
 } from './components/SdkPlatform';
 
 export { SdkPrerequisites } from './components/SdkPrerequisites';
+
+export { SdkDeviceTestExample } from './components/SdkDeviceTestExample';
+export {
+  GetStartedHtmlOnly,
+  GetStartedLlmPicker,
+  GetStartedMarkdownOnly,
+  GetStartedPathIndex,
+  GetStartedSdkPlatform,
+  GetStartedStep,
+  GetStartedSwitch,
+  GetStartedWhen,
+} from './components/GetStarted';
+export { GetStarted } from './components/GetStartedRoute';
+// Overrides the Rspress Sidebar from the export * above.
+export { Sidebar } from './components/Sidebar';
+export { GetStartedCreateCommand } from './components/GetStartedCommand';
+export { EditLink } from './components/EditLink';

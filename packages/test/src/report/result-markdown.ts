@@ -6,23 +6,11 @@ import type {
   TestRunReportStep,
 } from '@midscene/core';
 import type { TestProjectRunResult } from '../cli/types';
-import { renderTestBadge } from './badge';
+import { renderTestBadgeLines } from './badge';
+import { markdownText } from './markdown-text';
 import { buildTestRunReportDump } from './test-run-report';
 
-const text = (value: string): string =>
-  value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll('|', '&#124;')
-    .replaceAll('[', '&#91;')
-    .replaceAll(']', '&#93;')
-    .replaceAll('*', '&#42;')
-    .replaceAll('_', '&#95;')
-    .replaceAll('`', '&#96;')
-    .replaceAll('\\', '&#92;')
-    .replace(/[\r\n]+/g, ' ');
+const text = markdownText;
 
 const duration = (ms: number): string => {
   const seconds = Math.round(ms / 1000);
@@ -51,8 +39,7 @@ export function renderTestResultMarkdown(
   const lines = [
     '## Midscene Test',
     '',
-    renderTestBadge(summary),
-    '',
+    ...renderTestBadgeLines(dump),
     `${outcome} · ${duration(dump.durationMs)}`,
     '',
   ];

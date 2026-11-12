@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 /**
- * @vitest-environment jsdom
+ * @rstest-environment jsdom
  */
 import { act } from 'react';
 import type React from 'react';

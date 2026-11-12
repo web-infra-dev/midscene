@@ -65,6 +65,36 @@ export function ModelConfigCard(props: ModelConfigCardProps) {
   const [selectedProtocol, setProtocol] =
     useState<ModelProtocol>('openai-chat');
 
+  // SSG-MD renders pages to Markdown for LLMs. The toolbar is interactive, so
+  // list every provider with its key link and configuration instead.
+  if (import.meta.env.SSG_MD) {
+    return (
+      <>
+        {providers.map((item) => {
+          const itemConfig = resolveModelConfig(props, item);
+          const itemCode = combined
+            ? buildCombinedModelConfigCode(itemConfig, purposes, 'openai-chat')
+            : buildModelConfigCode(itemConfig, purposes[0], 'openai-chat');
+          return (
+            <div key={item.name}>
+              <p>
+                <strong>{item.name}</strong>
+                {item.href ? (
+                  <>
+                    {' ('}
+                    <a href={item.href}>{text.getApiKey}</a>
+                    {')'}
+                  </>
+                ) : null}
+              </p>
+              <CodeBlockRuntime lang="bash" code={itemCode} />
+            </div>
+          );
+        })}
+      </>
+    );
+  }
+
   const provider = providers[providerIndex];
   const config = resolveModelConfig(props, provider);
   const showProtocolSwitch = Boolean(config.responses) && !config.protocol;

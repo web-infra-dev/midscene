@@ -1,139 +1,24 @@
+import HarmonyosConnect from '../common/harmonyos-connect.mdx';
+
 # HarmonyOS environment setup
 
 Midscene connects to and controls HarmonyOS NEXT devices through HarmonyOS Device Connector (HDC), supporting UI automation across native apps, atomic services, and system interfaces.
 
-This guide walks you through setting up the HarmonyOS environment required by Midscene Test, the JavaScript SDK, and Playground. You will first [connect your device over HDC](#connect-device), and then use [Playground](#verify-in-playground) to verify screen capture, touch input, and model calls.
+This guide prepares the HarmonyOS environment: install HDC and connect the device. Playground, Midscene Test, and the JavaScript SDK all use this connection.
 
 ## Connect the device through HDC {#connect-device}
 
-Midscene uses `hdc` on your computer to communicate with the target HarmonyOS NEXT device. If `hdc` is already installed and your device is connected, skip directly to [Verify the device connection](#verify-device-connection).
+<HarmonyosConnect />
 
-### 1. Install HDC
+## Verify {#verify}
 
-HDC (HarmonyOS Device Connector) is the official command-line tool for communicating with HarmonyOS devices. Install it using either of the following methods:
-
-- Via [DevEco Studio](https://developer.huawei.com/consumer/en/deveco-studio/) (recommended)
-- Via the standalone [HarmonyOS Command Line Tools](https://developer.huawei.com/consumer/en/download/)
-
-Run the following command to verify the installation:
-
-```bash
-hdc version
-```
-
-A version number in the terminal output confirms a working installation.
-
-:::info Configuring the HDC path
-
-If `hdc` is not in your system `PATH`, set the `HDC_HOME` environment variable to the directory containing the `hdc` executable:
-
-```bash
-export HDC_HOME=/path/to/hdc/directory
-```
-
-:::
-
-### 2. Enable debugging and connect the device
-
-1. On your HarmonyOS device, open **Settings > System > Developer options** and enable **USB debugging**.
-2. Connect the device to your computer using a USB cable that supports data transfer.
-3. Keep the device unlocked and accept the debugging authorization prompt on the screen.
-
-### 3. Verify the device connection {#verify-device-connection}
-
-Run the following command to check the connection status:
-
-```bash
-hdc list targets
-```
-
-A device ID in the output confirms that the device is connected and ready:
-
-```log
-0123456789ABCDEF
-```
-
-If multiple devices are connected, note the target device ID so you can select it in Playground or your project configuration. If the output is empty or `[Empty]`, check the USB cable, USB connection mode, **USB debugging** toggle, and the authorization prompt on the device.
-
-## Verify in Playground {#verify-in-playground}
-
-With Playground, you can verify screen capture, touch input, and model calls without writing code.
-
-Before starting, prepare your model configuration using [a model API key](../model-api-setup) or [a ChatGPT subscription](../chatgpt-subscription).
-
-### Launch Playground
-
-Make sure Node.js (`^20.19.0 || ^22.12.0 || >=24.0.0`) is installed and both `node -v` and `npx --version` work in your terminal.
-
-1. Start the HarmonyOS Playground CLI:
-
-```bash
-npx --yes @midscene/harmony-playground
-```
-
-2. In the Playground window that opens, click the gear icon in the top-right corner, paste your model configuration, and save.
-3. If your browser does not open automatically, visit the local Playground URL printed in the terminal, and keep the terminal process running.
-4. In the connection panel on the left, select your target HDC device (matching the ID from `hdc list targets`) and create the Agent.
-5. Confirm that the preview area displays your device's current screen. If no screen appears, check the HDC connection and device debugging authorization first.
-
-### Run an action and verify the result
-
-On your HarmonyOS device, open the system browser, complete any first-run prompts, and navigate to [TodoMVC](https://todomvc.com/examples/react/dist/#/). Keep the device unlocked with the browser in the foreground.
-
-1. In Playground, select `aiAct`, enter the following instruction, and run it:
-
-```text
-Add a todo named "Try Midscene", then mark it as completed.
-```
-
-2. Once the completed todo item appears on the page, switch to `aiAssert`, enter the following assertion, and run it:
-
-```text
-The list contains a todo named "Try Midscene", and it is marked as completed.
-```
-
-3. Confirm that the assertion passes and inspect the step-by-step screenshots in the results panel. At this point, HDC connectivity, screen capture, touch input, and model calls have all been verified together.
-
-If execution fails, check the failed step and error message: for missing screenshots or unresponsive touch input, see the [FAQ](#faq) below; for model request errors, see [Verify model connectivity](../model-config#verify-model-connectivity).
-
-### Clean up the example data
-
-After verification, delete the "Try Midscene" item in TodoMVC. If you plan to run the Midscene Test HarmonyOS example next, switch to the **All** filter and make sure the list is completely empty (including completed items), as the example template checks for an empty list before running and does not overwrite existing items.
-
-### See it in action
-
-**Prompt:** Open Settings, find About phone, and view the device information. ([Full report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.html))
-
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.mp4" poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.png" height="300" controls />
-
-## Use the device in tests or scripts {#use-in-project}
-
-Once device connectivity and interactions are verified in Playground, you can integrate the device into your test or script project:
-
-| Prepared item | How to use it in your project |
-| --- | --- |
-| `HDC` connection and debugging authorization | Keep the device connected, unlocked, and awake with debugging authorization active. |
-| Target device ID | Set `HARMONY_DEVICE_ID` in the Midscene Test HarmonyOS template, or pass the device ID via [HarmonyOS SDK](../sdk/harmonyos) options. |
-| Model configuration | Write your model settings to the project's `.env` file and load them as shown in the integration guide. Settings entered in Playground are stored only in the browser and are not automatically shared with your project. |
-
-Choose your next step based on how you use Midscene:
-
-- **Midscene Test**: Continue to [Configure the model and runtime environment](../midscene-test/use#2-configure-the-model-and-runtime-environment) and run the example (if you have not initialized a project yet, start from [Create a project](../midscene-test/use#create-a-project) and select HarmonyOS).
-- **JavaScript test runner**: Continue with [Integrate with Vitest](../sdk/vitest).
-- **Standalone scripts**: Follow [Write standalone automation scripts](../sdk/standalone) and select the HarmonyOS example.
-- **Platform SDK reference**: See the [HarmonyOS JavaScript SDK](../sdk/harmonyos) for device selection, constructor options, platform-specific methods, and lifecycle management.
+When `hdc list targets` lists the target device, verify the environment in Playground. Open [Get started](../get-started?platform=harmonyos&scene=playground), where HarmonyOS and Playground are already selected, choose how to connect a model, and follow the steps to run one `aiAct` action and one `aiAssert` assertion. A passing assertion confirms that the HDC connection, screen capture, touch input, and model calls work together.
 
 ## FAQ {#faq}
 
 ### Keyboard is not dismissed or the page navigates back after typing
 
 See the [HarmonyOS JavaScript SDK guide](../sdk/harmonyos#keyboard-is-not-dismissed-or-the-page-navigates-back-after-typing).
-
-### Model calls fail
-
-Check the error message of the failed step and verify the model configuration in Playground settings or your project's `.env` file. Because device connectivity and model requests are independent, follow [Verify model connectivity](../model-config#verify-model-connectivity) to troubleshoot API key, endpoint, or network issues. Note that CLI and project checks read your project's environment variables rather than browser-stored Playground settings.
-
-## Advanced connections and debugging
 
 ### How do I specify a custom HDC path?
 

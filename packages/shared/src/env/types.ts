@@ -411,6 +411,7 @@ export type TModelFamily =
   | 'gpt-5'
   | 'gpt-6'
   | 'deepseek'
+  | 'tencent-hy'
   | 'kimi'
   | 'kimi3'
   | 'xiaomi-mimo';
@@ -436,6 +437,7 @@ export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'gpt-5',
   'gpt-6',
   'deepseek',
+  'tencent-hy',
   'kimi',
   'kimi3',
   'xiaomi-mimo',
@@ -650,7 +652,7 @@ export interface IModelConfig {
   /**
    * Temperature for model sampling.
    */
-  temperature?: number;
+  temperature?: number | 'unset';
   streamMode?: TModelStreamMode;
   authMode?: TModelAuthMode;
   /**

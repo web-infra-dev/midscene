@@ -2,7 +2,7 @@ import * as actual from '@midscene/web/puppeteer' with {
   rstest: 'importActual',
 };
 import { expect, it, rs } from '@rstest/core';
-import config from '../e2e/midscene.config';
+import config from '../midscene.config';
 
 rs.mock('@midscene/web/puppeteer', () => {
   return {

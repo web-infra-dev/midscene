@@ -1,4 +1,11 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type {
@@ -6,11 +13,14 @@ import type {
   TestRunReportPlannedStep,
 } from '@midscene/core';
 import { WorkflowExecutionFailure } from '@midscene/core/internal/test-runner';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { runCreateCommand } from '../src/cli/create-command';
 import { writeGitHubSummary } from '../src/cli/github-reporter';
+import * as actualPreparation from '../src/cli/prepare-test-run' with {
+  rstest: 'importActual',
+};
+import { runPreparedTestProject } from '../src/cli/run-prepared-project';
 import { runTestCli } from '../src/cli/test-command';
-import { runTestProject } from '../src/cli/test-project-runner';
 import type { TestProjectRunResult } from '../src/cli/types';
 import type {
   CaseRunResult,
@@ -19,11 +29,24 @@ import type {
 } from '../src/engine/types';
 import { WorkflowError } from '../src/errors';
 
-vi.mock('../src/cli/create-command', () => ({ runCreateCommand: vi.fn() }));
-vi.mock('../src/cli/test-project-runner', () => ({
-  runTestProject: vi.fn(),
-  discoverTestConfig: vi.fn(),
+rs.mock('../src/cli/create-command', () => ({ runCreateCommand: rs.fn() }));
+rs.mock('../src/cli/test-project-runner', () => ({
+  discoverTestConfig: rs.fn(),
   DEFAULT_TEST_FILE_SELECTION: { include: ['**/*.{yaml,yml}'] },
+}));
+
+rs.mock('../src/cli/run-prepared-project', () => ({
+  runPreparedTestProject: rs.fn(),
+}));
+rs.mock('../src/cli/prepare-test-run', () => ({
+  ...actualPreparation,
+  prepareTestRun: rs.fn(
+    async (
+      options: Parameters<typeof actualPreparation.prepareTestRun>[0],
+    ) => ({
+      projectRoot: actualPreparation.resolveRunInput(options).projectRoot,
+    }),
+  ),
 }));
 
 const timing = {
@@ -142,12 +165,16 @@ const documentPlan = (count = 3): TestRunReportDocumentPlan => ({
   ],
 });
 
-const output = () => ({ log: vi.fn(), error: vi.fn() });
+const output = () => ({ log: rs.fn(), error: rs.fn() });
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  rs.resetAllMocks();
+});
 
 describe('CLI result publication boundary', () => {
-  afterEach(() => vi.unstubAllEnvs());
+  afterEach(() => {
+    rs.unstubAllEnvs();
+  });
 
   it.each(['success', 'failed', 'infrastructure'] as const)(
     'only publishes the %s result when a caller provides a publisher',
@@ -157,8 +184,8 @@ describe('CLI result publication boundary', () => {
         const summaryPath = join(root, 'github-summary.md');
         const existing = '# Existing test reporter summary\n';
         writeFileSync(summaryPath, existing);
-        vi.stubEnv('GITHUB_ACTIONS', 'true');
-        vi.stubEnv('GITHUB_STEP_SUMMARY', summaryPath);
+        rs.stubEnv('GITHUB_ACTIONS', 'true');
+        rs.stubEnv('GITHUB_STEP_SUMMARY', summaryPath);
 
         const result = failedResult();
         const run = failedCase();
@@ -171,12 +198,12 @@ describe('CLI result publication boundary', () => {
         result.reportPath = join(root, 'report.html');
         result.cases = [{ ...run, documentId: 'document', run }];
         if (outcome === 'infrastructure')
-          vi.mocked(runTestProject).mockRejectedValue(
+          rs.mocked(runPreparedTestProject).mockRejectedValue(
             new WorkflowExecutionFailure(result, [
               failure('publication failed'),
             ]),
           );
-        else vi.mocked(runTestProject).mockResolvedValue(result);
+        else rs.mocked(runPreparedTestProject).mockResolvedValue(result);
 
         const io = output();
         expect(await runTestCli([], io)).toBe(result.exitCode);
@@ -206,6 +233,46 @@ describe('CLI result publication boundary', () => {
   );
 });
 
+describe('Test CLI single YAML file input', () => {
+  afterEach(() => {
+    rs.unstubAllEnvs();
+  });
+
+  it('annotates failures relative to the cwd config directory', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'cli-single-file-'));
+    try {
+      writeFileSync(join(root, 'midscene.config.ts'), 'export default {};');
+      mkdirSync(join(root, 'cases'));
+      writeFileSync(join(root, 'cases', 'flow.yaml'), 'cases: []');
+      rs.spyOn(process, 'cwd').mockReturnValue(root);
+      rs.stubEnv('GITHUB_ACTIONS', 'true');
+      rs.stubEnv('GITHUB_WORKSPACE', realpathSync(root));
+      const result = failedResult();
+      // With the root config, the runner reports source paths from the root.
+      const run = { ...failedCase(), sourcePath: 'cases/flow.yaml' };
+      run.steps = [failedStep('steps', failure('first Step failed'))];
+      result.documents = [
+        { ...failedDocument(), sourcePath: 'cases/flow.yaml' },
+      ];
+      result.cases = [{ ...run, documentId: 'document', run }];
+      rs.mocked(runPreparedTestProject).mockResolvedValue(result);
+
+      const io = output();
+      expect(await runTestCli(['cases/flow.yaml'], io)).toBe(1);
+
+      const annotations = io.log.mock.calls
+        .flat()
+        .filter((line) => String(line).startsWith('::error'));
+      expect(annotations.length).toBeGreaterThan(0);
+      for (const annotation of annotations)
+        expect(annotation).toContain('file=cases/flow.yaml,');
+    } finally {
+      rs.restoreAllMocks();
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('Test CLI failure diagnostics', () => {
   it.each([
     'beforeEach',
@@ -228,7 +295,7 @@ describe('Test CLI failure diagnostics', () => {
         result.cases = [{ ...run, documentId: document.documentId, run }];
       }
       result.documents = [document];
-      vi.mocked(runTestProject).mockResolvedValue(result);
+      rs.mocked(runPreparedTestProject).mockResolvedValue(result);
       const io = output();
       expect(await runTestCli([], io)).toBe(1);
       const diagnostic = io.error.mock.calls.flat().join('\n');
@@ -272,7 +339,7 @@ describe('Test CLI failure diagnostics', () => {
         plans: [plan],
       },
     ];
-    vi.mocked(runTestProject).mockResolvedValue(result);
+    rs.mocked(runPreparedTestProject).mockResolvedValue(result);
     const io = output();
     expect(await runTestCli([], io)).toBe(1);
     expect(io.error.mock.calls[0][0]).toContain('Step     1/3 · test.fail');
@@ -283,7 +350,7 @@ describe('Test CLI failure diagnostics', () => {
     const run = failedCase();
     run.steps = [failedStep('steps', failure('first Step failed'))];
     result.cases = [{ ...run, documentId: 'document', run }];
-    vi.mocked(runTestProject).mockResolvedValue(result);
+    rs.mocked(runPreparedTestProject).mockResolvedValue(result);
     const io = output();
     expect(await runTestCli([], io)).toBe(1);
     expect(io.error.mock.calls[0][0]).toContain('Step     1 · test.fail');
@@ -315,7 +382,7 @@ describe('Test CLI failure diagnostics', () => {
     ).concat(step);
     result.cases = [{ ...run, documentId: 'document', run }];
     result.documents = [{ ...failedDocument(), plan: documentPlan(7) }];
-    vi.mocked(runTestProject).mockResolvedValue(result);
+    rs.mocked(runPreparedTestProject).mockResolvedValue(result);
     const io = output();
     expect(await runTestCli([], io)).toBe(1);
     expect(io.error).toHaveBeenCalledTimes(1);
@@ -326,11 +393,9 @@ describe('Test CLI failure diagnostics', () => {
     expect(diagnostic).toContain('Attempt  2/2');
     expect(diagnostic).toContain('Input    outcome: final-failure');
     expect(diagnostic).toContain('caseLabel: Case A');
-    expect(diagnostic).toContain('token: [REDACTED]');
+    expect(diagnostic).toContain('token: private-token');
     expect(diagnostic).toContain('at user-config.ts:42:5');
-    expect(diagnostic).not.toMatch(
-      /private-token|unrelated input marker|NodeExecutionError/,
-    );
+    expect(diagnostic).not.toMatch(/unrelated input marker|NodeExecutionError/);
   });
 
   it('labels document hook failures and whole-file attempts separately', async () => {
@@ -349,7 +414,7 @@ describe('Test CLI failure diagnostics', () => {
     step.meta.sourceLocation = { line: 3, column: 5 };
     document.beforeAll = [step];
     result.documents = [document];
-    vi.mocked(runTestProject).mockResolvedValue(result);
+    rs.mocked(runPreparedTestProject).mockResolvedValue(result);
     const io = output();
     expect(await runTestCli([], io)).toBe(1);
     const diagnostic = io.error.mock.calls[0][0];
@@ -362,7 +427,7 @@ describe('Test CLI failure diagnostics', () => {
   });
 
   it('prints stacks and causes for create command failures', async () => {
-    vi.mocked(runCreateCommand).mockRejectedValue(failure('create failed'));
+    rs.mocked(runCreateCommand).mockRejectedValue(failure('create failed'));
     const io = output();
 
     expect(await runTestCli(['create'], io)).toBe(1);
@@ -377,7 +442,7 @@ describe('Test CLI failure diagnostics', () => {
   it.each(['plain failure', null, { message: 'object failure' }])(
     'returns a failure exit code for non-Error rejection %j',
     async (error) => {
-      vi.mocked(runTestProject).mockRejectedValue(error);
+      rs.mocked(runPreparedTestProject).mockRejectedValue(error);
       const io = output();
 
       expect(await runTestCli(['--reporter', 'verbose'], io)).toBe(1);
@@ -402,7 +467,7 @@ describe('Test CLI failure diagnostics', () => {
     run.executionErrors = [failure('case callback failed')];
     run.teardownErrors = [failure('case teardown failed')];
     result.cases = [{ ...run, documentId: 'document', run }];
-    vi.mocked(runTestProject).mockResolvedValue(result);
+    rs.mocked(runPreparedTestProject).mockResolvedValue(result);
     const io = output();
 
     expect(await runTestCli(['--reporter', 'verbose'], io)).toBe(1);
@@ -453,7 +518,7 @@ describe('Test CLI failure diagnostics', () => {
       },
     ];
     result.errors = [cleanup, failure('publication failed')];
-    vi.mocked(runTestProject).mockRejectedValue(
+    rs.mocked(runPreparedTestProject).mockRejectedValue(
       new WorkflowExecutionFailure(result, result.errors),
     );
     const io = output();
@@ -524,7 +589,7 @@ describe('Test CLI failure diagnostics', () => {
     ];
     const publication = failure('report publication failed');
     result.errors = [publication];
-    vi.mocked(runTestProject).mockRejectedValue(
+    rs.mocked(runPreparedTestProject).mockRejectedValue(
       new WorkflowExecutionFailure(result, [publication, publication]),
     );
     const io = output();
@@ -558,7 +623,7 @@ describe('Test CLI failure diagnostics', () => {
     result.errors = [
       new WorkflowError('execution failed', { cause: original }),
     ];
-    vi.mocked(runTestProject).mockRejectedValue(
+    rs.mocked(runPreparedTestProject).mockRejectedValue(
       new WorkflowExecutionFailure(result, [original]),
     );
     const io = output();
@@ -592,7 +657,7 @@ describe('Test CLI failure diagnostics', () => {
       { ...run, documentId: 'document', run },
       { ...run, documentId: 'document', status: 'success' },
     ];
-    vi.mocked(runTestProject).mockResolvedValue(result);
+    rs.mocked(runPreparedTestProject).mockResolvedValue(result);
     const io = output();
 
     expect(await runTestCli(['--reporter', 'verbose'], io)).toBe(0);

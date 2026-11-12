@@ -5,6 +5,7 @@ import {
   deepSeekSearchAreaProtocol,
 } from '@/ai-model/models/deepseek/locate-protocol';
 import { buildElementLocateSystemPrompt } from '@/ai-model/prompt/locate';
+import { resolveLocateResultCoordinates } from '@/ai-model/shared/model-locate-result';
 import { createLocateResultPromptSpec } from '@/ai-model/shared/model-locate-result/prompt-spec';
 import { describe, expect, it } from '@rstest/core';
 
@@ -21,6 +22,70 @@ function getStandardLocateAdapter() {
 }
 
 describe('deepseek model adapter', () => {
+  describe.each([
+    { baseURL: 'https://api.deepseek.com', openRouter: false },
+    { baseURL: 'https://openrouter.ai/api/v1', openRouter: true },
+  ])('reasoning parameters for $baseURL', ({ baseURL, openRouter }) => {
+    it.each([
+      {
+        reasoningEnabled: undefined,
+        native: { thinking: { type: 'disabled' } },
+        router: { reasoning: { enabled: false } },
+        temperature: 0.7,
+      },
+      {
+        reasoningEnabled: false,
+        native: { thinking: { type: 'disabled' } },
+        router: { reasoning: { enabled: false } },
+        temperature: 0.7,
+      },
+      {
+        reasoningEnabled: true,
+        native: { thinking: { type: 'enabled' }, reasoning_effort: 'max' },
+        router: {
+          reasoning: { enabled: true, effort: 'max', max_tokens: 1024 },
+        },
+        temperature: undefined,
+      },
+      {
+        reasoningEnabled: 'default',
+        native: {},
+        router: {},
+        temperature: undefined,
+      },
+    ] as const)(
+      'maps enabled=$reasoningEnabled with endpoint-specific effort and budget',
+      ({ reasoningEnabled, native, router, temperature }) => {
+        const result = deepSeekAdapter.chatCompletion.buildChatCompletionParams(
+          {
+            baseURL,
+            expectedJsonObjectResponse: true,
+            userConfig: {
+              reasoningEnabled,
+              reasoningEffort: 'max',
+              reasoningBudget: 1024,
+              temperature: 0.7,
+            },
+          },
+        );
+        expect(result.config).toEqual({
+          temperature,
+          response_format: { type: 'json_object' },
+          ...(openRouter ? router : native),
+        });
+      },
+    );
+
+    it('omits empty reasoning configuration for default without effort', () => {
+      expect(
+        deepSeekAdapter.chatCompletion.buildChatCompletionParams({
+          baseURL,
+          userConfig: { reasoningEnabled: 'default' },
+        }).config,
+      ).toEqual({ temperature: undefined });
+    });
+  });
+
   it('uses point tokens for final element locate', () => {
     const locateAdapter = getStandardLocateAdapter();
     const elementProtocol = locateAdapter.element.protocol;
@@ -54,18 +119,22 @@ describe('deepseek model adapter', () => {
   });
 
   it('builds coordinate instructions from the result format prompt spec', () => {
-    const pointPromptSpec = createLocateResultPromptSpec({
-      shape: 'point',
-      order: 'yx',
-      normalizedBy: 2000,
-      rounding: 'round',
-    });
-    const bboxPromptSpec = createLocateResultPromptSpec({
-      shape: 'bbox',
-      order: 'yx',
-      normalizedBy: 2000,
-      rounding: 'round',
-    });
+    const pointPromptSpec = createLocateResultPromptSpec(
+      resolveLocateResultCoordinates({
+        shape: 'point',
+        order: 'yx',
+        normalizedBy: 2000,
+        rounding: 'round',
+      }),
+    );
+    const bboxPromptSpec = createLocateResultPromptSpec(
+      resolveLocateResultCoordinates({
+        shape: 'bbox',
+        order: 'yx',
+        normalizedBy: 2000,
+        rounding: 'round',
+      }),
+    );
     const elementInstructions =
       deepSeekElementLocateProtocol.buildResponseInstructions(pointPromptSpec);
     const searchAreaInstructions =
@@ -291,7 +360,9 @@ describe('deepseek model adapter', () => {
       thinking: { type: 'enabled' },
       reasoning_effort: 'max',
     });
-    expect(providerDefaultResult.config).toEqual({ temperature: undefined });
+    expect(providerDefaultResult.config).toEqual({
+      temperature: undefined,
+    });
     expect(reasoningDisabledResult.config).toEqual({
       temperature: 0.7,
       thinking: { type: 'disabled' },
@@ -305,8 +376,5 @@ describe('deepseek model adapter', () => {
     expect(deepSeekAdapter.chatCompletion.replayRawAssistantMessage).toBe(
       false,
     );
-    expect(deepSeekAdapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningBudget',
-    ]);
   });
 });

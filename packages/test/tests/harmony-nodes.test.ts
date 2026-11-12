@@ -9,7 +9,7 @@ type HarmonyRunnerAgent = MidsceneUIAgent &
 import { createRequire } from 'node:module';
 import { createMidsceneNodes } from '../src/midscene';
 const { HarmonyAgent } = createRequire(import.meta.url)('@midscene/harmony');
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { NodeRegistry } from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';
 
@@ -29,20 +29,20 @@ const harmonyAgent = (
   overrides: Partial<HarmonyRunnerAgent> = {},
 ): HarmonyRunnerAgent => ({
   ...createMockMidsceneAgent(),
-  launch: vi.fn(async () => undefined),
-  terminate: vi.fn(async () => undefined),
-  runHdcShell: vi.fn(async () => ''),
-  back: vi.fn(async () => undefined),
-  home: vi.fn(async () => undefined),
-  recentApps: vi.fn(async () => undefined),
+  launch: rs.fn(async () => undefined),
+  terminate: rs.fn(async () => undefined),
+  runHdcShell: rs.fn(async () => ''),
+  back: rs.fn(async () => undefined),
+  home: rs.fn(async () => undefined),
+  recentApps: rs.fn(async () => undefined),
   ...overrides,
 });
 
 describe('HarmonyAgent Nodes', () => {
   it('preserves Agent method contracts and platform operations', async () => {
-    const launch = vi.fn(async () => undefined);
-    const runHdcShell = vi.fn(async () => 'bundleName:com.example.app');
-    const back = vi.fn(async () => undefined);
+    const launch = rs.fn(async () => undefined);
+    const runHdcShell = rs.fn(async () => 'bundleName:com.example.app');
+    const back = rs.fn(async () => undefined);
     const registry = new NodeRegistry(
       createMidsceneNodes({
         agentClass: HarmonyAgent,

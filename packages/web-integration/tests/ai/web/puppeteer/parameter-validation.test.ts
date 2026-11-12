@@ -13,9 +13,20 @@ describe('parameter validation', () => {
   let agent: PuppeteerAgent;
 
   beforeEach(async () => {
-    const launched = await launchPage('https://www.bing.com/');
+    const launched = await launchPage('about:blank');
     resetFn = launched.reset;
     originPage = launched.originPage;
+    // Parameter validation needs a real input, but no external website.
+    await originPage.setContent(`
+      <!doctype html>
+      <html lang="en">
+        <head><title>Parameter validation fixture</title></head>
+        <body style="min-height: 2000px">
+          <label for="sb_form_q">Search</label>
+          <input id="sb_form_q" type="text" />
+        </body>
+      </html>
+    `);
     agent = new PuppeteerAgent(originPage);
   });
 

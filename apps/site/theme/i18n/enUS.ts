@@ -228,7 +228,7 @@ export const EN_US = {
     'Write tests in YAML with Midscene Test and extend them with custom TypeScript Nodes.',
   featureRichAPIsLink: '/reference/',
   featureSkillsLink: '/skills',
-  featureReportsPlaygroundLink: '/quick-start#chrome-extension',
+  featureReportsPlaygroundLink: '/get-started?scene=playground&platform=web',
   featureFlexibleIntegrationLink: '/midscene-test/overview',
   featureBenchmarkLink: '/android-world-benchmark-report',
   featureMobileWorldBenchmarkLink: '/mobile-world-benchmark-report',

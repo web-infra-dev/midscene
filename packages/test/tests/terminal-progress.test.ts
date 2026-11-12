@@ -1,6 +1,6 @@
 import { stripVTControlCharacters } from 'node:util';
+import { describe, expect, it, rs } from '@rstest/core';
 import stringWidth from 'string-width';
-import { describe, expect, it, vi } from 'vitest';
 import {
   TerminalProgress,
   truncateTerminalLine,
@@ -19,7 +19,7 @@ describe('terminal progress block', () => {
   it.each([2, 20, 60, 100])(
     'keeps styled Unicode rows within a %i-column terminal',
     (columns) => {
-      const io = { write: vi.fn(), columns, rows: 24 };
+      const io = { write: rs.fn(), columns, rows: 24 };
       new TerminalProgress(io).render([`\u001b[33m${title}\u001b[0m`], footer);
       const lines = plain(io.write.mock.calls.at(-1)![0])
         .split('\n')
@@ -39,7 +39,7 @@ describe('terminal progress block', () => {
   });
 
   it('clears reflowed rows after narrowing, bounded by the viewport', () => {
-    const io = { write: vi.fn(), columns: 100, rows: 24 };
+    const io = { write: rs.fn(), columns: 100, rows: 24 };
     const progress = new TerminalProgress(io);
     progress.render([title], footer);
     const lines = plain(io.write.mock.calls.at(-1)![0])
@@ -64,7 +64,7 @@ describe('terminal progress block', () => {
   });
 
   it('reserves footer space, shows overflow, and keeps the block height stable as tasks finish', () => {
-    const io = { write: vi.fn(), columns: 100, rows: 12 };
+    const io = { write: rs.fn(), columns: 100, rows: 12 };
     const progress = new TerminalProgress(io);
     progress.render(
       Array.from({ length: 20 }, () => title),
@@ -79,7 +79,7 @@ describe('terminal progress block', () => {
   });
 
   it('writes permanent output between erase and redraw with balanced synchronized-output markers', () => {
-    const io = { write: vi.fn(), columns: 100, rows: 24 };
+    const io = { write: rs.fn(), columns: 100, rows: 24 };
     const progress = new TerminalProgress(io);
     progress.render(['active task'], footer);
     io.write.mockClear();

@@ -1,10 +1,7 @@
 import { isAbsolute, relative, win32 } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inspect, stripVTControlCharacters } from 'node:util';
-import {
-  sanitizeReportError,
-  sanitizeReportValue,
-} from '@midscene/core/internal/test-runner';
+import { sanitizeReportValue } from '@midscene/core/internal/test-runner';
 import type { StepRunResult } from '@midscene/core/internal/test-runner';
 import { formatConciseError } from './error-format';
 
@@ -27,6 +24,31 @@ const shorten = (value: string, length: number): string => {
   return text.length <= length ? text : `${text.slice(0, length - 1)}…`;
 };
 
+function unwrapFrameLocation(location: string): string {
+  if (!location.endsWith(')')) return location;
+  // Real file frames have an absolute path or file URL. Recognize that
+  // boundary explicitly so unmatched parentheses in a path remain literal.
+  // Search only for the bounded prefix; matching the entire suffix at every
+  // candidate would cause quadratic backtracking on malformed stack lines.
+  const absoluteStart = location.search(
+    / \((?:file:\/\/|[A-Za-z]:[\\/]|\/|\\\\)/,
+  );
+  if (absoluteStart !== -1) return location.slice(absoluteStart + 2, -1);
+
+  // Synthetic frames can have relative filenames. Match the closing wrapper
+  // instead of splitting on parentheses that belong to the function name.
+  let depth = 0;
+  for (let index = location.length - 1; index >= 0; index--) {
+    if (location[index] === ')') depth++;
+    else if (location[index] === '(' && --depth === 0) {
+      return location[index - 1] === ' '
+        ? location.slice(index + 1, -1)
+        : location;
+    }
+  }
+  return location;
+}
+
 /** Follow original causes first, retaining only application code frames. */
 export function firstBusinessFrame(
   error: unknown,
@@ -34,6 +56,10 @@ export function firstBusinessFrame(
 ): string | undefined {
   const seen = new Set<object>();
   const frames: string[] = [];
+  // Frames inside the project are application code even when its own folders
+  // look like Midscene's (a monorepo with packages/core/src, for example).
+  const root = projectRoot?.replace(/\\/g, '/').replace(/\/+$/, '');
+  const inProject = (file: string) => !!root && file.startsWith(`${root}/`);
   const visit = (value: unknown, depth = 0) => {
     if (!value || typeof value !== 'object' || seen.has(value) || depth > 12)
       return;
@@ -49,12 +75,12 @@ export function firstBusinessFrame(
     if (typeof detail.stack !== 'string') return;
     for (const line of detail.stack.split('\n')) {
       if (!line.trim().startsWith('at ')) continue;
-      let location = line
-        .trim()
-        .slice(3)
-        .replace(/^async /, '');
-      if (location.endsWith(')'))
-        location = location.slice(location.lastIndexOf('(') + 1, -1);
+      const location = unwrapFrameLocation(
+        line
+          .trim()
+          .slice(3)
+          .replace(/^async /, ''),
+      );
       const match = location.match(/^(.*):(\d+):(\d+)$/);
       if (!match) continue;
       let file = match[1];
@@ -69,9 +95,10 @@ export function firstBusinessFrame(
       if (
         normalized.startsWith('node:') ||
         normalized.includes('/node_modules/') ||
-        /(?:^|\/)packages\/(?:core|test|shared|web-integration)\/(?:dist|src)\//.test(
-          normalized,
-        ) ||
+        (!inProject(normalized) &&
+          /(?:^|\/)packages\/(?:core|test|shared|web-integration)\/(?:dist|src)\//.test(
+            normalized,
+          )) ||
         !/\.[cm]?[jt]sx?$/.test(normalized)
       )
         continue;
@@ -90,26 +117,23 @@ export function firstBusinessFrame(
   return `${display.replace(/\\/g, '/')}:${match[2]}:${match[3]}`;
 }
 
-/** A few resolved input fields, with the same redaction policy as saved reports. */
+/** Format a bounded preview of the resolved input. */
 export function formatFailureInput(input: unknown): string[] {
   if (input === undefined) return [];
   const value = sanitizeReportValue(input).value;
   const render = (value: unknown) =>
     shorten(
-      sanitizeReportError({
-        message:
-          typeof value === 'string'
-            ? value
-            : inspect(value, {
-                colors: false,
-                depth: 2,
-                maxArrayLength: 4,
-                maxStringLength: 180,
-                breakLength: Number.POSITIVE_INFINITY,
-                customInspect: false,
-                getters: false,
-              }),
-      }).message,
+      typeof value === 'string'
+        ? value
+        : inspect(value, {
+            colors: false,
+            depth: 2,
+            maxArrayLength: 4,
+            maxStringLength: 180,
+            breakLength: Number.POSITIVE_INFINITY,
+            customInspect: false,
+            getters: false,
+          }),
       160,
     );
   if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -159,10 +183,9 @@ export function formatFailureDetails(
     if (attempt && (attempt.total > 1 || attempt.index > 0))
       field(label, `${attempt.index + 1}/${attempt.total}`);
   if (body.length) body.push('');
-  const safeMessage = sanitizeReportError({
-    message: formatConciseError(error),
-  }).message;
-  const lines = stripVTControlCharacters(safeMessage).split(/\r?\n/);
+  const lines = stripVTControlCharacters(formatConciseError(error)).split(
+    /\r?\n/,
+  );
   body.push(
     `  Error: ${shorten(lines[0], 320)}`,
     ...lines.slice(1, 6).map((line) => `         ${shorten(line, 320)}`),

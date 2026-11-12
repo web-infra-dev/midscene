@@ -9,7 +9,7 @@ type AndroidRunnerAgent = MidsceneUIAgent &
 import { createRequire } from 'node:module';
 import { createMidsceneNodes } from '../src/midscene';
 const { AndroidAgent } = createRequire(import.meta.url)('@midscene/android');
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { NodeRegistry } from '../src';
 
 import { runCollectedCase } from '../src/engine/run-collected-case';
@@ -29,12 +29,12 @@ const androidAgent = (
   overrides: Partial<AndroidRunnerAgent> = {},
 ): AndroidRunnerAgent => ({
   ...createMockMidsceneAgent(),
-  launch: vi.fn(async () => undefined),
-  terminate: vi.fn(async () => undefined),
-  runAdbShell: vi.fn(async () => ''),
-  back: vi.fn(async () => undefined),
-  home: vi.fn(async () => undefined),
-  recentApps: vi.fn(async () => undefined),
+  launch: rs.fn(async () => undefined),
+  terminate: rs.fn(async () => undefined),
+  runAdbShell: rs.fn(async () => ''),
+  back: rs.fn(async () => undefined),
+  home: rs.fn(async () => undefined),
+  recentApps: rs.fn(async () => undefined),
   ...overrides,
 });
 
@@ -68,7 +68,7 @@ describe('AndroidAgent Nodes', () => {
   });
 
   it('preserves the Agent runAdbShell options object', async () => {
-    const runAdbShell = vi.fn(async () => 'package:com.example.app');
+    const runAdbShell = rs.fn(async () => 'package:com.example.app');
     const registry = new NodeRegistry(
       createMidsceneNodes({
         agentClass: AndroidAgent,
@@ -111,7 +111,7 @@ describe('AndroidAgent Nodes', () => {
   });
 
   it('accepts canonical command input and rejects adb-prefixed commands', async () => {
-    const runAdbShell = vi.fn(async () => 'ok');
+    const runAdbShell = rs.fn(async () => 'ok');
     const registry = new NodeRegistry(
       createMidsceneNodes({
         agentClass: AndroidAgent,
@@ -147,8 +147,8 @@ describe('AndroidAgent Nodes', () => {
   });
 
   it('owns and delegates Android lifecycle nodes', async () => {
-    const launch = vi.fn(async () => undefined);
-    const terminate = vi.fn(async () => undefined);
+    const launch = rs.fn(async () => undefined);
+    const terminate = rs.fn(async () => undefined);
     const registry = new NodeRegistry(
       createMidsceneNodes({
         agentClass: AndroidAgent,

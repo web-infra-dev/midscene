@@ -723,7 +723,7 @@ export const actionScrollParamSchema = z.object({
     .enum(['down', 'up', 'right', 'left'])
     .default('down')
     .describe(
-      'The direction toward the off-screen content to reveal. "down" reveals content below the current viewport, "up" reveals content above, "right" reveals content to the right, and "left" reveals content to the left. This does not describe the movement direction of the content currently visible on the screen. Only effective when scrollType is "singleAction".',
+      'The direction toward the off-screen content to reveal. Quick mapping: want to see content below the current viewport -> "down"; above -> "up"; to the left -> "left"; to the right -> "right". This does not describe the movement direction of the content currently visible on the screen. Only effective when scrollType is "singleAction".',
     ),
   distance: z
     .number()
@@ -853,7 +853,7 @@ function createActionSwipeParamSchema(inputMode: SwipeInputMode) {
       .enum(['up', 'down', 'left', 'right'])
       .optional()
       .describe(
-        `${movementSource === 'finger' ? 'Finger' : 'Pointer'} movement direction. Required together with a positive distance for a relative swipe. Omit when using end.`,
+        `${movementSource === 'finger' ? 'Finger' : 'Pointer'} movement direction. Quick mapping: move the ${movementSource} or content upward -> "up"; downward -> "down"; leftward -> "left"; rightward -> "right". Required together with a positive distance for a relative swipe. Omit when using end.`,
       ),
     distance: z
       .number()
@@ -1118,7 +1118,7 @@ export const ActionPinchParamSchema = z.object({
     .positive()
     .optional()
     .describe(
-      'How far each finger moves in pixels. Defaults to a quarter of the shorter screen dimension.',
+      'The amount by which the distance between the two fingers changes, in pixels. Defaults to a quarter of the shorter screen dimension.',
     ),
   duration: z
     .number()
@@ -1145,7 +1145,7 @@ export const defineActionPinch = (config: {
   return defineAction<typeof ActionPinchParamSchema, ActionPinchParam>({
     name: 'Pinch',
     description:
-      'Perform a two-finger pinch gesture. Use direction "in" to pinch fingers together (zoom out), or "out" to spread fingers apart (zoom in). Optionally specify distance for how far each finger moves.',
+      'Perform a two-finger pinch gesture. Use direction "in" to pinch fingers together (zoom out), or "out" to spread fingers apart (zoom in). Optionally specify distance for the amount by which the distance between the two fingers changes.',
     interfaceAlias: 'aiPinch',
     paramSchema: ActionPinchParamSchema,
     sample: {

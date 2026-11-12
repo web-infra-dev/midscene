@@ -7,7 +7,7 @@ const { PlaywrightAgent } = createRequire(import.meta.url)(
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from '@rstest/core';
 import { NodeRegistry } from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';
 
@@ -112,7 +112,7 @@ describe('Playwright cookie Nodes', () => {
     expect(serialized).not.toContain('user:password');
   });
 
-  it('redacts cookie environment resolver failures', async () => {
+  it('preserves cookie environment resolver failures', async () => {
     const { page } = createPage();
     const registry = new NodeRegistry(
       createMidsceneNodes({
@@ -137,15 +137,10 @@ describe('Playwright cookie Nodes', () => {
     expect(result.steps[0].error?.message).toContain(
       'Failed to resolve cookie environment E2E_COOKIES',
     );
-    expect(errorChainText(result.steps[0].error)).not.toContain(
-      'top-secret-value',
-    );
-    expect((result.steps[0].error?.cause as Error | undefined)?.cause).toBe(
-      undefined,
-    );
+    expect(errorChainText(result.steps[0].error)).toContain('top-secret-value');
   });
 
-  it('redacts malformed environment JSON from the complete error chain', async () => {
+  it('preserves the cause of malformed environment JSON', async () => {
     const secret = 'malformed-env-secret';
     const { page } = createPage();
     const registry = new NodeRegistry(
@@ -171,13 +166,12 @@ describe('Playwright cookie Nodes', () => {
     expect(result.steps[0].error?.message).toContain(
       'source must contain valid JSON',
     );
-    expect(errorChainText(result.steps[0].error)).not.toContain(secret);
-    expect((result.steps[0].error?.cause as Error | undefined)?.cause).toBe(
-      undefined,
-    );
+    expect(
+      (result.steps[0].error?.cause as Error | undefined)?.cause,
+    ).toBeInstanceOf(SyntaxError);
   });
 
-  it('redacts malformed storage-state JSON from the complete error chain', async () => {
+  it('preserves the cause of malformed storage-state JSON', async () => {
     const secret = 'malformed-storage-secret';
     const directory = await mkdtemp(join(tmpdir(), 'midscene-test-cookies-'));
     temporaryDirectories.push(directory);
@@ -205,13 +199,12 @@ describe('Playwright cookie Nodes', () => {
     expect(result.steps[0].error?.message).toContain(
       'source must contain valid JSON',
     );
-    expect(errorChainText(result.steps[0].error)).not.toContain(secret);
-    expect((result.steps[0].error?.cause as Error | undefined)?.cause).toBe(
-      undefined,
-    );
+    expect(
+      (result.steps[0].error?.cause as Error | undefined)?.cause,
+    ).toBeInstanceOf(SyntaxError);
   });
 
-  it('redacts cookie values from browser injection failures', async () => {
+  it('preserves the cause of browser cookie injection failures', async () => {
     const { browserContext, page } = createPage();
     browserContext.addCookies.mockRejectedValueOnce(
       new Error('invalid cookie value: top-secret-value'),
@@ -245,15 +238,10 @@ describe('Playwright cookie Nodes', () => {
     expect(result.steps[0].error?.message).toContain(
       'Failed to set 1 browser cookie',
     );
-    expect(errorChainText(result.steps[0].error)).not.toContain(
-      'top-secret-value',
-    );
-    expect((result.steps[0].error?.cause as Error | undefined)?.cause).toBe(
-      undefined,
-    );
+    expect(errorChainText(result.steps[0].error)).toContain('top-secret-value');
   });
 
-  it('redacts cookie profile resolution failures', async () => {
+  it('preserves cookie profile resolution failures', async () => {
     const { page } = createPage();
     const registry = new NodeRegistry(
       createMidsceneNodes({
@@ -278,12 +266,7 @@ describe('Playwright cookie Nodes', () => {
     expect(result.steps[0].error?.message).toContain(
       'Failed to resolve cookie profile member',
     );
-    expect(errorChainText(result.steps[0].error)).not.toContain(
-      'top-secret-value',
-    );
-    expect((result.steps[0].error?.cause as Error | undefined)?.cause).toBe(
-      undefined,
-    );
+    expect(errorChainText(result.steps[0].error)).toContain('top-secret-value');
   });
 
   it('supports Cookie headers, profiles, and storage-state files', async () => {

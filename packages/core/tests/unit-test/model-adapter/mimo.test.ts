@@ -8,6 +8,45 @@ const mimoAdapter = new ResolvedModelAdapter(
 );
 
 describe('mimo model adapter', () => {
+  describe.each([
+    { baseURL: 'https://api.xiaomimimo.com/v1', openRouter: false },
+    { baseURL: 'https://openrouter.ai/api/v1', openRouter: true },
+  ])('reasoning parameters for $baseURL', ({ baseURL, openRouter }) => {
+    it.each([undefined, false, true, 'default'] as const)(
+      'maps enabled=%s with endpoint-specific effort and budget handling',
+      (reasoningEnabled) => {
+        const result = mimoAdapter.chatCompletion.buildChatCompletionParams({
+          baseURL,
+          expectedJsonObjectResponse: true,
+          userConfig: {
+            reasoningEnabled,
+            reasoningEffort: 'high',
+            reasoningBudget: 1024,
+            temperature: 0.7,
+          },
+        });
+        const enabled = reasoningEnabled ?? false;
+        const thinkingConfig =
+          enabled === 'default'
+            ? {}
+            : openRouter
+              ? {
+                  reasoning: {
+                    enabled,
+                    ...(enabled === true ? { max_tokens: 1024 } : {}),
+                  },
+                }
+              : { thinking: { type: enabled ? 'enabled' : 'disabled' } };
+
+        expect(result.config).toEqual({
+          temperature: 0.7,
+          response_format: { type: 'json_object' },
+          ...thinkingConfig,
+        });
+      },
+    );
+  });
+
   it('defaults mimo thinking to disabled when reasoning config is unset', () => {
     const result = mimoAdapter.chatCompletion.buildChatCompletionParams({
       userConfig: {},
@@ -83,10 +122,6 @@ describe('mimo model adapter', () => {
       },
     });
 
-    expect(mimoAdapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningEffort',
-      'reasoningBudget',
-    ]);
     expect(result.config).toEqual({
       temperature: 0,
       thinking: { type: 'disabled' },

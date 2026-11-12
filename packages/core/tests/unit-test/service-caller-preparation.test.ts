@@ -1,5 +1,9 @@
+import { resolveChatCompletion } from '@/ai-model/model-adapter/chat-completion';
+import { resolveResponses } from '@/ai-model/model-adapter/responses';
 import { getModelRuntime } from '@/ai-model/models';
 import { callGenerativeAI } from '@/ai-model/service-caller';
+import { prepareChatCompletion } from '@/ai-model/service-caller/openai/chat-completion/chat-completion';
+import { prepareResponses } from '@/ai-model/service-caller/openai/responses/responses';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
@@ -53,6 +57,43 @@ const imageMessage = [
 ];
 
 describe('model call parameter preparation', () => {
+  it.each([
+    'https://openrouter.ai/api/v1',
+    'https://example.com/v1',
+    undefined,
+  ])(
+    'passes the request baseURL to both adapter builders without adding it to the body: %s',
+    async (baseURL) => {
+      const runtime = getModelRuntime({
+        ...baseModelConfig,
+        openaiBaseURL: baseURL,
+      });
+      const buildParams = rs.fn(() => ({ config: { temperature: 0 } }));
+      const modelRuntime = {
+        ...runtime,
+        adapter: {
+          ...runtime.adapter,
+          chatCompletion: resolveChatCompletion({
+            buildChatCompletionParams: buildParams,
+          }),
+          responses: resolveResponses({ buildResponsesParams: buildParams }),
+        },
+      };
+
+      for (const prepare of [prepareChatCompletion, prepareResponses]) {
+        const { requestParams } = await prepare({
+          modelRuntime,
+          messages: imageMessage,
+        });
+        expect(buildParams).toHaveBeenLastCalledWith(
+          expect.objectContaining({ baseURL }),
+        );
+        expect(requestParams).not.toHaveProperty('baseURL');
+        expect(requestParams.temperature).toBe(0);
+      }
+    },
+  );
+
   beforeEach(() => {
     rs.clearAllMocks();
     mockProxy.mockReset().mockResolvedValue(undefined);

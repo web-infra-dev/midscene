@@ -191,12 +191,12 @@ jobs:
 
     - name: Run apps/report e2e
       id: e2e-tests-app-report
-      uses: web-infra-dev/midscene-action@131b6a9ba6402f4b63f8ecbfa6ffb58bb20c78dc # v1 + environment roots and single HTML
+      uses: web-infra-dev/midscene-action@94837f568181d3e855a22a4854f4a2191ac82a6a # v1.0.2
       env:
         NODE_OPTIONS: ${{ steps.ai-ci.outputs.node-options }}
       with:
         working-directory: apps/report
-        command: python3 ../../scripts/ci-measure.py "$RUNNER_TEMP/report-resources.json" node ../../packages/test/bin/midscene-test --config ./e2e/midscene.config.ts
+        command: python3 ../../scripts/ci-measure.py "$RUNNER_TEMP/report-resources.json" node ../../packages/test/bin/midscene-test --config ./midscene.config.ts
         artifact-name: e2e-app-report-output
         publish-pages: true
         cloudflare-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}

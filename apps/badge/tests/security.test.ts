@@ -34,8 +34,8 @@ const payloads = [
   'constructor',
 ];
 
-const injections = ['pass', 'fail', 'style', 'theme'].flatMap((field) =>
-  payloads.map((payload, index) => ({ field, payload, index })),
+const injections = ['pass', 'fail', 'skipped', 'style', 'theme'].flatMap(
+  (field) => payloads.map((payload, index) => ({ field, payload, index })),
 );
 
 describe('URL injection boundaries', () => {
@@ -82,7 +82,7 @@ describe('URL injection boundaries', () => {
     '١',
     '1\u0000',
   ])('rejects non-decimal or out-of-range counts: %j', (value) => {
-    for (const field of ['pass', 'fail']) {
+    for (const field of ['pass', 'fail', 'skipped']) {
       const params = new URLSearchParams('pass=1&fail=0');
       params.set(field, value);
       expect(handleRequest(request(params.toString())).status).toBe(400);
@@ -124,7 +124,7 @@ describe('cache and request isolation', () => {
     'pass=42&fail=3',
     'fail=3&pass=00042',
     'pass=%34%32&fail=3',
-    'pass=42&fail=3&style=flat&theme=light',
+    'pass=42&fail=3&skipped=0&style=flat&theme=light',
     'pass=42&fail=3&pass=%3Cscript%3E',
     'pass=42&fail=3&style=flat&style=%3Cscript%3E',
     'pass=42&fail=3&theme=light&theme=%3Cscript%3E',
@@ -142,12 +142,12 @@ describe('cache and request isolation', () => {
     },
   );
 
-  it.each(['pass', 'fail', 'style', 'theme'])(
+  it.each(['pass', 'fail', 'skipped', 'style', 'theme'])(
     'rejects an invalid first %s value even when followed by a valid duplicate',
     (field) => {
       const params = new URLSearchParams({ [field]: payloads[0] });
       for (const [key, value] of new URLSearchParams(
-        'pass=42&fail=3&style=flat&theme=light',
+        'pass=42&fail=3&skipped=0&style=flat&theme=light',
       )) {
         params.append(key, value);
       }
@@ -182,6 +182,7 @@ describe('cache and request isolation', () => {
       'pass=42&fail=3',
       'pass=43&fail=3',
       'pass=42&fail=4',
+      'pass=42&fail=3&skipped=5',
       'pass=42&fail=3&style=large',
       'pass=42&fail=3&style=card',
       'pass=42&fail=3&style=card&theme=dark',

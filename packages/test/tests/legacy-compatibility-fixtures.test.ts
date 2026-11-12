@@ -10,16 +10,18 @@ import {
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, describe, expect, it, rs } from '@rstest/core';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixtures = join(here, 'fixtures/legacy-compatibility');
 const legacyCli = resolve(here, '../../cli/bin/midscene');
 const cliAcceptanceTimeout = 30_000;
-vi.setConfig({ testTimeout: cliAcceptanceTimeout });
+rs.setConfig({ testTimeout: cliAcceptanceTimeout });
 const roots: string[] = [];
 
-afterAll(() => vi.resetConfig());
+afterAll(() => {
+  rs.resetConfig();
+});
 
 afterEach(() => {
   for (const root of roots.splice(0))

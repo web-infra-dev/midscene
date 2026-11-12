@@ -1,19 +1,21 @@
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import {
   githubFailureAnnotation,
   writeGitHubSummary,
 } from '../src/cli/github-reporter';
 import type { TestProjectRunResult } from '../src/cli/types';
 
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  rs.unstubAllEnvs();
+});
 
 describe('GitHub reporter', () => {
   it('escapes workflow commands and locates YAML files relative to the workspace', () => {
-    vi.stubEnv('GITHUB_ACTIONS', 'true');
-    vi.stubEnv('GITHUB_WORKSPACE', '/repo');
+    rs.stubEnv('GITHUB_ACTIONS', 'true');
+    rs.stubEnv('GITHUB_WORKSPACE', '/repo');
     expect(
       githubFailureAnnotation(
         'checkout, web\nstep 3',
@@ -23,15 +25,66 @@ describe('GitHub reporter', () => {
     ).toBe(
       '::error file=tests/case.yaml,title=checkout%2C web%0Astep 3::failed%0A::warning::injected%25',
     );
-    vi.stubEnv('GITHUB_ACTIONS', 'false');
+    rs.stubEnv('GITHUB_ACTIONS', 'false');
     expect(githubFailureAnnotation('case', 'failed')).toBeUndefined();
+  });
+
+  it.each([
+    { notRun: 3, collectionErrors: 0, documentFailures: 1, projectFailures: 0 },
+    { notRun: 0, collectionErrors: 1, documentFailures: 0, projectFailures: 0 },
+    { notRun: 0, collectionErrors: 0, documentFailures: 0, projectFailures: 1 },
+    { notRun: 0, collectionErrors: 0, documentFailures: 0, projectFailures: 0 },
+  ])('omits misleading badges for failed runs: %j', (failures) => {
+    const dir = mkdtempSync(join(tmpdir(), 'midscene-github-summary-'));
+    try {
+      const output = join(dir, 'summary.md');
+      rs.stubEnv('GITHUB_ACTIONS', 'true');
+      rs.stubEnv('GITHUB_STEP_SUMMARY', output);
+      writeGitHubSummary({
+        schemaVersion: 3,
+        runId: 'failed-run',
+        startedAt: '2026-10-20T00:00:00.000Z',
+        endedAt: '2026-10-20T00:00:01.000Z',
+        durationMs: 1000,
+        status: 'failed',
+        exitCode: 1,
+        resultDir: '/repo',
+        reportDir: '/repo/report',
+        summaryPath: '/repo/summary.json',
+        summary: {
+          total: 5 + failures.notRun,
+          passed: 5,
+          failed: 0,
+          passedAfterRetry: 0,
+          finalPassRate: 5 / (5 + failures.notRun),
+          firstPassRate: 5 / (5 + failures.notRun),
+          filtered: 0,
+          ...failures,
+        },
+        projects: [],
+        documents: [],
+        collectionErrors: [],
+        cases: [],
+      });
+      const markdown = readFileSync(output, 'utf8');
+      expect(markdown).not.toContain('https://badge.midscenejs.com/');
+      expect(markdown).toContain(`| 5 | 0 | ${failures.notRun} | 0 | 1.0s |`);
+      if (failures.collectionErrors)
+        expect(markdown).toContain('- Collection errors: 1');
+      if (failures.documentFailures)
+        expect(markdown).toContain('- Failed files: 1');
+      if (failures.projectFailures)
+        expect(markdown).toContain('- Failed projects: 1');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('appends summaries without counting recovered attempts as failed Cases', () => {
     const dir = mkdtempSync(join(tmpdir(), 'midscene-github-summary-'));
     try {
-      vi.stubEnv('GITHUB_ACTIONS', 'true');
-      vi.stubEnv('GITHUB_STEP_SUMMARY', join(dir, 'summary.md'));
+      rs.stubEnv('GITHUB_ACTIONS', 'true');
+      rs.stubEnv('GITHUB_STEP_SUMMARY', join(dir, 'summary.md'));
       const result: TestProjectRunResult = {
         schemaVersion: 3,
         runId: 'github-summary',
@@ -103,6 +156,118 @@ describe('GitHub reporter', () => {
         ),
       ).toHaveLength(2);
       expect(output).toContain('/repo/report/index.html');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('shows paths with markdown-sensitive characters literally in code spans', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'midscene-github-summary-'));
+    try {
+      rs.stubEnv('GITHUB_ACTIONS', 'true');
+      rs.stubEnv('GITHUB_STEP_SUMMARY', join(dir, 'summary.md'));
+      writeGitHubSummary({
+        schemaVersion: 3,
+        runId: 'github-summary-paths',
+        startedAt: '2026-10-20T00:00:00.000Z',
+        endedAt: '2026-10-20T00:00:01.000Z',
+        durationMs: 1000,
+        status: 'failed',
+        exitCode: 1,
+        resultDir: '/work/R&D',
+        reportDir: '/work/R&D/report',
+        summary: {
+          total: 1,
+          passed: 0,
+          failed: 1,
+          notRun: 0,
+          passedAfterRetry: 0,
+          finalPassRate: 0,
+          firstPassRate: 0,
+          filtered: 0,
+          collectionErrors: 0,
+          documentFailures: 0,
+          projectFailures: 0,
+        },
+        projects: [],
+        documents: [],
+        collectionErrors: [],
+        cases: [
+          {
+            caseId: 'failed',
+            caseIndex: 0,
+            documentId: 'cases/<draft>/user`s login.yaml',
+            status: 'failed',
+            name: 'login',
+            projectName: 'web',
+            sourcePath: 'cases/<draft>/user`s login.yaml',
+          },
+        ],
+        summaryPath: '/work/R&D/summary.json',
+        reportPath: '/work/R&D/report/index.html',
+      });
+      const output = readFileSync(join(dir, 'summary.md'), 'utf8');
+      // Entity references are not decoded inside code spans, so the path
+      // text must appear as is, with a fence longer than its backticks.
+      expect(output).toContain(
+        'Failed: **login** — web/``cases/<draft>/user`s login.yaml``',
+      );
+      expect(output).toContain(
+        'Report artifact entry: `/work/R&D/report/index.html`',
+      );
+      expect(output).toContain('Structured results: `/work/R&D/summary.json`');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('shows Case and project names with Markdown syntax literally', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'midscene-github-summary-'));
+    try {
+      rs.stubEnv('GITHUB_ACTIONS', 'true');
+      rs.stubEnv('GITHUB_STEP_SUMMARY', join(dir, 'summary.md'));
+      writeGitHubSummary({
+        schemaVersion: 3,
+        runId: 'github-summary-names',
+        startedAt: '2026-10-20T00:00:00.000Z',
+        endedAt: '2026-10-20T00:00:01.000Z',
+        durationMs: 1000,
+        status: 'failed',
+        exitCode: 1,
+        resultDir: '/work/results',
+        reportDir: '/work/results/report',
+        summary: {
+          total: 1,
+          passed: 0,
+          failed: 1,
+          notRun: 0,
+          passedAfterRetry: 0,
+          finalPassRate: 0,
+          firstPassRate: 0,
+          filtered: 0,
+          collectionErrors: 0,
+          documentFailures: 0,
+          projectFailures: 0,
+        },
+        projects: [],
+        documents: [],
+        collectionErrors: [],
+        cases: [
+          {
+            caseId: 'failed',
+            caseIndex: 0,
+            documentId: 'cases/pay.yaml',
+            status: 'failed',
+            name: 'pays with **saved** card [docs](https://example.com) ~old~ a_b\\c',
+            projectName: 'web_*',
+            sourcePath: 'cases/pay.yaml',
+          },
+        ],
+        summaryPath: '/work/results/summary.json',
+      });
+      expect(readFileSync(join(dir, 'summary.md'), 'utf8')).toContain(
+        '- Failed: **pays with &#42;&#42;saved&#42;&#42; card &#91;docs&#93;(https://example.com) &#126;old&#126; a&#95;b&#92;c** — web&#95;&#42;/`cases/pay.yaml`',
+      );
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

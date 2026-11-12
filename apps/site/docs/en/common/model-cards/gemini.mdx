@@ -1,0 +1,15 @@
+import { ModelConfigCard } from '@theme';
+
+<ModelConfigCard
+  purposes={props.purposes}
+  providers={[
+    {
+      name: "Google AI Studio",
+      href: "https://aistudio.google.com/apikey",
+      baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/",
+      modelName: "gemini-3.5-flash",
+    },
+  ]}
+  openRouterModel="google/gemini-3.5-flash"
+  modelFamily="gemini"
+/>

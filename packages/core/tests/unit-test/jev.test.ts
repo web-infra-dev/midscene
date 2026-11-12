@@ -2,6 +2,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Insight } from '@/agent/insight';
+import { TaskExecutor } from '@/agent/tasks';
 import { runConnectivityTest } from '@/ai-model/connectivity';
 import { getModelRuntime } from '@/ai-model/models';
 import { mapJevBox, prepareJevImage } from '@/ai-model/models/jev/image';
@@ -12,11 +13,13 @@ import { prepareSystemOne } from '@/ai-model/service-caller/system-one';
 import { AiLocateElement } from '@/ai-model/workflows/grounding/locate';
 import { AiExtractElementInfo } from '@/ai-model/workflows/insight';
 import { ConversationHistory } from '@/ai-model/workflows/planning';
+import type { AbstractInterface } from '@/device';
 import {
   defineActionScroll,
   defineActionSleep,
   defineActionTap,
 } from '@/device';
+import type Service from '@/index';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
 import { getVersion } from '@/utils';
@@ -25,9 +28,12 @@ import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import sharp from 'sharp';
 import { z } from 'zod';
 
-const recording = rs.hoisted(() => ({ events: [] as Record<string, any>[] }));
+const recording = rs.hoisted(() => ({
+  enabled: true,
+  events: [] as Record<string, any>[],
+}));
 rs.mock('@/ai-model/service-caller/model-call-recorder', () => ({
-  isModelCallRecordingEnabled: () => true,
+  isModelCallRecordingEnabled: () => recording.enabled,
   recordModelCallEvent: (event: Record<string, any>) => {
     recording.events.push(event);
   },
@@ -82,6 +88,7 @@ async function context(width = 2000, height = 1000): Promise<UIContext> {
 
 beforeEach(() => {
   recording.events.length = 0;
+  recording.enabled = true;
 });
 afterEach(() => {
   rs.restoreAllMocks();
@@ -508,6 +515,49 @@ describe('Jev requests and coordinates', () => {
       expect(recording.events[1]).toMatchObject({
         http: { status, ok: status === 200, body },
       });
+    },
+  );
+  it.each([
+    'not JSON',
+    '{"answers":{}}',
+    '{"answers":{"action":{"type":"choice","choice":"unknown"}}}',
+    '{"answers":{"action":{"type":"choice","choice":"control:complete"},"target":{"type":"box","box":{"left":0,"right":0,"top":0,"bottom":0}}}}',
+  ])(
+    'preserves the final invalid response in the planning report: %s',
+    async (body) => {
+      recording.enabled = false;
+      const fetchMock = rs
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValueOnce(new Response('{"answers":{}}'))
+        .mockResolvedValueOnce(new Response(body));
+      const modelRuntime = getModelRuntime({
+        ...jevConfig,
+        intent: 'planning',
+        slot: 'planning',
+        retryCount: 1,
+      });
+      const onExecutionCreated = rs.fn();
+      const executor = new TaskExecutor(
+        { interfaceType: 'web' } as AbstractInterface,
+        { contextRetrieverFn: async () => context() } as unknown as Service,
+        {
+          getDefaultModelRuntime: () => modelRuntime,
+          actionSpace: [defineActionSleep()],
+          hooks: { onExecutionCreated },
+          replanningCycleLimit: 1,
+        },
+      );
+      await expect(
+        executor.action('Close the dialog', modelRuntime, modelRuntime),
+      ).rejects.toThrow('Invalid System One response');
+      const task = onExecutionCreated.mock.calls[0][0].tasks[0];
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(task.status).toBe('failed');
+      expect(task.error?.name).toBe('AIResponseParseError');
+      expect(task.error?.message).toContain('2/2 attempts');
+      expect(task.error?.message).toContain('Invalid System One response');
+      expect(task.log?.rawResponse).toBe(body);
+      expect(recording.events).toEqual([]);
     },
   );
   it('rejects streaming before entering the retry loop', async () => {
