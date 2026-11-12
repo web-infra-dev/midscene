@@ -47,9 +47,84 @@ describe('tencent-hy model adapter', () => {
         },
       }).config,
     ).toEqual({ temperature: 0, thinking: { type: 'disabled' } });
-    expect(adapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningBudget',
-    ]);
+  });
+
+  it('omits native effort and budget when using provider defaults', () => {
+    expect(
+      adapter.chatCompletion.buildChatCompletionParams({
+        baseURL: 'https://tokenhub.tencentmaas.com/v1',
+        userConfig: {
+          reasoningEnabled: 'default',
+          reasoningEffort: 'high',
+          reasoningBudget: 1024,
+        },
+      }).config,
+    ).toEqual({ temperature: 0 });
+  });
+
+  it.each([undefined, false, true, 'default'] as const)(
+    'maps OpenRouter reasoning enabled state: %s',
+    (reasoningEnabled) => {
+      expect(
+        adapter.chatCompletion.buildChatCompletionParams({
+          baseURL: 'https://openrouter.ai/api/v1',
+          userConfig: { reasoningEnabled },
+        }).config,
+      ).toEqual({
+        temperature: 0,
+        ...(reasoningEnabled === 'default'
+          ? {}
+          : { reasoning: { enabled: reasoningEnabled ?? false } }),
+      });
+    },
+  );
+
+  it.each([undefined, false])(
+    'omits OpenRouter effort and budget when thinking is disabled: %s',
+    (reasoningEnabled) => {
+      expect(
+        adapter.chatCompletion.buildChatCompletionParams({
+          baseURL: 'https://openrouter.ai/api/v1',
+          userConfig: {
+            reasoningEnabled,
+            reasoningEffort: 'high',
+            reasoningBudget: 1024,
+          },
+        }).config,
+      ).toEqual({ temperature: 0, reasoning: { enabled: false } });
+    },
+  );
+
+  it.each([true, 'default'] as const)(
+    'applies OpenRouter effort and budget only when explicitly enabled: %s',
+    (reasoningEnabled) => {
+      expect(
+        adapter.chatCompletion.buildChatCompletionParams({
+          baseURL: 'https://openrouter.ai/api/v1',
+          userConfig: {
+            reasoningEnabled,
+            reasoningEffort: 'high',
+            reasoningBudget: 1024,
+            temperature: 0.5,
+          },
+        }).config,
+      ).toEqual({
+        temperature: 0.5,
+        ...(reasoningEnabled === true
+          ? { reasoning: { enabled: true, effort: 'high', max_tokens: 1024 } }
+          : {}),
+      });
+    },
+  );
+
+  it.each([
+    'https://tokenhub.tencentmaas.com/v1',
+    'https://openrouter.ai.example.com/v1',
+    'https://example.com/openrouter.ai',
+  ])('keeps native thinking parameters for %s', (baseURL) => {
+    expect(
+      adapter.chatCompletion.buildChatCompletionParams({ baseURL }).config,
+    ).toEqual({ temperature: 0, thinking: { type: 'disabled' } });
   });
 
   it('extracts reasoning_content without treating it as a locate answer', () => {

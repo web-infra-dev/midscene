@@ -1,4 +1,5 @@
 import type { TModelFamily } from '@midscene/shared/env';
+import { isOpenRouter } from '../model-adapter/is-openrouter';
 import type {
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
@@ -6,21 +7,45 @@ import type {
 } from '../model-adapter/types';
 
 const buildTencentHyChatCompletionParams = ({
+  baseURL,
   midsceneDefaults,
   userConfig,
 }: ChatCompletionCallContext): ChatCompletionParamsResult => {
-  const { reasoningEnabled, reasoningEffort } = userConfig;
+  const {
+    reasoningEnabled = false,
+    reasoningEffort,
+    reasoningBudget,
+  } = userConfig;
   const reasoningConfig: Record<string, unknown> = {};
 
-  if (reasoningEnabled !== 'default') {
-    const enabled = reasoningEnabled ?? false;
-    // https://cloud.tencent.com/document/product/1823/131208
-    reasoningConfig.thinking = {
-      type: enabled ? 'enabled' : 'disabled',
-    };
-
-    if (enabled && reasoningEffort) {
-      reasoningConfig.reasoning_effort = reasoningEffort;
+  if (isOpenRouter(baseURL)) {
+    // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
+    const reasoning: Record<string, unknown> = {};
+    if (reasoningEnabled !== 'default') {
+      reasoning.enabled = reasoningEnabled;
+    }
+    if (reasoningEnabled === true) {
+      if (reasoningEffort !== undefined) {
+        reasoning.effort = reasoningEffort;
+      }
+      if (reasoningBudget !== undefined) {
+        reasoning.max_tokens = reasoningBudget;
+      }
+    }
+    if (Object.keys(reasoning).length > 0) {
+      reasoningConfig.reasoning = reasoning;
+    }
+  } else {
+    if (reasoningEnabled !== 'default') {
+      // https://cloud.tencent.com/document/product/1823/131208
+      reasoningConfig.thinking = {
+        type: reasoningEnabled ? 'enabled' : 'disabled',
+      };
+    }
+    if (reasoningEnabled === true) {
+      if (reasoningEffort !== undefined) {
+        reasoningConfig.reasoning_effort = reasoningEffort;
+      }
     }
   }
 
@@ -36,7 +61,6 @@ const buildTencentHyChatCompletionParams = ({
 export const tencentHyAdapters = {
   'tencent-hy': {
     chatCompletion: {
-      unsupportedUserConfig: ['reasoningBudget'],
       buildChatCompletionParams: buildTencentHyChatCompletionParams,
     },
     locate: {

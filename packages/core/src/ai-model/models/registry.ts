@@ -1,5 +1,4 @@
 import type { IModelConfig, TModelFamily } from '@midscene/shared/env';
-import { getDebug } from '@midscene/shared/logger';
 import { ResolvedModelAdapter } from '../model-adapter/resolve';
 import type {
   ModelAdapter,
@@ -40,24 +39,6 @@ export const MODEL_ADAPTER_CONFIGS = {
 type ModelAdapterCacheKey = TModelFamily | 'default';
 
 const modelAdapterCache = new Map<ModelAdapterCacheKey, ModelAdapter>();
-const debugModelAdapter = getDebug('ai:model-adapter');
-
-function debugAdapterUnsupportedUserConfig(
-  modelFamily: ModelAdapterCacheKey,
-  adapter: ModelAdapter,
-): void {
-  if (adapter.chatCompletion.unsupportedUserConfig.length > 0) {
-    debugModelAdapter(
-      `model adapter "${modelFamily}" (chat-completion) unsupportedUserConfig: ${JSON.stringify(adapter.chatCompletion.unsupportedUserConfig)}`,
-    );
-  }
-  if (adapter.responses.unsupportedUserConfig.length > 0) {
-    debugModelAdapter(
-      `model adapter "${modelFamily}" (responses) unsupportedUserConfig: ${JSON.stringify(adapter.responses.unsupportedUserConfig)}`,
-    );
-  }
-}
-
 export function getModelAdapter(modelFamily?: TModelFamily): ModelAdapter {
   const cacheKey: ModelAdapterCacheKey = modelFamily ?? 'default';
   let adapter = modelAdapterCache.get(cacheKey);
@@ -76,7 +57,6 @@ export function getModelAdapter(modelFamily?: TModelFamily): ModelAdapter {
 
   adapter = new ResolvedModelAdapter(config, cacheKey);
   modelAdapterCache.set(cacheKey, adapter);
-  debugAdapterUnsupportedUserConfig(cacheKey, adapter);
 
   return adapter;
 }

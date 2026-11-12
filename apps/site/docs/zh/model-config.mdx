@@ -146,7 +146,7 @@ export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
 |------|-------------|
 | `MIDSCENE_MODEL_ENDPOINT` | System One API 的完整请求 URL，仅支持 System One 模型（目前为 Jev）。优先于对应模型的 `BASE_URL`，直接使用，不追加路径；设置后无需配置 `BASE_URL`。例如 `https://api.typesafe.ai/v1/systemone`。未设置时，沿用在 Base URL 后追加 `/systemone` 的行为。 |
 | `MIDSCENE_MODEL_TIMEOUT` | 单次模型请求的超时时间，单位毫秒，默认 `180000`（180 秒），包含响应体读取时间。设为 `0` 禁用此超时限制。 |
-| `MIDSCENE_MODEL_TEMPERATURE` | 模型采样温度 |
+| `MIDSCENE_MODEL_TEMPERATURE` | 模型采样温度。配置为 `unset` 时不传递温度参数。 |
 | `MIDSCENE_MODEL_RETRY_COUNT` | AI 调用失败时的重试次数，默认 1（即失败后重试 1 次）。模型请求遇到 HTTP 错误，或模型返回值无法被结构化解析时，都会发起重试 |
 | `MIDSCENE_MODEL_RETRY_INTERVAL` | AI 调用重试间隔毫秒数，默认 2000 |
 | `MIDSCENE_MODEL_REASONING_ENABLED` | 控制是否启用模型的原生思考能力，Midscene 默认关闭。详见[模型原生思考](#model-native-reasoning) |
@@ -156,7 +156,7 @@ export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS 代理配置，如 `http://127.0.0.1:8080` 或 `https://proxy.example.com:8080`，优先级高于 `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS 代理配置，如 `socks5://127.0.0.1:1080` |
 | `MIDSCENE_MODEL_INIT_CONFIG_JSON` | 覆盖 OpenAI SDK 初始化配置的 JSON。自定义鉴权 header 请使用 `defaultHeaders`；`extra_headers` 和 `extraHeaders` 也会作为别名兼容 |
-| `MIDSCENE_MODEL_EXTRA_BODY_JSON` | 合并到每次模型请求体中的 JSON。与 `MIDSCENE_MODEL_INIT_CONFIG_JSON`（配置 SDK 客户端）不同，此参数会展开到每次发送到模型的协议请求体中，例如在 vLLM 中启用思考模式：`'{"chat_template_kwargs":{"enable_thinking":true}}'` |
+| `MIDSCENE_MODEL_EXTRA_BODY_JSON` | 合并到每次模型请求体中的 JSON。在请求参数合并时优先级最高；与其他环境变量生成的同名参数冲突时，以此配置为准。与 `MIDSCENE_MODEL_INIT_CONFIG_JSON`（配置 SDK 客户端）不同，此参数会展开到每次发送到模型的协议请求体中，例如在 vLLM 中启用思考模式：`'{"chat_template_kwargs":{"enable_thinking":true}}'` |
 | `MIDSCENE_MODEL_PROTOCOL` | 模型 API 协议：`openai-chat`（默认）或 `openai-responses`。后者的适用范围见[使用 Responses API](#model-api-type)。 |
 | `MIDSCENE_MODEL_AUTH_MODE` | 认证模式：`api-key`（默认）使用配置的 API Key；`siwc` 使用 ChatGPT 授权后保存的凭据，并自动刷新 access token。接入步骤参见[使用 ChatGPT 订阅额度](./chatgpt-subscription)。 |
 | `MIDSCENE_MODEL_STREAM_MODE` | 默认是非流式（`non-stream`）；如果指定为流式（`stream`），会将流式的结果聚合为完整结果再解析。 |
@@ -187,36 +187,36 @@ Midscene 默认关闭模型原生思考，以获得更好的执行速度和稳�
 `MIDSCENE_MODEL_REASONING_ENABLED` 显式控制是否启用模型原生思考：
 
 - `false`：强制关闭模型原生思考，也是 Midscene 的默认行为。
-- `true`：强制启用模型原生思考。
-- `default`：遵循模型的默认行为。Midscene 不发送启用或关闭思考的参数，并忽略显式配置的 `MIDSCENE_MODEL_REASONING_BUDGET` 和 `MIDSCENE_MODEL_REASONING_EFFORT`。
+- `true`：强制启用模型原生思考，并应用显式配置且模型支持的思考力度和预算。
+- `default`：遵循模型的默认行为。Midscene 不发送启用或关闭思考的参数，并忽略显式配置的 `MIDSCENE_MODEL_REASONING_BUDGET` 和 `MIDSCENE_MODEL_REASONING_EFFORT`。这样，你只需调整这一个配置项，就能切换到完全由模型服务端决定思考行为的状态。
 
 <details>
-<summary>各模型的支持情况和参数映射</summary>
+<summary>各模型的思考参数映射</summary>
 
-目前支持 `MIDSCENE_MODEL_REASONING_ENABLED` 的模型系列及参数映射如下：
+不同模型支持的思考力度和额度参数不同。
 
-- Qwen：对应 `enable_thinking`。
-- 豆包：对应 `thinking.type`。
-- DeepSeek：对应 `thinking.type`。
-- 智谱 GLM：对应 `thinking.type`。
-- GPT-5：对应 `reasoning_effort`。启用时使用 `medium`，关闭时使用 `none`。
-- Gemini：对应 `thinking_config.thinking_level`。启用时使用 `medium`，关闭时使用 `minimal`。
-- Kimi K2 系列：对应 `thinking.type`。
-- 小米 MiMo：对应 `thinking.type`。
+- `MIDSCENE_MODEL_REASONING_BUDGET` 控制思考 Token 额度，千问 Plus 等系列支持。
+- `MIDSCENE_MODEL_REASONING_EFFORT` 控制思考力度，豆包、DeepSeek、Gemini、GPT、腾讯混元、Kimi 等系列支持。
 
-`MIDSCENE_MODEL_REASONING_BUDGET` 控制模型的思考额度。目前 Qwen 系列支持该配置，对应 `thinking_budget`。
-
-`MIDSCENE_MODEL_REASONING_EFFORT` 控制模型的思考力度。目前支持以下模型系列：
-
-- 豆包：对应 `reasoning_effort`。
-- DeepSeek：对应 `reasoning_effort`。
-- Gemini：对应 `thinking_config.thinking_level`。
-- GPT-5：对应 `reasoning_effort`。
-- Kimi K3 系列：对应 `reasoning_effort`。
+具体模型的适配情况和参数映射以代码实现为准。
 
 </details>
 
-不同模型服务商支持的参数和值不同。具体取值和适用模型版本请参考对应服务商的官方文档。如果当前模型不支持某项显式配置，Midscene 会忽略该配置，不会猜测服务商的私有参数。
+不同模型服务商对参数的支持情况不同，具体取值请参考对应服务商的官方文档。对于模型官方接口，如果当前适配不支持某项显式配置，Midscene 会忽略该配置。
+
+其中，OpenRouter 提供了[统一的思考参数](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens)。当 `MIDSCENE_MODEL_BASE_URL` 设置为 `https://openrouter.ai/api/v1` 时，Midscene 对已适配模型使用以下映射：
+
+- 思考开关 `MIDSCENE_MODEL_REASONING_ENABLED` → `reasoning.enabled`（GPT 系列通过 `reasoning.effort` 控制）。
+- 思考力度 `MIDSCENE_MODEL_REASONING_EFFORT` → `reasoning.effort`（具体模型是否支持以实际模型为准）。
+- 思考额度 `MIDSCENE_MODEL_REASONING_BUDGET` → `reasoning.max_tokens`（具体模型是否支持以实际模型为准）。
+
+如果你的模型供应商需要额外指定特殊参数，可以使用 `MIDSCENE_MODEL_EXTRA_BODY_JSON`。例如，通过自建中转调用 OpenRouter 时指定关闭思考：
+
+```bash
+MIDSCENE_MODEL_EXTRA_BODY_JSON='{"reasoning":{"enabled":false}}'
+```
+
+extra JSON 在 Adapter 参数之后合并，同名顶层字段会整体覆盖，不会深度合并。参数是否生效取决于接入点和模型支持。
 
 ## 故障排查
 

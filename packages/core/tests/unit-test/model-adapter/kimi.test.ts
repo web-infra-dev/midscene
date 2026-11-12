@@ -6,6 +6,48 @@ const kimiAdapter = new ResolvedModelAdapter(kimiAdapters.kimi, 'kimi');
 const kimi3Adapter = new ResolvedModelAdapter(kimiAdapters.kimi3, 'kimi3');
 
 describe('kimi model adapter', () => {
+  describe.each([
+    { baseURL: 'https://api.moonshot.cn/v1', openRouter: false },
+    { baseURL: 'https://openrouter.ai/api/v1', openRouter: true },
+  ])('reasoning parameters for $baseURL', ({ baseURL, openRouter }) => {
+    it.each([undefined, false, true, 'default'] as const)(
+      'maps enabled=%s with endpoint-specific effort and budget handling',
+      (reasoningEnabled) => {
+        const result = kimiAdapter.chatCompletion.buildChatCompletionParams({
+          baseURL,
+          expectedJsonObjectResponse: true,
+          userConfig: {
+            reasoningEnabled,
+            reasoningEffort: 'high',
+            reasoningBudget: 1024,
+            temperature: 0.7,
+          },
+        });
+        const thinkingConfig =
+          reasoningEnabled === 'default'
+            ? {}
+            : openRouter
+              ? {
+                  reasoning: {
+                    enabled: reasoningEnabled ?? false,
+                    ...(reasoningEnabled === true ? { max_tokens: 1024 } : {}),
+                  },
+                }
+              : {
+                  thinking: {
+                    type: reasoningEnabled ? 'enabled' : 'disabled',
+                  },
+                };
+
+        expect(result.config).toEqual({
+          temperature: undefined,
+          response_format: { type: 'json_object' },
+          ...thinkingConfig,
+        });
+      },
+    );
+  });
+
   it('uses 0-1 normalized xy point coordinates for kimi locate results', () => {
     const locateAdapter = kimiAdapter.locate;
     expect(locateAdapter.kind).toBe('standard');
@@ -142,10 +184,6 @@ describe('kimi model adapter', () => {
       },
     });
 
-    expect(kimiAdapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningEffort',
-      'reasoningBudget',
-    ]);
     expect(result.config).toEqual({
       temperature: undefined,
       thinking: { type: 'disabled' },
@@ -185,33 +223,107 @@ describe('kimi model adapter', () => {
 });
 
 describe('kimi3 model adapter', () => {
+  it.each([
+    {
+      reasoningEnabled: undefined,
+      expected: { reasoning: { enabled: false } },
+    },
+    { reasoningEnabled: false, expected: { reasoning: { enabled: false } } },
+    {
+      reasoningEnabled: true,
+      expected: {
+        reasoning: { enabled: true, effort: 'high', max_tokens: 1024 },
+      },
+    },
+    {
+      reasoningEnabled: 'default',
+      expected: {},
+    },
+  ] as const)(
+    'maps OpenRouter enabled=$reasoningEnabled with effort and budget',
+    ({ reasoningEnabled, expected }) => {
+      expect(
+        kimi3Adapter.chatCompletion.buildChatCompletionParams({
+          baseURL: 'https://openrouter.ai/api/v1',
+          userConfig: {
+            reasoningEnabled,
+            reasoningEffort: 'high',
+            reasoningBudget: 1024,
+          },
+        }).config,
+      ).toEqual({ temperature: undefined, ...expected });
+    },
+  );
+
+  it('omits empty OpenRouter reasoning configuration for default', () => {
+    expect(
+      kimi3Adapter.chatCompletion.buildChatCompletionParams({
+        baseURL: 'https://openrouter.ai/api/v1',
+        userConfig: { reasoningEnabled: 'default' },
+      }).config,
+    ).toEqual({ temperature: undefined });
+  });
+
+  it.each([
+    {
+      reasoningEnabled: undefined,
+      expected: { thinking: { type: 'disabled' } },
+    },
+    { reasoningEnabled: false, expected: { thinking: { type: 'disabled' } } },
+    {
+      reasoningEnabled: true,
+      expected: { thinking: { type: 'enabled' }, reasoning_effort: 'max' },
+    },
+    { reasoningEnabled: 'default', expected: {} },
+  ] as const)(
+    'maps native enabled=$reasoningEnabled and effort without budget',
+    ({ reasoningEnabled, expected }) => {
+      expect(
+        kimi3Adapter.chatCompletion.buildChatCompletionParams({
+          baseURL: 'https://api.moonshot.cn/v1',
+          userConfig: {
+            reasoningEnabled,
+            reasoningEffort: 'max',
+            reasoningBudget: 1024,
+          },
+        }).config,
+      ).toEqual({ temperature: undefined, ...expected });
+    },
+  );
+
+  it('omits native thinking configuration for default without effort', () => {
+    expect(
+      kimi3Adapter.chatCompletion.buildChatCompletionParams({
+        userConfig: { reasoningEnabled: 'default' },
+      }).config,
+    ).toEqual({ temperature: undefined });
+  });
+
   it('replays the raw assistant message for multi-turn reasoning', () => {
     expect(kimi3Adapter.chatCompletion.replayRawAssistantMessage).toBe(true);
     expect(kimiAdapter.chatCompletion.replayRawAssistantMessage).toBe(false);
   });
 
-  it('does not send reasoning or thinking config when unset', () => {
+  it('disables native K3 thinking when unset', () => {
     const result = kimi3Adapter.chatCompletion.buildChatCompletionParams({
       userConfig: {},
     });
 
     expect(result.config).toEqual({
       temperature: undefined,
+      thinking: { type: 'disabled' },
     });
   });
 
   it('maps reasoning effort to the Kimi 3 top-level config', () => {
     const result = kimi3Adapter.chatCompletion.buildChatCompletionParams({
-      userConfig: { reasoningEffort: 'max', reasoningEnabled: false },
+      userConfig: { reasoningEffort: 'max', reasoningEnabled: true },
     });
 
-    expect(kimi3Adapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningEnabled',
-      'reasoningBudget',
-    ]);
     expect(result.config).toEqual({
       temperature: undefined,
       reasoning_effort: 'max',
+      thinking: { type: 'enabled' },
     });
   });
 });

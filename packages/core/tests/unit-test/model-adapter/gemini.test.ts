@@ -21,9 +21,6 @@ describe('gemini model adapter', () => {
 
   it('uses low thinking level for gemini when reasoning is unset', () => {
     const result = geminiAdapter.chatCompletion.buildChatCompletionParams({});
-    expect(geminiAdapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningBudget',
-    ]);
     expect(result.config).toEqual({
       temperature: 0,
       extra_body: {

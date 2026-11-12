@@ -21,6 +21,69 @@ const qwen36Adapter = new ResolvedModelAdapter(
 );
 
 describe('qwen model adapter', () => {
+  describe.each(['qwen3', 'qwen3.5', 'qwen3.6'] as const)(
+    '%s reasoning parameters',
+    (family) => {
+      const adapter = new ResolvedModelAdapter(qwenAdapters[family], family);
+
+      it.each([
+        {
+          reasoningEnabled: undefined,
+          native: { enable_thinking: false },
+          openRouter: { reasoning: { enabled: false } },
+        },
+        {
+          reasoningEnabled: false,
+          native: { enable_thinking: false },
+          openRouter: { reasoning: { enabled: false } },
+        },
+        {
+          reasoningEnabled: true,
+          native: { enable_thinking: true, thinking_budget: 1024 },
+          openRouter: { reasoning: { enabled: true, max_tokens: 1024 } },
+        },
+        {
+          reasoningEnabled: 'default',
+          native: {},
+          openRouter: {},
+        },
+      ] as const)(
+        'maps enabled=$reasoningEnabled for both endpoints',
+        ({ reasoningEnabled, native, openRouter }) => {
+          for (const [baseURL, expected] of [
+            ['https://dashscope.aliyuncs.com/compatible-mode/v1', native],
+            ['https://openrouter.ai/api/v1', openRouter],
+          ] as const) {
+            const result = adapter.chatCompletion.buildChatCompletionParams({
+              baseURL,
+              expectedJsonObjectResponse: true,
+              userConfig: {
+                reasoningEnabled,
+                reasoningEffort: 'high',
+                reasoningBudget: 1024,
+                temperature: 0.7,
+              },
+            });
+            expect(result.config).toEqual({
+              temperature: 0.7,
+              ...expected,
+            });
+          }
+        },
+      );
+
+      it('omits reasoning configuration when using default without budget', () => {
+        for (const baseURL of [undefined, 'https://openrouter.ai/api/v1']) {
+          const result = adapter.chatCompletion.buildChatCompletionParams({
+            baseURL,
+            userConfig: { reasoningEnabled: 'default' },
+          });
+          expect(result.config).toEqual({ temperature: 0 });
+        }
+      });
+    },
+  );
+
   it.each([
     ['qwen2.5-vl', qwen25Adapter],
     ['qwen3-vl', qwen3VlAdapter],
@@ -109,17 +172,6 @@ describe('qwen model adapter', () => {
       padBlockSize: 28,
     });
     expect(qwen3VlAdapter.imagePreprocess).toEqual({});
-    expect(qwen25Adapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningEnabled',
-      'reasoningEffort',
-      'reasoningBudget',
-    ]);
-    expect(qwen3VlAdapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningEffort',
-    ]);
-    expect(qwen3Adapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningEffort',
-    ]);
   });
 
   it('keeps qwen2.5-vl high-resolution image request flag without reasoning params', () => {
@@ -297,6 +349,17 @@ describe('qwen model adapter', () => {
     });
   });
 
+  it.each([undefined, false] as const)(
+    'omits qwen3-vl budget when thinking is disabled: %s',
+    (reasoningEnabled) => {
+      expect(
+        qwen3VlAdapter.chatCompletion.buildChatCompletionParams({
+          userConfig: { reasoningEnabled, reasoningBudget: 16384 },
+        }).config,
+      ).toEqual({ temperature: 0, enable_thinking: false });
+    },
+  );
+
   it('maps reasoningBudget to thinking_budget for qwen3-vl', () => {
     const result = qwen3VlAdapter.chatCompletion.buildChatCompletionParams({
       userConfig: {
@@ -332,19 +395,6 @@ describe('qwen model adapter', () => {
     expect(result.config).toEqual({
       temperature: 0,
       enable_thinking: false,
-    });
-  });
-
-  it('maps reasoningBudget alone without reasoningEnabled for qwen3-vl', () => {
-    const result = qwen3VlAdapter.chatCompletion.buildChatCompletionParams({
-      userConfig: {
-        reasoningBudget: 16384,
-      },
-    });
-    expect(result.config).toEqual({
-      temperature: 0,
-      enable_thinking: false,
-      thinking_budget: 16384,
     });
   });
 

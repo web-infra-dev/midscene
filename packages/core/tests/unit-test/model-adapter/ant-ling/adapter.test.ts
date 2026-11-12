@@ -11,6 +11,48 @@ const parse = (content: string) =>
   protocol.parseRawResponse(content, resultCodec.promptSpec);
 
 describe('Ant Ling adapter', () => {
+  describe.each([
+    { baseURL: 'https://api.ant-ling.com/v1', openRouter: false },
+    { baseURL: 'https://openrouter.ai/api/v1', openRouter: true },
+  ])('reasoning parameters for $baseURL', ({ baseURL, openRouter }) => {
+    it.each([undefined, false, true, 'default'] as const)(
+      'maps enabled=%s with endpoint-specific effort and budget handling',
+      (reasoningEnabled) => {
+        const result = adapter.chatCompletion.buildChatCompletionParams({
+          baseURL,
+          expectedJsonObjectResponse: true,
+          userConfig: {
+            reasoningEnabled,
+            reasoningEffort: 'high',
+            reasoningBudget: 1024,
+            temperature: 0.7,
+          },
+        });
+        const thinkingConfig =
+          reasoningEnabled === 'default'
+            ? {}
+            : openRouter
+              ? {
+                  reasoning: {
+                    enabled: reasoningEnabled ?? false,
+                    ...(reasoningEnabled === true ? { max_tokens: 1024 } : {}),
+                  },
+                }
+              : {
+                  thinking: {
+                    type: reasoningEnabled ? 'enabled' : 'disabled',
+                  },
+                };
+
+        expect(result.config).toEqual({
+          temperature: 0.7,
+          response_format: { type: 'json_object' },
+          ...thinkingConfig,
+        });
+      },
+    );
+  });
+
   it('supports Chat element localization without automatic image resizing', () => {
     expect(adapter.allowedTaskTypes).toBeUndefined();
     expect(adapter.supportedProtocols).toEqual(['openai-chat']);
@@ -57,10 +99,6 @@ describe('Ant Ling adapter', () => {
         userConfig: { reasoningEnabled: 'default' },
       }).config,
     ).not.toHaveProperty('thinking');
-    expect(adapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningEffort',
-      'reasoningBudget',
-    ]);
   });
 
   it('maps normalized points using the actual screenshot size without inventing a box', () => {

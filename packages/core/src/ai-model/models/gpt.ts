@@ -1,10 +1,9 @@
 import type { TModelFamily } from '@midscene/shared/env';
+import { isOpenRouter } from '../model-adapter/is-openrouter';
 import type {
   BuildResponsesParams,
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
-  CodexAppServerCallInput,
-  CodexAppServerParamsResult,
   ModelAdapterDefinition,
   ReasoningInput,
   ResolveImageDetail,
@@ -16,37 +15,23 @@ const originalImageDetailForLocateIntent: ResolveImageDetail = (input) =>
     ? 'original'
     : (input.imageDetail ?? 'high');
 
-const resolveGpt5ReasoningEffort = ({
-  reasoningEnabled,
-  reasoningEffort,
-}: ReasoningInput): string | undefined => {
-  if (reasoningEnabled === 'default') return undefined;
-  return reasoningEnabled === true ? (reasoningEffort ?? 'medium') : 'none';
+// GPT-5 disables reasoning with none; GPT-6 keeps low, including variants
+// that can disable reasoning, because Astra requires this fallback.
+const resolveGptReasoningEffort = (
+  { reasoningEnabled = false, reasoningEffort }: ReasoningInput,
+  disabledEffort: 'none' | 'low',
+): string | undefined => {
+  if (reasoningEnabled === 'default') {
+    return undefined;
+  }
+  return reasoningEnabled === true
+    ? (reasoningEffort ?? 'medium')
+    : disabledEffort;
 };
-
-// Astra cannot disable reasoning; use its lowest effort when disabled.
-const resolveGpt6ReasoningEffort = ({
-  reasoningEnabled,
-  reasoningEffort,
-}: ReasoningInput): string | undefined => {
-  if (reasoningEnabled === 'default') return undefined;
-  return reasoningEnabled === true ? (reasoningEffort ?? 'medium') : 'low';
-};
-
-const buildGpt5CodexAppServerParams = (
-  input: CodexAppServerCallInput,
-): CodexAppServerParamsResult => ({
-  config: { effort: resolveGpt5ReasoningEffort(input.userConfig ?? {}) },
-});
-
-const buildGpt6CodexAppServerParams = (
-  input: CodexAppServerCallInput,
-): CodexAppServerParamsResult => ({
-  config: { effort: resolveGpt6ReasoningEffort(input.userConfig ?? {}) },
-});
 
 const buildGpt5ResponsesParams: BuildResponsesParams = (input) => {
-  const { midsceneDefaults, userConfig, expectedJsonObjectResponse } = input;
+  const { baseURL, midsceneDefaults, userConfig, expectedJsonObjectResponse } =
+    input;
   const commonOverrideConfig: Record<string, unknown> = {};
 
   if (userConfig.temperature !== undefined) {
@@ -57,21 +42,47 @@ const buildGpt5ResponsesParams: BuildResponsesParams = (input) => {
     commonOverrideConfig.text = { format: { type: 'json_object' } };
   }
 
-  const effectiveReasoningEffort = resolveGpt5ReasoningEffort(userConfig);
+  const reasoningConfig: Record<string, unknown> = {};
+  const effectiveReasoningEffort = resolveGptReasoningEffort(
+    userConfig,
+    'none',
+  );
+  if (isOpenRouter(baseURL)) {
+    if (effectiveReasoningEffort !== undefined) {
+      const reasoning: Record<string, unknown> = {
+        effort: effectiveReasoningEffort,
+      };
+      if (
+        userConfig.reasoningEnabled === true &&
+        userConfig.reasoningBudget !== undefined
+      ) {
+        reasoning.max_tokens = userConfig.reasoningBudget;
+      }
+      reasoningConfig.reasoning = reasoning;
+    }
+  } else {
+    // Use current-turn reasoning only. Switching to all_turns requires
+    // responses.replayRawAssistantOutput to preserve reasoning history.
+    if (effectiveReasoningEffort !== undefined) {
+      reasoningConfig.reasoning = {
+        effort: effectiveReasoningEffort,
+        context: 'current_turn',
+      };
+    }
+  }
 
   return {
     config: {
       ...midsceneDefaults,
       ...commonOverrideConfig,
-      // Use current-turn reasoning only. Switching to all_turns requires
-      // responses.replayRawAssistantOutput to preserve reasoning history.
-      reasoning: { effort: effectiveReasoningEffort, context: 'current_turn' },
+      ...reasoningConfig,
     },
   };
 };
 
 const buildGpt6ResponsesParams: BuildResponsesParams = (input) => {
-  const { midsceneDefaults, userConfig, expectedJsonObjectResponse } = input;
+  const { baseURL, midsceneDefaults, userConfig, expectedJsonObjectResponse } =
+    input;
   const { responseFormat } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
   // GPT-6 does not support temperature; omit it from the serialized request.
@@ -80,15 +91,37 @@ const buildGpt6ResponsesParams: BuildResponsesParams = (input) => {
     commonOverrideConfig.text = { format: { type: 'json_object' } };
   }
 
-  const effectiveReasoningEffort = resolveGpt6ReasoningEffort(userConfig);
+  const reasoningConfig: Record<string, unknown> = {};
+  const effectiveReasoningEffort = resolveGptReasoningEffort(userConfig, 'low');
+  if (isOpenRouter(baseURL)) {
+    if (effectiveReasoningEffort !== undefined) {
+      const reasoning: Record<string, unknown> = {
+        effort: effectiveReasoningEffort,
+      };
+      if (
+        userConfig.reasoningEnabled === true &&
+        userConfig.reasoningBudget !== undefined
+      ) {
+        reasoning.max_tokens = userConfig.reasoningBudget;
+      }
+      reasoningConfig.reasoning = reasoning;
+    }
+  } else {
+    // Use current-turn reasoning only. Switching to all_turns requires
+    // responses.replayRawAssistantOutput to preserve reasoning history.
+    if (effectiveReasoningEffort !== undefined) {
+      reasoningConfig.reasoning = {
+        effort: effectiveReasoningEffort,
+        context: 'current_turn',
+      };
+    }
+  }
 
   return {
     config: {
       ...midsceneDefaults,
       ...commonOverrideConfig,
-      // Use current-turn reasoning only. Switching to all_turns requires
-      // responses.replayRawAssistantOutput to preserve reasoning history.
-      reasoning: { effort: effectiveReasoningEffort, context: 'current_turn' },
+      ...reasoningConfig,
     },
   };
 };
@@ -96,7 +129,7 @@ const buildGpt6ResponsesParams: BuildResponsesParams = (input) => {
 const buildGpt5ChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
-  const { midsceneDefaults, userConfig } = input;
+  const { baseURL, midsceneDefaults, userConfig } = input;
   const commonOverrideConfig: Record<string, unknown> = {};
 
   if (userConfig.temperature !== undefined) {
@@ -112,13 +145,33 @@ const buildGpt5ChatCompletionParams = (
     commonOverrideConfig.response_format = { type: 'json_object' };
   }
 
-  const effectiveReasoningEffort = resolveGpt5ReasoningEffort(userConfig);
+  const reasoningConfig: Record<string, unknown> = {};
+  const effectiveReasoningEffort = resolveGptReasoningEffort(
+    userConfig,
+    'none',
+  );
+  if (isOpenRouter(baseURL)) {
+    if (effectiveReasoningEffort !== undefined) {
+      const reasoning: Record<string, unknown> = {
+        effort: effectiveReasoningEffort,
+      };
+      if (
+        userConfig.reasoningEnabled === true &&
+        userConfig.reasoningBudget !== undefined
+      ) {
+        reasoning.max_tokens = userConfig.reasoningBudget;
+      }
+      reasoningConfig.reasoning = reasoning;
+    }
+  } else {
+    reasoningConfig.reasoning_effort = effectiveReasoningEffort;
+  }
 
   return {
     config: {
       ...midsceneDefaults,
       ...commonOverrideConfig,
-      reasoning_effort: effectiveReasoningEffort,
+      ...reasoningConfig,
     },
   };
 };
@@ -126,7 +179,8 @@ const buildGpt5ChatCompletionParams = (
 const buildGpt6ChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
-  const { midsceneDefaults, userConfig, expectedJsonObjectResponse } = input;
+  const { baseURL, midsceneDefaults, userConfig, expectedJsonObjectResponse } =
+    input;
   const { responseFormat } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
   // GPT-6 does not support temperature; omit it from the serialized request.
@@ -135,13 +189,30 @@ const buildGpt6ChatCompletionParams = (
     commonOverrideConfig.response_format = { type: 'json_object' };
   }
 
-  const effectiveReasoningEffort = resolveGpt6ReasoningEffort(userConfig);
+  const reasoningConfig: Record<string, unknown> = {};
+  const effectiveReasoningEffort = resolveGptReasoningEffort(userConfig, 'low');
+  if (isOpenRouter(baseURL)) {
+    if (effectiveReasoningEffort !== undefined) {
+      const reasoning: Record<string, unknown> = {
+        effort: effectiveReasoningEffort,
+      };
+      if (
+        userConfig.reasoningEnabled === true &&
+        userConfig.reasoningBudget !== undefined
+      ) {
+        reasoning.max_tokens = userConfig.reasoningBudget;
+      }
+      reasoningConfig.reasoning = reasoning;
+    }
+  } else {
+    reasoningConfig.reasoning_effort = effectiveReasoningEffort;
+  }
 
   return {
     config: {
       ...midsceneDefaults,
       ...commonOverrideConfig,
-      reasoning_effort: effectiveReasoningEffort,
+      ...reasoningConfig,
     },
   };
 };
@@ -152,12 +223,14 @@ export const gptAdapters = {
     resolveImageDetail: originalImageDetailForLocateIntent,
     responses: {
       replayRawAssistantOutput: false,
-      unsupportedUserConfig: ['reasoningBudget'],
       buildResponsesParams: buildGpt5ResponsesParams,
     },
-    buildCodexAppServerParams: buildGpt5CodexAppServerParams,
+    buildCodexAppServerParams: (input) => ({
+      config: {
+        effort: resolveGptReasoningEffort(input.userConfig ?? {}, 'none'),
+      },
+    }),
     chatCompletion: {
-      unsupportedUserConfig: ['reasoningBudget'],
       buildChatCompletionParams: buildGpt5ChatCompletionParams,
     },
     locate: {
@@ -179,12 +252,14 @@ export const gptAdapters = {
     resolveImageDetail: originalImageDetailForLocateIntent,
     responses: {
       replayRawAssistantOutput: false,
-      unsupportedUserConfig: ['temperature', 'reasoningBudget'],
       buildResponsesParams: buildGpt6ResponsesParams,
     },
-    buildCodexAppServerParams: buildGpt6CodexAppServerParams,
+    buildCodexAppServerParams: (input) => ({
+      config: {
+        effort: resolveGptReasoningEffort(input.userConfig ?? {}, 'low'),
+      },
+    }),
     chatCompletion: {
-      unsupportedUserConfig: ['temperature', 'reasoningBudget'],
       buildChatCompletionParams: buildGpt6ChatCompletionParams,
     },
     locate: {

@@ -15,11 +15,72 @@ const doubaoSeedAdapter = new ResolvedModelAdapter(
 );
 
 describe('doubao model adapter', () => {
+  describe.each(['doubao-seed', 'doubao-vision'] as const)(
+    '%s reasoning parameters',
+    (family) => {
+      const adapter = new ResolvedModelAdapter(doubaoAdapters[family], family);
+
+      it.each([
+        {
+          reasoningEnabled: undefined,
+          native: { thinking: { type: 'disabled' } },
+          openRouter: { reasoning: { enabled: false } },
+        },
+        {
+          reasoningEnabled: false,
+          native: { thinking: { type: 'disabled' } },
+          openRouter: { reasoning: { enabled: false } },
+        },
+        {
+          reasoningEnabled: true,
+          native: { thinking: { type: 'enabled' }, reasoning_effort: 'high' },
+          openRouter: { reasoning: { enabled: true, max_tokens: 1024 } },
+        },
+        {
+          reasoningEnabled: 'default',
+          native: {},
+          openRouter: {},
+        },
+      ] as const)(
+        'maps enabled=$reasoningEnabled for both endpoints',
+        ({ reasoningEnabled, native, openRouter }) => {
+          for (const [baseURL, expected] of [
+            ['https://ark.cn-beijing.volces.com/api/v3', native],
+            ['https://openrouter.ai/api/v1', openRouter],
+          ] as const) {
+            const result = adapter.chatCompletion.buildChatCompletionParams({
+              baseURL,
+              expectedJsonObjectResponse: true,
+              userConfig: {
+                reasoningEnabled,
+                reasoningEffort: 'high',
+                reasoningBudget: 1024,
+                temperature: 0.7,
+              },
+            });
+            expect(result.config).toEqual({
+              temperature: 0.7,
+              response_format: { type: 'json_object' },
+              ...expected,
+            });
+          }
+        },
+      );
+
+      it('omits reasoning configuration when using default without effort', () => {
+        for (const baseURL of [undefined, 'https://openrouter.ai/api/v1']) {
+          const result = adapter.chatCompletion.buildChatCompletionParams({
+            baseURL,
+            userConfig: { reasoningEnabled: 'default' },
+          });
+          expect(result.config).toEqual({ temperature: 0 });
+        }
+      });
+    },
+  );
+
   it('keeps doubao-seed and doubao-vision json parsing behavior aligned', () => {
     expect(doubaoSeedAdapter.jsonParser).toBe(doubaoVisionAdapter.jsonParser);
-    expect(doubaoSeedAdapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningBudget',
-    ]);
   });
 
   it('defaults doubao thinking to disabled when reasoning config is unset', () => {

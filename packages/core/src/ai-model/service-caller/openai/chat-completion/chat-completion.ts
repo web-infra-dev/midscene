@@ -24,9 +24,13 @@ export const prepareChatCompletion = async ({
   const { config: modelConfig, adapter } = modelRuntime;
 
   const modelCallInput: ModelRequestConfigInput = {
+    baseURL: modelConfig.openaiBaseURL,
     intent: modelConfig.intent,
     userConfig: {
-      temperature: modelConfig.temperature,
+      temperature:
+        modelConfig.temperature === 'unset'
+          ? undefined
+          : modelConfig.temperature,
       reasoningEnabled: modelConfig.reasoningEnabled,
       reasoningEffort: modelConfig.reasoningEffort,
       reasoningBudget: modelConfig.reasoningBudget,
@@ -57,6 +61,7 @@ export const prepareChatCompletion = async ({
     model: modelConfig.modelName,
     messages: toChatMessages(messages, resolveImageDetail),
     ...adapterChatCompletionParams,
+    ...(modelConfig.temperature === 'unset' ? { temperature: undefined } : {}),
     ...(modelConfig.extraBody ?? {}),
   };
 
