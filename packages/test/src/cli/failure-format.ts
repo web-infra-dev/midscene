@@ -56,6 +56,10 @@ export function firstBusinessFrame(
 ): string | undefined {
   const seen = new Set<object>();
   const frames: string[] = [];
+  // Frames inside the project are application code even when its own folders
+  // look like Midscene's (a monorepo with packages/core/src, for example).
+  const root = projectRoot?.replace(/\\/g, '/').replace(/\/+$/, '');
+  const inProject = (file: string) => !!root && file.startsWith(`${root}/`);
   const visit = (value: unknown, depth = 0) => {
     if (!value || typeof value !== 'object' || seen.has(value) || depth > 12)
       return;
@@ -91,9 +95,10 @@ export function firstBusinessFrame(
       if (
         normalized.startsWith('node:') ||
         normalized.includes('/node_modules/') ||
-        /(?:^|\/)packages\/(?:core|test|shared|web-integration)\/(?:dist|src)\//.test(
-          normalized,
-        ) ||
+        (!inProject(normalized) &&
+          /(?:^|\/)packages\/(?:core|test|shared|web-integration)\/(?:dist|src)\//.test(
+            normalized,
+          )) ||
         !/\.[cm]?[jt]sx?$/.test(normalized)
       )
         continue;
