@@ -1,0 +1,64 @@
+name: Scroll recovery evaluation
+on:
+  workflow_dispatch:
+    inputs:
+      track:
+        description: Evaluation track
+        type: choice
+        options: [oracle, natural, controlled, observer]
+        default: oracle
+      repetitions:
+        description: Repetitions per scenario and arm
+        type: number
+        default: 1
+      cases:
+        description: Optional comma-separated scenario IDs
+        type: string
+        default: ''
+      feedback_only:
+        description: Run interval-3 feedback without history projection
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  evaluate:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    env:
+      MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
+      MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
+      MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
+      MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
+      MIDSCENE_MODEL_PROTOCOL: openai-chat
+      MIDSCENE_MODEL_STREAM_MODE: non-stream
+      MIDSCENE_REPORT_QUIET: 'true'
+      EVAL_TRACK: ${{ inputs.track }}
+      EVAL_REPETITIONS: ${{ inputs.repetitions }}
+      EVAL_WORKERS: '3'
+      EVAL_CASES: ${{ inputs.cases }}
+      EVAL_FEEDBACK_ONLY: ${{ inputs.feedback_only && '1' || '0' }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: ./.github/actions/setup-node-pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - uses: ./.github/actions/setup-headless-browser
+      - run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/web"
+      - name: Check evaluation accounting
+        run: pnpm exec nx test:evaluation @midscene/web --output-style=static
+      - name: Evaluate
+        uses: ./.github/actions/ai-ci
+        with:
+          command: |
+            if [ "$EVAL_TRACK" = observer ]; then
+              pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/observe.mjs
+            else
+              pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/run.mjs
+            fi
+      - name: Preserve all attempts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: scroll-recovery-evaluation
+          path: midscene_run/
+          if-no-files-found: error

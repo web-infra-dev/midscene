@@ -1,8 +1,55 @@
-# Scroll recovery evaluation proposal
+# Scroll recovery evaluation
 
-Status: proposed benchmark, not an implemented runner or a validation result.
+Status: runnable pilot benchmark. Release gates below remain confirmation criteria, not a claim that the current solution passes them.
 
 The existing six browser checks demonstrate completion with recovery enabled. They do not measure improvement against disabled recovery. The original screenshot pair has been used repeatedly during prompt development and is a development regression case, not a held-out evaluation. The neutral-prompt experiments also showed that passing the browser fixture does not guarantee recovery on that pair.
+
+
+## Run the benchmark
+
+Build once before starting model runs; do not rebuild shared packages while reports are being generated:
+
+```bash
+pnpm exec nx build @midscene/web
+pnpm --filter @midscene/core sync-report-template
+pnpm exec node --test packages/web-integration/tests/evaluation/scroll-recovery/summary.test.mjs
+EVAL_TRACK=oracle pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/run.mjs
+EVAL_TRACK=natural EVAL_REPETITIONS=1 EVAL_WORKERS=3 pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/run.mjs
+EVAL_TRACK=controlled EVAL_REPETITIONS=1 EVAL_WORKERS=3 pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/run.mjs
+pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/observe.mjs
+```
+
+Set `PUPPETEER_EXECUTABLE_PATH` when using an existing Chrome installation. The local runner loads the repository `.env` with override enabled, matching core AI tests. Model/provider configuration and credentials must be configured before running. CI uses the manually dispatched `scroll-recovery-evaluation.yml` workflow and the shared AI CI action.
+
+Each run prints its artifact directory. Summarize completed task runs with:
+
+```bash
+pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/summary.mjs <natural-run-directory> <controlled-run-directory>
+```
+
+The summarizer rejects incomplete runs and duplicate attempt IDs. All task outcomes, including timeouts and service errors, remain in the primary denominator. Experiment execution finishing is not the same as the algorithm passing release gates.
+
+`EVAL_CASES` selects comma-separated scenario IDs (for example `right-workspace,left-workspace`). `EVAL_RUN_ID` names a fresh artifact directory and refuses to overwrite it. `EVAL_REPETITIONS` defaults to one for a pilot and can be raised to five for confirmation after fixing benchmark defects. The current runner rotates arm order reproducibly; it does not claim fully randomized scheduling.
+
+The initial natural pilot has 28 scenarios × 3 arms = 84 attempts per repetition. Virtual lists and incremental loading add four scenarios (12 further attempts); the container-swap probe adds two more scenarios (six attempts), so the current full natural run has 34 scenarios and 102 attempts per repetition. Controlled injection applies only to eight relevant families (16 scenarios, 48 attempts), not explicit-instruction, reading, or normal-progress tasks. It injects exactly two downward planning responses through the client seam; both are executed by the real Agent loop. Observation and subsequent planning remain real model calls. Two prefix actions let the interval-2 arm react before a third action, while interval-3 still needs another real action. Do not assume all controlled attempts trigger recovery.
+
+Coordinate-specific controlled probes alternate targets, jitter coordinates, or keep the same dispatch point while the page shifts. The injected bbox fixture uses the Doubao coordinate encoding and fails explicitly for incompatible families. Natural tasks do not receive coordinates or oracle data. A `layout-shift` page moves its container after the first wheel event; `container-swap` covers the same dispatch coordinates with an independently scrollable Notifications panel; `delayed` hides content for 700 ms after scroll. The separate `virtual` fixture mounts only five visible rows and updates them after 350 ms; `loadmore` reveals three records per button press. Reading and load-more tasks grade a code entered from the final record.
+
+For feedback-only ablation, use a separate process with `EVAL_FEEDBACK_ONLY=1 EVAL_TRACK=controlled EVAL_CASES=<development-cases>`. This replaces only the built history projection module in that process's require cache before loading the SDK, returning an unchanged snapshot. It does not modify generated files or production code. It runs interval 3, records arm `feedback`, and keeps the observer/feedback path. The hook invocation counter is scoped to each asynchronous attempt. The initial pilot predates this accounting fix and its counter was process-cumulative; use the unchanged review records to identify which attempts exercised reassessment in that run. Compare outcomes only when the corresponding full arm actually reassesses an unchanged scroll; otherwise the history ablation is unexercised.
+
+The observer runner saves before/after screenshots and DOM traces. `delayed`, `virtual`, `container-swap`, and `layout-shift` pairs are deliberately unscored because visible movement is ambiguous; their direction fields are not scored either. For nested cases, the oracle measures the target's own scroll offsets separately from ancestor displacement. A moved label from an ancestor-only displacement is a target-scope mismatch, even though pixels visibly move.
+
+`workspace` and `catalog` have different shell layouts but share card construction. The latter is a layout holdout for this pilot, not an independently sourced website or a strong generalization test. No original/private report is committed. All successes and failures must be retained; layout holdouts used to diagnose a fix must be retired before confirmation.
+
+## Private planning replay
+
+`replay.mjs` accepts an external `EVAL_REPLAY_DIR` containing `dump.json`, an after screenshot, and `case.json` with `prompt`, `beforeTaskIndex`, `previousPlanIndex`, `afterImage`, `historyLogs`, and `allowedDirections`. These files are not committed. It compares off, feedback-only, and full history handling over five repetitions by default. Each repetition shares one observer result between the two enabled arms to isolate history projection; observer usage is recorded once in `observations.jsonl`. Planning results and errors are retained in `results.jsonl`.
+
+```bash
+EVAL_REPLAY_DIR=/path/to/private/fixture EVAL_REPETITIONS=5 pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/replay.mjs
+```
+
+This replay tests a proposed next action against a known screenshot, not UI execution, threshold triggering, or task completion. It is a development regression because the original screenshot has already informed implementation decisions.
 
 ## Questions and comparisons
 
@@ -34,7 +81,7 @@ For mechanism analysis, add an evaluation-only observer-feedback arm without his
 | Explicit direction and count | Include one/two actions and counts crossing the threshold, e.g. 4/6; never add actions or change axis. |
 | Reading and loading more | Goal is reading/extraction, not clicking Next; grade returned content and progress. |
 
-Start with two independently authored layouts per family (28 scenarios), balanced across development and held-out splits. Hold out whole layouts/templates, not just labels or viewport changes. Run five repetitions per arm for the pilot (28 × 3 × 5 = 420 task runs per model per track; 840 if both tracks cover all scenarios). This estimates variance; it is not enough by itself to establish reliability. Before a confirmation run, choose the sample size from pilot variance and a predeclared minimum useful effect, then freeze all prompts. If held-out failures inform a fix, retire that split from confirmation and use new held-out cases. Report per-model results; one model does not establish cross-model validity.
+The original proposal called for independently authored layout pairs and five repetitions. The implemented pilot currently has 34 synthetic scenarios: five repetitions would mean 510 natural attempts and 240 controlled attempts, excluding observer, ablation, and private-replay calls. The two shell layouts share construction logic, so confirmation still needs independently sourced cases. Use the pilot to estimate variance, then choose the confirmation sample size from a predeclared minimum useful effect and freeze all prompts. If held-out failures inform a fix, retire that split and use new held-out cases. Report per-model results; one model does not establish cross-model validity.
 
 ## Labels and scoring
 
