@@ -311,6 +311,7 @@ describe('Jev requests and coordinates', () => {
       .mockResolvedValue(response());
     const runtime = {
       ...getModelRuntime(jevConfig),
+      executionId: 'jev-execution-id',
       onUsage: rs.fn(),
       onRequest: rs.fn(),
     };
@@ -332,6 +333,9 @@ describe('Jev requests and coordinates', () => {
     expect(url).toBe('https://api.typesafe.ai/v1/systemone');
     expect(new Headers(init?.headers).get('x-midscene-version')).toBe(
       getVersion(),
+    );
+    expect(new Headers(init?.headers).get('x-midscene-execution-id')).toBe(
+      runtime.executionId,
     );
     expect(new Headers(init?.headers).get('TypeSafe-Danger-Zone-Images')).toBe(
       'true',
