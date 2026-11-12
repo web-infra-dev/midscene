@@ -19,6 +19,7 @@ export const llms = [
   'xiaomi-mimo',
   'glm-v',
   'ant-ling',
+  'tencent-hy',
 ] as const;
 
 // Display names for the model picker. They are the same in every language.
@@ -33,6 +34,7 @@ export const llmLabels: Record<(typeof llms)[number], string> = {
   'xiaomi-mimo': 'MiMo V2.6 Pro',
   'glm-v': 'GLM-5V-Turbo',
   'ant-ling': 'Ling-3.0-flash-VL',
+  'tencent-hy': 'Tencent HY4',
 };
 
 // Shown until the reader picks another model in the model step.

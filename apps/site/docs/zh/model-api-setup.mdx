@@ -8,6 +8,7 @@ import KimiModelCard from './common/model-cards/kimi.mdx';
 import XiaomiMimoModelCard from './common/model-cards/xiaomi-mimo.mdx';
 import GlmVModelCard from './common/model-cards/glm-v.mdx';
 import AntLingModelCard from './common/model-cards/ant-ling.mdx';
+import TencentHyModelCard from './common/model-cards/tencent-hy.mdx';
 
 # 使用模型 API Key
 
@@ -236,6 +237,24 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
 我们观察到，图片最长边超过 2000 像素时，定位精度可能下降。建议通过 Agent 的 `screenshotShrinkFactor` 参数缩放图片。
 
 :::
+
+</ModelConfigSection>
+
+<ModelConfigSection description="Hy4">
+
+### 腾讯混元 Tencent HY {#tencent-hy}
+
+<div className="model-series-table">
+
+| 模型<br />`MIDSCENE_MODEL_NAME` | Model family<br />`MIDSCENE_MODEL_FAMILY` | 备注 |
+| --- | --- | --- |
+| **Hy4**<br />`hy4` | `tencent-hy` | — |
+
+</div>
+
+配置示例（`hy4`）：
+
+<TencentHyModelCard />
 
 </ModelConfigSection>
 

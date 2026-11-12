@@ -38,6 +38,7 @@ const anchorsOutsideMarkdown: Record<string, string[]> = {
     'jev',
     'kimi',
     'qwen',
+    'tencent-hy',
     'ui-tars',
     'xiaomi-mimo',
   ],
