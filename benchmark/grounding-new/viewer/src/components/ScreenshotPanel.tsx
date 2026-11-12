@@ -1,21 +1,9 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import type { CSSProperties, SyntheticEvent } from 'react';
 import type { EvaluationResult, TestcaseView } from '../types';
 
 interface Dimensions {
   width: number;
   height: number;
-}
-
-interface ScreenshotPanelProps {
-  testcase: TestcaseView;
-  zoom: 'fit' | 'actual';
-  onZoomChange: (zoom: 'fit' | 'actual') => void;
-  showGT: boolean;
-  onShowGTChange: (value: boolean) => void;
-  result?: EvaluationResult;
-  showPrediction: boolean;
-  onShowPredictionChange: (value: boolean) => void;
 }
 
 export function ScreenshotPanel({
@@ -27,7 +15,16 @@ export function ScreenshotPanel({
   result,
   showPrediction,
   onShowPredictionChange,
-}: ScreenshotPanelProps) {
+}: {
+  testcase: TestcaseView;
+  zoom: 'fit' | 'actual';
+  onZoomChange: (zoom: 'fit' | 'actual') => void;
+  showGT: boolean;
+  onShowGTChange: (value: boolean) => void;
+  result?: EvaluationResult;
+  showPrediction: boolean;
+  onShowPredictionChange: (value: boolean) => void;
+}) {
   const viewportRef = useRef<HTMLElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const [dimensions, setDimensions] = useState<Dimensions | null>(null);
@@ -37,17 +34,11 @@ export function ScreenshotPanel({
   });
   const [error, setImageError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
-  const imageUrl = testcase.imageUrl;
   const loaded = dimensions !== null && error === null;
   const groundTruth = result ? result.input.groundTruth : testcase.groundTruth;
   const refusal = groundTruth === 'REFUSAL';
   const prediction =
     result?.output.type === 'POINT' ? result.output : undefined;
-  const hasPrediction = !!(prediction?.center || prediction?.rect);
-  const coordinateText =
-    groundTruth === 'REFUSAL'
-      ? 'REFUSAL'
-      : `[${groundTruth.map((value) => value.toFixed(1)).join(', ')}]`;
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
@@ -76,7 +67,7 @@ export function ScreenshotPanel({
           Math.max(1, viewportSize.height - 48) / dimensions.height,
         )
     : 1;
-  const groundTruthStyle: CSSProperties | undefined = (() => {
+  const groundTruthStyle = (() => {
     if (!dimensions || groundTruth === 'REFUSAL') return undefined;
     const [top, right, bottom, left] = groundTruth;
     return {
@@ -86,7 +77,7 @@ export function ScreenshotPanel({
       height: `${((bottom - top) / dimensions.height) * 100}%`,
     };
   })();
-  const predictionBoxStyle: CSSProperties | undefined =
+  const predictionBoxStyle =
     dimensions && prediction?.rect
       ? {
           top: `${(prediction.rect.top / dimensions.height) * 100}%`,
@@ -95,36 +86,13 @@ export function ScreenshotPanel({
           height: `${(prediction.rect.height / dimensions.height) * 100}%`,
         }
       : undefined;
-  const predictionPointStyle: CSSProperties | undefined =
+  const predictionPointStyle =
     dimensions && prediction?.center
       ? {
           left: `${(prediction.center[0] / dimensions.width) * 100}%`,
           top: `${(prediction.center[1] / dimensions.height) * 100}%`,
         }
       : undefined;
-
-  function onImageLoad(event: SyntheticEvent<HTMLImageElement>) {
-    const image = event.currentTarget;
-    if (image !== imageRef.current) return;
-    if (!image.naturalWidth || !image.naturalHeight) {
-      setImageError('Failed to load the screenshot. Please try again.');
-      return;
-    }
-    setDimensions({
-      width: image.naturalWidth,
-      height: image.naturalHeight,
-    });
-    if (viewportRef.current) {
-      viewportRef.current.scrollTop = 0;
-      viewportRef.current.scrollLeft = 0;
-    }
-  }
-
-  function retryImage() {
-    setDimensions(null);
-    setImageError(null);
-    setAttempt((previous) => previous + 1);
-  }
 
   return (
     <section
@@ -165,7 +133,7 @@ export function ScreenshotPanel({
                 id="show-prediction"
                 type="checkbox"
                 checked={showPrediction}
-                disabled={!hasPrediction}
+                disabled={!prediction?.center && !prediction?.rect}
                 onChange={(event) =>
                   onShowPredictionChange(event.target.checked)
                 }
@@ -196,7 +164,7 @@ export function ScreenshotPanel({
           <a
             id="open-image"
             className="open-image"
-            href={imageUrl}
+            href={testcase.imageUrl}
             target="_blank"
             rel="noopener noreferrer"
             title="Open the original image in a new tab"
@@ -218,7 +186,11 @@ export function ScreenshotPanel({
             className="button"
             type="button"
             hidden={!error}
-            onClick={retryImage}
+            onClick={() => {
+              setDimensions(null);
+              setImageError(null);
+              setAttempt((previous) => previous + 1);
+            }}
           >
             Retry
           </button>
@@ -247,13 +219,30 @@ export function ScreenshotPanel({
               }
             >
               <img
-                key={`${imageUrl}:${attempt}`}
+                key={`${testcase.imageUrl}:${attempt}`}
                 ref={imageRef}
                 className="screenshot"
-                src={imageUrl}
+                src={testcase.imageUrl}
                 alt={`Screenshot for ${testcase.name}`}
                 draggable={false}
-                onLoad={onImageLoad}
+                onLoad={(event) => {
+                  const image = event.currentTarget;
+                  if (image !== imageRef.current) return;
+                  if (!image.naturalWidth || !image.naturalHeight) {
+                    setImageError(
+                      'Failed to load the screenshot. Please try again.',
+                    );
+                    return;
+                  }
+                  setDimensions({
+                    width: image.naturalWidth,
+                    height: image.naturalHeight,
+                  });
+                  if (viewportRef.current) {
+                    viewportRef.current.scrollTop = 0;
+                    viewportRef.current.scrollLeft = 0;
+                  }
+                }}
                 onError={(event) => {
                   if (event.currentTarget === imageRef.current) {
                     setImageError(
@@ -304,7 +293,7 @@ export function ScreenshotPanel({
           {result ? 'Evaluation snapshot · ' : ''}
           {refusal
             ? 'Refusal · No target box'
-            : `Ground truth ${coordinateText}`}
+            : `Ground truth [${groundTruth.map((value) => value.toFixed(1)).join(', ')}]`}
         </span>
         <span id="zoom-value">
           {loaded ? `${Math.round(scale * 100)}%` : ''}

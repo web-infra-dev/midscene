@@ -4,7 +4,9 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
+import { parse } from 'dotenv';
 import { Hono } from 'hono';
+import { evaluationConfigSchema } from '../config';
 import type { EvaluationResult, Testcase } from './src/types';
 
 const testcasesRoot = fileURLToPath(new URL('../testcases/', import.meta.url));
@@ -50,6 +52,25 @@ async function loadTestcases(
   );
 }
 
+datasetApp.get('/api/config', async (context) => {
+  context.header('Cache-Control', 'no-store');
+  const value =
+    process.env.MIDSCENE_GROUNDING_EVALUATION_CONFIG ??
+    parse(await readFile(new URL('../.env', import.meta.url), 'utf8'))
+      .MIDSCENE_GROUNDING_EVALUATION_CONFIG;
+  const { models, families } = evaluationConfigSchema.parse(
+    JSON.parse(value ?? '{}'),
+  );
+  return context.json({
+    models: models.map(({ name, displayName, displayFamily, reference }) => ({
+      name,
+      displayName,
+      displayFamily,
+      reference,
+    })),
+    families,
+  });
+});
 datasetApp.get('/api/testcases', async (context) => {
   context.header('Cache-Control', 'no-store');
   return context.json({
@@ -108,12 +129,11 @@ datasetApp.get('/api/evaluations/:evaluationId', async (context) => {
         const filename = path.join(entry.parentPath, entry.name);
         const relativePath = path
           .relative(evaluationRoot, filename)
-          .split(path.sep)
-          .join('/');
+          .split(path.sep);
         return {
           ...JSON.parse(await readFile(filename, 'utf8')),
-          id: relativePath.slice(0, -5),
-          jsonUrl: `/results/${encodeURIComponent(evaluationId)}/${relativePath.split('/').map(encodeURIComponent).join('/')}`,
+          id: relativePath.join('/').slice(0, -5),
+          jsonUrl: `/results/${encodeURIComponent(evaluationId)}/${relativePath.map(encodeURIComponent).join('/')}`,
         };
       }),
   );

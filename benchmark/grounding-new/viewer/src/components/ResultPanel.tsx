@@ -1,4 +1,4 @@
-import type { EvaluationResult } from '../types';
+import { type EvaluationResult, getModelDisplayName } from '../types';
 
 export function ResultStatus({ result }: { result?: EvaluationResult }) {
   const [status, text] = !result
@@ -19,6 +19,7 @@ export function ResultPanel({
   result: EvaluationResult;
 }) {
   const { input, output, profiling } = result;
+  const model = getModelDisplayName(result);
 
   return (
     <section
@@ -37,7 +38,7 @@ export function ResultPanel({
         </div>
         <div>
           <dt>Model</dt>
-          <dd>{input.displayName ?? input.model}</dd>
+          <dd>{model}</dd>
         </div>
         {[
           ['Total Tokens', profiling.totalTokens?.toLocaleString('en-US')],
@@ -111,7 +112,15 @@ export function ResultPanel({
           <summary>Model Call Details</summary>
           <pre>
             {JSON.stringify(
-              { byIntent: profiling.byIntent, byModel: profiling.byModel },
+              {
+                byIntent: profiling.byIntent,
+                byModel:
+                  profiling.byModel &&
+                  Object.entries(profiling.byModel).map(([name, usage]) => ({
+                    model: name === input.model ? model : name,
+                    ...usage,
+                  })),
+              },
               null,
               2,
             )}

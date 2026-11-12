@@ -2,18 +2,6 @@ import { useMemo, useState } from 'react';
 import type { Filters as FilterValues, TestcaseView } from '../types';
 import { FilterSelect } from './FilterSelect';
 
-interface FiltersProps {
-  testcases: TestcaseView[];
-  filters: FilterValues;
-  onChange: (filters: FilterValues) => void;
-  onClear: () => void;
-  batch?: {
-    value: string;
-    options: { value: string; text: string }[];
-    onChange: (value: string) => void;
-  };
-}
-
 function uniqueOptions(
   values: string[],
   first: string,
@@ -33,7 +21,17 @@ export function Filters({
   onChange,
   onClear,
   batch,
-}: FiltersProps) {
+}: {
+  testcases: TestcaseView[];
+  filters: FilterValues;
+  onChange: (filters: FilterValues) => void;
+  onClear: () => void;
+  batch?: {
+    value: string;
+    options: { value: string; text: string }[];
+    onChange: (value: string) => void;
+  };
+}) {
   const [opened, setOpened] = useState<string | null>(null);
   const groups = useMemo(
     () => [

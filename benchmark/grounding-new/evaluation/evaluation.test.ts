@@ -4,10 +4,9 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Agent } from '@midscene/core';
-import { MODEL_FAMILY_VALUES } from '@midscene/shared/env';
 import { encodedImageInfoOfBuffer } from '@midscene/shared/img';
 import { describe, expect, test } from 'vitest';
-import { z } from 'zod';
+import { evaluationConfigSchema } from '../config';
 
 type TestCase = {
   name: string;
@@ -18,23 +17,9 @@ type TestCase = {
   reference: { image: { format: 'png' | 'jpeg' } };
 };
 
-const { models } = z
-  .strictObject({
-    models: z
-      .array(
-        z.strictObject({
-          baseUrl: z.url(),
-          apiKey: z.string().trim().min(1),
-          family: z.enum(MODEL_FAMILY_VALUES),
-          name: z.string().trim().min(1),
-          displayName: z.string().trim().min(1).optional(),
-          protocol: z.enum(['openai-chat', 'openai-responses']).optional(),
-          reasoningEnabled: z.boolean().optional(),
-        }),
-      )
-      .min(1),
-  })
-  .parse(JSON.parse(process.env.MIDSCENE_GROUNDING_EVALUATION_CONFIG ?? '{}'));
+const { models } = evaluationConfigSchema.parse(
+  JSON.parse(process.env.MIDSCENE_GROUNDING_EVALUATION_CONFIG ?? '{}'),
+);
 
 const testcasesDirectory = fileURLToPath(
   new URL('../testcases/', import.meta.url),

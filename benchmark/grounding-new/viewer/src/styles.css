@@ -260,8 +260,7 @@ button {
 .model-scatter-plot .recharts-surface {
   overflow: visible;
 }
-.scatter-label-hit-targets,
-.scatter-wire-hit-targets {
+.model-scatter-series {
   clip-path: none;
 }
 .scatter-model {
@@ -278,12 +277,12 @@ button {
 .scatter-model-dot {
   transition: fill 400ms ease, r 150ms ease;
 }
-.scatter-model > polyline {
+.scatter-model-connector {
   transition: stroke 400ms ease, stroke-width 150ms ease;
 }
 .scatter-model-label-inner {
   transform-box: fill-box;
-  transform-origin: left center;
+  transform-origin: center;
   transition: transform 150ms ease;
 }
 .scatter-model-label-inner[data-active="true"] {
@@ -874,7 +873,7 @@ button {
   font-weight: 400;
   white-space: nowrap;
 }
-.model-breakdown-pass-rate {
+.model-breakdown-score {
   font-size: 15px;
   font-weight: 650;
 }
@@ -920,7 +919,7 @@ button {
   flex-wrap: wrap;
   gap: 8px 16px;
 }
-.matrix-pass-rate-spread {
+.matrix-score-spread {
   display: inline-flex;
   align-items: baseline;
   gap: 8px;
@@ -930,7 +929,7 @@ button {
   color: var(--muted);
   font-size: 12px;
 }
-.matrix-pass-rate-spread strong {
+.matrix-score-spread strong {
   color: #172332;
   font-variant-numeric: tabular-nums;
 }

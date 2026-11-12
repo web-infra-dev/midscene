@@ -7,14 +7,19 @@ import {
   useState,
 } from 'react';
 import { createRoot } from 'react-dom/client';
+import type { ViewerConfig } from '../../config';
 import { DetailsPanel } from './components/DetailsPanel';
 import { Filters as FilterBar } from './components/Filters';
 import { ModelPerformanceChart } from './components/ModelPerformanceChart';
 import { ResultPanel, ResultStatus } from './components/ResultPanel';
 import { ScreenshotPanel } from './components/ScreenshotPanel';
 import { TestcaseMatrix } from './components/TestcaseMatrix';
-import { modelCosts } from './metadata/model-cost';
-import type { EvaluationResult, Filters, TestcaseView } from './types';
+import {
+  type EvaluationResult,
+  type Filters,
+  type TestcaseView,
+  getModelDisplayName,
+} from './types';
 import './styles.css';
 
 const emptyFilters: Filters = {
@@ -31,10 +36,6 @@ function compareNames(left: string, right: string) {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
-function getModelDisplayName(result: EvaluationResult) {
-  return result.input.displayName ?? result.input.model;
-}
-
 function filterTestcases(testcases: TestcaseView[], filters: Filters) {
   const terms = filters.search
     .toLowerCase()
@@ -42,8 +43,9 @@ function filterTestcases(testcases: TestcaseView[], filters: Filters) {
     .split(/\s+/)
     .filter(Boolean);
   return testcases.filter((testcase) => {
-    const searchable =
-      `${testcase.name}\n${testcase.instruction.en}\n${testcase.instruction.zh}`.toLowerCase();
+    const searchable = terms.length
+      ? `${testcase.name}\n${testcase.instruction.en}\n${testcase.instruction.zh}`.toLowerCase()
+      : '';
     return (
       terms.every((term) => searchable.includes(term)) &&
       (!filters.platform || testcase.platform === filters.platform) &&
@@ -71,7 +73,7 @@ function summarize(values: (number | undefined)[]) {
 
 const modelColumns = [
   { key: 'model', label: 'Model' },
-  { key: 'passRate', label: 'Pass Rate' },
+  { key: 'score', label: 'Score' },
   { key: 'totalTokens', label: 'Total Tokens', unit: 'tokens' },
   { key: 'inputTokens', label: 'Input Tokens', unit: 'tokens' },
   { key: 'outputTokens', label: 'Output Tokens', unit: 'tokens' },
@@ -91,8 +93,8 @@ const modelColumns = [
     unit: 'seconds',
     help: {
       formula:
-        'Per testcase: Model Calls × TTFT + max(Output Tokens − Model Calls, 0) ÷ Output Throughput.',
-      note: 'TTFT is Time to First Token in seconds; Output Throughput is tokens per second. Calls are assumed sequential. Models with a reference response latency (such as Jev) use Model Calls × response latency instead; that reference is not specific to image or Box requests.',
+        'Model average (seconds): min(Reference Estimate Avg., max(Measured Duration Avg. − 0.15, 0)).',
+      note: 'Reference estimates use Model Calls × TTFT + max(Output Tokens − Model Calls, 0) ÷ Output Throughput per testcase, with sequential calls and TTFT in seconds. Decision models use Model Calls × reference response latency. Each input is averaged over its own valid samples before taking the minimum. The fixed 150ms network-delay allowance is deducted once per testcase, not per call. This approximates core model response time; local overhead may remain. If measured timing is unavailable, the reference estimate is used.',
     },
   },
   {
@@ -102,10 +104,12 @@ const modelColumns = [
     help: {
       formula:
         'Actual elapsed time per testcase, from test execution start through agent cleanup, before the result is written to disk.',
-      note: 'Includes image preparation, model requests, network and provider delays, retries, and local processing. Estimated Model Duration is calculated from recorded token usage and reference model performance; it does not measure the full execution or its overhead.',
+      note: 'Includes image preparation, model requests, network and provider delays, retries, and local processing. Estimated Model Duration approximates core model response time by taking the smaller of the reference-based average and this measured average minus a fixed 150ms network-delay allowance, with a minimum of zero.',
     },
   },
 ] as const;
+
+const metricColumns = modelColumns.filter((column) => 'unit' in column);
 
 function showMetricHelp(button: HTMLButtonElement) {
   const tooltip = button.nextElementSibling as HTMLElement;
@@ -123,10 +127,12 @@ function EvaluationReport({
   evaluationId,
   results,
   testcases,
+  config,
 }: {
   evaluationId: string;
   results: EvaluationResult[];
   testcases: TestcaseView[];
+  config: ViewerConfig;
 }) {
   const evaluationPath = `/evaluations/${encodeURIComponent(evaluationId)}`;
   const [sort, setSort] = useState<{
@@ -153,105 +159,129 @@ function EvaluationReport({
       window.removeEventListener('resize', dismissHelp);
     };
   }, []);
-  const modelSummaries = useMemo(
-    () =>
-      [...new Set(results.map(getModelDisplayName))]
-        .sort((left, right) => compareNames(right, left))
-        .map((model) => {
-          const modelResults = results.filter(
-            (result) => getModelDisplayName(result) === model,
-          );
-          const modelId = modelResults[0].input.model;
-          const reference = Object.hasOwn(modelCosts, model)
-            ? modelCosts[model as keyof typeof modelCosts]
-            : undefined;
-          const estimates = modelResults.map(({ profiling }) => {
-            const {
-              totalPromptTokens: input,
-              totalCompletionTokens: output,
-              calls,
-            } = profiling;
-            if (
-              profiling.byModel &&
-              Object.keys(profiling.byModel).some((name) => name !== modelId)
-            ) {
-              return {};
-            }
-            const currencyPerUsd =
-              reference?.pricing.currency === 'CNY'
-                ? reference.pricing.usdExchangeRate.cnyPerUsd
-                : 1;
-            return {
-              durationMs:
-                reference?.performance &&
-                calls !== undefined &&
-                Number.isInteger(calls) &&
-                calls > 0
-                  ? reference.performance.basis === 'best-response-latency'
-                    ? calls * reference.performance.responseLatencyMs
-                    : output !== undefined &&
-                        Number.isFinite(output) &&
-                        output >= 0
-                      ? calls * reference.performance.timeToFirstTokenMs +
-                        (1000 * Math.max(output - calls, 0)) /
-                          reference.performance.outputTokensPerSecond
-                      : undefined
-                  : undefined,
-              cost:
-                reference?.pricing &&
-                input !== undefined &&
-                Number.isFinite(input) &&
-                input >= 0 &&
-                output !== undefined &&
-                Number.isFinite(output) &&
-                output >= 0
-                  ? (input * reference.pricing.inputPerToken +
-                      output * reference.pricing.outputPerToken) /
-                    currencyPerUsd
-                  : undefined,
-            };
-          });
+  const modelSummaries = useMemo(() => {
+    const configuredModels = new Map(
+      config.models.map((model) => [model.displayName ?? model.name, model]),
+    );
+    const groups = new Map<string, EvaluationResult[]>();
+    for (const result of results) {
+      const model = getModelDisplayName(result);
+      const group = groups.get(model);
+      if (group) group.push(result);
+      else groups.set(model, [result]);
+    }
+    return [...groups]
+      .sort(([left], [right]) => compareNames(right, left))
+      .map(([model, modelResults]) => {
+        const modelId = modelResults[0].input.model;
+        const configuredModel = configuredModels.get(model);
+        const reference = configuredModel?.reference;
+        const family = configuredModel?.displayFamily ?? 'Other';
+        const { color, logo } = config.families[family];
+        const currencyPerUsd =
+          reference?.pricing.currency === 'CNY'
+            ? reference.pricing.usdExchangeRate.cnyPerUsd
+            : 1;
+        const estimates = modelResults.map(({ profiling }) => {
+          const {
+            totalPromptTokens: input,
+            totalCompletionTokens: output,
+            calls,
+          } = profiling;
+          if (
+            profiling.byModel &&
+            Object.keys(profiling.byModel).some((name) => name !== modelId)
+          ) {
+            return {};
+          }
           return {
-            model,
-            modelId,
-            reference,
-            count: modelResults.length,
-            passed: modelResults.filter((result) => result.output.correct)
-              .length,
-            totalTokens: summarize(
-              modelResults.map(({ profiling }) => profiling.totalTokens),
-            ),
-            inputTokens: summarize(
-              modelResults.map(({ profiling }) => profiling.totalPromptTokens),
-            ),
-            outputTokens: summarize(
-              modelResults.map(
-                ({ profiling }) => profiling.totalCompletionTokens,
-              ),
-            ),
-            duration: summarize(
-              modelResults.map(({ profiling }) => profiling.durationMs),
-            ),
-            estimatedElapsedTime: summarize(
-              estimates.map(({ durationMs }) => durationMs),
-            ),
-            estimatedCost: summarize(estimates.map(({ cost }) => cost)),
-            unavailableReason: !reference
-              ? 'Missing pricing and performance data'
-              : !reference.performance
-                ? 'Missing performance data for this model version'
-                : modelResults.every(({ output }) => output.type === 'ERROR')
-                  ? 'All requests failed; no valid token usage'
-                  : 'No valid token usage',
-            first: modelResults[0],
+            durationMs:
+              reference?.performance &&
+              calls !== undefined &&
+              Number.isInteger(calls) &&
+              calls > 0
+                ? reference.performance.basis === 'best-response-latency'
+                  ? calls * reference.performance.responseLatencyMs
+                  : output !== undefined &&
+                      Number.isFinite(output) &&
+                      output >= 0
+                    ? calls * reference.performance.timeToFirstTokenMs +
+                      (1000 * Math.max(output - calls, 0)) /
+                        reference.performance.outputTokensPerSecond
+                    : undefined
+                : undefined,
+            cost:
+              reference?.pricing &&
+              input !== undefined &&
+              Number.isFinite(input) &&
+              input >= 0 &&
+              output !== undefined &&
+              Number.isFinite(output) &&
+              output >= 0
+                ? (input * reference.pricing.inputPerToken +
+                    output * reference.pricing.outputPerToken) /
+                  currencyPerUsd
+                : undefined,
           };
-        }),
-    [results],
-  );
+        });
+        const passed = modelResults.filter(
+          (result) => result.output.correct,
+        ).length;
+        const duration = summarize(
+          modelResults.map(({ profiling }) => profiling.durationMs),
+        );
+        const referenceDuration = summarize(
+          estimates.map(({ durationMs }) => durationMs),
+        );
+        const estimatedElapsedTime = {
+          ...referenceDuration,
+          average:
+            referenceDuration.average === null || duration.average === null
+              ? referenceDuration.average
+              : Math.min(
+                  referenceDuration.average,
+                  Math.max(0, duration.average - 150),
+                ),
+        };
+        return {
+          model,
+          modelId,
+          family,
+          color,
+          icon: logo,
+          reference,
+          count: modelResults.length,
+          passed,
+          score: (passed / modelResults.length) * 100,
+          totalTokens: summarize(
+            modelResults.map(({ profiling }) => profiling.totalTokens),
+          ),
+          inputTokens: summarize(
+            modelResults.map(({ profiling }) => profiling.totalPromptTokens),
+          ),
+          outputTokens: summarize(
+            modelResults.map(
+              ({ profiling }) => profiling.totalCompletionTokens,
+            ),
+          ),
+          duration,
+          estimatedElapsedTime,
+          estimatedCost: summarize(estimates.map(({ cost }) => cost)),
+          unavailableReason: !reference
+            ? 'Missing pricing and performance data'
+            : !reference.performance
+              ? 'Missing performance data for this model version'
+              : modelResults.every(({ output }) => output.type === 'ERROR')
+                ? 'All requests failed; no valid token usage'
+                : 'No valid token usage',
+          first: modelResults[0],
+        };
+      });
+  }, [results, config]);
   const sortedModels = [...modelSummaries].sort((left, right) => {
     const [leftValue, rightValue] = [left, right].map((summary) => {
       if (sort.key === 'model') return summary.model;
-      if (sort.key === 'passRate') return summary.passed / summary.count;
+      if (sort.key === 'score') return summary.score;
       return summary[sort.key].average;
     });
     if (leftValue === null)
@@ -267,41 +297,48 @@ function EvaluationReport({
     );
   });
 
-  const performanceModels = modelSummaries.map(
-    ({
-      model,
-      modelId,
-      count,
-      passed,
-      estimatedElapsedTime,
-      estimatedCost,
-      unavailableReason,
-    }) => ({
-      model,
-      modelId,
-      passRate: passed / count,
-      estimatedCostUsd: estimatedCost.average,
-      estimatedElapsedTimeSeconds:
-        estimatedElapsedTime.average === null
-          ? null
-          : estimatedElapsedTime.average / 1000,
-      testcasesPerMinute:
-        estimatedElapsedTime.average !== null &&
-        estimatedElapsedTime.average > 0
-          ? 60_000 / estimatedElapsedTime.average
-          : null,
-      testcasesPerDollar:
-        estimatedCost.average !== null && estimatedCost.average > 0
-          ? 1 / estimatedCost.average
-          : null,
-      unavailableReason:
-        estimatedElapsedTime.average === 0 || estimatedCost.average === 0
-          ? 'Cost or duration is zero; rate unavailable'
-          : estimatedElapsedTime.average === null ||
-              estimatedCost.average === null
-            ? unavailableReason
-            : null,
-    }),
+  const performanceModels = useMemo(
+    () =>
+      modelSummaries.map(
+        ({
+          model,
+          family,
+          color,
+          icon,
+          score,
+          estimatedElapsedTime,
+          estimatedCost,
+          unavailableReason,
+        }) => ({
+          model,
+          family,
+          color,
+          icon,
+          score,
+          estimatedCostUsd: estimatedCost.average,
+          estimatedElapsedTimeSeconds:
+            estimatedElapsedTime.average === null
+              ? null
+              : estimatedElapsedTime.average / 1000,
+          testcasesPerMinute:
+            estimatedElapsedTime.average !== null &&
+            estimatedElapsedTime.average > 0
+              ? 60_000 / estimatedElapsedTime.average
+              : null,
+          testcasesPerDollar:
+            estimatedCost.average !== null && estimatedCost.average > 0
+              ? 1 / estimatedCost.average
+              : null,
+          unavailableReason:
+            estimatedElapsedTime.average === 0 || estimatedCost.average === 0
+              ? 'Cost or duration is zero; rate unavailable'
+              : estimatedElapsedTime.average === null ||
+                  estimatedCost.average === null
+                ? unavailableReason
+                : null,
+        }),
+      ),
+    [modelSummaries],
   );
 
   return modelSummaries.length ? (
@@ -347,7 +384,7 @@ function EvaluationReport({
                                   ? previous.direction === 'ascending'
                                     ? 'descending'
                                     : 'ascending'
-                                  : key === 'passRate'
+                                  : key === 'score'
                                     ? 'descending'
                                     : 'ascending',
                             }))
@@ -443,9 +480,9 @@ function EvaluationReport({
                                   </span>
                                   <span>{column.help.note}</span>
                                   <span>
-                                    Avg. is the arithmetic mean of valid
-                                    per-testcase values across all outcomes,
-                                    including zero. Missing values are excluded.
+                                    {key === 'estimatedElapsedTime'
+                                      ? 'Both inputs use arithmetic means of valid samples across all outcomes, including zero. Missing values are excluded. The minimum is applied after averaging.'
+                                      : 'Avg. is the arithmetic mean of valid per-testcase values across all outcomes, including zero. Missing values are excluded.'}
                                   </span>
                                 </span>
                               </span>
@@ -461,7 +498,8 @@ function EvaluationReport({
             </thead>
             <tbody>
               {sortedModels.map((summary) => {
-                const { model, reference, count, passed, first } = summary;
+                const { model, reference, count, passed, score, first } =
+                  summary;
                 return (
                   <tr key={model}>
                     <th scope="row">
@@ -475,36 +513,37 @@ function EvaluationReport({
                       </a>
                     </th>
                     <td>
-                      <strong className="model-breakdown-pass-rate">
-                        {((passed / count) * 100).toFixed(1)}%
+                      <strong
+                        className="model-breakdown-score"
+                        title="Score = correct results ÷ all available results × 100. Errors receive zero credit; missing results are excluded."
+                      >
+                        {score.toFixed(1)}
                       </strong>
                       <small>
-                        {passed} / {count} passed
+                        {passed} / {count} correct
                       </small>
                     </td>
-                    {modelColumns
-                      .filter((column) => 'unit' in column)
-                      .map(({ key, unit }) => {
-                        const values = summary[key];
-                        return (
-                          <td key={key}>
-                            {values.average === null
-                              ? '—'
-                              : unit === 'seconds'
-                                ? `${(values.average / 1000).toFixed(2)} s`
-                                : unit === 'USD'
-                                  ? `$${values.average.toFixed(6)}`
-                                  : values.average.toLocaleString('en-US', {
-                                      maximumFractionDigits: 0,
-                                    })}
-                            {values.count !== count && (
-                              <small>
-                                {values.count} / {count} valid results
-                              </small>
-                            )}
-                          </td>
-                        );
-                      })}
+                    {metricColumns.map(({ key, unit }) => {
+                      const values = summary[key];
+                      return (
+                        <td key={key}>
+                          {values.average === null
+                            ? '—'
+                            : unit === 'seconds'
+                              ? `${(values.average / 1000).toFixed(2)} s`
+                              : unit === 'USD'
+                                ? `$${values.average.toFixed(6)}`
+                                : values.average.toLocaleString('en-US', {
+                                    maximumFractionDigits: 0,
+                                  })}
+                          {values.count !== count && (
+                            <small>
+                              {values.count} / {count} valid results
+                            </small>
+                          )}
+                        </td>
+                      );
+                    })}
                     <td className="model-breakdown-reference">
                       {reference ? (
                         <details>
@@ -524,10 +563,9 @@ function EvaluationReport({
                                       ? 'Benchmark mean'
                                       : 'Pricing only'}{' '}
                               ·{' '}
-                              {(reference.performance &&
-                              'observedAt' in reference.performance
-                                ? reference.performance.observedAt
-                                : reference.observedAt
+                              {(
+                                reference.performance?.observedAt ??
+                                reference.observedAt
                               ).slice(0, 10)}
                             </p>
                             {reference.performance ? (
@@ -632,7 +670,7 @@ function EvaluationReport({
         evaluationId={evaluationId}
         results={results}
         testcases={testcases}
-        modelPassRates={performanceModels.map(({ passRate }) => passRate)}
+        modelScores={performanceModels.map(({ score }) => score)}
       />
     </>
   ) : (
@@ -643,6 +681,7 @@ function EvaluationReport({
 function App() {
   const [pathname, setPathname] = useState(window.location.pathname);
   const [testcases, setTestcases] = useState<TestcaseView[]>([]);
+  const [config, setConfig] = useState<ViewerConfig | null>(null);
   const [candidates, setCandidates] = useState<TestcaseView[]>([]);
   const [candidateBatches, setCandidateBatches] = useState<CandidateBatch[]>(
     [],
@@ -713,41 +752,56 @@ function App() {
     () => filterTestcases(activeTestcases, filters),
     [activeTestcases, filters],
   );
-  const filteredResults = useMemo(() => {
-    const names = new Set(filtered.map((testcase) => testcase.name));
-    const showMissing = !Object.values(filters).some(Boolean);
-    return results.filter(
-      (result) =>
-        names.has(result.input.testcase) ||
-        (showMissing && !casesByName.has(result.input.testcase)),
-    );
-  }, [results, filtered, casesByName, filters]);
-  const selectedResult = resultId
-    ? results.find((result) => result.id === resultId)
-    : undefined;
+  const selectedResult = useMemo(
+    () =>
+      resultId ? results.find((result) => result.id === resultId) : undefined,
+    [results, resultId],
+  );
   const selectedModel = selectedResult
     ? getModelDisplayName(selectedResult)
     : undefined;
-  const modelResults = selectedResult
-    ? results.filter((result) => getModelDisplayName(result) === selectedModel)
-    : [];
-  const entries = isCaseBrowser
-    ? filtered.map((testcase) => ({
+  const modelResults = useMemo(
+    () =>
+      selectedModel === undefined
+        ? []
+        : results.filter(
+            (result) => getModelDisplayName(result) === selectedModel,
+          ),
+    [results, selectedModel],
+  );
+  const entries = useMemo(() => {
+    if (isCaseBrowser)
+      return filtered.map((testcase) => ({
         id: testcase.name,
         name: testcase.name,
         testcase,
         result: undefined as EvaluationResult | undefined,
         href: `${casePath}/${encodeURIComponent(testcase.name)}`,
-      }))
-    : filteredResults
-        .filter((result) => getModelDisplayName(result) === selectedModel)
-        .map((result) => ({
-          id: result.id,
-          name: result.input.testcase,
-          testcase: casesByName.get(result.input.testcase),
-          result,
-          href: `${evaluationPath}/${encodeURIComponent(result.id)}`,
-        }));
+      }));
+    const names = new Set(filtered.map((testcase) => testcase.name));
+    const showMissing = !Object.values(filters).some(Boolean);
+    return modelResults
+      .filter(
+        (result) =>
+          names.has(result.input.testcase) ||
+          (showMissing && !casesByName.has(result.input.testcase)),
+      )
+      .map((result) => ({
+        id: result.id,
+        name: result.input.testcase,
+        testcase: casesByName.get(result.input.testcase),
+        result,
+        href: `${evaluationPath}/${encodeURIComponent(result.id)}`,
+      }));
+  }, [
+    isCaseBrowser,
+    filtered,
+    filters,
+    casePath,
+    modelResults,
+    casesByName,
+    evaluationPath,
+  ]);
   const totalEntries = isCaseBrowser
     ? activeTestcases.length
     : modelResults.length;
@@ -823,27 +877,33 @@ function App() {
   useEffect(() => {
     const controller = new AbortController();
     setLoadError('');
-    async function load() {
+    void (async () => {
       try {
-        const response = await fetch('/api/testcases', {
-          cache: 'no-store',
-          signal: controller.signal,
-        });
-        if (!response.ok)
-          throw new Error(`Failed to load testcases (HTTP ${response.status})`);
-        const data: { testcases: TestcaseView[] } = await response.json();
+        const [data, config] = (await Promise.all(
+          ['/api/testcases', '/api/config'].map(async (url) => {
+            const response = await fetch(url, {
+              cache: 'no-store',
+              signal: controller.signal,
+            });
+            if (!response.ok)
+              throw new Error(
+                `Failed to load ${url === '/api/testcases' ? 'testcases' : 'model configuration'} (HTTP ${response.status})`,
+              );
+            return response.json();
+          }),
+        )) as [{ testcases: TestcaseView[] }, ViewerConfig];
         if (controller.signal.aborted) return;
         setTestcases(data.testcases);
+        setConfig(config);
         setLoadStatus('ready');
       } catch (error) {
         if (controller.signal.aborted) return;
         setLoadError(
-          error instanceof Error ? error.message : 'Failed to load testcases',
+          error instanceof Error ? error.message : 'Failed to load viewer data',
         );
         setLoadStatus('error');
       }
-    }
-    void load();
+    })();
     return () => controller.abort();
   }, [loadRevision]);
 
@@ -851,7 +911,7 @@ function App() {
     if (!isCandidates) return;
     const controller = new AbortController();
     setCandidateLoadError('');
-    async function load() {
+    void (async () => {
       try {
         const response = await fetch('/api/candidates', {
           cache: 'no-store',
@@ -874,8 +934,7 @@ function App() {
         );
         setCandidateLoadStatus('error');
       }
-    }
-    void load();
+    })();
     return () => controller.abort();
   }, [isCandidates, loadRevision]);
 
@@ -883,7 +942,7 @@ function App() {
     if (!isEvaluations) return;
     const controller = new AbortController();
     setEvaluationError('');
-    async function load() {
+    void (async () => {
       try {
         const response = await fetch(
           evaluationId
@@ -926,8 +985,7 @@ function App() {
               : 'Failed to load evaluation results',
           );
       }
-    }
-    void load();
+    })();
     return () => controller.abort();
   }, [isEvaluations, evaluationId, loadRevision]);
 
@@ -997,10 +1055,9 @@ function App() {
       resultId &&
       !matches.some((item) => item.name === selectedResult?.input.testcase)
     ) {
-      const next = results.find(
-        (result) =>
-          getModelDisplayName(result) === selectedModel &&
-          matches.some((testcase) => testcase.name === result.input.testcase),
+      const names = new Set(matches.map((testcase) => testcase.name));
+      const next = modelResults.find((result) =>
+        names.has(result.input.testcase),
       );
       go(
         next
@@ -1134,15 +1191,17 @@ function App() {
               )}
             </div>
           </header>
-          {loadingEvaluation ? (
+          {loadingEvaluation || (evaluationId && loadStatus === 'loading') ? (
             <p className="list-empty">Loading…</p>
           ) : evaluationId ? (
-            evaluationData?.evaluationId === evaluationId && (
+            evaluationData?.evaluationId === evaluationId &&
+            config && (
               <EvaluationReport
                 key={evaluationId}
                 evaluationId={evaluationId}
                 results={results}
                 testcases={testcases}
+                config={config}
               />
             )
           ) : evaluations?.length ? (

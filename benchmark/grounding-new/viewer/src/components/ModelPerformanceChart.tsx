@@ -24,85 +24,15 @@ import {
   XAxis,
   YAxis,
   ZIndexLayer,
-  useActiveTooltipDataPoints,
-  useChartHeight,
-  useChartWidth,
   usePlotArea,
   useXAxisScale,
-  useYAxisScale,
 } from 'recharts';
-import { modelFamilyColors } from '../metadata/model-colors';
-import { dotRadius, markerStrokeWidth } from './scatterGeometry';
-import { layoutScatterLabels } from './scatterLabelLayout';
-import { routeLabels } from './scatterLabelRouting';
-
-const scatterChartMargin = { top: 40, right: 16, bottom: 38, left: 16 };
-const scatterXAxisHeight = 56;
-const scatterYAxisWidth = 64;
-
-const scatterModelLabel = (model: string) =>
-  model
-    .replace(/^doubao-(?=seed-)/i, '')
-    .replace(/-(?:\d{6}|\d{8})$/, '')
-    .replace(/(?<=\d)-(?=\d)/g, '.');
-
-const normalizeModelName = (name: string) =>
-  name
-    .trim()
-    .toLowerCase()
-    .replace(/^.*\//, '')
-    .replace(/^openai_/, '');
-
-const modelFamilyNames = {
-  gpt: 'GPT',
-  qwen: 'Qwen',
-  deepseek: 'DeepSeek',
-  doubao: 'Doubao',
-  kimi: 'Kimi',
-  typesafe: 'Jev',
-  jev: 'Jev',
-  gemini: 'Gemini',
-  glm: 'GLM',
-  mimo: 'MiMo',
-  ling: 'Ling',
-  hy4: 'Hunyuan',
-  hunyuan: 'Hunyuan',
-  llama: 'Llama',
-  'meta-llama': 'Llama',
-  mistral: 'Mistral',
-  grok: 'Grok',
-};
-
-const modelLogos = {
-  gpt: 'https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/openai.svg',
-  qwen: 'https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/qwen-color.svg',
-  deepseek:
-    'https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/deepseek-color.svg',
-  doubao:
-    'https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/doubao-color.svg',
-  kimi: 'https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/kimi.svg',
-  gemini:
-    'https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/gemini-color.svg',
-  glm: 'https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/zhipu-color.svg',
-  mimo: 'https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/xiaomimimo.svg',
-  ling: 'https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/antgroup-color.svg',
-  hy4: 'https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/hunyuan-color.svg',
-  hunyuan:
-    'https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/hunyuan-color.svg',
-  typesafe:
-    'https://framerusercontent.com/images/aNFzSFxM4fjICmnibw7npfZjcQ.png',
-  jev: 'https://framerusercontent.com/images/aNFzSFxM4fjICmnibw7npfZjcQ.png',
-} as const;
 
 function measureScatterLabel(
   model: string,
-  modelId: string,
+  icon: string | undefined,
   context: CanvasRenderingContext2D | null,
 ) {
-  const icon = Object.entries(modelLogos).find(([family]) =>
-    normalizeModelName(modelId).startsWith(family),
-  )?.[1];
-  const fullLabel = scatterModelLabel(model);
   const inset = icon ? 36 : 16;
   const measure = (text: string) => {
     const metrics = context?.measureText(text);
@@ -110,15 +40,15 @@ function measureScatterLabel(
       ? metrics.actualBoundingBoxLeft + metrics.actualBoundingBoxRight
       : Array.from(text).length * 6;
   };
-  const characters = Array.from(fullLabel);
+  const characters = Array.from(model);
   const end =
-    measure(fullLabel) + inset > 220
+    measure(model) + inset > 220
       ? characters.findIndex(
           (_, i) =>
             measure(`${characters.slice(0, i + 1).join('')}…`) + inset > 220,
         )
       : -1;
-  const label = end < 0 ? fullLabel : `${characters.slice(0, end).join('')}…`;
+  const label = end < 0 ? model : `${characters.slice(0, end).join('')}…`;
   const metrics = context?.measureText(label);
   return {
     icon,
@@ -138,10 +68,9 @@ function measureScatterLabel(
 
 type ScatterPoint = {
   model: string;
-  modelId: string;
   value: number;
   axisValue: number;
-  passRate: number;
+  score: number;
   estimatedCostUsd: number | null;
   color: string;
   icon?: string;
@@ -152,296 +81,6 @@ type ScatterPoint = {
 };
 
 const MatchingModelsContext = createContext<ReadonlySet<string>>(new Set());
-const ModelScatter = memo(function ModelScatter({
-  points,
-  onLabelTooltipPositionChange,
-}: {
-  points: ScatterPoint[];
-  onLabelTooltipPositionChange: (
-    position: { x: number; y: number } | undefined,
-  ) => void;
-}) {
-  const xScale = useXAxisScale();
-  const yScale = useYAxisScale();
-  const plot = usePlotArea();
-  const chartWidth = useChartWidth();
-  const chartHeight = useChartHeight();
-  const matchingModels = useContext(MatchingModelsContext);
-  const projected = useMemo(() => {
-    return points.flatMap((point) => {
-      const cx = xScale?.(point.axisValue);
-      const cy = yScale?.(point.passRate);
-      if (
-        cx === undefined ||
-        cy === undefined ||
-        !Number.isFinite(cx) ||
-        !Number.isFinite(cy)
-      )
-        return [];
-      return [
-        {
-          ...point,
-          cx,
-          cy,
-          orderX: point.value,
-          orderY: -point.passRate,
-        },
-      ];
-    });
-  }, [points, xScale, yScale]);
-  const placed = useMemo(() => {
-    if (!plot || !chartWidth || !chartHeight) return [];
-    const frame = {
-      x: plot.x + 2,
-      y: 2,
-      width: chartWidth - plot.x - 4,
-      height: chartHeight - 4,
-    };
-    const positions = layoutScatterLabels(
-      projected.map((item) => ({
-        id: item.model,
-        x: item.cx,
-        y: item.cy,
-        width: item.width,
-        height: 22,
-        orderX: item.orderX,
-        orderY: item.orderY,
-      })),
-      plot,
-      frame,
-    );
-    const annotations = projected.map((item, i) => ({
-      ...item,
-      x: positions[i].x,
-      y: positions[i].y - 1,
-    }));
-    const routes = routeLabels(
-      annotations.map((item) => ({
-        id: item.model,
-        x: item.x,
-        y: item.y + 1,
-        width: item.width,
-        height: 22,
-        cx: item.cx,
-        cy: item.cy,
-      })),
-      frame,
-    );
-    return annotations.map((item) => ({
-      ...item,
-      linePoints: routes
-        .get(item.model)!
-        .map(({ x, y }) => `${x},${y}`)
-        .join(' '),
-    }));
-  }, [
-    projected,
-    plot?.x,
-    plot?.y,
-    plot?.width,
-    plot?.height,
-    chartWidth,
-    chartHeight,
-  ]);
-  const renderHitTarget = ({ payload, isActive }: ScatterShapeProps) => {
-    const annotation = placed.find((item) => item.model === payload.model);
-    if (!annotation || !matchingModels.has(payload.model)) return null;
-    const scale = isActive ? 1.12 : 1;
-    return (
-      <g>
-        <circle
-          cx={annotation.cx}
-          cy={annotation.cy}
-          r={12}
-          fill="transparent"
-          onMouseEnter={() => onLabelTooltipPositionChange(undefined)}
-        />
-        <rect
-          x={annotation.x}
-          y={annotation.y + 1 - (22 * (scale - 1)) / 2}
-          width={annotation.width * scale}
-          height={22 * scale}
-          rx={11 * scale}
-          fill="transparent"
-          onMouseEnter={() => {
-            if (!plot) return;
-            onLabelTooltipPositionChange({
-              x: Math.max(
-                plot.x,
-                Math.min(
-                  annotation.x + annotation.width / 2,
-                  plot.x + plot.width - 280,
-                ),
-              ),
-              y: Math.max(
-                plot.y,
-                Math.min(annotation.y + 24, plot.y + plot.height - 160),
-              ),
-            });
-          }}
-          onMouseLeave={() => onLabelTooltipPositionChange(undefined)}
-        />
-      </g>
-    );
-  };
-  const renderWireHitTarget = ({ payload }: ScatterShapeProps) => {
-    const annotation = placed.find((item) => item.model === payload.model);
-    if (!annotation || !matchingModels.has(payload.model)) return null;
-    return (
-      <polyline
-        points={annotation.linePoints}
-        fill="none"
-        stroke="transparent"
-        strokeWidth={10}
-        pointerEvents="stroke"
-        onMouseEnter={() => onLabelTooltipPositionChange(undefined)}
-      />
-    );
-  };
-  return (
-    <>
-      <Scatter
-        className="scatter-wire-hit-targets"
-        data={points}
-        dataKey="axisValue"
-        isAnimationActive={false}
-        zIndex={578}
-        shape={renderWireHitTarget}
-        activeShape={renderWireHitTarget}
-      />
-      <Scatter
-        className="scatter-label-hit-targets"
-        data={points}
-        dataKey="axisValue"
-        isAnimationActive={false}
-        zIndex={579}
-        shape={renderHitTarget}
-        activeShape={renderHitTarget}
-      />
-      <ModelScatterLabels placed={placed} />
-    </>
-  );
-});
-
-// Keep tooltip updates in the label layer so the scatter shapes do not rerender.
-const ModelScatterLabels = memo(function ModelScatterLabels({
-  placed,
-}: {
-  placed: {
-    model: string;
-    color: string;
-    x: number;
-    y: number;
-    width: number;
-    cx: number;
-    cy: number;
-    icon?: string;
-    label: string;
-    textOffsetX: number;
-    textBaseline: number;
-    linePoints: string;
-  }[];
-}) {
-  const matchingModels = useContext(MatchingModelsContext);
-  const activeModel = useActiveTooltipDataPoints<{ model: string }>()?.[0]
-    ?.model;
-  const hoveredModel =
-    activeModel && matchingModels.has(activeModel) ? activeModel : undefined;
-  const ordered = [...placed].sort(
-    (a, b) =>
-      Number(a.model === hoveredModel) - Number(b.model === hoveredModel),
-  );
-  return (
-    <ZIndexLayer zIndex={1201}>
-      <g pointerEvents="none">
-        {ordered.map((annotation) => {
-          const matchesFilters = matchingModels.has(annotation.model);
-          return (
-            <g
-              key={`wire-${annotation.model}`}
-              className="scatter-model"
-              data-matches-filters={matchesFilters}
-            >
-              <polyline
-                points={annotation.linePoints}
-                fill="none"
-                stroke={matchesFilters ? annotation.color : '#94a3b8'}
-                strokeWidth={annotation.model === hoveredModel ? 2.4 : 1.4}
-              />
-            </g>
-          );
-        })}
-        {ordered.map((annotation) => {
-          const matchesFilters = matchingModels.has(annotation.model);
-          const color = matchesFilters ? annotation.color : '#94a3b8';
-          return (
-            <g
-              key={annotation.model}
-              className="scatter-model"
-              data-matches-filters={matchesFilters}
-            >
-              <circle
-                className="scatter-model-dot"
-                cx={annotation.cx}
-                cy={annotation.cy}
-                r={annotation.model === hoveredModel ? 6 : dotRadius}
-                fill={color}
-                stroke="#fff"
-                strokeWidth={markerStrokeWidth}
-              />
-              <g
-                className="scatter-model-label"
-                transform={`translate(${annotation.x}, ${annotation.y})`}
-              >
-                <g
-                  className="scatter-model-label-inner"
-                  data-active={annotation.model === hoveredModel}
-                >
-                  <rect
-                    y={1}
-                    width={annotation.width}
-                    height={22}
-                    rx={11}
-                    fill={color}
-                    stroke="#fff"
-                    strokeWidth={markerStrokeWidth}
-                  />
-                  <g transform="translate(6, 12)">
-                    {annotation.icon && (
-                      <>
-                        <circle cx={7} cy={0} r={7} fill="#fff" />
-                        <image
-                          href={annotation.icon}
-                          x={1}
-                          y={-6}
-                          width={12}
-                          height={12}
-                        />
-                      </>
-                    )}
-                    <text
-                      x={(annotation.icon ? 20 : 0) + annotation.textOffsetX}
-                      y={annotation.textBaseline}
-                      textAnchor="start"
-                      dominantBaseline="alphabetic"
-                      fill="#fff"
-                      fontFamily="system-ui, sans-serif"
-                      fontSize={11}
-                      fontWeight={600}
-                    >
-                      {annotation.label}
-                    </text>
-                  </g>
-                </g>
-              </g>
-            </g>
-          );
-        })}
-      </g>
-    </ZIndexLayer>
-  );
-});
-
 // Keep one linear unit size outside explicitly marked empty intervals.
 function createElapsedTimeAxis(values: number[], p50: number | null) {
   const anchors = [...new Set([...values, ...(p50 === null ? [] : [p50])])]
@@ -660,79 +299,158 @@ const ModelScatterLayer = memo(function ModelScatterLayer({
   points: ScatterPoint[];
   formatTime: (value: number) => string;
 }) {
-  const [labelTooltipPosition, setLabelTooltipPosition] = useState<{
-    x: number;
-    y: number;
-  }>();
+  const matchingModels = useContext(MatchingModelsContext);
+  const renderPoint = ({ cx, cy, payload, isActive }: ScatterShapeProps) => {
+    if (cx === undefined || cy === undefined) return null;
+    const point = payload as ScatterPoint;
+    const matchesFilters = matchingModels.has(point.model);
+    const active = isActive && matchesFilters;
+    const color = matchesFilters ? point.color : '#94a3b8';
+    const radius = active ? 6 : 4.5;
+    const labelScale = active ? 1.12 : 1;
+    const labelTop = cy + 14;
+    return (
+      <g
+        className="scatter-model"
+        data-model={point.model}
+        data-matches-filters={matchesFilters}
+        pointerEvents={matchesFilters ? undefined : 'none'}
+      >
+        <circle cx={cx} cy={cy} r={12} fill="transparent" />
+        <line
+          x1={cx}
+          x2={cx}
+          y1={cy}
+          y2={labelTop}
+          stroke="transparent"
+          strokeWidth={10}
+        />
+        <line
+          className="scatter-model-connector"
+          x1={cx}
+          x2={cx}
+          y1={cy + radius + 0.75}
+          y2={labelTop - 11 * (labelScale - 1) - 0.75 * labelScale}
+          stroke={color}
+          strokeWidth={active ? 2.4 : 1.4}
+        />
+        <circle
+          className="scatter-model-dot"
+          cx={cx}
+          cy={cy}
+          r={radius}
+          fill={color}
+          stroke="#fff"
+          strokeWidth={1.5}
+        />
+        <g
+          className="scatter-model-label"
+          transform={`translate(${cx - point.width / 2}, ${labelTop})`}
+        >
+          <g className="scatter-model-label-inner" data-active={active}>
+            <rect
+              width={point.width}
+              height={22}
+              rx={11}
+              fill={color}
+              stroke="#fff"
+              strokeWidth={1.5}
+            />
+            <g transform="translate(6, 11)">
+              {point.icon && (
+                <>
+                  <circle cx={7} cy={0} r={7} fill="#fff" />
+                  <image
+                    href={point.icon}
+                    x={1}
+                    y={-6}
+                    width={12}
+                    height={12}
+                  />
+                </>
+              )}
+              <text
+                x={(point.icon ? 20 : 0) + point.textOffsetX}
+                y={point.textBaseline}
+                textAnchor="start"
+                dominantBaseline="alphabetic"
+                fill="#fff"
+                fontFamily="system-ui, sans-serif"
+                fontSize={11}
+                fontWeight={600}
+              >
+                {point.label}
+              </text>
+            </g>
+          </g>
+        </g>
+      </g>
+    );
+  };
   return (
     <>
       <Tooltip
         cursor={{ stroke: '#94a3b8', strokeDasharray: '4 4' }}
         isAnimationActive={false}
-        position={labelTooltipPosition}
         content={({ active, payload }) => {
           const point = active
-            ? points.find(({ model }) => model === payload?.[0]?.payload?.model)
+            ? (payload?.[0]?.payload as ScatterPoint | undefined)
             : undefined;
-          const coincident = point
-            ? points.filter(
-                (other) =>
-                  other.value === point.value &&
-                  other.passRate === point.passRate,
-              )
-            : [];
-          return point ? (
-            <MatchingModelsContext.Consumer>
-              {(matchingModels) =>
-                matchingModels.has(point.model) ? (
-                  <div className="performance-tooltip">
-                    <strong>{point.model}</strong>
-                    <dl>
-                      <div>
-                        <dt>Pass Rate</dt>
-                        <dd>
-                          {point.passRate.toLocaleString('en-US', {
-                            maximumFractionDigits: 1,
-                          })}
-                          %
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Estimated Model Duration Avg.</dt>
-                        <dd>
-                          {formatTime(point.value)} <span>s</span>
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Estimated Cost Avg.</dt>
-                        <dd>
-                          {point.estimatedCostUsd === null
-                            ? 'Unavailable'
-                            : point.estimatedCostUsd.toLocaleString('en-US', {
-                                style: 'currency',
-                                currency: 'USD',
-                                minimumFractionDigits: 6,
-                                maximumFractionDigits: 6,
-                              })}
-                        </dd>
-                      </div>
-                    </dl>
-                    {coincident.length > 1 && (
-                      <p>
-                        Models at this position:{' '}
-                        {coincident.map((other) => other.model).join(', ')}
-                      </p>
-                    )}
-                  </div>
-                ) : null
-              }
-            </MatchingModelsContext.Consumer>
-          ) : null;
+          if (!point || !matchingModels.has(point.model)) return null;
+          const coincident = points.filter(
+            (other) =>
+              other.value === point.value && other.score === point.score,
+          );
+          return (
+            <div className="performance-tooltip">
+              <strong>{point.model}</strong>
+              <dl>
+                <div>
+                  <dt>Score</dt>
+                  <dd>
+                    {point.score.toLocaleString('en-US', {
+                      maximumFractionDigits: 1,
+                    })}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Estimated Model Duration Avg.</dt>
+                  <dd>
+                    {formatTime(point.value)} <span>s</span>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Estimated Cost Avg.</dt>
+                  <dd>
+                    {point.estimatedCostUsd === null
+                      ? 'Unavailable'
+                      : point.estimatedCostUsd.toLocaleString('en-US', {
+                          style: 'currency',
+                          currency: 'USD',
+                          minimumFractionDigits: 6,
+                          maximumFractionDigits: 6,
+                        })}
+                  </dd>
+                </div>
+              </dl>
+              {coincident.length > 1 && (
+                <p>
+                  Models at this position:{' '}
+                  {coincident.map((other) => other.model).join(', ')}
+                </p>
+              )}
+            </div>
+          );
         }}
       />
-      <ModelScatter
-        points={points}
-        onLabelTooltipPositionChange={setLabelTooltipPosition}
+      <Scatter
+        className="model-scatter-series"
+        data={points}
+        dataKey="axisValue"
+        isAnimationActive={false}
+        zIndex={579}
+        shape={renderPoint}
+        activeShape={renderPoint}
       />
     </>
   );
@@ -743,8 +461,10 @@ export function ModelPerformanceChart({
 }: {
   models: {
     model: string;
-    modelId: string;
-    passRate: number;
+    family: string;
+    color: string;
+    icon?: string;
+    score: number;
     estimatedCostUsd: number | null;
     testcasesPerDollar: number | null;
     testcasesPerMinute: number | null;
@@ -760,59 +480,35 @@ export function ModelPerformanceChart({
   );
   const [budgetCases, setBudgetCases] = useState<number | null>(null);
   const budgetId = useId();
-  const categorizedModels = useMemo(
-    () =>
-      models.map((model) => {
-        const family =
-          [model.model, model.modelId]
-            .map(normalizeModelName)
-            .map(
-              (name) =>
-                Object.entries(modelFamilyNames).find(([prefix]) =>
-                  name.startsWith(prefix),
-                )?.[1],
-            )
-            .find(Boolean) ?? 'Other';
-        return {
-          ...model,
-          color: modelFamilyColors[family] ?? modelFamilyColors.Other,
-          family,
-        };
-      }),
-    [models],
-  );
   const families = useMemo(
     () =>
-      [...new Set(categorizedModels.map(({ family }) => family))].sort((a, b) =>
+      [...new Set(models.map(({ family }) => family))].sort((a, b) =>
         a.localeCompare(b, 'en'),
       ),
-    [categorizedModels],
+    [models],
   );
-  const activeModels = useMemo(
-    () =>
-      selectedModels === 'family-glory'
-        ? categorizedModels
-            .filter(
-              (model) =>
-                Number.isFinite(model.passRate) &&
-                !categorizedModels.some(
-                  (other) =>
-                    other.family === model.family &&
-                    Number.isFinite(other.passRate) &&
-                    (other.passRate - model.passRate ||
-                      (other.testcasesPerMinute ?? Number.NEGATIVE_INFINITY) -
-                        (model.testcasesPerMinute ??
-                          Number.NEGATIVE_INFINITY) ||
-                      (model.estimatedCostUsd ?? Number.POSITIVE_INFINITY) -
-                        (other.estimatedCostUsd ?? Number.POSITIVE_INFINITY)) >
-                      0,
-                ),
-            )
-            .map(({ model }) => model)
-        : selectedModels,
-    [categorizedModels, selectedModels],
-  );
-  const [minimumCases, maximumCases] = (() => {
+  const activeModels = useMemo(() => {
+    if (selectedModels !== 'family-glory') return selectedModels;
+    const winners = new Map<string, typeof models>();
+    for (const model of models) {
+      if (!Number.isFinite(model.score)) continue;
+      const familyWinners = winners.get(model.family);
+      const best = familyWinners?.[0];
+      const comparison = best
+        ? model.score - best.score ||
+          (model.testcasesPerMinute ?? Number.NEGATIVE_INFINITY) -
+            (best.testcasesPerMinute ?? Number.NEGATIVE_INFINITY) ||
+          (best.estimatedCostUsd ?? Number.POSITIVE_INFINITY) -
+            (model.estimatedCostUsd ?? Number.POSITIVE_INFINITY)
+        : 1;
+      if (comparison > 0) winners.set(model.family, [model]);
+      else if (!comparison) familyWinners?.push(model);
+    }
+    return [...winners.values()].flatMap((family) =>
+      family.map(({ model }) => model),
+    );
+  }, [models, selectedModels]);
+  const [minimumCases, maximumCases] = useMemo(() => {
     const values = models.flatMap(({ testcasesPerDollar }) =>
       testcasesPerDollar !== null &&
       Number.isFinite(testcasesPerDollar) &&
@@ -826,7 +522,7 @@ export function ModelPerformanceChart({
           Math.ceil(Math.max(...values) / 1000) * 1000,
         ]
       : [0, 0];
-  })();
+  }, [models]);
   const budgetTarget = Math.max(
     minimumCases,
     Math.min(budgetCases ?? minimumCases, maximumCases),
@@ -844,7 +540,7 @@ export function ModelPerformanceChart({
   const matchingModels = useMemo(
     () =>
       new Set(
-        categorizedModels
+        models
           .filter(
             ({ model, family, estimatedCostUsd }) =>
               estimatedCostUsd !== null &&
@@ -857,12 +553,12 @@ export function ModelPerformanceChart({
           )
           .map(({ model }) => model),
       ),
-    [categorizedModels, requiredCases, selectedFamilies, activeModels],
+    [models, requiredCases, selectedFamilies, activeModels],
   );
   const dimensions = useMemo(
     () =>
       [
-        { label: 'Pass Rate', key: 'passRate' as const, unit: '%' },
+        { label: 'Score', key: 'score' as const, unit: '' },
         {
           label: 'Affordability',
           key: 'testcasesPerDollar' as const,
@@ -880,15 +576,15 @@ export function ModelPerformanceChart({
             (value): value is number =>
               value !== null &&
               Number.isFinite(value) &&
-              (dimension.key === 'passRate'
-                ? value >= 0 && value <= 1
+              (dimension.key === 'score'
+                ? value >= 0 && value <= 100
                 : value > 0),
           )
           .sort((a, b) => a - b);
         return {
           ...dimension,
-          minimum: dimension.key === 'passRate' ? 0.6 : values[0],
-          maximum: dimension.key === 'passRate' ? 1 : values.at(-1),
+          minimum: dimension.key === 'score' ? 60 : values[0],
+          maximum: dimension.key === 'score' ? 100 : values.at(-1),
           p50: values.length
             ? values[Math.floor((values.length - 1) / 2)] / 2 +
               values[Math.floor(values.length / 2)] / 2
@@ -913,13 +609,13 @@ export function ModelPerformanceChart({
     ? elapsedTimes[Math.floor((elapsedTimes.length - 1) / 2)] / 2 +
       elapsedTimes[Math.floor(elapsedTimes.length / 2)] / 2
     : null;
-  const passRateP50 = dimensions[0].p50;
-  const passRateDomain = useMemo(() => {
+  const scoreP50 = dimensions[0].p50;
+  const scoreDomain = useMemo(() => {
     const values = models
-      .map(({ passRate }) => passRate)
-      .filter((value) => Number.isFinite(value) && value >= 0 && value <= 1);
+      .map(({ score }) => score)
+      .filter((value) => Number.isFinite(value) && value >= 0 && value <= 100);
     if (!values.length) return [0, 100];
-    return [Math.max(0, Math.floor(Math.min(...values) * 100 + 1e-9) - 1), 100];
+    return [Math.max(0, Math.floor(Math.min(...values) + 1e-9) - 1), 100];
   }, [models]);
   const axis = useMemo(
     () => createElapsedTimeAxis(elapsedTimes, elapsedTimeP50),
@@ -928,261 +624,209 @@ export function ModelPerformanceChart({
   const points = useMemo(() => {
     const context = document.createElement('canvas').getContext('2d');
     if (context) context.font = '600 11px system-ui, sans-serif';
-    return categorizedModels
+    return models
       .flatMap((item) => {
         const value = item.estimatedElapsedTimeSeconds;
         return value !== null &&
           Number.isFinite(value) &&
           value >= 0 &&
-          item.passRate >= 0 &&
-          item.passRate <= 1
+          item.score >= 0 &&
+          item.score <= 100
           ? [
               {
                 model: item.model,
-                modelId: item.modelId,
                 value,
                 axisValue: axis.project(value),
-                passRate: item.passRate * 100,
+                score: item.score,
                 estimatedCostUsd: item.estimatedCostUsd,
                 color: item.color,
-                ...measureScatterLabel(item.model, item.modelId, context),
+                ...measureScatterLabel(item.model, item.icon, context),
               },
             ]
           : [];
       })
       .sort(
         (a, b) =>
-          a.passRate - b.passRate ||
+          a.score - b.score ||
           b.value - a.value ||
           (b.estimatedCostUsd ?? Number.POSITIVE_INFINITY) -
             (a.estimatedCostUsd ?? Number.POSITIVE_INFINITY) ||
           a.model.localeCompare(b.model),
       );
-  }, [categorizedModels, axis]);
+  }, [models, axis]);
   const scatterAxisPadding = useMemo(() => {
     const [leftEdge, rightEdge] = axis.domain;
     const edgeSpan = (rightEdge - leftEdge) * 0.1;
-    const labels = points.map((point) => ({
-      value: point.axisValue,
-      padding: point.width / 2 + 4,
-    }));
     return {
       left: Math.min(
         36,
         Math.ceil(
-          Math.max(
+          points.reduce(
+            (padding, point) =>
+              point.axisValue <= leftEdge + edgeSpan
+                ? Math.max(padding, point.width / 2 + 4)
+                : padding,
             12,
-            ...labels
-              .filter(({ value }) => value <= leftEdge + edgeSpan)
-              .map(({ padding }) => padding),
           ),
         ),
       ),
       right: 30,
     };
   }, [points, axis.domain]);
-  const scatterSize = useMemo(() => {
-    const rows = new Map<number, Map<number, number>>();
-    const columns = new Map<number, Set<number>>();
-    for (const point of points) {
-      const row = rows.get(point.passRate) ?? new Map<number, number>();
-      row.set(point.value, Math.max(row.get(point.value) ?? 0, point.width));
-      rows.set(point.passRate, row);
-      const column = columns.get(point.value) ?? new Set<number>();
-      column.add(point.passRate);
-      columns.set(point.value, column);
-    }
-    const area =
-      [...rows.values()].reduce(
-        (total, row) =>
-          total +
-          [...row.values()].reduce(
-            (sum, width) => sum + (width + 7.1) * 29.1,
-            0,
+  const radarModels = useMemo(
+    () =>
+      models.map((model) => {
+        const data = dimensions.map(({ label, key, minimum, maximum, p50 }) => {
+          const [value, reference] = [model[key], p50].map((value) =>
+            value === null ||
+            !Number.isFinite(value) ||
+            maximum === undefined ||
+            minimum === undefined ||
+            (key !== 'score' && value <= 0)
+              ? null
+              : key === 'score'
+                ? Math.min(
+                    100,
+                    Math.max(
+                      0,
+                      ((value - minimum) / (maximum - minimum)) * 100,
+                    ),
+                  )
+                : maximum === minimum
+                  ? 100
+                  : ((Math.log10(value) - Math.log10(minimum)) /
+                      (Math.log10(maximum) - Math.log10(minimum))) *
+                    100,
+          );
+          return { metric: label, value, p50: reference };
+        });
+        const available = data.every((dimension) => dimension.value !== null);
+        const title = [
+          model.model,
+          ...dimensions.map(
+            ({ label, key, unit }) =>
+              `${label}: ${model[key] === null ? 'Unavailable' : model[key].toLocaleString('en-US', { maximumFractionDigits: key === 'score' ? 1 : 0 })}${unit ? ` ${unit}` : ''}`,
           ),
-        0,
-      ) / 0.5;
-    const rowWidth = Math.max(
-      0,
-      ...[...rows.values()].map((row) =>
-        [...row.values()].reduce((sum, width) => sum + width + 7.1, 0),
-      ),
-    );
-    const columnHeight = Math.max(
-      0,
-      ...[...columns.values()].map((column) => column.size * 29.1),
-    );
-    return {
-      minWidth: Math.ceil(
-        Math.max(320, Math.sqrt(area * 2), rowWidth * 1.12 + 16) +
-          scatterChartMargin.left +
-          scatterChartMargin.right +
-          scatterYAxisWidth,
-      ),
-      minHeight: Math.ceil(
-        Math.max(Math.sqrt(area / 2), columnHeight * 1.12 + 16) +
-          scatterChartMargin.top +
-          scatterChartMargin.bottom +
-          scatterXAxisHeight,
-      ),
-    };
-  }, [points]);
+          ...(!available
+            ? [model.unavailableReason ?? 'Cost or speed estimate unavailable']
+            : []),
+        ].join('\n');
+        return { ...model, data, available, title };
+      }),
+    [models, dimensions],
+  );
   const legend = useMemo(
     () => (
       <ul className="model-performance-legend" aria-label="Models">
-        {categorizedModels.map((model) => {
-          const data = dimensions.map(
-            ({ label, key, minimum, maximum, p50 }) => {
-              const [value, reference] = [model[key], p50].map((value) =>
-                value === null ||
-                !Number.isFinite(value) ||
-                maximum === undefined ||
-                minimum === undefined ||
-                (key !== 'passRate' && value <= 0)
-                  ? null
-                  : key === 'passRate'
-                    ? Math.min(
-                        100,
-                        Math.max(
-                          0,
-                          ((value - minimum) / (maximum - minimum)) * 100,
-                        ),
-                      )
-                    : maximum === minimum
-                      ? 100
-                      : ((Math.log10(value) - Math.log10(minimum)) /
-                          (Math.log10(maximum) - Math.log10(minimum))) *
-                        100,
-              );
-              return { metric: label, value, p50: reference };
-            },
-          );
-          const available = data.every((dimension) => dimension.value !== null);
-          return (
-            <MatchingModelsContext.Consumer key={model.model}>
-              {(matchingModels) => (
-                <li>
-                  <button
-                    data-matches-filters={matchingModels.has(model.model)}
-                    type="button"
-                    className="performance-model-toggle"
-                    aria-label={model.model}
-                    aria-pressed={
-                      activeModels === null ||
-                      activeModels.includes(model.model)
-                    }
-                    title={[
-                      model.model,
-                      ...dimensions.map(
-                        ({ label, key, unit }) =>
-                          `${label}: ${model[key] === null ? 'Unavailable' : (key === 'passRate' ? model[key] * 100 : model[key]).toLocaleString('en-US', { maximumFractionDigits: key === 'passRate' ? 1 : 0 })} ${unit}`,
-                      ),
-                      ...(!available
-                        ? [
-                            model.unavailableReason ??
-                              'Cost or speed estimate unavailable',
-                          ]
-                        : []),
-                    ].join('\n')}
-                    onClick={() =>
-                      setSelectedModels(
-                        activeModels === null
-                          ? [model.model]
-                          : activeModels.includes(model.model)
-                            ? activeModels.filter(
-                                (name) => name !== model.model,
-                              )
-                            : [...activeModels, model.model],
-                      )
-                    }
-                  >
-                    <span className="performance-model-heading">
-                      <span
-                        className="performance-swatch"
-                        style={{ background: model.color }}
-                        aria-hidden="true"
-                      />
-                      <strong>{model.model}</strong>
-                    </span>
-                    <div className="performance-mini-radar">
-                      <ResponsiveContainer
-                        width="100%"
-                        height="100%"
-                        minWidth={0}
+        {radarModels.map((model) => (
+          <MatchingModelsContext.Consumer key={model.model}>
+            {(matchingModels) => (
+              <li>
+                <button
+                  data-matches-filters={matchingModels.has(model.model)}
+                  type="button"
+                  className="performance-model-toggle"
+                  aria-label={model.model}
+                  aria-pressed={
+                    activeModels === null || activeModels.includes(model.model)
+                  }
+                  title={model.title}
+                  onClick={() =>
+                    setSelectedModels(
+                      activeModels === null
+                        ? [model.model]
+                        : activeModels.includes(model.model)
+                          ? activeModels.filter((name) => name !== model.model)
+                          : [...activeModels, model.model],
+                    )
+                  }
+                >
+                  <span className="performance-model-heading">
+                    <span
+                      className="performance-swatch"
+                      style={{ background: model.color }}
+                      aria-hidden="true"
+                    />
+                    <strong>{model.model}</strong>
+                  </span>
+                  <div className="performance-mini-radar">
+                    <ResponsiveContainer
+                      width="100%"
+                      height="100%"
+                      minWidth={0}
+                    >
+                      <RadarChart
+                        data={model.data}
+                        outerRadius="95%"
+                        cy="60%"
+                        margin={{ top: 12, right: 12, bottom: 4, left: 12 }}
+                        accessibilityLayer={false}
+                        role="img"
+                        aria-label={`${model.model}: Score, Affordability and Speed. Score uses 60–100; Affordability and Speed use shared logarithmic ranges.`}
                       >
-                        <RadarChart
-                          data={data}
-                          outerRadius="95%"
-                          cy="60%"
-                          margin={{ top: 12, right: 12, bottom: 4, left: 12 }}
-                          accessibilityLayer={false}
-                          role="img"
-                          aria-label={`${model.model}: Pass Rate, Affordability and Speed. Pass Rate uses 60%–100%; Affordability and Speed use shared logarithmic ranges.`}
-                        >
-                          <PolarGrid stroke="#e2e8f0" />
-                          <PolarAngleAxis
-                            dataKey="metric"
-                            tick={({ x, y, payload }) => (
-                              <text
-                                x={x}
-                                y={y}
-                                textAnchor="middle"
-                                fill="#64748b"
-                                fontSize={9}
-                                dy={payload.index === 0 ? 0 : 11}
-                              >
-                                {payload.value}
-                              </text>
-                            )}
-                            tickLine={false}
-                          />
-                          <PolarRadiusAxis
-                            domain={[0, 100]}
-                            allowDataOverflow
-                            ticks={[0, 25, 50, 75, 100]}
-                            tick={false}
-                            tickLine={false}
-                            axisLine={false}
-                          />
-                          {available && (
-                            <Radar
-                              name={model.model}
-                              dataKey="value"
-                              stroke={model.color}
-                              fill={model.color}
-                              fillOpacity={0.16}
-                              strokeWidth={1.8}
-                              dot={false}
-                              activeDot={false}
-                              isAnimationActive={false}
-                            />
+                        <PolarGrid stroke="#e2e8f0" />
+                        <PolarAngleAxis
+                          dataKey="metric"
+                          tick={({ x, y, payload }) => (
+                            <text
+                              x={x}
+                              y={y}
+                              textAnchor="middle"
+                              fill="#64748b"
+                              fontSize={9}
+                              dy={payload.index === 0 ? 0 : 11}
+                            >
+                              {payload.value}
+                            </text>
                           )}
-                          {hasReference && (
-                            <Radar
-                              name="P50 Reference"
-                              dataKey="p50"
-                              stroke="#64748b"
-                              strokeDasharray="3 3"
-                              strokeWidth={1}
-                              fill="none"
-                              dot={false}
-                              activeDot={false}
-                              isAnimationActive={false}
-                              pointerEvents="none"
-                            />
-                          )}
-                        </RadarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </button>
-                </li>
-              )}
-            </MatchingModelsContext.Consumer>
-          );
-        })}
+                          tickLine={false}
+                        />
+                        <PolarRadiusAxis
+                          domain={[0, 100]}
+                          allowDataOverflow
+                          ticks={[0, 25, 50, 75, 100]}
+                          tick={false}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        {model.available && (
+                          <Radar
+                            name={model.model}
+                            dataKey="value"
+                            stroke={model.color}
+                            fill={model.color}
+                            fillOpacity={0.16}
+                            strokeWidth={1.8}
+                            dot={false}
+                            activeDot={false}
+                            isAnimationActive={false}
+                          />
+                        )}
+                        {hasReference && (
+                          <Radar
+                            name="P50 Reference"
+                            dataKey="p50"
+                            stroke="#64748b"
+                            strokeDasharray="3 3"
+                            strokeWidth={1}
+                            fill="none"
+                            dot={false}
+                            activeDot={false}
+                            isAnimationActive={false}
+                            pointerEvents="none"
+                          />
+                        )}
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </button>
+              </li>
+            )}
+          </MatchingModelsContext.Consumer>
+        ))}
       </ul>
     ),
-    [categorizedModels, dimensions, hasReference, activeModels],
+    [radarModels, hasReference, activeModels],
   );
 
   // Keep scatter nodes mounted during filter changes so CSS transitions can run.
@@ -1197,23 +841,23 @@ export function ModelPerformanceChart({
               label: `P50: ${axis.formatTick(elapsedTimeP50)} s`,
             },
           ]),
-      ...(passRateP50 === null
+      ...(scoreP50 === null
         ? []
         : [
             {
               axis: 'y' as const,
-              value: passRateP50 * 100,
-              label: `P50: ${(passRateP50 * 100).toLocaleString('en-US', { maximumFractionDigits: 2 })}%`,
+              value: scoreP50,
+              label: `P50: ${scoreP50.toLocaleString('en-US', { maximumFractionDigits: 2 })}`,
             },
           ]),
     ];
     return (
-      <div className="model-scatter-plot" style={scatterSize}>
+      <div className="model-scatter-plot">
         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <ScatterChart
-            margin={scatterChartMargin}
+            margin={{ top: 40, right: 16, bottom: 38, left: 16 }}
             accessibilityLayer
-            aria-label={`Model Performance Overview: Estimated Model Duration Avg. in seconds on a linear horizontal axis with marked breaks across large empty intervals; Pass Rate from ${passRateDomain[0]}% to ${passRateDomain[1]}%`}
+            aria-label={`Model Performance Overview: Estimated Model Duration Avg. in seconds on a linear horizontal axis with marked breaks across large empty intervals; Score from ${scoreDomain[0]} to ${scoreDomain[1]}`}
           >
             <CartesianGrid stroke="#e8edf4" strokeDasharray="3 5" />
             <XAxis
@@ -1235,7 +879,7 @@ export function ModelPerformanceChart({
               tickLine={false}
               axisLine={{ stroke: '#dce4ee' }}
               tickMargin={16}
-              height={scatterXAxisHeight}
+              height={56}
               label={{
                 position: 'insideBottom',
                 offset: -12,
@@ -1272,14 +916,13 @@ export function ModelPerformanceChart({
             <YAxis
               orientation="left"
               type="number"
-              dataKey="passRate"
-              domain={passRateDomain}
+              dataKey="score"
+              domain={scoreDomain}
               ticks={(() => {
-                const step =
-                  passRateDomain[1] - passRateDomain[0] <= 10 ? 1 : 5;
+                const step = scoreDomain[1] - scoreDomain[0] <= 10 ? 1 : 5;
                 const first =
-                  Math.ceil(Math.max(0, passRateDomain[0]) / step) * step;
-                const last = Math.min(100, passRateDomain[1]);
+                  Math.ceil(Math.max(0, scoreDomain[0]) / step) * step;
+                const last = Math.min(100, scoreDomain[1]);
                 const ticks = Array.from(
                   {
                     length: Math.max(0, Math.floor((last - first) / step) + 1),
@@ -1287,20 +930,18 @@ export function ModelPerformanceChart({
                   (_, index) => first + index * step,
                 );
                 return [
-                  passRateDomain[0],
-                  ...ticks.filter(
-                    (tick) => tick - passRateDomain[0] >= step / 2,
-                  ),
+                  scoreDomain[0],
+                  ...ticks.filter((tick) => tick - scoreDomain[0] >= step / 2),
                 ];
               })()}
               tick={{ fill: '#748195', fontSize: 11 }}
-              tickFormatter={(value: number) => `${value}%`}
+              tickFormatter={(value: number) => value.toLocaleString('en-US')}
               tickLine={false}
               axisLine={false}
               tickMargin={8}
-              width={scatterYAxisWidth}
+              width={64}
               label={{
-                value: 'Pass Rate',
+                value: 'Score',
                 angle: -90,
                 position: 'insideLeft',
                 fill: '#526176',
@@ -1332,20 +973,12 @@ export function ModelPerformanceChart({
         </ResponsiveContainer>
         {!points.length && (
           <p className="performance-hidden-message">
-            No model has a valid estimated model duration and pass rate.
+            No model has a valid estimated model duration and score.
           </p>
         )}
       </div>
     );
-  }, [
-    axis,
-    passRateDomain,
-    scatterAxisPadding,
-    scatterSize,
-    elapsedTimeP50,
-    passRateP50,
-    points,
-  ]);
+  }, [axis, scoreDomain, scatterAxisPadding, elapsedTimeP50, scoreP50, points]);
 
   return (
     <section className="model-performance">
@@ -1422,7 +1055,7 @@ export function ModelPerformanceChart({
                   role="switch"
                   className="model-family-glory"
                   aria-checked={selectedModels === 'family-glory'}
-                  title="Select each family's best models by higher pass rate, then higher speed, then lower cost; exact ties are included"
+                  title="Select each family's best models by higher score, then higher speed, then lower cost; exact ties are included"
                   onClick={() =>
                     setSelectedModels((current) =>
                       current === 'family-glory' ? null : 'family-glory',

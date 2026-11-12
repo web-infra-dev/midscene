@@ -10,13 +10,9 @@ export function DetailsPanel({
   testcase,
   children,
 }: { testcase: TestcaseView; children?: ReactNode }) {
-  const { reference } = testcase;
+  const { groundTruth, reference } = testcase;
   const collectedAt = new Date(reference.collectedAt);
-  const refusal = testcase.groundTruth === 'REFUSAL';
-  const coordinateText =
-    testcase.groundTruth === 'REFUSAL'
-      ? 'REFUSAL'
-      : `[${testcase.groundTruth.map((value) => value.toFixed(1)).join(', ')}]`;
+  const refusal = groundTruth === 'REFUSAL';
 
   return (
     <aside className="details-panel" aria-label="Testcase Details">
@@ -44,7 +40,9 @@ export function DetailsPanel({
             Original image pixels · [top, right, bottom, left]
           </p>
           <code id="ground-truth" className="ground-truth">
-            {coordinateText}
+            {refusal
+              ? 'REFUSAL'
+              : `[${groundTruth.map((value) => value.toFixed(1)).join(', ')}]`}
           </code>
         </div>
         <div id="gt-refusal" className="refusal-box" hidden={!refusal}>

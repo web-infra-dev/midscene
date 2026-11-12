@@ -26,10 +26,7 @@ export default defineConfig({
     setup: ({ server }) => {
       server.middlewares.use((request, response, next) => {
         if (
-          request.url?.startsWith('/api/') ||
-          request.url?.startsWith('/images/') ||
-          request.url?.startsWith('/candidate-images/') ||
-          request.url?.startsWith('/results/')
+          /^\/(api|images|candidate-images|results)\//.test(request.url ?? '')
         ) {
           void handleDatasetRequest(request, response);
         } else {

@@ -8,7 +8,6 @@ export const categoryItems = [
   'Refusal',
 ] as const;
 
-export type CategoryItem = (typeof categoryItems)[number];
 export type GroundTruth = [number, number, number, number] | 'REFUSAL';
 
 export interface EvaluationResult {
@@ -51,10 +50,14 @@ export interface EvaluationResult {
   jsonUrl: string;
 }
 
+export function getModelDisplayName({ input }: EvaluationResult) {
+  return input.displayName ?? input.model;
+}
+
 export interface Testcase {
   name: string;
   platform: 'web' | 'mobile';
-  category: { item: CategoryItem; reason: string };
+  category: { item: (typeof categoryItems)[number]; reason: string };
   instruction: { en: string; zh: string };
   instructionLanguage: 'en' | 'zh';
   groundTruth: GroundTruth;

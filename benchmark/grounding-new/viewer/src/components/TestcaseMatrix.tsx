@@ -1,69 +1,74 @@
 import { useMemo, useState } from 'react';
-import type { EvaluationResult, TestcaseView } from '../types';
+import {
+  type EvaluationResult,
+  type TestcaseView,
+  getModelDisplayName,
+} from '../types';
 
 export function TestcaseMatrix({
   evaluationId,
   results,
   testcases,
-  modelPassRates,
+  modelScores,
 }: {
   evaluationId: string;
   results: EvaluationResult[];
   testcases: TestcaseView[];
-  modelPassRates: number[];
+  modelScores: number[];
 }) {
   const [filter, setFilter] = useState('all');
-  const { models, rows } = useMemo(() => {
-    const models = [
-      ...new Set(results.map(({ input }) => input.displayName ?? input.model)),
-    ]
+  const { models, rows, counts } = useMemo(() => {
+    const models = [...new Set(results.map(getModelDisplayName))]
       .sort()
       .reverse();
     const byTestcase = new Map<string, Map<string, EvaluationResult>>();
     for (const result of results) {
       const name = result.input.testcase;
-      if (!byTestcase.has(name)) byTestcase.set(name, new Map());
-      byTestcase
-        .get(name)
-        ?.set(result.input.displayName ?? result.input.model, result);
+      const cells = byTestcase.get(name) ?? new Map();
+      cells.set(getModelDisplayName(result), result);
+      byTestcase.set(name, cells);
     }
+    const counts = {
+      'all-passed': 0,
+      'all-failed': 0,
+      incomplete: 0,
+    };
     const rows = [
       ...new Set([...testcases.map(({ name }) => name), ...byTestcase.keys()]),
     ]
       .sort()
       .map((name) => {
-        const cells = models.map((model) => byTestcase.get(name)?.get(model));
+        const results = byTestcase.get(name);
+        const cells = models.map((model) => results?.get(model));
         const passed = cells.filter((result) => result?.output.correct).length;
+        const status = cells.some((result) => !result)
+          ? 'incomplete'
+          : passed === models.length
+            ? 'all-passed'
+            : passed === 0
+              ? 'all-failed'
+              : 'mixed';
+        if (status !== 'mixed') counts[status]++;
         return {
           name,
           cells,
           passed,
-          status: cells.some((result) => !result)
-            ? 'incomplete'
-            : passed === models.length
-              ? 'all-passed'
-              : passed === 0
-                ? 'all-failed'
-                : 'mixed',
+          status,
         };
       });
-    return { models, rows };
+    return { models, rows, counts: { all: rows.length, ...counts } };
   }, [results, testcases]);
-  const visibleRows = rows.filter(
-    (row) => filter === 'all' || row.status === filter,
-  );
+  const visibleRows =
+    filter === 'all' ? rows : rows.filter((row) => row.status === filter);
 
   if (!models.length) return null;
 
-  const meanPassRate =
-    modelPassRates.reduce((sum, rate) => sum + rate, 0) / modelPassRates.length;
-  const passRateStandardDeviation =
-    Math.sqrt(
-      modelPassRates.reduce(
-        (sum, rate) => sum + (rate - meanPassRate) ** 2,
-        0,
-      ) / modelPassRates.length,
-    ) * 100;
+  const meanScore =
+    modelScores.reduce((sum, score) => sum + score, 0) / modelScores.length;
+  const scoreStandardDeviation = Math.sqrt(
+    modelScores.reduce((sum, score) => sum + (score - meanScore) ** 2, 0) /
+      modelScores.length,
+  );
 
   return (
     <section
@@ -72,18 +77,18 @@ export function TestcaseMatrix({
     >
       <header className="testcase-matrix-heading">
         <div className="matrix-title">
-          <h2 id="testcase-results-title">Testcase Pass Overview</h2>
+          <h2 id="testcase-results-title">Testcase Score Overview</h2>
           <span
-            className="matrix-pass-rate-spread"
-            title={`Population standard deviation of the overall pass rates of all ${modelPassRates.length} models, in percentage points (pp). Each model has equal weight. Errors count as failures; missing results are excluded. Unaffected by filters.`}
+            className="matrix-score-spread"
+            title={`Population standard deviation of the overall scores of all ${modelScores.length} models, in score points on a 0–100 scale. Each model has equal weight. Errors receive zero credit; missing results are excluded. Unaffected by filters.`}
           >
-            Pass Rate Std. Dev.
+            Score Std. Dev.
             <strong>
-              {passRateStandardDeviation.toLocaleString('en-US', {
+              {scoreStandardDeviation.toLocaleString('en-US', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}{' '}
-              pp
+              points
             </strong>
           </span>
         </div>
@@ -103,12 +108,14 @@ export function TestcaseMatrix({
         </div>
       </header>
       <fieldset className="matrix-filters" aria-label="Filter testcase results">
-        {[
-          { value: 'all', label: 'All testcases' },
-          { value: 'all-passed', label: 'All passed' },
-          { value: 'all-failed', label: 'All failed' },
-          { value: 'incomplete', label: 'Missing results' },
-        ].map(({ value, label }) => (
+        {(
+          [
+            { value: 'all', label: 'All testcases' },
+            { value: 'all-passed', label: 'All passed' },
+            { value: 'all-failed', label: 'All failed' },
+            { value: 'incomplete', label: 'Missing results' },
+          ] as const
+        ).map(({ value, label }) => (
           <button
             key={value}
             type="button"
@@ -116,17 +123,13 @@ export function TestcaseMatrix({
             aria-pressed={filter === value}
             onClick={() => setFilter(value)}
           >
-            {label} (
-            {value === 'all'
-              ? rows.length
-              : rows.filter((row) => row.status === value).length}
-            )
+            {label} ({counts[value]})
           </button>
         ))}
       </fieldset>
       <section
         className="matrix-scroll"
-        aria-label="Testcase Pass Overview"
+        aria-label="Testcase Score Overview"
         // biome-ignore lint/a11y/noNoninteractiveTabindex: The scrollable matrix must support keyboard scrolling.
         tabIndex={0}
       >

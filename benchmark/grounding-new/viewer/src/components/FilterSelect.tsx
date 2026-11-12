@@ -2,16 +2,6 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 
-interface FilterSelectProps {
-  id: string;
-  label: string;
-  value: string;
-  options: { value: string; text: string }[];
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onChange: (value: string) => void;
-}
-
 export function FilterSelect({
   id,
   label,
@@ -20,7 +10,15 @@ export function FilterSelect({
   open,
   onOpenChange,
   onChange,
-}: FilterSelectProps) {
+}: {
+  id: string;
+  label: string;
+  value: string;
+  options: { value: string; text: string }[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onChange: (value: string) => void;
+}) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -28,6 +26,7 @@ export function FilterSelect({
   const typed = useRef({ buffer: '', at: 0 });
   const triggerId = `${id}-trigger`;
   const popupId = `${id}-options`;
+  const selectedIndex = options.findIndex((option) => option.value === value);
 
   function close(restoreFocus = false) {
     onOpenChange(false);
@@ -37,9 +36,8 @@ export function FilterSelect({
 
   function openMenu() {
     if (!options.length) return;
-    const selected = options.findIndex((option) => option.value === value);
     setPosition(null);
-    setActiveIndex(Math.max(0, selected));
+    setActiveIndex(Math.max(0, selectedIndex));
     typed.current.buffer = '';
     onOpenChange(true);
   }
@@ -60,8 +58,7 @@ export function FilterSelect({
     const query = (
       letters.every((letter) => letter === letters[0]) ? letters[0] : buffer
     ).toLocaleLowerCase();
-    const selected = options.findIndex((option) => option.value === value);
-    const current = open ? activeIndex : selected;
+    const current = open ? activeIndex : selectedIndex;
     const start = query.length === 1 ? current + 1 : current;
     const offset = options.findIndex((_, offset) =>
       options[(Math.max(0, start) + offset) % options.length].text
@@ -201,7 +198,7 @@ export function FilterSelect({
         onKeyDown={onKeyDown}
       >
         <span className="filter-select-value">
-          {options.find((option) => option.value === value)?.text ?? ''}
+          {options[selectedIndex]?.text ?? ''}
         </span>
         <span className="filter-select-sizing" aria-hidden="true">
           {options.map((option) => (
