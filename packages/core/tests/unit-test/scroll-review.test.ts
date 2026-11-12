@@ -48,6 +48,33 @@ describe('scroll review trigger', () => {
     ).toBeUndefined();
     expect(findScrollToReview(tasks, 3, tasks[3].taskId)).toBe(tasks[6]);
   });
+  it('starts a new streak when the dispatched target changes', () => {
+    const target = (x: number, description = 'list') =>
+      ({
+        ...scroll(),
+        param: { direction: 'down', locate: { center: [x, 50], description } },
+      }) as ExecutionTask;
+    const last = target(80);
+    expect(findScrollToReview([target(20), target(20), last])).toBeUndefined();
+    expect(findScrollToReview([target(80), target(80), last])).toBe(last);
+    expect(
+      findScrollToReview([target(80, 'outer'), target(80), last]),
+    ).toBeUndefined();
+    expect(findScrollToReview([scroll(), target(80), last])).toBeUndefined();
+    expect(
+      findScrollToReview([target(80), scroll(), scroll()]),
+    ).toBeUndefined();
+  });
+  it('does not merge unresolved explicit targets into one streak', () => {
+    const unresolved = () =>
+      ({
+        ...scroll(),
+        param: { locate: { description: 'list' } },
+      }) as ExecutionTask;
+    expect(
+      findScrollToReview([unresolved(), unresolved(), unresolved()]),
+    ).toBeUndefined();
+  });
   it('defaults to three scrolls', () => {
     const tasks = [scroll(), scroll(), scroll()];
     expect(findScrollToReview(tasks.slice(0, 2))).toBeUndefined();

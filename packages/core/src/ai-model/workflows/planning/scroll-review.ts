@@ -26,6 +26,19 @@ function scrollDirection(task: ExecutionTask): string {
   );
 }
 
+/** Compare dispatch targets conservatively; coordinates are not container identity. */
+function sameScrollTarget(a: ExecutionTask, b: ExecutionTask): boolean {
+  const left = a.param?.locate;
+  const right = b.param?.locate;
+  if (!left || !right) return !left && !right;
+  if (!left.center || !right.center) return a === b;
+  return (
+    left.description === right.description &&
+    left.center[0] === right.center[0] &&
+    left.center[1] === right.center[1]
+  );
+}
+
 export const DEFAULT_SCROLL_REVIEW_INTERVAL = 3;
 
 /** Review at the configured cadence of consecutive same-direction scrolls. */
@@ -49,7 +62,8 @@ export function findScrollToReview(
       (reviewedTaskId !== undefined && task.taskId === reviewedTaskId) ||
       task.subType !== 'Scroll' ||
       task.status !== 'finished' ||
-      scrollDirection(task) !== scrollDirection(last)
+      scrollDirection(task) !== scrollDirection(last) ||
+      !sameScrollTarget(task, last)
     )
       break;
     count++;
