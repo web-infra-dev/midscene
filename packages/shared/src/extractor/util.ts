@@ -379,8 +379,8 @@ export function getNodeAttributes(
 
   const attributesList = Array.from(node.attributes).map((attr) => {
     if (attr.name === 'class') {
-      // Class names can be separated by any whitespace, e.g. a list split over lines.
-      const classNames = attr.value.split(/\s+/).filter(Boolean);
+      // HTML class names are separated by ASCII whitespace, not all Unicode whitespace.
+      const classNames = attr.value.split(/[\t\n\f\r ]+/).filter(Boolean);
       return [attr.name, `.${classNames.join('.')}`];
     }
 

@@ -13,13 +13,22 @@ const attributesOf = (attributes: { name: string; value: string }[]) =>
   getNodeAttributes(new FakeElement(attributes) as any, fakeWindow);
 
 describe('getNodeAttributes', () => {
-  it('joins class names that are separated by any whitespace', () => {
+  it('joins class names that are separated by HTML ASCII whitespace', () => {
     expect(
       attributesOf([
-        { name: 'class', value: '  flex\n    items-center\tgap-2  ' },
+        { name: 'class', value: '  flex\n\r    items-center\tgap-2\f  ' },
       ]),
     ).toEqual({ class: '.flex.items-center.gap-2' });
   });
+
+  it.each(['\u00a0', '\u2003', '\u000b', '\ufeff'])(
+    'preserves non-HTML whitespace %j inside a class name',
+    (character) => {
+      expect(
+        attributesOf([{ name: 'class', value: ` a${character}b c ` }]),
+      ).toEqual({ class: `.a${character}b.c` });
+    },
+  );
 
   it('keeps a class list separated by single spaces', () => {
     expect(
