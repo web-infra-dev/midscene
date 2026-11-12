@@ -694,7 +694,10 @@ tasks:
       - aiScroll: <prompt> # Optional, the element to scroll on.
         scrollType: 'singleAction' # or 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'. Defaults to 'singleAction'.
         direction: 'down' # or 'up' | 'left' | 'right'. Defaults to 'down'. Only effective when scrollType is singleAction.
-        distance: <number> # Optional, the scroll distance in pixels. Use null to let Midscene decide automatically.
+        distance: <number> # Optional, scroll distance in device logical pixels, meaning the coordinate units used by
+        # the width and height returned by size() in a custom device integration. Use null to let Midscene decide automatically.
+        # At runtime, this distance is converted into a swipe gesture travel distance on touch devices
+        # or a wheel scroll delta on Web and desktop platforms. The actual content displacement is not guaranteed to match this value.
         deepLocate: <boolean> # Optional, whether to enable Deep Locate for this element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.

@@ -852,7 +852,7 @@ function aiScroll(
   - `opt: object` — Configuration:
     - `scrollType?: 'singleAction' | 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'` — Scroll behavior type. Default: `'singleAction'`.
     - `direction?: 'down' | 'up' | 'right' | 'left'` — Takes effect only when `scrollType` is `'singleAction'`, specifying **which direction of off-screen content to bring into view** (rather than the direction the visible content moves). For example, `'down'` scrolls down the page to reveal content below the current viewport. Default: `'down'`.
-    - `distance?: number | null` — Scroll distance in pixels; pass `null` to let Midscene choose the distance automatically.
+    - `distance?: number | null` — Scroll distance in device logical pixels, meaning the coordinate units used by the width and height returned by `size()` in a custom device integration. At runtime, this distance is converted into a swipe gesture travel distance on touch devices or a wheel scroll delta on Web and desktop platforms. The actual content displacement is not guaranteed to match this value. Pass `null` to let Midscene choose the distance automatically.
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate) (the legacy `deepThink` alias remains supported). Default: `false`.
     - `context?: string` — Additional context for this call. See [`context` and `aiContexts` precedence](#per-call-context).
     - `xpath?: string` — XPath of the target element. When provided, Midscene tries the XPath first before falling back to the cache and AI model. Default: `undefined`.
@@ -939,7 +939,7 @@ function aiPinch(
   - `locate: string | object | undefined` — Optional natural-language description of the target element to zoom, or an [image-enabled prompt](#prompting-with-images). When `undefined`, the pinch gesture is performed at the center of the screen.
   - `opt: object` — Configuration:
     - `direction: 'in' | 'out'` — **Required.** `'in'` pinches two fingers together (zoom out); `'out'` spreads two fingers apart (zoom in).
-    - `distance?: number` — Distance each finger moves in pixels. Default: one quarter of the shorter screen dimension.
+    - `distance?: number` — The amount by which the distance between the two fingers changes, in device logical pixels, meaning the coordinate units used by the width and height returned by `size()` in a custom device integration. Defaults to one quarter of the shorter screen dimension.
     - `duration?: number` — Gesture duration in milliseconds. Default: `500`.
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). Default: `false`.
     - `context?: string` — Additional context for this call. See [`context` and `aiContexts` precedence](#per-call-context).
