@@ -1,5 +1,6 @@
 import type { TModelFamily } from '@midscene/shared/env';
 import { isOpenRouter } from '../model-adapter/is-openrouter';
+import { buildOpenRouterReasoningParams } from '../model-adapter/openrouter-reasoning';
 import type {
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
@@ -10,7 +11,7 @@ const buildMimoChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
   const { baseURL, midsceneDefaults, userConfig } = input;
-  const { reasoningEnabled = false, reasoningBudget } = userConfig;
+  const { reasoningEnabled = false } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
 
   // https://platform.xiaomimimo.com/docs/zh-CN/api/chat/openai-api
@@ -28,14 +29,10 @@ const buildMimoChatCompletionParams = (
 
   const modelSpecificConfig: Record<string, unknown> = {};
   if (isOpenRouter(baseURL)) {
-    // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
-    if (reasoningEnabled !== 'default') {
-      const reasoning: Record<string, unknown> = { enabled: reasoningEnabled };
-      if (reasoningEnabled === true && reasoningBudget !== undefined) {
-        reasoning.max_tokens = reasoningBudget;
-      }
-      modelSpecificConfig.reasoning = reasoning;
-    }
+    Object.assign(
+      modelSpecificConfig,
+      buildOpenRouterReasoningParams(userConfig),
+    );
   } else {
     if (reasoningEnabled !== 'default') {
       modelSpecificConfig.thinking = {

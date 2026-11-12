@@ -33,7 +33,9 @@ describe('mimo model adapter', () => {
               ? {
                   reasoning: {
                     enabled,
-                    ...(enabled === true ? { max_tokens: 1024 } : {}),
+                    ...(enabled === true
+                      ? { effort: 'high', max_tokens: 1024 }
+                      : {}),
                   },
                 }
               : { thinking: { type: enabled ? 'enabled' : 'disabled' } };

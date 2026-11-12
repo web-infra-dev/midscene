@@ -1,5 +1,6 @@
 import type { TModelFamily } from '@midscene/shared/env';
 import { isOpenRouter } from '../../model-adapter/is-openrouter';
+import { buildOpenRouterReasoningParams } from '../../model-adapter/openrouter-reasoning';
 import type {
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
@@ -61,11 +62,7 @@ const buildDeepSeekChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
   const { baseURL, midsceneDefaults, userConfig } = input;
-  const {
-    reasoningEnabled = false,
-    reasoningEffort,
-    reasoningBudget,
-  } = userConfig;
+  const { reasoningEnabled = false, reasoningEffort } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
   const isThinkingMode =
     reasoningEnabled === true || reasoningEnabled === 'default';
@@ -90,22 +87,10 @@ const buildDeepSeekChatCompletionParams = (
 
   const modelSpecificConfig: Record<string, unknown> = {};
   if (isOpenRouter(baseURL)) {
-    // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
-    const reasoning: Record<string, unknown> = {};
-    if (reasoningEnabled !== 'default') {
-      reasoning.enabled = reasoningEnabled;
-    }
-    if (reasoningEnabled === true) {
-      if (reasoningEffort !== undefined) {
-        reasoning.effort = reasoningEffort;
-      }
-      if (reasoningBudget !== undefined) {
-        reasoning.max_tokens = reasoningBudget;
-      }
-    }
-    if (Object.keys(reasoning).length > 0) {
-      modelSpecificConfig.reasoning = reasoning;
-    }
+    Object.assign(
+      modelSpecificConfig,
+      buildOpenRouterReasoningParams(userConfig),
+    );
   } else {
     if (reasoningEnabled !== 'default') {
       modelSpecificConfig.thinking = {

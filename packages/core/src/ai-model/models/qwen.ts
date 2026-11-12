@@ -1,5 +1,6 @@
 import type { TModelFamily } from '@midscene/shared/env';
 import { isOpenRouter } from '../model-adapter/is-openrouter';
+import { buildOpenRouterReasoningParams } from '../model-adapter/openrouter-reasoning';
 import type {
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
@@ -105,15 +106,10 @@ const buildQwen3ChatCompletionParams = (
   const modelSpecificConfig: Record<string, unknown> = {};
 
   if (isOpenRouter(baseURL)) {
-    // Qwen3.5/3.6/3.7 Plus declare a reasoning switch, but no effort selection.
-    // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
-    if (reasoningEnabled !== 'default') {
-      const reasoning: Record<string, unknown> = { enabled: reasoningEnabled };
-      if (reasoningEnabled === true && reasoningBudget !== undefined) {
-        reasoning.max_tokens = reasoningBudget;
-      }
-      modelSpecificConfig.reasoning = reasoning;
-    }
+    Object.assign(
+      modelSpecificConfig,
+      buildOpenRouterReasoningParams(userConfig),
+    );
   } else {
     if (reasoningEnabled !== 'default') {
       modelSpecificConfig.enable_thinking = reasoningEnabled;
