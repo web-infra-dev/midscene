@@ -1118,7 +1118,7 @@ export const ActionPinchParamSchema = z.object({
     .positive()
     .optional()
     .describe(
-      'How far each finger moves in pixels. Defaults to a quarter of the shorter screen dimension.',
+      'The amount by which the distance between the two fingers changes, in pixels. Defaults to a quarter of the shorter screen dimension.',
     ),
   duration: z
     .number()
@@ -1145,7 +1145,7 @@ export const defineActionPinch = (config: {
   return defineAction<typeof ActionPinchParamSchema, ActionPinchParam>({
     name: 'Pinch',
     description:
-      'Perform a two-finger pinch gesture. Use direction "in" to pinch fingers together (zoom out), or "out" to spread fingers apart (zoom in). Optionally specify distance for how far each finger moves.',
+      'Perform a two-finger pinch gesture. Use direction "in" to pinch fingers together (zoom out), or "out" to spread fingers apart (zoom in). Optionally specify distance for the amount by which the distance between the two fingers changes.',
     interfaceAlias: 'aiPinch',
     paramSchema: ActionPinchParamSchema,
     sample: {
