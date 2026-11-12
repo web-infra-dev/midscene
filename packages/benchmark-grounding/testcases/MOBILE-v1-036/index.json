@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-036",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires understanding which sorting option orders items by their remaining time and locating its radio button."
+  },
+  "instruction": {
+    "en": "Locate the radio button for sorting auction or time-limited items by their remaining time.",
+    "zh": "定位按照拍卖或限时商品的剩余时间排序的单选框。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1792.0, 120.0, 1857.0, 55.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L5070",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#row=362",
+    "image": {
+      "format": "png",
+      "sha256": "393c4211221c65de9824011a92d22191f65864e3eef6a3fb1bbaaa0503b6a043"
+    },
+    "patch": "Revised the English and Chinese instructions to explicitly request the radio button for sorting auction or time-limited items by their remaining time. Expanded the ground-truth box from [1797.0, 114.0, 1852.0, 60.0] to [1792.0, 120.0, 1857.0, 55.0] (top, right, bottom, left) to cover the entire radio button with a small margin. Updated category.reason to describe the sorting-function understanding required.",
+    "collectedAt": 1792485870293
+  }
+}

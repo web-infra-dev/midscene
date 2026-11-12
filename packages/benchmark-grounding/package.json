@@ -1,0 +1,9 @@
+{
+  "name": "@midscene/benchmark-grounding",
+  "version": "1.17.8",
+  "files": ["testcases"],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-008",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires calendar arithmetic and a conditional adjustment based on the weekday, rather than matching an explicitly provided date."
+  },
+  "instruction": {
+    "en": "Starting from the selected date, move forward 9 days. If that date is a Sunday, move forward 1 more day. Select the resulting date.",
+    "zh": "从当前选中的日期往后推 9 天；如果得到的日期是周日，则再往后推 1 天。请选择最终日期。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [553.1, 467.7, 600.9, 411.9],
+  "reference": {
+    "url": "https://raw.githubusercontent.com/xlang-ai/OSWorld-G/daa6bd8e0e629f0917ad2984df930bf0bd967540/benchmark/OSWorld-G.json#L9745",
+    "dataset": "OSWorld-G",
+    "recordId": "ZNXMeuznz8-2",
+    "image": {
+      "format": "png",
+      "sha256": "1dbc4aff89281f823da7676537830cf42073a252b993026514461d3570827233"
+    },
+    "patch": "Changed the instruction from selecting the day after the selected date to selecting nine days after it, or the following day if that date is a Sunday; moved the ground truth from December 10 to December 18, 2024; added instruction.zh by translating the revised English instruction.",
+    "collectedAt": 1792485870620
+  }
+}

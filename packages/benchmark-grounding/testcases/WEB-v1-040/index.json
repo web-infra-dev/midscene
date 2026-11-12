@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-040",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires comparing the account’s relative performance on the radar chart, identifying the strongest capability, and locating its associated improvement-suggestions link."
+  },
+  "instruction": {
+    "en": "View the improvement suggestions for the strongest capability on the current account's radar chart.",
+    "zh": "查看当前账号雷达图中能力最强项的提升建议。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [738.0, 3488.0, 787.0, 3351.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L7912",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#565",
+    "image": {
+      "format": "png",
+      "sha256": "3ea5310213e12b37521f78257faa580c13fdd49986d47c2e0bd458114b8f62e5"
+    },
+    "patch": "Replaced the original English and Chinese instructions to view the note-data overview with a bilingual request to view improvement suggestions for the strongest capability on the account’s radar chart. Changed groundTruth from [1345.0, 798.0, 1439.0, 509.0] to [738.0, 3488.0, 787.0, 3351.0] in [top, right, bottom, left] pixel coordinates, moving the target from the note-data overview tab to the improvement-suggestions link for 发文活跃度, the strongest dimension on the radar chart, which exceeds 95% of comparable creators. Changed category.item from Functional to Reasoning and updated category.reason to describe comparing the displayed dimensions.",
+    "collectedAt": 1792485870811
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-052",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "This task requires comparing visible discussion counts against a numerical target and identifying the smallest difference."
+  },
+  "instruction": {
+    "en": "View the discussion with a post count closest to 72K.",
+    "zh": "查看帖子数量最接近 72K 的相关讨论。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1752.0, 1179.0, 2046.0, 0.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L58428",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "3075",
+    "image": {
+      "format": "png",
+      "sha256": "3032a171754d83f4e9b858ee5688698958b142fc22a3de3884f849edd5050739"
+    },
+    "patch": "Revised the original English instruction to request the discussion whose post count is closest to 72K, removing the sports-category clue, and added the corresponding Chinese instruction. Among the visible counts, Game 4 has the closest at 68.9K posts. Extended the ground-truth box's horizontal boundaries from [14, 1068] to the image edges [0, 1179] to cover the discussion row, including its overflow icon, and updated category.reason to explain the numerical comparison.",
+    "collectedAt": 1792485870323
+  }
+}

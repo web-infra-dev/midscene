@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-096",
+  "platform": "mobile",
+  "category": {
+    "item": "Small Target",
+    "reason": "The requested location is the top edge of a particular chart bar, so success depends on precise localization within the element rather than identifying the whole bar."
+  },
+  "instruction": {
+    "en": "Select the top of the bar between 06:00 and 12:00.",
+    "zh": "选中 06:00 与 12:00 之间柱子的顶端。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [949.0, 496.0, 986.0, 459.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/mobile/ANumericRange240json/A5ChartPoint40.json#L31",
+    "dataset": "FineState-Bench",
+    "recordId": "mobile/ANumericRange240json/A5ChartPoint40.json#30",
+    "image": {
+      "format": "png",
+      "sha256": "ef710aac41c37dc4c7ca0ec942919e6530b603862c5f8f25777dd744f788ef74"
+    },
+    "patch": "Corrected the English instruction to refer to the top of the bar rather than the bar chart and added instruction.zh by translating the original English instruction. Tightened the ground-truth box from [929.0, 508.0, 1007.0, 439.0] to [949.0, 496.0, 986.0, 459.0] (top, right, bottom, left), reducing the accepted surrounding space while keeping the top of the orange bar between 06:00 and 12:00 as the target. Updated category.reason to explain why locating a precise point on a chart bar is a fine-grained task. Classified category.item as Small Target.",
+    "collectedAt": 1792485870555
+  }
+}

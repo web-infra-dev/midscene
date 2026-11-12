@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-082",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is a specific street name that must be located among the text labels on the map."
+  },
+  "instruction": {
+    "en": "Find the text “W Clark St”.",
+    "zh": "找到文本“W Clark St”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [770, 538, 848, 447],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=432",
+    "image": {
+      "format": "jpeg",
+      "sha256": "70fc834ffd9b07dc72d6b6af682b7cdee133c314f99314e6d5bd4dc038fa6190"
+    },
+    "patch": "Replaced the original instruction “Click on COMPASS” with an instruction to find the text “W Clark St” and added instruction.zh by translating the revised English instruction. Changed groundTruth from [131.5, 675.8, 167.5, 538.5] to [770, 538, 848, 447] in [top, right, bottom, left] pixel coordinates, moving the target from the COMPASS tab to the street name on the map. Updated category.item and category.reason for the new text-location task.",
+    "collectedAt": 1793776824833
+  }
+}

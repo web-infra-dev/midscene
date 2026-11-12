@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-097",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Emails from the same sender are repeated; the unchecked state distinguishes the target checkbox from the checked one."
+  },
+  "instruction": {
+    "en": "Locate the checkbox of the unchecked \"Microsoft 帐户团队\" email.",
+    "zh": "定位未勾选的“Microsoft 帐户团队”邮件的复选框。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1919.0, 121.0, 2000.0, 43.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/mobile/BToggleOption200json/B2Checkbox40.json#L26",
+    "dataset": "FineState-Bench",
+    "recordId": "mobile/BToggleOption200json/B2Checkbox40.json#25",
+    "image": {
+      "format": "jpeg",
+      "sha256": "8ab874bc3842231586ff81334281274473ac28e566d9a140545dc9570a56dda2"
+    },
+    "patch": "Changed the instruction to locate the unchecked \"Microsoft 帐户团队\" email instead of the checked one, replaced the translated sender name with the exact on-screen text, and removed the image-middle location hint. Added instruction.zh by translating the revised English instruction. Moved the ground truth from the checked checkbox [1003.0, 120.0, 1084.0, 42.0] to the unchecked checkbox [1919.0, 121.0, 2000.0, 43.0] (top, right, bottom, left), and updated the category reason. Classified category.item as Reasoning.",
+    "collectedAt": 1792485870557
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-008",
+  "platform": "mobile",
+  "category": {
+    "item": "Color Recognition",
+    "reason": "The task requires recognizing the currently selected color and identifying the corresponding target color in the picker."
+  },
+  "instruction": {
+    "en": "Make a new selection in the bottommost color picker: if green is currently selected, select blue; if red is currently selected, select yellow; if blue is currently selected, select black; if yellow is currently selected, select green.",
+    "zh": "在最下方颜色选择器中做出新的选择：如果当前选中的是绿色就改选蓝色，如果当前选中的是红色就改选黄色，如果当前选中的是蓝色就改选黑色，如果当前选中的是黄色就改选绿色。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [2147.0, 627.0, 2237.0, 537.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/mobile/CSpecificData200json_cn/C2ColorPicker40.json#L37",
+    "dataset": "FineState-Bench",
+    "recordId": "mobile/CSpecificData200json_cn/C2ColorPicker40.json#2",
+    "image": {
+      "format": "png",
+      "sha256": "ae6d94cc0306788b006f770090d1fe77340885f4d3ca93c11912f4dbf5958aca"
+    },
+    "patch": "Replaced the original instruction to select the first blue option to the left of green with conditional rules that determine the new color from the currently selected color, removing the relative-position clue. Added instruction.en by translating the revised Chinese instruction. Adjusted groundTruth from [2125.0, 634.0, 2257.0, 512.0] to [2147.0, 627.0, 2237.0, 537.0] in [top, right, bottom, left] pixel coordinates to fit the blue circle. Updated category.reason to explain the recognition of the selected and target colors.",
+    "collectedAt": 1792485870190
+  }
+}

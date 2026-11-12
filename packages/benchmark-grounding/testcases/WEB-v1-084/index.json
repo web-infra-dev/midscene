@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-084",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires identifying the current destination and applying a conditional rule to select the appropriate navigation control."
+  },
+  "instruction": {
+    "en": "If the current destination is Quincy, click Go; otherwise, swap the destination and the departure point.",
+    "zh": "如果当前目的地是 Quincy 则点击出发，否则交换目的地和出发地。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [488.0, 380.0, 535.0, 85.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L2762",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2_230",
+    "image": {
+      "format": "png",
+      "sha256": "4d991cbe5ac7854439818ff7fe3cd520b8b155f0c39ac4326abc44f600e273ce"
+    },
+    "patch": "Replaced the original instruction to click the Go button with a conditional instruction based on the current destination, and added instruction.zh by translating the revised English instruction. Changed groundTruth from [398.0, 751.0, 472.0, 669.0] to [488.0, 380.0, 535.0, 85.0] in [top, right, bottom, left] pixel coordinates, moving the target from the Go button to Reverse Directions because the current destination is Waltham. Changed category.item from Basic Element to Reasoning and updated category.reason to describe the conditional decision.",
+    "collectedAt": 1792485870988
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-094",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is a text element identified by its exact displayed wording."
+  },
+  "instruction": {
+    "en": "Find the text “Classical Christmas”.",
+    "zh": "找到文本“Classical Christmas”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1092.0, 858.0, 1150.0, 310.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L1070",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#89",
+    "image": {
+      "format": "png",
+      "sha256": "427923e422b581e0f939e9969bf70eb7174ebcccc635cce2203f7d013e946d2d"
+    },
+    "patch": "Replaced the original instruction “view more information” with a request to find the displayed text “Classical Christmas” and added instruction.zh by translating the revised English instruction. Changed groundTruth from [164, 1121, 250, 1035] to [1092.0, 858.0, 1150.0, 310.0] in [top, right, bottom, left] pixel coordinates to cover the specified text.",
+    "collectedAt": 1793776824833
+  }
+}

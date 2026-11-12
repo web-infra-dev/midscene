@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-010",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires associating the named author with the vote count displayed on that author’s reply."
+  },
+  "instruction": {
+    "en": "Find the upvote count on MagicJoshByGosh's reply.",
+    "zh": "定位 MagicJoshByGosh 的回复的点赞数。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [686.0, 798.0, 699.0, 774.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L4970",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#414",
+    "image": {
+      "format": "png",
+      "sha256": "77726c40632695356a6cff0e3c007448d24e5b57d14d176dbee81f9984098704"
+    },
+    "patch": "Replaced the original instruction “upvote MagicJoshByGosh's reply” with a request to locate the upvote count on that reply and added a corresponding Chinese instruction. Changed groundTruth from [681, 807, 704, 748] to [686.0, 798.0, 699.0, 774.0] in [top, right, bottom, left] pixel coordinates to target the displayed vote count instead of the voting controls. Classified category.item as Reasoning and updated category.reason to describe associating the author with the vote count.",
+    "collectedAt": 1794363025685
+  }
+}

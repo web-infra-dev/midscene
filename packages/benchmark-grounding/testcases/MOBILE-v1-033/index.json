@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-033",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires mapping a travel intent to the destination shortcut in the ride-hailing interface."
+  },
+  "instruction": {
+    "en": "I want to go to the suggested destination.",
+    "zh": "我想去推荐的目的地。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1130.0, 884.0, 1197.0, 504.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L8696",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#row=621",
+    "image": {
+      "format": "png",
+      "sha256": "9a4ecfd108545e8a3d10f87d9b1386065535a47285e3265fa8de5aa3981d7ca1"
+    },
+    "patch": "Replaced the original request to switch to driver-side functionality with a request to go to the suggested destination. Moved groundTruth from the car-owner navigation entry [2085.0, 386.0, 2206.0, 262.0] to the visible destination shortcut [1130.0, 884.0, 1197.0, 504.0] (top, right, bottom, left), and updated category.reason to describe the destination-selection function.",
+    "collectedAt": 1792485870286
+  }
+}

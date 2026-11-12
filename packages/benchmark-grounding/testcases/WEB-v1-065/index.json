@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-065",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The requested game-platform category is named by its visible label."
+  },
+  "instruction": {
+    "en": "Select game boy category",
+    "zh": "选择 Game Boy 分类。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [70, 520, 210, 386],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1098",
+    "image": {
+      "format": "png",
+      "sha256": "13d9c382f23a057056472ec834bac4a00b4e44932ff10adaf369e1bda50ae52e"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction. Expanded groundTruth from [71.7, 518.6, 203.1, 387.1] to [70, 520, 210, 386] in [top, right, bottom, left] pixel coordinates to include the complete Game Boy category illustration and its label.",
+    "collectedAt": 1793870229082
+  }
+}

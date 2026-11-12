@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-094",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires comparing storage capacities against a cash budget or a zero-down monthly payment limit to identify the highest affordable option."
+  },
+  "instruction": {
+    "en": "I have $1,199 in cash, or I can afford a zero-down payment plan of $61 per month. Help me choose the highest configuration I can afford.",
+    "zh": "我现在有 $1,199 的现金，或者我每个月可以承受 $61 的 0 首付分期付款，帮我选择我可以承担的最高配置。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [622.0, 1801.0, 705.0, 1472.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L4934",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2_411",
+    "image": {
+      "format": "png",
+      "sha256": "a5f67062a220fd3f50480e43f72a3627c881a0f4d751ba514e5bb8e12877024b"
+    },
+    "patch": "Replaced the original English instruction “choose the 1Tb storage” with a request to choose the highest storage configuration affordable with $1,199 in cash or a zero-down monthly payment of at most $61, and added instruction.zh by translating the revised English instruction. Changed groundTruth from [723.0, 1801.0, 806.0, 1472.0] to [622.0, 1801.0, 705.0, 1472.0] in [top, right, bottom, left] pixel coordinates, moving the target from the 1 TB option to the 512 GB option, whose listed monthly payment is $58.29. Changed category.item from Basic Element to Reasoning and updated category.reason to describe comparing the prices with the two budget limits.",
+    "collectedAt": 1792485871016
+  }
+}

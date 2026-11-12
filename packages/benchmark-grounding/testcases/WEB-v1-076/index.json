@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-076",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires recognizing that an existing account should use the login link rather than the registration controls."
+  },
+  "instruction": {
+    "en": "I already have an account. Locate the next action.",
+    "zh": "我已经有账号了，定位下一步操作。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1354.0, 1704.0, 1410.0, 1492.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L16732",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#1195",
+    "image": {
+      "format": "png",
+      "sha256": "23364bcd772032806326b581874de42ddc51ac8d498f132268dd8aacc632eabf"
+    },
+    "patch": "Replaced the original English and Chinese instructions to find the Google sign-up button with a request to locate the next action for an existing account. Changed groundTruth from [1027.0, 1836.0, 1115.0, 1187.0] to [1354.0, 1704.0, 1410.0, 1492.0] in [top, right, bottom, left] pixel coordinates, moving the target to the login link. Changed category.item from Basic Element to Functional and updated category.reason to describe recognizing the login action.",
+    "collectedAt": 1792485870971
+  }
+}

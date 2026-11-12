@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-093",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The target stream is distinguished from other live streams by the two teams named in its title."
+  },
+  "instruction": {
+    "en": "Watch the match between LGD and WE.",
+    "zh": "观看 LGD 和 WE 战队的比赛。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [293.0, 734.0, 545.0, 412.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/610",
+    "image": {
+      "format": "png",
+      "sha256": "8090e29b8f6646294bb1b5042161ad4120b765e516354cacd31f6019678afd64"
+    },
+    "patch": "Changed the original instruction to identify the match by its teams instead of the stream’s ordinal position and added instruction.zh by translating the revised English instruction. Adjusted groundTruth from [267.7, 740.0, 449.2, 418.0] to [293.0, 734.0, 545.0, 412.0] in [top, right, bottom, left] pixel coordinates to cover the matching stream card, including its thumbnail, title, channel, category and tag, while excluding the navigation bar. Classified category.item as Reasoning.",
+    "collectedAt": 1793776824833
+  }
+}

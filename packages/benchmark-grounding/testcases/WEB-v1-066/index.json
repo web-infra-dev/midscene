@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-066",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The request names a visible service label, so the target is located by direct text matching."
+  },
+  "instruction": {
+    "en": "Find the text \"礼品卡\".",
+    "zh": "找到文本“礼品卡”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1243.0, 3225.0, 1279.0, 3143.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L6288",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#449",
+    "image": {
+      "format": "png",
+      "sha256": "3a777974699bd599703129c081f1bd90765c83a79852d111faec90aff9a97f48"
+    },
+    "patch": "Replaced the translated label 'Gift Card' in instruction.en with the exact text '礼品卡' shown in the screenshot; the Chinese instruction and ground truth remain unchanged. Updated category.reason to explain the direct text-matching task.",
+    "collectedAt": 1792485870939
+  }
+}

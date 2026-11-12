@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-067",
+  "platform": "web",
+  "category": {
+    "item": "Refusal",
+    "reason": "The requested Training item is absent from the visible Resources menu, so it cannot be located."
+  },
+  "instruction": {
+    "en": "Find “Training” in the open “Resources” drop-down menu.",
+    "zh": "在已打开的 “Resources” 下拉菜单中找到 “Training”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1274",
+    "image": {
+      "format": "png",
+      "sha256": "68b7c796bd2a35ff91521e3c36af69730a9940ce1deb9b9e4dbe3551ec3ab1be"
+    },
+    "patch": "Replaced the original instruction “Open Solutions dropdown menu” with a request to locate “Training” in the open “Resources” menu and added a corresponding Chinese instruction. Changed groundTruth from [16.4, 272.9, 55.9, 171.0] to REFUSAL because the requested item is absent from the visible menu. Changed category.item from Basic Element to Refusal and updated category.reason accordingly.",
+    "collectedAt": 1794206764959
+  }
+}

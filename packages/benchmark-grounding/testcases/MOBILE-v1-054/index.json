@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-054",
+  "platform": "mobile",
+  "category": {
+    "item": "Refusal",
+    "reason": "The requested heart icon is absent from the specified bottom-center position, so the task requires refusal instead of selecting a different control."
+  },
+  "instruction": {
+    "en": "Select the heart icon in the center at the bottom.",
+    "zh": "在底部中央选择心形图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/refusal_grounding.json#L457",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/refusal_grounding.json#row=65",
+    "image": {
+      "format": "png",
+      "sha256": "95e7d0e0e7d694c434331db933ec3ede2c5c5d6dac5ae950625e3d20eb5c525f"
+    },
+    "patch": null,
+    "collectedAt": 1792485870327
+  }
+}

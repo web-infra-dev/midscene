@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-088",
+  "platform": "web",
+  "category": {
+    "item": "Color Recognition",
+    "reason": "The target text is identified by the multicolored glow around its letters."
+  },
+  "instruction": {
+    "en": "Find the multicolored text.",
+    "zh": "找到色彩五彩缤纷的文本。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [306, 833, 363, 260],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/613",
+    "image": {
+      "format": "png",
+      "sha256": "5a168cbfddaa9e983e27b1776c7634702adcd789e87a2009c7f7ddcf3c8efc07"
+    },
+    "patch": "Replaced the original instruction “Navigate to the AirPods section” with a request to find the multicolored text, and added instruction.zh by translating the revised English instruction. Changed groundTruth from [0, 537, 43.8, 494.3] to [306, 833, 363, 260] in [top, right, bottom, left] pixel coordinates, moving the target from the AirPods navigation item to the multicolored “Hello, Apple Intelligence.” text. Changed category.item from Basic Element to Color Recognition and updated category.reason to describe identification by color.",
+    "collectedAt": 1793867311106
+  }
+}

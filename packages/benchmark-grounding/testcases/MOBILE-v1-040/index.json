@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-040",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The visible weather icon and temperature directly identify the weather indicator, making this a basic visual element localization task."
+  },
+  "instruction": {
+    "en": "Locate today's weather.",
+    "zh": "定位今日天气。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [375, 260, 445, 96],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L752",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#752",
+    "image": {
+      "format": "png",
+      "sha256": "a947d56edbc160bf084001944db1a0747ef5f68f02d4e519f7739b883744570c"
+    },
+    "patch": "Replaced the original instruction “Use the right icon in search bar” with a request to locate today’s weather and added instruction.zh by translating the revised English instruction. Changed groundTruth from [2125, 993, 2290, 867] to [375, 260, 445, 96] in [top, right, bottom, left] pixel coordinates, moving the target from the search-bar icon to the weather indicator. Assigned the Basic Element category and explained its direct visual identification basis.",
+    "collectedAt": 1793776824833
+  }
+}

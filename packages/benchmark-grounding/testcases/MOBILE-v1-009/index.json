@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-009",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The creator name identifies the corresponding lens in the visible list."
+  },
+  "instruction": {
+    "en": "Use the lens created by Pedro.",
+    "zh": "使用 Pedro 创作的 lenses。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [752.5, 793.5, 1283.0, 546.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=300",
+    "image": {
+      "format": "jpeg",
+      "sha256": "8b5e5167610dbcf60ab4668fb7786b25dc8ed197f373e7468811e2aa0fe69af5"
+    },
+    "patch": "Reworded the original instruction “Click on \"Holo Mask\" by Pedro Cruz.” to request the lens created by Pedro without naming the lens, and added a corresponding Chinese instruction. Expanded groundTruth from [752.5, 793.5, 1188.2, 546.0] to [752.5, 793.5, 1283.0, 546.0] in [top, right, bottom, left] pixel coordinates to cover the complete lens item, including its preview, icon, name and creator. Updated category.reason to describe identifying the lens by its creator.",
+    "collectedAt": 1794362925640
+  }
+}

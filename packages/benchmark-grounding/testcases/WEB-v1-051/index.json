@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-051",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The request requires understanding the function of a message-center navigation entry and distinguishing it from another messages control."
+  },
+  "instruction": {
+    "en": "In the message center, open your own messages from the left sidebar.",
+    "zh": "在消息中心，从左侧边栏打开自己的消息。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [258.0, 1053.0, 330.0, 780.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L6428",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#459",
+    "image": {
+      "format": "png",
+      "sha256": "99f08796c30701f7e5d3129482b5773003f6fa8329497878a486ae51c962ceb0"
+    },
+    "patch": "The original instruction, 'View user messages', did not distinguish between the '我的消息' entry in the message center's left sidebar and the envelope icon with '消息' text at the top right. Only the left-sidebar entry is accepted by the groundTruth, although either control could reasonably be selected from the original wording. Rewrote both instructions to open the user's own messages from the message center's left sidebar. Updated category.reason to make the distinction between the two visible entries explicit, while retaining the Functional category and the existing groundTruth.",
+    "collectedAt": 1792485870869
+  }
+}

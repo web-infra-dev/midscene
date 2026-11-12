@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-084",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Several character cards repeat the same favorite control; the character-role label distinguishes which instance is requested."
+  },
+  "instruction": {
+    "en": "Locate the favorite button of the supporting character in the character descriptions.",
+    "zh": "定位角色描述中配角的收藏按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1550.0, 921.0, 1658.0, 848.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L6995",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "368",
+    "image": {
+      "format": "png",
+      "sha256": "b834f44264f1b96ed2c78793d6c78ac81bedf5a0f368c024c3b50afe82152eec"
+    },
+    "patch": "Revised the original English instruction to locate the supporting character's favorite button instead of the 120,000-count control, and added the corresponding Chinese instruction. Moved the ground-truth box from the protagonist's heart and count [1550.0, 459.0, 1658.0, 386.0] to the supporting character's heart and count [1550.0, 921.0, 1658.0, 848.0] (top, right, bottom, left). Updated category.reason to explain how the visible supporting-character label disambiguates the repeated controls. Classified category.item as Reasoning.",
+    "collectedAt": 1792485870471
+  }
+}

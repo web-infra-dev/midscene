@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-002",
+  "platform": "mobile",
+  "category": {
+    "item": "Small Target",
+    "reason": "The task requires precise localization of a resize handle on the selected text box rather than the text box as a whole."
+  },
+  "instruction": {
+    "en": "Find the upper-right resize handle of the selected text box on the canvas.",
+    "zh": "找到画布上所选文本框外接选框右上角的缩放手柄。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1315.0, 746.0, 1362.0, 699.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1047",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1047",
+    "image": {
+      "format": "png",
+      "sha256": "d895fb7f7062c4988eac5752c87e4851fb0c61fe96a36a6f30bcb03501a08bf9"
+    },
+    "patch": "Replaced the original instruction “Press the second button from the left” with a request to find the upper-right resize handle of the selected text box, and added a corresponding Chinese instruction. Changed groundTruth from [2212, 417, 2320, 231] to [1315.0, 746.0, 1362.0, 699.0] in [top, right, bottom, left] pixel coordinates to target the resize handle instead of the toolbar button. Classified category.item as Small Target and updated category.reason to describe precise handle localization.",
+    "collectedAt": 1794362984937
+  }
+}

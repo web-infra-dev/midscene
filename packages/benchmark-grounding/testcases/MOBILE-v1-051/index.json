@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-051",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "This task requires interpreting the highlighted current date and calculating a month offset before locating the corresponding calendar entry."
+  },
+  "instruction": {
+    "en": "In the 2025 year view, navigate to the month five months after today.",
+    "zh": "在 2025 全年日历视图中，导航到距离今日五个月后的月份。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1359.0, 1135.0, 1754.0, 771.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L59359",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "3124",
+    "image": {
+      "format": "png",
+      "sha256": "665ffc9fdfeef84b3b117c66ad196f8c93e6aabd6ed62644a0cf1320e426a8ba"
+    },
+    "patch": "Revised the original English instruction to ask for the month five months after today in the 2025 year view and added the corresponding Chinese instruction. The calendar highlights April 29, 2025 as today, so the target remains September. Updated category.reason to describe the date-offset reasoning; the ground-truth box is unchanged.",
+    "collectedAt": 1792485870321
+  }
+}

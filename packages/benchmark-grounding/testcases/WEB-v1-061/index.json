@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-061",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires identifying the book order and associating it with the shipping information in the same order row."
+  },
+  "instruction": {
+    "en": "Find the shipping information for the order containing a book.",
+    "zh": "找到书籍类商品订单的运费信息。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1704.0, 2568.0, 1733.0, 2377.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L1094",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#78",
+    "image": {
+      "format": "png",
+      "sha256": "e00b7c341866a5c6d225ced19e16cb5fd7a26af182da4d15329f38c9f8273ac1"
+    },
+    "patch": "Replaced the original instruction to select images of book-category products with a request to find the shipping information for the order containing a book, and revised the Chinese instruction accordingly. Changed groundTruth from [1658.0, 1147.0, 1832.0, 1006.0] to [1704.0, 2568.0, 1733.0, 2377.0] in [top, right, bottom, left] pixel coordinates, moving the target from the book image to the order's shipping information. Updated category.reason to describe associating the book order with its shipping information.",
+    "collectedAt": 1792485870922
+  }
+}

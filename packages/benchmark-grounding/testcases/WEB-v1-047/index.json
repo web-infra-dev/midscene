@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-047",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is identified by its function as the control for the upper bound of the price filter."
+  },
+  "instruction": {
+    "en": "Locate the maximum-price slider handle in the price filter.",
+    "zh": "定位价格筛选器的最高价格范围滑块。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1038.0, 912.0, 1081.0, 869.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L1332",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#95",
+    "image": {
+      "format": "png",
+      "sha256": "548d8f303df9c697d9f876619a51ef95f7cbcfb2a9af038e33c8c4bf7f3c8197"
+    },
+    "patch": "Changed both instructions to locate the maximum-price slider handle rather than the price-range slider generally. Narrowed the ground truth from the whole slider to the right-hand handle and updated category.reason to describe its upper-bound function.",
+    "collectedAt": 1792485870844
+  }
+}

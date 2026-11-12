@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-023",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires filtering calendar dates by availability and weekday, then comparing their prices to identify a ranked value."
+  },
+  "instruction": {
+    "en": "Select the available Sunday date with the second-highest price. (Gray dates are unavailable.)",
+    "zh": "选择可选的周日价格第二高的日期。（灰色日期表示不可选。）"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1062.0, 803.0, 1158.0, 491.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L870",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#62",
+    "image": {
+      "format": "png",
+      "sha256": "23cb3458fa767680727cc38fd2ec5f0f4381de30da6a7ae1ff147a32a8462683"
+    },
+    "patch": "Specified in both instructions that only available Sunday dates should be considered and that gray dates are unavailable. Changed the ground truth from the gray October 5, 2025 date to September 21, 2025, the available Sunday with the second-highest price, and updated category.reason to describe the required availability and price comparisons.",
+    "collectedAt": 1792485870684
+  }
+}

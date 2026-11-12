@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-001",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is a named brand-filter button; matching the visible label to the requested brand is a basic UI-element localization task."
+  },
+  "instruction": {
+    "en": "Find the button labeled \"Nikon\" in the horizontal brand filter row above the search results.",
+    "zh": "找到搜索结果上方横向品牌筛选栏中标有“Nikon”的按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [585.0, 1337.0, 653.0, 1199.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L5406",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#386",
+    "image": {
+      "format": "png",
+      "sha256": "fa394e2a8ad829c4d0384a5f2100f1d2bafd285de56160577aaf28b761605582"
+    },
+    "patch": "Clarified in both instructions that the target is in the horizontal brand filter row above the search results, distinguishing it from the Nikon checkbox in the sidebar.",
+    "collectedAt": 1792485870573
+  }
+}

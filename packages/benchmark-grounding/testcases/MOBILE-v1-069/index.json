@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-069",
+  "platform": "mobile",
+  "category": {
+    "item": "Refusal",
+    "reason": "The visible payment options end with LINE Pay, so there is no next payment option to locate."
+  },
+  "instruction": {
+    "en": "Find the payment option immediately after LINE Pay.",
+    "zh": "找到 LINE Pay 的下一个支付选项。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L86",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#6",
+    "image": {
+      "format": "png",
+      "sha256": "eb30cb201fa751ca62207dab3e8b7b65e6a93cea71a936f164e3774f24d02926"
+    },
+    "patch": "Replaced the original instruction to find the LINE Pay icon with a request for the next payment option after LINE Pay. Changed groundTruth from [1096, 127, 1171, 51] to REFUSAL because LINE Pay is the last visible payment option. Changed category.item from Small Target to Refusal and updated category.reason to explain why the requested option is absent.",
+    "collectedAt": 1792485870411
+  }
+}

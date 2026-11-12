@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-036",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target hotel price marker is identified by its spatial proximity to a named landmark on the map."
+  },
+  "instruction": {
+    "en": "On the map, among hotels with visible prices, find the price marker for the hotel nearest to \"天桥演艺\".",
+    "zh": "在地图上显示价格的酒店中，找到距离“天桥演艺”最近的酒店的价格指示器。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1609.0, 2195.0, 1665.0, 2071.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L6568",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#469",
+    "image": {
+      "format": "png",
+      "sha256": "36e2f431c0b981d2c4765fffad3feb7f9971d6dddab76413c8c03af7c9cf0670"
+    },
+    "patch": "Changed both instructions from finding the nearest sold-out hotel to locating the price marker of the nearest hotel among those with visible prices, and replaced the original translated landmark name 'Tianqiao Performing Arts' with the visible map label '天桥演艺'. Moved the ground truth from the sold-out hotel marker to the nearby US$243 price marker. Changed category.item from Reasoning to Relative Position and updated category.reason to reflect localization by proximity to the landmark.",
+    "collectedAt": 1792485870791
+  }
+}

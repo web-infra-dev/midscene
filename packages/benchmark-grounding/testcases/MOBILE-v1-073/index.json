@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-073",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The calculator key is directly identified by the decimal point symbol."
+  },
+  "instruction": {
+    "en": "Locate the decimal point button.",
+    "zh": "定位小数点按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1185.2, 337.5, 1414.8, 180.8],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=333",
+    "image": {
+      "format": "jpeg",
+      "sha256": "e3bd17b8b9fc292bd27306a8b9dc7565a66b54399d51fa7ecd9384d1f6cea300"
+    },
+    "patch": "Replaced the original instruction to click the equals button with a request to locate the decimal point button, and added a corresponding Chinese instruction. Changed groundTruth from [1185.2, 494.2, 1414.8, 337.5] to [1185.2, 337.5, 1414.8, 180.8] in [top, right, bottom, left] pixel coordinates, moving the target to the adjacent decimal point button. Updated category.reason to describe identification by the decimal point symbol.",
+    "collectedAt": 1793867571070
+  }
+}

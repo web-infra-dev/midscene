@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-066",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires recognizing the video play icon by its function rather than matching a text label."
+  },
+  "instruction": {
+    "en": "Click the button to start the video",
+    "zh": "点击按钮开始播放视频。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1666, 593, 1795, 409],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1089",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1089",
+    "image": {
+      "format": "png",
+      "sha256": "20d01f811840ca800fad2701d1461ea000a62b0367c8760ebd87f267b0bd1e81"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793867814763
+  }
+}

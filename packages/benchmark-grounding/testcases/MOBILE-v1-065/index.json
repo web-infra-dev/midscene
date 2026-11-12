@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-065",
+  "platform": "mobile",
+  "category": {
+    "item": "Small Target",
+    "reason": "The task requires precise localization of a small text label in a dense camera toolbar."
+  },
+  "instruction": {
+    "en": "Find the text \"闪光灯\".",
+    "zh": "找到“闪光灯”文本。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [389.0, 1048.0, 428.0, 930.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L13694",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#978",
+    "image": {
+      "format": "png",
+      "sha256": "62b4d3188a7ca085cbf1c701bf66f499c88d71b7c38f07101b5ac660c4acfce6"
+    },
+    "patch": "Revised the original English instruction to quote the Chinese label as displayed instead of translating it, and updated category.reason to describe the small text target. The ground truth remains on the label.",
+    "collectedAt": 1792485870353
+  }
+}

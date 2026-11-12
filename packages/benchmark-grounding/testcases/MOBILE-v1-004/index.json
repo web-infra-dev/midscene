@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-004",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The correct favorite control must be distinguished from the other category controls by the clown on its cover."
+  },
+  "instruction": {
+    "en": "Add the category whose cover shows a clown to favorites.",
+    "zh": "收藏封面图是小丑的类目。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [900, 521, 951, 470],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=265",
+    "image": {
+      "format": "jpeg",
+      "sha256": "c373e4544cac9cc9cdef2e6345e1dc6da94a50e5dfbdde343af576b0d7991a15"
+    },
+    "patch": "Replaced the original instruction “Click on the list icon to view categories.” with an instruction to favorite the category whose cover shows a clown, and added instruction.zh by translating the revised English instruction. Changed groundTruth from [73.8, 954.0, 199.8, 828.0] to [900, 521, 951, 470] in [top, right, bottom, left] pixel coordinates, moving the target from the categories list icon to the favorite star on the clown category. Updated category.item to Reasoning and category.reason to reflect selection among similar favorite controls.",
+    "collectedAt": 1793776824833
+  }
+}

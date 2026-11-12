@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-035",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The Senior Citizens option is the fare category for travelers who meet the displayed age-based eligibility condition."
+  },
+  "instruction": {
+    "en": "I am an ordinary citizen aged 60 or older; select the most appropriate option.",
+    "zh": "我是一个年满 60 周岁的普通市民，选择最合适的选项。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1543, 853, 1674, 415],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L933",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#933",
+    "image": {
+      "format": "png",
+      "sha256": "886bb4cbcc202ae701a86999c19c7be0b3d6f91a61d08ffc8defebd72096510c"
+    },
+    "patch": "Replaced the original instruction “Select the option to filter flights by non-stop” with a request to select the most appropriate option for an ordinary citizen aged 60 or older, and added a corresponding Chinese instruction. Changed groundTruth from [1186, 137, 1251, 78] to [1543, 853, 1674, 415] in [top, right, bottom, left] pixel coordinates, moving the target from the Non-Stop Only checkbox to the Senior Citizens option. The option is labeled “Age above 60 yrs”, while the instruction specifies an age of at least 60 years. Updated category.reason to describe the Senior Citizens fare option.",
+    "collectedAt": 1794194768433
+  }
+}

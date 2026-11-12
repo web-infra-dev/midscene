@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-050",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The target merge request must be distinguished from other requests by its blocked status label."
+  },
+  "instruction": {
+    "en": "View the blocked merge request.",
+    "zh": "查看被 blocked 的 MR。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [941, 2527, 1069, 544],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L266",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#22",
+    "image": {
+      "format": "png",
+      "sha256": "8de3b066dbc8482890cb33515b4695d3cd558f391678b82e8f7e8be0454aadaa"
+    },
+    "patch": "Replaced the original instruction “view the debug build time” with a request to view the merge request marked as blocked, and added a corresponding Chinese instruction. Changed groundTruth from [551, 2525, 684, 543] to [941, 2527, 1069, 544] in [top, right, bottom, left] pixel coordinates, moving the target from the Debug build time row to the entire row of the blocked merge request. Changed category.item from Basic Element to Reasoning and updated category.reason to describe identification by status.",
+    "collectedAt": 1794206851815
+  }
+}

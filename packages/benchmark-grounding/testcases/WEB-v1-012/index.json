@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-012",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target is identified by counting controls in a specified direction relative to the volume control."
+  },
+  "instruction": {
+    "en": "Find the third control to the left of the volume control, counting from right to left.",
+    "zh": "找到音量控制控件的左侧从右往左数的第 3 个控件。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1779.0, 2476.0, 1825.0, 2432.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/spatial_grounding.json#L5560",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/spatial_grounding.json#397",
+    "image": {
+      "format": "png",
+      "sha256": "f48c441af5f1cf32e5267e02eb85e2c2d9dd064db9d247fdab31af8f50963abc"
+    },
+    "patch": "Replaced the original instruction to locate an icon to the left of the full-screen button with an instruction to find the third control to the left of the volume control in both languages. Changed groundTruth from [1778.0, 2936.0, 1827.0, 2887.0] to [1779.0, 2476.0, 1825.0, 2432.0] to match the new target, and updated the category reason accordingly.",
+    "collectedAt": 1792485870641
+  }
+}

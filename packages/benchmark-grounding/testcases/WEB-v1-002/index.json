@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-002",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target is identified by its ordinal position among the code lines related to PNG file configuration."
+  },
+  "instruction": {
+    "en": "Find the second line of code related to PNG file configuration.",
+    "zh": "定位代码中第二个与 png 文件配置有关的代码行。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1147.0, 1695.0, 1180.0, 685.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L842",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#70",
+    "image": {
+      "format": "png",
+      "sha256": "81d4a9c66018468f845c25ff2771946b204d3ad31ebb4b7b462e4c6497f5d041"
+    },
+    "patch": "Replaced the original instruction “open the file in web ide” with a request to locate the second code line related to PNG file configuration, and added a corresponding Chinese instruction. Changed groundTruth from [526, 1992, 598, 1660] to [1147.0, 1695.0, 1180.0, 685.0] in [top, right, bottom, left] pixel coordinates, moving the target from the Web IDE button to the relevant code line, including its line number. Classified category.item as Relative Position and updated category.reason to describe identifying and ordering the matching code lines.",
+    "collectedAt": 1794363025683
+  }
+}
