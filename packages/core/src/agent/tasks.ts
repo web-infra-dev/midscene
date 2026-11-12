@@ -323,6 +323,7 @@ export class TaskExecutor {
     planningModel: ModelRuntime,
     locateModel: ModelRuntime,
     options?: {
+      observeScrollProgress?: boolean;
       cacheable?: boolean;
       multimodalPrompt?: TMultimodalPrompt;
       deepLocate?: boolean;
@@ -651,7 +652,6 @@ export class TaskExecutor {
         );
       }
 
-      let reassessScroll = false;
       if (scrollRecovery && !delegation) {
         try {
           const observation = await scrollRecovery.review(
@@ -664,7 +664,6 @@ export class TaskExecutor {
           );
           if (observation?.progress === 'unchanged') {
             conversationHistory.pendingFeedbackMessage += `\n${scrollReviewFeedback(observation)}`;
-            reassessScroll = true;
           }
         } catch (error) {
           await this.emitAiActProgress('plan_failed', {
@@ -770,7 +769,6 @@ export class TaskExecutor {
                 conversationHistory,
                 includeLocateInPlanning: !delegation && includeLocateInPlanning,
                 imagesIncludeCount,
-                reassessScroll,
                 effort,
                 abortSignal,
               });
@@ -900,6 +898,7 @@ export class TaskExecutor {
             locateModel,
             {
               cacheable,
+              observeScrollProgress: scrollRecoveryInterval !== undefined,
               multimodalPrompt: userPromptToMultimodalPrompt(userPrompt),
               deepLocate,
               abortSignal,

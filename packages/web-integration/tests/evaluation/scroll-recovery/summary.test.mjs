@@ -87,3 +87,17 @@ test('counts a completed explicit scroll goal without requiring a click marker',
   assert.equal(group.goalReachedBeforeExit, 1);
   assert.equal(group.explicitInstructionViolations, 0);
 });
+
+test('retains recovered provider errors without classifying a completed task as failed', () => {
+  const successful = {
+    ...record('recovered', 3, true),
+    calls: [
+      { error: '429 TPM exceeded', synthetic: false },
+      { synthetic: false },
+    ],
+  };
+  const group = summarize([successful]).groups['natural/development/3'];
+  assert.equal(group.passed, 1);
+  assert.equal(group.serviceFailures, 0);
+  assert.equal(group.attemptsWithServiceErrors, 1);
+});

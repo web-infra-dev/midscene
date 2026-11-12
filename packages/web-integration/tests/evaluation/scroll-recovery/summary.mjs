@@ -58,6 +58,13 @@ export function summarize(records) {
     serviceFailures: rows.filter((r) =>
       /429|rate.limit|502|503|504|ECONN|ENOTFOUND/i.test(r.error || ''),
     ).length,
+    attemptsWithServiceErrors: rows.filter(
+      (r) =>
+        /429|rate.limit|502|503|504|ECONN|ENOTFOUND/i.test(r.error || '') ||
+        r.calls.some((c) =>
+          /429|rate.limit|502|503|504|ECONN|ENOTFOUND/i.test(c.error || ''),
+        ),
+    ).length,
     errors: rows.filter((r) => r.error).length,
     reviews: rows.reduce((s, r) => s + r.reviews.length, 0),
     triggeredAttempts: rows.filter((r) => r.reviews.length).length,

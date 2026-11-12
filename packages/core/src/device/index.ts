@@ -5,6 +5,7 @@ import type {
   DeviceAction,
   ExecutorContext,
   LocateResultElement,
+  ScrollState,
 } from '@/types';
 import type { ElementNode } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
@@ -247,6 +248,11 @@ export abstract class AbstractInterface {
     _param: any,
     _signal?: AbortSignal,
   ): Promise<void> {}
+
+  /** Optional target-relative scroll evidence. Return undefined when identity cannot be established. */
+  captureScrollState?(
+    param: ActionScrollParam,
+  ): Promise<ScrollState | undefined>;
 
   // for web only
   registerFileChooserListener?(

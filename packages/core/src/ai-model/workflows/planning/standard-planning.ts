@@ -28,7 +28,6 @@ import {
   preparedReferenceImagesToMessages,
 } from '../../shared/multimodal-prompt';
 import { parsePlanningActions } from './parse-planning-actions';
-import { projectScrollRecoveryHistory } from './scroll-recovery-history';
 import { parseStandardPlanningResponse } from './standard-planning-parser';
 import type { PlanOptions } from './types';
 
@@ -230,9 +229,7 @@ export async function standardPlan(
   // Otherwise: show historical execution logs
   const executionProgressText = includeSubGoals
     ? conversationHistory.subGoalsToText()
-    : opts.reassessScroll
-      ? ''
-      : conversationHistory.historicalLogsToText();
+    : conversationHistory.historicalLogsToText();
   const executionProgressSection = executionProgressText
     ? `\n\n<execution_history>${executionProgressText}</execution_history>`
     : conversationHistory.pendingFeedbackMessage
@@ -279,12 +276,7 @@ export async function standardPlan(
   // Compress history if it exceeds the threshold to avoid context overflow
   conversationHistory.compressHistory(50, 20);
 
-  const historySnapshot = conversationHistory.snapshot(
-    opts.reassessScroll ? 2 : opts.imagesIncludeCount,
-  );
-  const historyLog = opts.reassessScroll
-    ? projectScrollRecoveryHistory(historySnapshot)
-    : historySnapshot;
+  const historyLog = conversationHistory.snapshot(opts.imagesIncludeCount);
 
   const msgs: ModelCallMessages = [
     { role: 'system', content: systemPrompt },

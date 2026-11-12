@@ -1,4 +1,9 @@
-import type { ExecutionTask, UIContext } from '@/types';
+import type {
+  ActionScrollParam,
+  ExecutionTask,
+  ScrollState,
+  UIContext,
+} from '@/types';
 import { z } from 'zod';
 import { prepareModelImage } from '../../model-adapter/image-preprocess';
 import type { ModelRuntime } from '../../models';
@@ -26,8 +31,48 @@ function scrollDirection(task: ExecutionTask): string {
   );
 }
 
+/** Only movement along the requested axis/direction establishes progress. */
+export function compareScrollStates(
+  before: ScrollState | undefined,
+  after: ScrollState | undefined,
+  param: ActionScrollParam,
+): 'moved' | 'unchanged' | 'uncertain' {
+  if (!before || !after || before.targetId !== after.targetId)
+    return 'uncertain';
+  const direction = scrollDirection({ param } as ExecutionTask);
+  const delta =
+    direction === 'left' || direction === 'right'
+      ? after.scrollLeft - before.scrollLeft
+      : after.scrollTop - before.scrollTop;
+  if (!Number.isFinite(delta)) return 'uncertain';
+  if (Math.abs(delta) <= 0.5) return 'unchanged';
+  return delta * (direction === 'up' || direction === 'left' ? -1 : 1) > 0
+    ? 'moved'
+    : 'uncertain';
+}
+
+function confirmedTarget(task: ExecutionTask): string | undefined {
+  const evidence = task.scrollProgress;
+  return evidence?.before?.targetId === evidence?.after?.targetId
+    ? evidence?.before?.targetId
+    : undefined;
+}
+
 /** Compare dispatch targets conservatively; coordinates are not container identity. */
 function sameScrollTarget(a: ExecutionTask, b: ExecutionTask): boolean {
+  const aId = confirmedTarget(a);
+  const bId = confirmedTarget(b);
+  if (a.scrollProgress || b.scrollProgress) {
+    // Unknown or replaced containers cannot share a measured streak.
+    if (aId || bId) return !!aId && aId === bId;
+    if (
+      a.scrollProgress?.before ||
+      a.scrollProgress?.after ||
+      b.scrollProgress?.before ||
+      b.scrollProgress?.after
+    )
+      return a === b;
+  }
   const left = a.param?.locate;
   const right = b.param?.locate;
   if (!left || !right) return !left && !right;
@@ -62,6 +107,7 @@ export function findScrollToReview(
       (reviewedTaskId !== undefined && task.taskId === reviewedTaskId) ||
       task.subType !== 'Scroll' ||
       task.status !== 'finished' ||
+      task.scrollProgress?.status === 'moved' ||
       scrollDirection(task) !== scrollDirection(last) ||
       !sameScrollTarget(task, last)
     )
@@ -102,6 +148,14 @@ export async function reviewScroll(options: {
       {
         role: 'user',
         content: [
+          ...(task.scrollProgress
+            ? [
+                {
+                  type: 'text' as const,
+                  text: `Execution evidence for the target container (not the outer page): ${JSON.stringify(task.scrollProgress)}. Its own offset is separate from ancestor movement. Use the screenshots to inspect available overflow; treat replaced or unidentified targets as uncertain.`,
+                },
+              ]
+            : []),
           ...(task.param?.locate
             ? [
                 {

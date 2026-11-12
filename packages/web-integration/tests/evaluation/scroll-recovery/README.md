@@ -27,7 +27,7 @@ Each run prints its artifact directory. Summarize completed task runs with:
 pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/summary.mjs <natural-run-directory> <controlled-run-directory>
 ```
 
-The summarizer rejects incomplete runs and duplicate attempt IDs. All task outcomes, including timeouts and service errors, remain in the primary denominator. Experiment execution finishing is not the same as the algorithm passing release gates.
+The summarizer rejects incomplete runs and duplicate attempt IDs. SIGINT/SIGTERM stop scheduling new tasks, abort active tasks, and retain an interruption manifest. Interrupted runs are not completed efficacy comparisons. Provider errors recovered by SDK retries are counted in `attemptsWithServiceErrors` separately from terminal `serviceFailures`. All task outcomes, including timeouts and service errors, remain in the primary denominator. Experiment execution finishing is not the same as the algorithm passing release gates.
 
 `EVAL_CASES` selects comma-separated scenario IDs (for example `right-workspace,left-workspace`). `EVAL_RUN_ID` names a fresh artifact directory and refuses to overwrite it. `EVAL_REPETITIONS` defaults to one for a pilot and can be raised to five for confirmation after fixing benchmark defects. The current runner rotates arm order reproducibly; it does not claim fully randomized scheduling.
 
@@ -35,15 +35,17 @@ The initial natural pilot has 28 scenarios × 3 arms = 84 attempts per repetitio
 
 Coordinate-specific controlled probes alternate targets, jitter coordinates, or keep the same dispatch point while the page shifts. The injected bbox fixture uses the Doubao coordinate encoding and fails explicitly for incompatible families. Natural tasks do not receive coordinates or oracle data. A `layout-shift` page moves its container after the first wheel event; `container-swap` covers the same dispatch coordinates with an independently scrollable Notifications panel; `delayed` hides content for 700 ms after scroll. The separate `virtual` fixture mounts only five visible rows and updates them after 350 ms; `loadmore` reveals three records per button press. Reading and load-more tasks grade a code entered from the final record.
 
-For feedback-only ablation, use a separate process with `EVAL_FEEDBACK_ONLY=1 EVAL_TRACK=controlled EVAL_CASES=<development-cases>`. This replaces only the built history projection module in that process's require cache before loading the SDK, returning an unchanged snapshot. It does not modify generated files or production code. It runs interval 3, records arm `feedback`, and keeps the observer/feedback path. The hook invocation counter is scoped to each asynchronous attempt. The initial pilot predates this accounting fix and its counter was process-cumulative; use the unchanged review records to identify which attempts exercised reassessment in that run. Compare outcomes only when the corresponding full arm actually reassesses an unchanged scroll; otherwise the history ablation is unexercised.
+Production recovery now retains history. `EVAL_ARMS=0,3` selects disabled and interval-3 arms; the default remains `0,2,3`. The former `EVAL_FEEDBACK_ONLY` seam is rejected explicitly. Reproduce the original projection ablation at revision `52932c425` rather than labeling identical current policies as separate treatments. Its process-cumulative counter caveat remains part of the original report.
 
-The observer runner saves before/after screenshots and DOM traces. `delayed`, `virtual`, `container-swap`, and `layout-shift` pairs are deliberately unscored because visible movement is ambiguous; their direction fields are not scored either. For nested cases, the oracle measures the target's own scroll offsets separately from ancestor displacement. A moved label from an ancestor-only displacement is a target-scope mismatch, even though pixels visibly move.
+Execution evidence now records target identity and offsets on each Scroll when supported. Confirmed directional progress resets the streak. The runner saves these records in `scrollEvidence` alongside observer results, and saves the tracked source diff and its SHA in addition to HEAD. Freeze the build before running; do not change it during a run.
+
+The observer runner saves before/after screenshots and DOM traces. Use `EVAL_EXECUTION_EVIDENCE=1` to include observations from the production browser adapter; the default remains screenshot-only. `EVAL_WORKERS=1` runs it serially. Do not pool these two observer inputs as one treatment. `delayed`, `virtual`, `container-swap`, and `layout-shift` pairs are deliberately unscored because visible movement is ambiguous; their direction fields are not scored either. For nested cases, the oracle measures the target's own scroll offsets separately from ancestor displacement. A moved label from an ancestor-only displacement is a target-scope mismatch, even though pixels visibly move.
 
 `workspace` and `catalog` have different shell layouts but share card construction. The latter is a layout holdout for this pilot, not an independently sourced website or a strong generalization test. No original/private report is committed. All successes and failures must be retained; layout holdouts used to diagnose a fix must be retired before confirmation.
 
 ## Private planning replay
 
-`replay.mjs` accepts an external `EVAL_REPLAY_DIR` containing `dump.json`, an after screenshot, and `case.json` with `prompt`, `beforeTaskIndex`, `previousPlanIndex`, `afterImage`, `historyLogs`, and `allowedDirections`. These files are not committed. It compares off, feedback-only, and full history handling over five repetitions by default. Each repetition shares one observer result between the two enabled arms to isolate history projection; observer usage is recorded once in `observations.jsonl`. Planning results and errors are retained in `results.jsonl`.
+`replay.mjs` accepts an external `EVAL_REPLAY_DIR` containing `dump.json`, an after screenshot, and `case.json` with `prompt`, `beforeTaskIndex`, `previousPlanIndex`, `afterImage`, `historyLogs`, and `allowedDirections`. These files are not committed. It compares off and production feedback over five repetitions by default; observer usage is recorded once in `observations.jsonl`. Planning results and errors are retained in `results.jsonl`.
 
 ```bash
 EVAL_REPLAY_DIR=/path/to/private/fixture EVAL_REPETITIONS=5 pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/replay.mjs
@@ -60,7 +62,7 @@ Use two tracks, with separate results:
 - Natural tasks: no injected wrong scrolls or suggested directions. Measures whether recovery improves the user's task overall, including cases where it never triggers.
 - Controlled stalls: inject the same recorded erroneous prefix into every arm, then let the actual execution loop continue. Measures recovery conditional on a known stall. Do not call this natural task success or substitute direct observer calls for the execution loop.
 
-For mechanism analysis, add an evaluation-only observer-feedback arm without history projection. Compare it with full recovery on the development split to determine whether the history rewrite is needed. Do not expose this as a new product option.
+The original pilot compared projection against feedback-only. Current production feedback retains history; compare it against disabled recovery and keep historical policy comparisons explicitly labeled by revision.
 
 ## Initial case families
 

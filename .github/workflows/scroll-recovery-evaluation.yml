@@ -15,10 +15,10 @@ on:
         description: Optional comma-separated scenario IDs
         type: string
         default: ''
-      feedback_only:
-        description: Run interval-3 feedback without history projection
-        type: boolean
-        default: false
+      arms:
+        description: Comma-separated intervals (0 disables recovery)
+        type: string
+        default: '0,2,3'
 permissions:
   contents: read
 jobs:
@@ -37,7 +37,7 @@ jobs:
       EVAL_REPETITIONS: ${{ inputs.repetitions }}
       EVAL_WORKERS: '3'
       EVAL_CASES: ${{ inputs.cases }}
-      EVAL_FEEDBACK_ONLY: ${{ inputs.feedback_only && '1' || '0' }}
+      EVAL_ARMS: ${{ inputs.arms }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: ./.github/actions/setup-node-pnpm

@@ -1051,7 +1051,6 @@ describe('TaskExecutor concurrency isolation', () => {
           log: '',
         })
         .mockImplementationOnce(async (_prompt, opts) => {
-          expect(opts.reassessScroll).toBe(progress === 'unchanged');
           expect(
             opts.conversationHistory.pendingFeedbackMessage.includes(
               'Visual scroll observation',
@@ -1087,9 +1086,6 @@ describe('TaskExecutor concurrency isolation', () => {
         observation: 'Visual scroll observation',
         nextSearchDirection: null,
       });
-      expect(rs.mocked(standardPlan).mock.calls[0][1].reassessScroll).toBe(
-        false,
-      );
     },
   );
 
@@ -1127,7 +1123,6 @@ describe('TaskExecutor concurrency isolation', () => {
       });
       let plans = 0;
       rs.mocked(standardPlan).mockImplementation(async (_prompt, opts) => {
-        expect(opts.reassessScroll).toBe(false);
         const done = plans++ === 6;
         return {
           actions: done

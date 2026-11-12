@@ -1,4 +1,3 @@
-import { AsyncLocalStorage } from 'node:async_hooks';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -13,25 +12,17 @@ const require = createRequire(
 );
 require('dotenv').config({ path: path.join(root, '.env'), override: true });
 const puppeteer = require('puppeteer');
-// Process-local test seam: replace only history projection before loading the SDK.
-// Never write generated packages or expose a production option for the ablation.
-const feedbackOnly = process.env.EVAL_FEEDBACK_ONLY === '1';
-const ablationContext = new AsyncLocalStorage();
-if (feedbackOnly) {
-  const modulePath = path.join(
-    root,
-    'packages/core/dist/lib/ai-model/workflows/planning/scroll-recovery-history.js',
+if (process.env.EVAL_FEEDBACK_ONLY === '1')
+  throw new Error(
+    'Feedback-only is now the production policy. Use EVAL_ARMS=3. Replay the old ablation at its recorded revision.',
   );
-  require(modulePath);
-  require.cache[require.resolve(modulePath)].exports = {
-    projectScrollRecoveryHistory: (entries) => {
-      const context = ablationContext.getStore();
-      if (!context) throw new Error('Missing evaluation attempt context');
-      context.retainedHistoryCalls++;
-      return structuredClone(entries);
-    },
-  };
-}
+const requestedArms = (process.env.EVAL_ARMS || '0,2,3').split(',').map(Number);
+if (
+  !requestedArms.length ||
+  new Set(requestedArms).size !== requestedArms.length ||
+  requestedArms.some((arm) => ![0, 2, 3].includes(arm))
+)
+  throw new Error('Invalid EVAL_ARMS');
 const { PuppeteerAgent } = require(
   path.join(root, 'packages/web-integration/dist/lib/puppeteer/index.js'),
 );
@@ -71,6 +62,12 @@ const source = execFileSync('git', ['rev-parse', 'HEAD'], {
   cwd: root,
   encoding: 'utf8',
 }).trim();
+const sourceDiff = execFileSync('git', ['diff', 'HEAD'], {
+  cwd: root,
+  encoding: 'utf8',
+});
+await writeFile(path.join(out, 'source.patch'), sourceDiff);
+const sourceDiffSHA = createHash('sha256').update(sourceDiff).digest('hex');
 const runnerSHA = createHash('sha256')
   .update(await readFile(fileURLToPath(import.meta.url)))
   .digest('hex');
@@ -80,8 +77,7 @@ const sha = createHash('sha256')
 const jobs = [];
 for (const c of selected)
   for (let rep = 0; rep < repetitions; rep++) {
-    const arms =
-      track === 'oracle' ? [0] : feedbackOnly ? ['feedback'] : [0, 2, 3];
+    const arms = track === 'oracle' ? [0] : requestedArms;
     // Reproducible balanced rotation; no outcome-based ordering.
     const offset = (rep + cases.indexOf(c)) % arms.length;
     for (const arm of [...arms.slice(offset), ...arms.slice(0, offset)])
@@ -92,8 +88,9 @@ await writeFile(
   JSON.stringify(
     {
       source,
+      sourceDiffSHA,
       runnerSHA,
-      feedbackOnly,
+      policy: 'retained-history',
       fixtureSHA: sha,
       track,
       repetitions,
@@ -129,6 +126,14 @@ const browser = await puppeteer.launch({
   args: ['--no-sandbox'],
   ignoreDefaultArgs: ['--hide-scrollbars'],
 });
+let interruptedBy;
+const activeControllers = new Set();
+for (const signal of ['SIGINT', 'SIGTERM'])
+  process.once(signal, () => {
+    interruptedBy = signal;
+    for (const controller of activeControllers)
+      controller.abort(`Evaluation interrupted by ${signal}`);
+  });
 async function attempt({ c, rep, arm }) {
   const id = `${c.id}-${track}-${arm}-${rep}`;
   const dir = path.join(out, id);
@@ -145,8 +150,10 @@ async function attempt({ c, rep, arm }) {
   let before;
   let final;
   let reviews = [];
+  let scrollEvidence = [];
   let initial;
   const controller = new AbortController();
+  activeControllers.add(controller);
   const timer = setTimeout(
     () => controller.abort(new Error('Evaluation wall-clock budget exhausted')),
     180000,
@@ -355,9 +362,7 @@ async function attempt({ c, rep, arm }) {
         },
       });
       await agent.aiAct(c.prompt, {
-        scrollRecovery: arm
-          ? { afterScrolls: arm === 'feedback' ? 3 : arm }
-          : false,
+        scrollRecovery: arm ? { afterScrolls: arm } : false,
         cacheable: false,
         abortSignal: controller.signal,
       });
@@ -366,7 +371,12 @@ async function attempt({ c, rep, arm }) {
     error = e.message;
   } finally {
     clearTimeout(timer);
+    activeControllers.delete(controller);
     if (agent) {
+      scrollEvidence = agent.dump.executions
+        .flatMap((e) => e.tasks)
+        .filter((t) => t.subType === 'Scroll')
+        .map((t) => ({ taskId: t.taskId, progress: t.scrollProgress }));
       reviews = agent.dump.executions
         .flatMap((e) => e.tasks)
         .filter((t) => t.subType === 'ScrollReview')
@@ -429,13 +439,13 @@ async function attempt({ c, rep, arm }) {
     wrongClicks,
     error,
     prefix,
-    feedbackOnly,
-    retainedHistoryCalls: ablationContext.getStore()?.retainedHistoryCalls ?? 0,
+
     durationMs: Date.now() - start,
     initial,
     final,
     actions,
     reviews,
+    scrollEvidence,
     calls,
     usage,
     tokens: usage.reduce((s, u) => s + (u.total_tokens || 0), 0),
@@ -461,14 +471,26 @@ let oracleFailures = 0;
 try {
   await Promise.all(
     Array.from({ length: workers }, async () => {
-      while (next < jobs.length)
-        await ablationContext.run({ retainedHistoryCalls: 0 }, () =>
-          attempt(jobs[next++]),
-        );
+      while (!interruptedBy && next < jobs.length) await attempt(jobs[next++]);
     }),
   );
 } finally {
   await browser.close();
 }
 
-if (oracleFailures) process.exitCode = 1;
+if (interruptedBy) {
+  await writeFile(
+    path.join(out, 'interruption.json'),
+    JSON.stringify(
+      {
+        signal: interruptedBy,
+        scheduled: jobs.length,
+        started: next,
+        note: 'Incomplete run: retain all completed/aborted attempts; do not treat unstarted jobs as completed.',
+      },
+      null,
+      2,
+    ),
+  );
+  process.exitCode = 130;
+} else if (oracleFailures) process.exitCode = 1;

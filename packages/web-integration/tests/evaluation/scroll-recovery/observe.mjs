@@ -21,12 +21,16 @@ const { getModelRuntime } = require(
 const { globalModelConfigManager } = require(
   path.join(root, 'packages/shared/dist/lib/env/index.js'),
 );
-const { reviewScroll } = require(
+const { reviewScroll, compareScrollStates } = require(
   path.join(
     root,
     'packages/core/dist/lib/ai-model/workflows/planning/scroll-review.js',
   ),
 );
+const { Page: WebPage } = require(
+  path.join(root, 'packages/web-integration/dist/lib/puppeteer/base-page.js'),
+);
+const executionEvidence = process.env.EVAL_EXECUTION_EVIDENCE === '1';
 const model = getModelRuntime(
   globalModelConfigManager.getModelConfig('default'),
 );
@@ -42,6 +46,7 @@ await writeFile(
   path.join(out, 'manifest.json'),
   JSON.stringify(
     {
+      executionEvidence,
       source: execFileSync('git', ['rev-parse', 'HEAD'], {
         cwd: root,
         encoding: 'utf8',
@@ -80,6 +85,19 @@ async function sample(c) {
     await page.setViewport({ width: 1000, height: 720 });
     await page.setContent(fixture(c));
     const beforeState = await page.evaluate(() => window.snapshot());
+    const rect = beforeState.rect;
+    const param = {
+      direction: c.family === 'up' ? 'up' : 'down',
+      locate: {
+        description: 'Records',
+        center: [rect.left + rect.width / 2, rect.top + rect.height / 2],
+        rect,
+      },
+    };
+    const web = new WebPage(page, 'puppeteer');
+    const targetBefore = executionEvidence
+      ? await web.captureScrollState(param)
+      : undefined;
     const before = await page.screenshot({
       path: path.join(dir, 'before.png'),
       encoding: 'base64',
@@ -112,6 +130,16 @@ async function sample(c) {
       setTimeout(resolve, c.family === 'delayed' ? 100 : 250),
     );
     const afterState = await page.evaluate(() => window.snapshot());
+    const targetAfter = executionEvidence
+      ? await web.captureScrollState(param)
+      : undefined;
+    const scrollProgress = executionEvidence
+      ? {
+          before: targetBefore,
+          after: targetAfter,
+          status: compareScrollStates(targetBefore, targetAfter, param),
+        }
+      : undefined;
     const after = await page.screenshot({
       path: path.join(dir, 'after.png'),
       encoding: 'base64',
@@ -129,7 +157,6 @@ async function sample(c) {
       shotSize: { width: 1000, height: 720 },
       shrunkShotToLogicalRatio: 1,
     });
-    const rect = beforeState.rect;
     const expected = [
       'delayed',
       'virtual',
@@ -154,6 +181,7 @@ async function sample(c) {
         subType: 'Scroll',
         taskId: c.id,
         status: 'finished',
+        scrollProgress,
         param: {
           direction,
           locate: {
@@ -172,6 +200,7 @@ async function sample(c) {
       ...record,
       beforeState,
       afterState,
+      scrollProgress,
       expected,
       permitted,
       observation: result.content,
@@ -199,7 +228,7 @@ async function sample(c) {
 }
 try {
   await Promise.all(
-    Array.from({ length: 3 }, async () => {
+    Array.from({ length: Number(process.env.EVAL_WORKERS || 3) }, async () => {
       while (next < selected.length) await sample(selected[next++]);
     }),
   );

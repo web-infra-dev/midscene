@@ -79,8 +79,8 @@ await writeFile(
       model: runtime.config.modelName,
       family: runtime.config.modelFamily,
       reps,
-      arms: ['off', 'feedback', 'full'],
-      note: 'Planning-only development replay. Shared observer evidence within each repetition isolates the history-projection ablation. Not real-site task completion.',
+      arms: ['off', 'feedback'],
+      note: 'Planning-only development replay. Compares disabled recovery against production feedback while preserving history. Not real-site task completion.',
     },
     null,
     2,
@@ -103,8 +103,8 @@ for (let rep = 0; rep < reps; rep++) {
     path.join(out, 'observations.jsonl'),
     `${JSON.stringify({ rep, content: review?.content, usage: review?.usage, error: reviewError })}\n`,
   );
-  const arms = ['off', 'feedback', 'full'];
-  const offset = rep % 3;
+  const arms = ['off', 'feedback'];
+  const offset = rep % arms.length;
   for (const arm of [...arms.slice(offset), ...arms.slice(0, offset)]) {
     const history = new ConversationHistory();
     history.appendMessage({
@@ -145,7 +145,6 @@ for (let rep = 0; rep < reps; rep++) {
         includeLocateInPlanning: true,
         effort: 'balance',
         imagesIncludeCount: 1,
-        reassessScroll: arm === 'full' && unchanged,
         abortSignal: AbortSignal.timeout(90000),
       });
       const action = result.actions?.[0];

@@ -13,7 +13,7 @@ import { withUsageIntent } from './usage-intent';
 export type ScrollRecoveryOptions =
   | boolean
   | {
-      /** Review after this many consecutive same-direction scrolls. Integer >= 2; default 3. */
+      /** Review after this many same-direction scrolls without confirmed progress. Integer >= 2; default 3. */
       afterScrolls?: number;
     };
 

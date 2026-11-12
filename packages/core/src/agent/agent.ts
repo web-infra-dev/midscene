@@ -158,7 +158,8 @@ class AgentScopedModelConfigManager extends ModelConfigManager {
 export type AiActOptions = {
   /**
    * Opt in to visual review after repeated same-direction scrolls. Defaults to false.
-   * Adds one model call per three scrolls by default, even when content is moving.
+   * Confirmed target progress resets the count when execution evidence is available.
+   * Otherwise a model compares screenshots after three scrolls by default.
    * Use { afterScrolls: n } to configure the interval (integer >= 2).
    * Review failures fail aiAct.
    */

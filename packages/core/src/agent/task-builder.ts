@@ -1,5 +1,6 @@
 import { findAllMidsceneLocatorField, parseActionParam } from '@/ai-model';
 import type { ModelRuntime } from '@/ai-model/models';
+import { compareScrollStates } from '@/ai-model/workflows/planning/scroll-review';
 import {
   type TMultimodalPrompt,
   findActionInActionSpaceOrThrow,
@@ -104,6 +105,7 @@ interface TaskBuilderDeps {
 }
 
 interface BuildOptions {
+  observeScrollProgress?: boolean;
   cacheable?: boolean;
   multimodalPrompt?: TMultimodalPrompt;
   deepLocate?: boolean;
@@ -111,6 +113,7 @@ interface BuildOptions {
 }
 
 interface PlanBuildContext {
+  observeScrollProgress?: boolean;
   tasks: ExecutionTaskApply[];
   planningModel: ModelRuntime;
   locateModel: ModelRuntime;
@@ -165,6 +168,7 @@ export class TaskBuilder {
 
     const context: PlanBuildContext = {
       tasks,
+      observeScrollProgress: options?.observeScrollProgress,
       planningModel,
       locateModel,
       cacheable,
@@ -348,6 +352,12 @@ export class TaskBuilder {
         abortSignal?.throwIfAborted();
         setTimingFieldOnce(timing, 'callActionStart');
         debug('calling action', action.name);
+        const captureScroll =
+          context.observeScrollProgress && action.name === 'Scroll'
+            ? this.interface.captureScrollState?.bind(this.interface)
+            : undefined;
+        const scrollBefore = await captureScroll?.(parsedParam);
+        abortSignal?.throwIfAborted();
         const actionResult = await action.call.call(
           this.interface,
           parsedParam,
@@ -402,6 +412,14 @@ export class TaskBuilder {
           );
         } finally {
           setTimingFieldOnce(timing, 'afterInvokeActionHookEnd');
+        }
+        if (captureScroll) {
+          const scrollAfter = await captureScroll(parsedParam);
+          taskContext.task.scrollProgress = {
+            before: scrollBefore,
+            after: scrollAfter,
+            status: compareScrollStates(scrollBefore, scrollAfter, parsedParam),
+          };
         }
         return { output: actionResult };
       },

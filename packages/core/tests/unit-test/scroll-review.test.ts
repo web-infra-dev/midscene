@@ -1,6 +1,7 @@
-import { ConversationHistory } from '@/ai-model';
-import { projectScrollRecoveryHistory } from '@/ai-model/workflows/planning/scroll-recovery-history';
-import { findScrollToReview } from '@/ai-model/workflows/planning/scroll-review';
+import {
+  compareScrollStates,
+  findScrollToReview,
+} from '@/ai-model/workflows/planning/scroll-review';
 import type { ExecutionTask } from '@/types';
 import { describe, expect, it } from '@rstest/core';
 
@@ -115,78 +116,52 @@ describe('scroll review trigger', () => {
     ).toBeUndefined();
   });
 });
-it('omits old visual guesses only from the recovery snapshot, retaining actions and stored history', () => {
-  const history = new ConversationHistory();
-  const content =
-    '<planning>Maybe the button is below.</planning><log>Go down</log><action-type>Scroll</action-type><action-param-json>{"direction":"down"}</action-param-json>';
-  history.appendModelOutput({
-    type: 'chat-completion',
-    rawValue: { role: 'assistant', content, refusal: null },
+
+it('uses container identity across jitter and resets after progress or replacement', () => {
+  const state = (targetId: string, scrollTop = 0) => ({
+    targetId,
+    scrollTop,
+    scrollLeft: 0,
+    rect: { left: 0, top: 0, width: 100, height: 100 },
   });
-  history.appendMessage({
-    role: 'assistant',
-    content: [{ type: 'text', text: content }],
-  });
-  const recovery = JSON.stringify(
-    projectScrollRecoveryHistory(history.snapshot(2)),
+  const measured = (id: string, x: number) =>
+    ({
+      ...scroll(),
+      param: { direction: 'down', locate: { center: [x, 50] } },
+      scrollProgress: {
+        before: state(id),
+        after: state(id),
+        status: 'unchanged',
+      },
+    }) as ExecutionTask;
+  const tasks = [measured('a', 10), measured('a', 11), measured('a', 12)];
+  expect(findScrollToReview(tasks)).toBe(tasks[2]);
+  tasks[1].scrollProgress!.status = 'moved';
+  expect(findScrollToReview(tasks)).toBeUndefined();
+  tasks[1].scrollProgress!.status = 'unchanged';
+  tasks[1].scrollProgress!.after = state('b');
+  expect(findScrollToReview(tasks)).toBeUndefined();
+  expect(
+    compareScrollStates(state('a'), state('a', 20), {
+      direction: 'down',
+    } as any),
+  ).toBe('moved');
+  expect(
+    compareScrollStates(state('a'), state('a', -20), {
+      direction: 'down',
+    } as any),
+  ).toBe('uncertain');
+  expect(
+    compareScrollStates(state('a'), state('b', 20), {
+      direction: 'down',
+    } as any),
+  ).toBe('uncertain');
+  expect(compareScrollStates(undefined, state('a'), {} as any)).toBe(
+    'uncertain',
   );
-  expect(recovery).not.toContain('Maybe');
-  expect(recovery).not.toContain('Go down');
-  expect(recovery).toContain('action-type');
-  expect(recovery).toContain('direction');
-  expect(JSON.stringify(history.snapshot())).toContain('Maybe');
-});
-
-it('preserves literal narrative tags inside executed input values', () => {
-  const history = new ConversationHistory();
-  const action =
-    '<action-type>Input</action-type><action-param-json>{"value":"<planning>keep this</planning>"}</action-param-json>';
-  history.appendMessage({
-    role: 'assistant',
-    content: `<planning>old guess</planning>${action}`,
-  });
-  const replay = projectScrollRecoveryHistory(history.snapshot(1));
-  expect(replay[0]).toEqual({
-    type: 'input-message',
-    message: { role: 'assistant', content: action },
-  });
-});
-
-it('removes stale user-side execution narrative but retains feedback, memories and opaque Responses data', () => {
-  const history = new ConversationHistory();
-  history.appendMemory('Preserve selected account');
-  history.appendMessage({
-    role: 'user',
-    content: [
-      {
-        type: 'text',
-        text: '<execution_history>Keep going down to find Next</execution_history>Latest execution feedback: action succeeded',
-      },
-      { type: 'image', url: 'before' },
-    ],
-  });
-  history.appendModelOutput({
-    type: 'responses',
-    rawValue: [
-      {
-        type: 'reasoning',
-        id: 'reasoning-id',
-        summary: [],
-        encrypted_content: 'opaque',
-      },
-    ],
-  });
-  history.appendMessage({
-    role: 'user',
-    content: [
-      { type: 'text', text: history.memoriesToText() },
-      { type: 'image', url: 'after' },
-    ],
-  });
-  const snapshot = projectScrollRecoveryHistory(history.snapshot(2));
-  expect(JSON.stringify(snapshot)).not.toContain('Keep going down');
-  expect(JSON.stringify(snapshot)).toContain('action succeeded');
-  expect(JSON.stringify(snapshot)).toContain('Preserve selected account');
-  expect(JSON.stringify(snapshot)).toContain('opaque');
-  expect(JSON.stringify(history.snapshot())).toContain('Keep going down');
+  expect(
+    compareScrollStates(state('a'), { ...state('a'), scrollLeft: 20 }, {
+      direction: 'down',
+    } as any),
+  ).toBe('unchanged');
 });

@@ -536,6 +536,37 @@ describe('plan XML parse retry', () => {
     expect(result.actions).toEqual([{ type: 'Tap', param: {} }]);
   });
 
+  it('retains executed history and prior narrative when adding scroll observation feedback', async () => {
+    const history = new ConversationHistory();
+    history.appendHistoricalLog('Scrolled down twice');
+    history.appendMessage({
+      role: 'assistant',
+      content:
+        '<planning>Maybe below</planning><action-type>Scroll</action-type>',
+    });
+    history.pendingFeedbackMessage =
+      'Independent visual inspection: target unchanged';
+    rs.mocked(callGenerativeAI).mockResolvedValueOnce(
+      mockAIResponse(
+        '<action-type>Tap</action-type><action-param-json>{}</action-param-json>',
+      ),
+    );
+    await standardPlan('Find the item', {
+      context: mockContext(),
+      actionSpace: mockActionSpace(),
+      modelRuntime: getModelRuntime(mockModelConfig()),
+      conversationHistory: history,
+      includeLocateInPlanning: false,
+      effort: 'balance',
+    });
+    const request = JSON.stringify(
+      rs.mocked(callGenerativeAI).mock.calls[0][0],
+    );
+    expect(request).toContain('Scrolled down twice');
+    expect(request).toContain('Maybe below');
+    expect(request).toContain('target unchanged');
+  });
+
   it('keeps planning advice separate from user context and instruction', async () => {
     rs.mocked(callGenerativeAI).mockResolvedValueOnce(
       mockAIResponse(`<action-type>Tap</action-type>
