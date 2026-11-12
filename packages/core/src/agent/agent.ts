@@ -160,7 +160,7 @@ export type AiActOptions = {
    * Opt in to visual review after repeated same-direction scrolls. Defaults to false.
    * Adds one model call per three scrolls by default, even when content is moving.
    * Use { afterScrolls: n } to configure the interval (integer >= 2).
-   * Requires a standard planner using openai-chat; review failures fail aiAct.
+   * Review failures fail aiAct.
    */
   scrollRecovery?: ScrollRecoveryOptions;
   cacheable?: boolean;

@@ -356,7 +356,7 @@ await agent.aiAct(
 
 **按需启用滚动恢复**
 
-当 `aiAct` 搜索隐藏控件时反复选错滚动方向，可设置 `scrollRecovery: true`，默认值为 `false`。它要求标准规划器使用 `openai-chat` 协议；启用时不支持自定义规划器和 `openai-responses`，会直接报错。这是 JavaScript 单次调用选项，不是 YAML 或 Chrome 扩展设置。
+当 `aiAct` 搜索隐藏控件时反复选错滚动方向，可设置 `scrollRecovery: true`，默认值为 `false`。这是 JavaScript 单次调用选项，不是 YAML 或 Chrome 扩展设置。
 
 ```typescript
 await agent.aiAct('找到并点击下一步', { scrollRecovery: true });

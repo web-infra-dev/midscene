@@ -355,7 +355,7 @@ await agent.aiAct(
 
 **Opt-in scroll recovery**
 
-Use `scrollRecovery: true` when `aiAct` repeatedly scrolls in the wrong direction while searching for a hidden control. The default is `false`. It requires a standard planner using the `openai-chat` protocol; custom planners and `openai-responses` are rejected when enabled. This is a per-call JavaScript option, not a YAML or Chrome extension setting.
+Use `scrollRecovery: true` when `aiAct` repeatedly scrolls in the wrong direction while searching for a hidden control. The default is `false`. This is a per-call JavaScript option, not a YAML or Chrome extension setting.
 
 ```typescript
 await agent.aiAct('Find and click Next', { scrollRecovery: true });
