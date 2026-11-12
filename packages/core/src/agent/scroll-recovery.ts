@@ -67,7 +67,7 @@ export class ScrollRecovery {
     await this.session.appendAndRun({
       type: 'Planning',
       subType: 'ScrollReview',
-      param: { scroll: task.param },
+      param: { scroll: task.param, progressEvidence: task.scrollProgress },
       executor: async (context) => {
         assert(
           context.uiContext,

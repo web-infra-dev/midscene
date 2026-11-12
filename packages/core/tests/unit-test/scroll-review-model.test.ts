@@ -136,3 +136,62 @@ it.each([
   expect(result.content).toEqual(good);
   expect(callGenerativeAI).toHaveBeenCalledTimes(2);
 });
+
+it('derives native progress from execution evidence and asks AI only for overflow evidence', async () => {
+  rs.mocked(callGenerativeAI).mockResolvedValueOnce({
+    content: JSON.stringify({
+      observation: 'The right edge is clipped.',
+      nextSearchDirection: 'right',
+    }),
+    isStreamed: false,
+  });
+  const state = {
+    targetId: 'inner',
+    scrollTop: 0,
+    scrollLeft: 0,
+    rect: { left: 0, top: 0, width: 100, height: 100 },
+  };
+  const result = await reviewScroll({
+    task: {
+      ...task,
+      scrollProgress: {
+        status: 'unchanged',
+        before: state,
+        after: { ...state, rect: { ...state.rect, top: -50 } },
+      },
+    },
+    current: context,
+    modelRuntime: runtime,
+  });
+  expect(result.content.progress).toBe('unchanged');
+  expect(result.content.observation).toContain(
+    "target's own scroll offsets did not change",
+  );
+  expect(result.content.nextSearchDirection).toBe('right');
+  expect(
+    JSON.stringify(rs.mocked(callGenerativeAI).mock.calls[0][0]),
+  ).toContain('Do not reclassify ancestor displacement');
+});
+
+it('rejects a model attempting to overwrite measured target progress', async () => {
+  rs.mocked(callGenerativeAI)
+    .mockResolvedValueOnce({
+      content: JSON.stringify({
+        ...good,
+        progress: 'moved',
+        nextSearchDirection: null,
+      }),
+      isStreamed: false,
+    })
+    .mockResolvedValueOnce({
+      content: JSON.stringify(good),
+      isStreamed: false,
+    });
+  const result = await reviewScroll({
+    task: { ...task, scrollProgress: { status: 'unchanged' } },
+    current: context,
+    modelRuntime: runtime,
+  });
+  expect(callGenerativeAI).toHaveBeenCalledTimes(2);
+  expect(result.content.progress).toBe('unchanged');
+});

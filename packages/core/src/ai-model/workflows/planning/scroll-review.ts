@@ -16,6 +16,9 @@ const scrollReviewSchema = z.object({
 });
 
 export type ScrollReview = z.infer<typeof scrollReviewSchema>;
+const measuredStallReviewSchema = scrollReviewSchema
+  .omit({ progress: true })
+  .extend({ progress: z.literal('unchanged').optional() });
 
 function scrollDirection(task: ExecutionTask): string {
   const boundaryDirections: Record<string, string> = {
@@ -138,6 +141,7 @@ export async function reviewScroll(options: {
     ),
   );
   const direction = scrollDirection(task);
+  const measuredStall = task.scrollProgress?.status === 'unchanged';
   const result = await callAIWithObjectResponse(
     [
       {
@@ -166,7 +170,9 @@ export async function reviewScroll(options: {
             : []),
           {
             type: 'text',
-            text: `The last action was Scroll ${direction}. Compare the before and after screenshots. Describe whether the scrolled content moved and all visible scrollbar orientations and clipped edges, including the entire viewport edges. Which direction has unexplored content for finding the requested off-screen control? Do not assume a missing footer button is below. If the scrolled region moved along the requested axis, report that progress without suggesting a different direction. Only when it did not move should you suggest another direction supported by visible overflow. Return JSON with progress ("moved", "unchanged", or "uncertain") observation (a brief description), and nextSearchDirection ("up", "down", "left", "right", or null). When unchanged, choose a different search direction supported by the visible scrollbar or clipped edge; use null if no alternative is supported. When moved or uncertain, use null. Do not issue actions.`,
+            text: measuredStall
+              ? `The last action was Scroll ${direction}. Execution evidence establishes that this target's own scroll offset did not change. Do not reclassify ancestor displacement as target scrolling. Inspect the screenshots only for visible scrollbar orientations and clipped edges, including the viewport edges. Which other direction has visible overflow for an off-screen search? Do not assume a missing footer button is below. Return JSON with observation (describe the visible overflow evidence) and nextSearchDirection ("up", "down", "left", "right", or null). Suggest a different direction only when supported by visible overflow; otherwise use null. Do not issue actions or infer task completion.`
+              : `The last action was Scroll ${direction}. Compare the before and after screenshots. Describe whether the scrolled content moved and all visible scrollbar orientations and clipped edges, including the entire viewport edges. Which direction has unexplored content for finding the requested off-screen control? Do not assume a missing footer button is below. If the scrolled region moved along the requested axis, report that progress without suggesting a different direction. Only when it did not move should you suggest another direction supported by visible overflow. Return JSON with progress ("moved", "unchanged", or "uncertain") observation (a brief description), and nextSearchDirection ("up", "down", "left", "right", or null). When unchanged, choose a different search direction supported by the visible scrollbar or clipped edge; use null if no alternative is supported. When moved or uncertain, use null. Do not issue actions.`,
           },
           ...images.map((image) => ({
             type: 'image' as const,
@@ -179,7 +185,17 @@ export async function reviewScroll(options: {
     {
       abortSignal,
       validate: (value) => {
-        const review = scrollReviewSchema.parse(value);
+        let review: ScrollReview;
+        if (measuredStall) {
+          const evidence = measuredStallReviewSchema.parse(value);
+          review = {
+            progress: 'unchanged',
+            observation: `The target's own scroll offsets did not change. ${evidence.observation}`,
+            nextSearchDirection: evidence.nextSearchDirection,
+          };
+        } else {
+          review = scrollReviewSchema.parse(value);
+        }
         if (
           review.progress !== 'unchanged' &&
           review.nextSearchDirection !== null
