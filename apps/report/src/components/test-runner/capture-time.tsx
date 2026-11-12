@@ -17,7 +17,11 @@ export function formatCaptureTime(value: string, timeZone?: string): string {
       return result;
     }, {});
   const milliseconds = String(date.getUTCMilliseconds()).padStart(3, '0');
-  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}.${milliseconds} (${parts.timeZoneName.replace('GMT', 'UTC')})`;
+  // ICU versions may represent a zero offset as either GMT or GMT+0.
+  const timeZoneName = parts.timeZoneName
+    .replace('GMT', 'UTC')
+    .replace(/^UTC[+-]0{1,2}(?::00)?$/, 'UTC');
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}.${milliseconds} (${timeZoneName})`;
 }
 
 export function CaptureTime({ value }: { value: string }): JSX.Element {

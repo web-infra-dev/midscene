@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@rstest/core';
+import { describe, expect, it, rs } from '@rstest/core';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CaptureTime, formatCaptureTime } from './capture-time';
 
@@ -12,6 +12,34 @@ describe('information capture time', () => {
     ['UTC', '2026-10-13 03:09:03.241 (UTC)'],
   ])('shows the date and offset in %s', (zone, expected) => {
     expect(formatCaptureTime(at, zone)).toBe(expected);
+  });
+
+  it.each([
+    ['GMT', 'UTC'],
+    ['GMT+0', 'UTC'],
+    ['GMT-0', 'UTC'],
+    ['GMT+00:00', 'UTC'],
+    ['GMT-00:00', 'UTC'],
+    ['GMT+0:30', 'UTC+0:30'],
+    ['GMT-0:30', 'UTC-0:30'],
+  ])('formats the runtime offset %s consistently', (offset, expected) => {
+    const formatToParts = Intl.DateTimeFormat.prototype.formatToParts;
+    const partsSpy = rs
+      .spyOn(Intl.DateTimeFormat.prototype, 'formatToParts')
+      .mockImplementation(function (this: Intl.DateTimeFormat, value) {
+        return formatToParts
+          .call(this, value)
+          .map((part) =>
+            part.type === 'timeZoneName' ? { ...part, value: offset } : part,
+          );
+      });
+    try {
+      expect(formatCaptureTime(at, 'UTC')).toBe(
+        `2026-10-13 03:09:03.241 (${expected})`,
+      );
+    } finally {
+      partsSpy.mockRestore();
+    }
   });
 
   it('uses the viewing environment time zone by default', () => {
