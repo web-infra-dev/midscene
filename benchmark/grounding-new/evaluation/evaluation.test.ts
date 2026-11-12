@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -9,6 +8,7 @@ import { describe, expect, test } from 'vitest';
 import { evaluationConfigSchema } from '../config';
 
 type TestCase = {
+  schemaVersion: number;
   name: string;
   platform: 'web' | 'mobile';
   instruction: Record<'en' | 'zh', string>;
@@ -32,12 +32,15 @@ const testcases = readdirSync(testcasesDirectory, { withFileTypes: true })
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name)
   .sort()
-  .map(
-    (name) =>
-      JSON.parse(
-        readFileSync(path.join(testcasesDirectory, name, 'index.json'), 'utf8'),
-      ) as TestCase,
-  );
+  .map((name) => ({
+    testcase: JSON.parse(
+      readFileSync(path.join(testcasesDirectory, name, 'index.json'), 'utf8'),
+    ) as TestCase,
+    testcaseSha256: readFileSync(
+      path.join(testcasesDirectory, name, 'index.sha256'),
+      'utf8',
+    ).trim(),
+  }));
 
 describe.each(models)(
   '$name',
@@ -52,9 +55,9 @@ describe.each(models)(
     reasoningEnabled,
   }) => {
     test.each(testcases)(
-      '$name',
+      '$testcase.name',
       { timeout: 60 * 1000, retry: 1 },
-      async (testcase) => {
+      async ({ testcase, testcaseSha256 }) => {
         const startedAt = Date.now();
         const instruction = testcase.instruction[testcase.instructionLanguage];
         const profiling = { durationMs: 0 };
@@ -148,9 +151,7 @@ describe.each(models)(
         profiling.durationMs = Date.now() - startedAt;
         const result = {
           consistency: {
-            testcaseSha256: createHash('sha256')
-              .update(JSON.stringify(testcase))
-              .digest('hex'),
+            testcaseSha256,
           },
           input: {
             testcase: testcase.name,

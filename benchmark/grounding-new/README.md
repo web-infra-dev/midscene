@@ -59,9 +59,9 @@ The configuration is a JSON object with a `models` array. Each model requires `b
 
 配置为包含 `models` 数组的 JSON 对象。每个模型需提供 `baseUrl`、`apiKey`、`family`、`name` 和 `displayFamily`，可选 `protocol`（`openai-chat` 或 `openai-responses`）。可选布尔字段 `reasoningEnabled` 对应 Midscene 的推理开关，省略时沿用模型适配器默认值；要求启用思考的部署需设为 `true`。可选的 `displayName` 指定结果目录名、界面展示名和价格／性能参考的匹配键，省略时使用 `name`。`name` 始终作为 API 模型 ID，并记录在 `input.model`；配置的别名记录在 `input.displayName`。`profiling.byModel` 用量仍保留 API 模型 ID。目录名中 `a-zA-Z0-9._-` 以外的字符（以及全点号名称）替换为 `_`，转换后的目录名必须唯一。每个模型执行全部测试用例；可追加 Vitest 名称筛选，例如 `evaluate -t MOBILE-v1-001`。
 
-Each result records `consistency.testcaseSha256`, the SHA-256 of the UTF-8 bytes of `JSON.stringify(testcase)` as loaded for the run. The testcase includes the declared image SHA-256; verifying the image file itself also requires checking its bytes against that declared hash.
+Each testcase has a top-level `schemaVersion`, a positive integer starting at `1` that increases when the data format changes. Its `index.sha256` file contains the SHA-256 of the exact bytes of `index.json`, as 64 lowercase hexadecimal characters followed by a newline. Regenerate this file after changing or formatting `index.json`. Evaluation loads the JSON and saved hash together, then records that hash as `consistency.testcaseSha256` without recalculating it. The testcase includes the declared image SHA-256; verifying the image file itself also requires checking its bytes against that declared hash.
 
-每条结果的 `consistency.testcaseSha256` 是运行时加载的 testcase 经 `JSON.stringify(testcase)` 序列化后的 UTF-8 字节的 SHA-256。testcase 包含声明的图片 SHA-256；验证图片文件本身还需要将其实际字节与该声明值比对。
+每道题通过顶级字段 `schemaVersion` 标记数据格式版本，取从 `1` 开始、随格式变更递增的正整数。同目录下的 `index.sha256` 保存 `index.json` 原始文件字节的 SHA-256，内容为 64 位小写十六进制值加换行。修改或格式化 `index.json` 后须重新生成该文件。评测加载题目时一并读取保存的哈希，输出结果时直接将其记录为 `consistency.testcaseSha256`，不再重新计算。testcase 包含声明的图片 SHA-256；验证图片文件本身还需要将其实际字节与该声明值比对。
 
 For `family: "jev"`, use a System One-compatible Base URL (the SDK appends `/systemone`) and omit `protocol`. Screenshots sent to Jev are resized to a maximum edge of 1568 pixels; predictions are mapped back to the original screenshot coordinates, leaving testcase images and ground truth unchanged.
 

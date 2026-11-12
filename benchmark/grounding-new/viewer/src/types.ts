@@ -55,6 +55,7 @@ export function getModelDisplayName({ input }: EvaluationResult) {
 }
 
 export interface Testcase {
+  schemaVersion: number;
   name: string;
   platform: 'web' | 'mobile';
   category: { item: (typeof categoryItems)[number]; reason: string };
