@@ -48,6 +48,8 @@ describe('anchor check excludes', () => {
       '/zh/reference/#深度定位deeplocate',
       './reference/#%E4%BD%BF%E7%94%A8%E5%9B%BE%E7%89%87%E4%BD%9C%E4%B8%BA%E6%8F%90%E7%A4%BA%E8%AF%8D',
       './model-api-setup.mdx#glm-v',
+      '../model-api-setup#tencent-hy',
+      '/zh/model-api-setup.html#tencent-hy',
       '../platforms/web#chrome-extension-faq',
       '#verify-device-connection',
     ]) {
@@ -58,6 +60,7 @@ describe('anchor check excludes', () => {
   it('keeps checking other anchors', () => {
     for (const url of [
       './model-api-setup#does-not-exist',
+      './faq#tencent-hy',
       // A known anchor on another page.
       './faq#common',
       './integrate-with-playwright#faq',
