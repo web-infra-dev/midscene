@@ -8,6 +8,7 @@ import {
   validateRequiredLocateFields,
 } from '@/common';
 import { type AbstractInterface, defineActionSleep } from '@/device';
+import type { DistanceUnit } from '@/distance-schema';
 import type Service from '@/service';
 import { setTimingFieldOnce } from '@/task-timing';
 import type {
@@ -104,6 +105,7 @@ interface TaskBuilderDeps {
 }
 
 interface BuildOptions {
+  distanceUnit?: DistanceUnit;
   cacheable?: boolean;
   multimodalPrompt?: TMultimodalPrompt;
   deepLocate?: boolean;
@@ -111,6 +113,7 @@ interface BuildOptions {
 }
 
 interface PlanBuildContext {
+  distanceUnit?: DistanceUnit;
   tasks: ExecutionTaskApply[];
   planningModel: ModelRuntime;
   locateModel: ModelRuntime;
@@ -164,6 +167,7 @@ export class TaskBuilder {
     const cacheable = options?.cacheable;
 
     const context: PlanBuildContext = {
+      distanceUnit: options?.distanceUnit,
       tasks,
       planningModel,
       locateModel,
@@ -300,6 +304,7 @@ export class TaskBuilder {
           try {
             return parseActionParam(param, action.paramSchema, {
               shrunkShotToLogicalRatio,
+              distanceUnit: context.distanceUnit,
             });
           } catch (error: any) {
             throw new Error(

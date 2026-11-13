@@ -2,6 +2,7 @@ import { TaskBuilder, locatePlanForLocate } from '@/agent/task-builder';
 import { getMidsceneLocationSchema } from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
 import { AbstractInterface, defineActionSleep } from '@/device';
+import { getMidsceneDistanceSchema } from '@/distance-schema';
 import type Service from '@/service';
 import type { DeviceAction, PlanningAction } from '@/types';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
@@ -501,4 +502,55 @@ describe('TaskBuilder', () => {
       'ReadState returned brightness: 0\n',
     );
   });
+  it.each([
+    {
+      distanceUnit: 'model-input-image-pixel' as const,
+      distance: 120,
+      expected: 80,
+    },
+    { distanceUnit: 'device-logical' as const, distance: 120, expected: 120 },
+    {
+      distanceUnit: 'model-input-image-pixel' as const,
+      distance: undefined,
+      expected: 100,
+    },
+  ])(
+    'preserves the distance unit and device-unit defaults: %j',
+    async ({ distanceUnit, distance, expected }) => {
+      const call = rs.fn();
+      const action: DeviceAction = {
+        name: 'CustomMove',
+        paramSchema: z.object({
+          distance: getMidsceneDistanceSchema().default(100),
+          duration: z.number().default(500),
+        }),
+        delayBeforeRunner: 0,
+        delayAfterRunner: 0,
+        call,
+      };
+      const builder = new TaskBuilder({
+        getDefaultModelRuntime: () => mockModelRuntime,
+        interfaceInstance: new MockInterface([action]),
+        service: {} as Service,
+        actionSpace: [action],
+      });
+      const { tasks } = await builder.build(
+        [{ type: 'CustomMove', param: { distance } }],
+        mockModelRuntime,
+        mockModelRuntime,
+        { distanceUnit },
+      );
+      await tasks[0].executor({
+        task: { timing: {} },
+        uiContext: {
+          shotSize: { width: 600, height: 1200 },
+          shrunkShotToLogicalRatio: 1.5,
+        },
+      } as any);
+      expect(call.mock.calls[0][0]).toEqual({
+        distance: expected,
+        duration: 500,
+      });
+    },
+  );
 });

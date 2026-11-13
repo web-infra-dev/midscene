@@ -11,6 +11,7 @@ import {
   userPromptToString,
 } from '@/common';
 import { type AbstractInterface, defineActionSleep } from '@/device';
+import type { DistanceUnit } from '@/distance-schema';
 import type Service from '@/service';
 import type {
   ExecutionReferenceImage,
@@ -321,6 +322,7 @@ export class TaskExecutor {
     planningModel: ModelRuntime,
     locateModel: ModelRuntime,
     options?: {
+      distanceUnit?: DistanceUnit;
       cacheable?: boolean;
       multimodalPrompt?: TMultimodalPrompt;
       deepLocate?: boolean;
@@ -426,7 +428,7 @@ export class TaskExecutor {
       plans,
       executionPlanningModel,
       executionLocateModel,
-      { abortSignal },
+      { distanceUnit: 'device-logical', abortSignal },
     );
     const result = await session.appendAndRun(tasks);
     const { output } = result ?? {};
@@ -864,6 +866,7 @@ export class TaskExecutor {
             planningModel,
             locateModel,
             {
+              distanceUnit: 'model-input-image-pixel',
               cacheable,
               multimodalPrompt: userPromptToMultimodalPrompt(userPrompt),
               deepLocate,

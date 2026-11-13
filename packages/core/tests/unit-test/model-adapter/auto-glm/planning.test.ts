@@ -7,6 +7,7 @@ import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
 import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
+import { defineActionScroll } from '@/device';
 import type { UIContext } from '@/types';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { mockActionSpace } from '../../../common';
@@ -64,7 +65,9 @@ const context: UIContext = {
 function createPlanOptions(overrides: Partial<PlanOptions> = {}): PlanOptions {
   return {
     context,
-    actionSpace: mockActionSpace,
+    actionSpace: mockActionSpace.map((action) =>
+      action.name === 'Scroll' ? defineActionScroll(async () => {}) : action,
+    ),
     modelRuntime: {
       config: {
         modelName: 'auto-glm-test-model',
