@@ -24,6 +24,7 @@ it('tracks the inner container across coordinate jitter and distinguishes ancest
       locate: { center: [x, y] },
     } as any);
   const before = await capture(20, 40);
+  expect(before).toMatchObject({ maxScrollLeft: 450, maxScrollTop: 0 });
   const jitter = await capture(25, 45);
   expect(jitter!.targetId).toBe(before!.targetId);
   await page.evaluate(() => {

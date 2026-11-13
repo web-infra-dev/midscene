@@ -59,7 +59,7 @@ pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/summary
 | 加载更多 | 每次揭示三条记录，最终读取验证码 |
 | 同坐标容器覆盖 | 通知面板覆盖原位置，使相同坐标命中另一个容器 |
 
-坐标注入用例使用 Doubao 的归一化 bbox 编码，对不匹配的模型族直接报错。自然任务不会收到坐标或 DOM 判定数据。
+坐标注入用例使用经过核对的 1000 归一化 xy bbox 编码，支持 `doubao-seed` 和 `qwen3`，对其他模型族直接报错。自然任务不会收到坐标或 DOM 判定数据。
 
 `workspace` 和 `catalog` 使用不同外层布局，但共享卡片构造逻辑。后者只是本轮布局保留集，不是独立来源的网站，也不足以证明泛化能力。一旦用保留集失败来调整解法，应另找新集合做确认。
 

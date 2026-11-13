@@ -621,7 +621,12 @@ export class TaskExecutor {
     let latestPlanIndex = 0;
     const scrollRecovery =
       scrollRecoveryInterval !== undefined
-        ? new ScrollRecovery(session, planningModel, scrollRecoveryInterval)
+        ? new ScrollRecovery(
+            session,
+            planningModel,
+            scrollRecoveryInterval,
+            userPromptToString(userPrompt),
+          )
         : undefined;
 
     if (abortSignal?.aborted) {

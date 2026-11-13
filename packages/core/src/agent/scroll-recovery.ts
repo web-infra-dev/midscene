@@ -6,7 +6,9 @@ import {
   findScrollToReview,
   reviewScroll,
 } from '@/ai-model/workflows/planning/scroll-review';
+import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+const warn = getDebug('scroll-recovery', { console: true });
 import type { ExecutionSession } from './execution-session';
 import { withUsageIntent } from './usage-intent';
 
@@ -40,6 +42,7 @@ export class ScrollRecovery {
     private readonly session: ExecutionSession,
     private readonly model: ModelRuntime,
     private readonly afterScrolls: number,
+    private readonly userPrompt?: string,
   ) {
     if (
       model.adapter.planning.kind !== 'standard' ||
@@ -64,6 +67,7 @@ export class ScrollRecovery {
     this.reviewedTaskId = task.taskId;
     await onStart();
     let observation: ScrollReview | undefined;
+    let formatError: AIResponseParseError | undefined;
     await this.session.appendAndRun({
       type: 'Planning',
       subType: 'ScrollReview',
@@ -79,6 +83,7 @@ export class ScrollRecovery {
             current: context.uiContext,
             modelRuntime: this.model,
             abortSignal,
+            userPrompt: this.userPrompt,
           });
           observation = result.content;
           context.task.usage = withUsageIntent(result.usage, 'planning');
@@ -90,18 +95,28 @@ export class ScrollRecovery {
             },
           };
         } catch (error) {
+          abortSignal?.throwIfAborted();
           if (error instanceof AIResponseParseError) {
             context.task.usage = withUsageIntent(error.usage, 'planning');
             context.task.log = {
               rawResponse: error.rawResponse,
               rawAssistantOutput: error.rawAssistantOutput,
             };
+            formatError = error;
+            warn(`Scroll review unavailable: ${error.message}`);
+            return {
+              output: { reviewUnavailable: true, error: error.message },
+              log: context.task.log,
+            };
           }
           throw error;
         }
       },
     });
-    assert(observation, 'Scroll review completed without an observation');
+    assert(
+      observation || formatError,
+      'Scroll review completed without an observation',
+    );
     return observation;
   }
 }

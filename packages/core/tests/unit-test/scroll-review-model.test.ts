@@ -195,3 +195,43 @@ it('rejects a model attempting to overwrite measured target progress', async () 
   expect(callGenerativeAI).toHaveBeenCalledTimes(2);
   expect(result.content.progress).toBe('unchanged');
 });
+
+it.each([
+  { top: 565, max: 1115, proposed: 'up', expected: null },
+  { top: 1115, max: 1115, proposed: 'right', expected: 'up' },
+])(
+  'rejects direction advice contradicted by native ranges: %j',
+  async ({ top, max, proposed, expected }) => {
+    const state = {
+      targetId: 'list',
+      scrollLeft: 0,
+      scrollTop: top,
+      maxScrollLeft: 0,
+      maxScrollTop: max,
+      rect: { left: 0, top: 0, width: 100, height: 100 },
+    };
+    rs.mocked(callGenerativeAI)
+      .mockResolvedValueOnce({
+        content: JSON.stringify({ ...good, nextSearchDirection: proposed }),
+        isStreamed: false,
+      })
+      .mockResolvedValueOnce({
+        content: JSON.stringify({ ...good, nextSearchDirection: expected }),
+        isStreamed: false,
+      });
+    const result = await reviewScroll({
+      task: {
+        ...task,
+        scrollProgress: { before: state, after: state, status: 'unchanged' },
+      },
+      current: context,
+      modelRuntime: runtime,
+      userPrompt: 'Find the code, load more if needed',
+    });
+    expect(result.content.nextSearchDirection).toBe(expected);
+    expect(callGenerativeAI).toHaveBeenCalledTimes(2);
+    expect(
+      JSON.stringify(rs.mocked(callGenerativeAI).mock.calls[0][0]),
+    ).toContain('Find the code, load more if needed');
+  },
+);

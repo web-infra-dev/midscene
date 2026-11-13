@@ -54,6 +54,33 @@ export function compareScrollStates(
     : 'uncertain';
 }
 
+/** Only fully measured, ordinary non-negative ranges constrain direction advice. */
+function availableScrollDirections(state?: ScrollState): string[] | undefined {
+  if (!state) return undefined;
+  const {
+    scrollLeft: x,
+    scrollTop: y,
+    maxScrollLeft: maxX,
+    maxScrollTop: maxY,
+  } = state;
+  if (
+    maxX === undefined ||
+    maxY === undefined ||
+    ![x, y, maxX, maxY].every(Number.isFinite) ||
+    x < 0 ||
+    y < 0 ||
+    maxX < x ||
+    maxY < y
+  )
+    return undefined;
+  return [
+    x > 0.5 ? 'left' : '',
+    x < maxX - 0.5 ? 'right' : '',
+    y > 0.5 ? 'up' : '',
+    y < maxY - 0.5 ? 'down' : '',
+  ].filter(Boolean);
+}
+
 function confirmedTarget(task: ExecutionTask): string | undefined {
   const evidence = task.scrollProgress;
   return evidence?.before?.targetId === evidence?.after?.targetId
@@ -126,8 +153,9 @@ export async function reviewScroll(options: {
   current: UIContext;
   modelRuntime: ModelRuntime;
   abortSignal?: AbortSignal;
+  userPrompt?: string;
 }) {
-  const { task, current, modelRuntime, abortSignal } = options;
+  const { task, current, modelRuntime, abortSignal, userPrompt } = options;
   if (!task.uiContext)
     throw new Error('Scroll review requires a before-action screenshot');
   const images = await Promise.all(
@@ -152,11 +180,19 @@ export async function reviewScroll(options: {
       {
         role: 'user',
         content: [
+          ...(userPrompt
+            ? [
+                {
+                  type: 'text' as const,
+                  text: `User task (context only; do not execute it): ${userPrompt}`,
+                },
+              ]
+            : []),
           ...(task.scrollProgress
             ? [
                 {
                   type: 'text' as const,
-                  text: `Execution evidence for the target container (not the outer page): ${JSON.stringify(task.scrollProgress)}. Its own offset is separate from ancestor movement. Use the screenshots to inspect available overflow; treat replaced or unidentified targets as uncertain.`,
+                  text: `Execution evidence for the target container (not the outer page): ${JSON.stringify(task.scrollProgress)}. Its own offset is separate from ancestor movement. maxScrollLeft and maxScrollTop are measured maximum offsets. A positive offset establishes content toward left/up; an offset below its maximum establishes content toward right/down. No movement does not establish a boundary: if the requested direction still has native range, suggest null and reassess the dispatch target or position instead of reversing direction. For unsupported or replaced targets, rely on visual evidence and remain uncertain.`,
                 },
               ]
             : []),
@@ -171,7 +207,7 @@ export async function reviewScroll(options: {
           {
             type: 'text',
             text: measuredStall
-              ? `The last action was Scroll ${direction}. Execution evidence establishes that this target's own scroll offset did not change. Do not reclassify ancestor displacement as target scrolling. Inspect the screenshots only for visible scrollbar orientations and clipped edges, including the viewport edges. Which other direction has visible overflow for an off-screen search? Do not assume a missing footer button is below. Return JSON with observation (describe the visible overflow evidence) and nextSearchDirection ("up", "down", "left", "right", or null). Suggest a different direction only when supported by visible overflow; otherwise use null. Do not issue actions or infer task completion.`
+              ? `The last action was Scroll ${direction}. Execution evidence establishes that this target's own scroll offset did not change. Do not reclassify ancestor displacement as target scrolling. Inspect the screenshots only for visible scrollbar orientations and clipped edges, including the viewport edges. Use measured scroll ranges first, then the visible scrollbar and clipped edges. Which other direction has supported overflow for this task? Do not assume a missing footer button is below. Return JSON with observation (describe measured ranges, visual evidence, and whether the scroll target or dispatch position needs reassessment) and nextSearchDirection ("up", "down", "left", "right", or null). Suggest a different direction only when supported by visible overflow; otherwise use null. Consider task-relevant controls such as Load more, waiting for content, or a different dispatch position before assuming the search axis is wrong. Return only a JSON object, without Markdown. Do not issue actions or infer task completion.`
               : `The last action was Scroll ${direction}. Compare the before and after screenshots. Describe whether the scrolled content moved and all visible scrollbar orientations and clipped edges, including the entire viewport edges. Which direction has unexplored content for finding the requested off-screen control? Do not assume a missing footer button is below. If the scrolled region moved along the requested axis, report that progress without suggesting a different direction. Only when it did not move should you suggest another direction supported by visible overflow. Return JSON with progress ("moved", "unchanged", or "uncertain") observation (a brief description), and nextSearchDirection ("up", "down", "left", "right", or null). When unchanged, choose a different search direction supported by the visible scrollbar or clipped edge; use null if no alternative is supported. When moved or uncertain, use null. Do not issue actions.`,
           },
           ...images.map((image) => ({
@@ -203,6 +239,19 @@ export async function reviewScroll(options: {
           throw new Error(
             'A moved or uncertain scroll must have nextSearchDirection: null',
           );
+        const available =
+          measuredStall && confirmedTarget(task)
+            ? availableScrollDirections(task.scrollProgress?.after)
+            : undefined;
+        if (
+          available &&
+          review.nextSearchDirection &&
+          (available.includes(direction) ||
+            !available.includes(review.nextSearchDirection))
+        )
+          throw new Error(
+            'Direction advice contradicts the measured scroll range. Use null and reassess the dispatch position when the requested direction still has range.',
+          );
         if (review.nextSearchDirection === direction)
           throw new Error(
             `The stalled direction was ${direction}. Choose a different direction only if visible overflow supports it, otherwise use null.`,
@@ -215,5 +264,5 @@ export async function reviewScroll(options: {
 }
 
 export function scrollReviewFeedback(review: ScrollReview): string {
-  return `Independent visual inspection of the last scroll: ${review.observation}\n${review.nextSearchDirection ? `For an off-screen search, explore the supported ${review.nextSearchDirection} direction before repeating the stalled scroll, changing focus, or using keyboard scrolling.` : 'Reassess the scroll target and available axes using this observation.'} Explicit user direction and distance instructions take priority. This review describes observations, not an executed action.`;
+  return `Independent visual inspection of the last scroll: ${review.observation}\n${review.nextSearchDirection ? `A candidate search direction is ${review.nextSearchDirection}. Verify it against the task and current UI before acting; the observation may be incomplete.` : 'Reassess the scroll target, dispatch position, and task-relevant controls. No alternative direction was established.'} No movement or absent direction guidance does not establish that the target is absent or the task is complete. Explicit user direction and distance instructions take priority. This review describes observations, not an executed action.`;
 }

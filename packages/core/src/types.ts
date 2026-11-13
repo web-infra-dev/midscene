@@ -608,6 +608,9 @@ export interface ScrollState {
   targetId: string;
   scrollLeft: number;
   scrollTop: number;
+  /** Native scroll ranges, when the platform can measure them. */
+  maxScrollLeft?: number;
+  maxScrollTop?: number;
   rect: Rect;
 }
 

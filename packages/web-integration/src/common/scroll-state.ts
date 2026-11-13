@@ -52,6 +52,8 @@ export function inspectScrollTarget(
     targetId: id,
     scrollLeft: target.scrollLeft,
     scrollTop: target.scrollTop,
+    maxScrollLeft: Math.max(0, target.scrollWidth - target.clientWidth),
+    maxScrollTop: Math.max(0, target.scrollHeight - target.clientHeight),
     rect: {
       left: rect.left,
       top: rect.top,

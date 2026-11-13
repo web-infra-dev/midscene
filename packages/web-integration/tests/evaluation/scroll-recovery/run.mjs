@@ -260,9 +260,13 @@ async function attempt({ c, rep, arm }) {
                   'container-swap',
                 ].includes(c.family)
               ) {
-                if (process.env.MIDSCENE_MODEL_FAMILY !== 'doubao-seed')
+                if (
+                  !['doubao-seed', 'qwen3'].includes(
+                    process.env.MIDSCENE_MODEL_FAMILY,
+                  )
+                )
                   throw new Error(
-                    'Coordinate-injection cases currently require doubao-seed',
+                    'Coordinate-injection cases require verified 1000-normalized bbox encoding (doubao-seed or qwen3)',
                   );
                 let x = initial.rect.left + initial.rect.width / 2;
                 let y = initial.rect.top + initial.rect.height / 2;

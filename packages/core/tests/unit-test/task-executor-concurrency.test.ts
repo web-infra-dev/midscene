@@ -1153,7 +1153,7 @@ describe('TaskExecutor concurrency isolation', () => {
   );
 
   it.each(['invalid response', 'cancelled'] as const)(
-    'records review failure and stops before another plan: %s',
+    'records unavailable reviews without hiding cancellation: %s',
     async (failure) => {
       const controller = new AbortController();
       const phases: string[] = [];
@@ -1190,6 +1190,22 @@ describe('TaskExecutor concurrency isolation', () => {
         shouldContinuePlanning: true,
         log: '',
       });
+      rs.mocked(standardPlan)
+        .mockResolvedValueOnce({
+          actions: [{ type: 'Scroll', param: { direction: 'down' } }],
+          shouldContinuePlanning: true,
+          log: '',
+        })
+        .mockResolvedValueOnce({
+          actions: [{ type: 'Scroll', param: { direction: 'down' } }],
+          shouldContinuePlanning: true,
+          log: '',
+        })
+        .mockResolvedValueOnce({
+          actions: [],
+          shouldContinuePlanning: false,
+          log: '',
+        });
       const usage = {
         prompt_tokens: 1,
         completion_tokens: 2,
@@ -1214,33 +1230,41 @@ describe('TaskExecutor concurrency isolation', () => {
           usage,
         );
       });
-      await expect(
-        executor.action(
-          'Find Next',
-          planningModel(),
-          defaultModel(),
-          undefined,
-          undefined,
-          undefined,
-          'balance',
-          undefined,
-          undefined,
-          controller.signal,
-          undefined,
-          2,
-        ),
-      ).rejects.toThrow(
-        failure === 'cancelled' ? 'cancel review' : 'invalid review',
+      const run = executor.action(
+        'Find Next',
+        planningModel(),
+        defaultModel(),
+        undefined,
+        undefined,
+        undefined,
+        'balance',
+        undefined,
+        undefined,
+        controller.signal,
+        undefined,
+        2,
       );
-      expect(scroll).toHaveBeenCalledTimes(2);
-      expect(standardPlan).toHaveBeenCalledTimes(2);
+      if (failure === 'cancelled')
+        await expect(run).rejects.toThrow('cancel review');
+      else await run;
+      expect(scroll).toHaveBeenCalledTimes(failure === 'cancelled' ? 2 : 3);
+      expect(standardPlan).toHaveBeenCalledTimes(
+        failure === 'cancelled' ? 2 : 3,
+      );
       expect(reviewScroll).toHaveBeenCalledOnce();
-      expect(phases).toContain('plan_failed');
+      if (failure === 'cancelled') expect(phases).toContain('plan_failed');
+      else expect(phases).not.toContain('plan_failed');
       const reviewTask = runner?.tasks.find(
         (task) => task.subType === 'ScrollReview',
       );
-      expect(reviewTask?.status).toBe('failed');
+      expect(reviewTask?.status).toBe(
+        failure === 'cancelled' ? 'failed' : 'finished',
+      );
       if (failure === 'invalid response') {
+        expect(reviewTask?.output).toMatchObject({
+          reviewUnavailable: true,
+          error: 'invalid review',
+        });
         expect(reviewTask?.log?.rawResponse).toBe('raw invalid response');
         expect(reviewTask?.usage).toEqual({ ...usage, intent: 'planning' });
       }
