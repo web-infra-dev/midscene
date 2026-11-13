@@ -561,3 +561,97 @@ describe('Agent per-call context option', () => {
     });
   });
 });
+
+it('defaults to native recovery only when measurements are available and preserves the opt-out', async () => {
+  const { agent, taskExecutor } = createAgentStub();
+  (agent as any).resolveModelRuntime = rs.fn(() => ({
+    config: { slot: 'default' },
+    adapter: { planning: { kind: 'standard', cacheEnabled: false } },
+  }));
+  await agent.aiAct('Find Next');
+  expect(taskExecutor.action.mock.calls[0][11]).toBeUndefined();
+  (agent as any).interface.captureScrollState = rs.fn();
+  await agent.aiAct('Find Next');
+  expect(taskExecutor.action.mock.calls[1][11]).toEqual({
+    afterScrolls: 3,
+    allowVisualFallback: false,
+  });
+  await agent.aiAct('Find Next', { scrollRecovery: false });
+  expect(taskExecutor.action.mock.calls[2][11]).toBeUndefined();
+  await agent.aiAct('Find Next', { scrollRecovery: true });
+  expect(taskExecutor.action.mock.calls[3][11]).toEqual({
+    afterScrolls: 3,
+    allowVisualFallback: true,
+  });
+  await agent.aiAct('Find Next', { scrollRecovery: { afterScrolls: 2 } });
+  expect(taskExecutor.action.mock.calls[4][11]).toEqual({
+    afterScrolls: 2,
+    allowVisualFallback: true,
+  });
+});
+it.each([undefined, true, { afterScrolls: 2 }])(
+  'keeps custom planners on their existing path: %j',
+  async (options) => {
+    const { agent, taskExecutor } = createAgentStub();
+    (agent as any).interface.captureScrollState = rs.fn();
+    (agent as any).resolveModelRuntime = rs.fn(() => ({
+      config: { protocol: 'openai-chat' },
+      adapter: { planning: { kind: 'custom', cacheEnabled: false } },
+    }));
+    await agent.aiAct('Find Next', { scrollRecovery: options });
+    expect(taskExecutor.action.mock.calls[0][11]).toBeUndefined();
+  },
+);
+it('allows standard Responses planners without an artificial protocol rejection', async () => {
+  const { agent, taskExecutor } = createAgentStub();
+  (agent as any).interface.captureScrollState = rs.fn();
+  (agent as any).resolveModelRuntime = rs.fn(() => ({
+    config: { protocol: 'openai-responses' },
+    adapter: { planning: { kind: 'standard', cacheEnabled: false } },
+  }));
+  await agent.aiAct('Find Next');
+  expect(taskExecutor.action.mock.calls[0][11]).toEqual({
+    afterScrolls: 3,
+    allowVisualFallback: false,
+  });
+  await agent.aiAct('Find Next', { scrollRecovery: true });
+  expect(taskExecutor.action.mock.calls[1][11]).toEqual({
+    afterScrolls: 3,
+    allowVisualFallback: true,
+  });
+});
+
+it.each([
+  0,
+  1,
+  -1,
+  2.5,
+  Number.NaN,
+  Number.POSITIVE_INFINITY,
+  Number.MAX_SAFE_INTEGER + 1,
+])(
+  'rejects invalid scroll recovery interval before execution: %s',
+  async (afterScrolls) => {
+    const { agent, taskExecutor } = createAgentStub();
+    await expect(
+      agent.aiAct('Find Next', { scrollRecovery: { afterScrolls } }),
+    ).rejects.toThrow('scrollRecovery.afterScrolls');
+    expect(taskExecutor.action).not.toHaveBeenCalled();
+  },
+);
+
+it('explicit opt-out does not even inspect an optional measurement hook', async () => {
+  const { agent, taskExecutor } = createAgentStub();
+  (agent as any).resolveModelRuntime = rs.fn(() => ({
+    config: {},
+    adapter: { planning: { kind: 'standard', cacheEnabled: false } },
+  }));
+  Object.defineProperty((agent as any).interface, 'captureScrollState', {
+    get: () => {
+      throw new Error('must not inspect disabled measurement');
+    },
+  });
+  await agent.aiAct('Continue', { scrollRecovery: false });
+  expect(taskExecutor.action).toHaveBeenCalledOnce();
+  expect(taskExecutor.action.mock.calls[0][11]).toBeUndefined();
+});

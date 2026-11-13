@@ -5,6 +5,7 @@ import type {
   DeviceAction,
   ExecutorContext,
   LocateResultElement,
+  ScrollState,
 } from '@/types';
 import type { ElementNode } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
@@ -247,6 +248,11 @@ export abstract class AbstractInterface {
     _param: any,
     _signal?: AbortSignal,
   ): Promise<void> {}
+
+  /** Optional target-relative scroll evidence. Return undefined when identity cannot be established. */
+  captureScrollState?(
+    param: ActionScrollParam,
+  ): Promise<ScrollState | undefined>;
 
   // for web only
   registerFileChooserListener?(
@@ -746,7 +752,7 @@ export const defineActionScroll = (
   return defineAction<typeof actionScrollParamSchema, ActionScrollParam>({
     name: 'Scroll',
     description:
-      'Scroll a page or scrollable region to reveal off-screen content. Use Scroll when the goal is to browse content outside the current viewport. For direct gesture interactions, such as adjusting a slider or wheel picker, switching between paged cards or images, following an on-screen swipe gesture to continue or dismiss, or swiping an item to delete it, use Swipe instead if available in the current Action Space. Supports scrollToBottom/scrollToTop for boundary navigation. Default: direction `down`, scrollType `singleAction`, distance `null`.',
+      "Scroll a page or scrollable region to reveal off-screen content. Use Scroll when the goal is to browse content outside the current viewport. When searching for a hidden control, choose direction from the region's clipping, scrollbars, and previous scroll results; do not assume that missing content is below. For direct gesture interactions, such as adjusting a slider or wheel picker, switching between paged cards or images, following an on-screen swipe gesture to continue or dismiss, or swiping an item to delete it, use Swipe instead if available in the current Action Space. Supports scrollToBottom/scrollToTop for boundary navigation. Default parameters when omitted: direction `down`, scrollType `singleAction`, distance `null`.",
     interfaceAlias: 'aiScroll',
     paramSchema: actionScrollParamSchema,
     sample: {

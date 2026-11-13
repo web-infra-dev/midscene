@@ -603,6 +603,24 @@ export interface RecordToReportOptions {
 
 export type ExecutionTaskType = 'Planning' | 'Insight' | 'Action Space' | 'Log';
 
+/** Optional execution evidence, not a planner-supplied value. IDs are scoped to a document/device session. */
+export interface ScrollState {
+  targetId: string;
+  scrollLeft: number;
+  scrollTop: number;
+  /** Native scroll ranges, when the platform can measure them. */
+  maxScrollLeft?: number;
+  maxScrollTop?: number;
+  rect: Rect;
+}
+
+export interface ScrollProgress {
+  observationErrors?: string[];
+  before?: ScrollState;
+  after?: ScrollState;
+  status: 'moved' | 'unchanged' | 'uncertain';
+}
+
 export interface ExecutorContext {
   /** Cancellation of this execution; adapters may forward it to cancellable I/O. */
   signal?: AbortSignal;
@@ -673,6 +691,8 @@ export type ExecutionTask<
      * This is execution metadata, not part of the action return value.
      */
     planningFeedback?: string;
+    /** Target-relative evidence captured around a Scroll after readiness settles. */
+    scrollProgress?: ScrollProgress;
     /**
      * A bounded diagnostic DTO created when the task executor throws. Arbitrary
      * upstream payloads are intentionally omitted; use this field for structured

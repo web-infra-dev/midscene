@@ -178,6 +178,14 @@ jobs:
         EOF
         npx -y node@20.19.0 packages/cli/dist/lib/index.js --version
 
+    - name: Check scroll evaluation accounting
+      run: pnpm exec nx test:evaluation @midscene/web --output-style=static
+
+    - name: Check scroll evaluation fixture oracles
+      run: |
+        EVAL_TRACK=oracle EVAL_WORKERS=2 pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/run.mjs
+        pnpm exec node --test packages/web-integration/tests/evaluation/scroll-recovery/boundary-fixtures.test.mjs packages/web-integration/tests/evaluation/scroll-recovery/routine-fixtures.test.mjs packages/web-integration/tests/evaluation/scroll-recovery/repository-fixtures.test.mjs
+
     - name: Type check tests
       run: pnpm run type-check:tests
 

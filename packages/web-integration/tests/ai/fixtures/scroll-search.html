@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Evaluation setup</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; font: 20px sans-serif; background: #f3f5f8; }
+      header { height: 80px; padding: 24px; background: white; }
+      aside { position: fixed; top: 80px; bottom: 0; width: 180px; padding: 24px; }
+      main { position: fixed; top: 80px; bottom: 20px; left: 180px; right: 0; overflow: auto; }
+      article { width: 1600px; height: 100%; padding: 32px; background: white; position: relative; }
+      nav { display: flex; justify-content: space-between; margin: 24px 0; }
+      label { display: block; margin: 32px 0; }
+      input { display: block; width: 100%; padding: 16px; font: inherit; }
+      footer { position: absolute; bottom: 24px; right: 32px; }
+      button { font: inherit; background: #1265ef; color: white; border: 0; padding: 16px 32px; }
+      output { position: fixed; top: 24px; right: 24px; }
+      ::-webkit-scrollbar { width: 14px; height: 14px; }
+      ::-webkit-scrollbar-track { background: #e1e5eb; }
+      ::-webkit-scrollbar-thumb { background: #8693a5; border-radius: 7px; }
+      body.vertical article { width: 100%; height: 1600px; }
+    </style>
+  </head>
+  <body>
+    <header>Evaluation workspace</header>
+    <aside>Evaluation tasks</aside>
+    <main id="content">
+      <article>
+        <h1>Create evaluation task</h1>
+        <nav><span>1. Basic information</span><span>2. Dataset</span><span>3. Review</span></nav>
+        <label>Task name<input value="Support evaluation" readonly /></label>
+        <label>Description<input value="Evaluate the support assistant" readonly /></label>
+        <p>Evaluation target: Support assistant</p>
+        <footer><button id="next">Next</button></footer>
+      </article>
+    </main>
+    <output id="result"></output>
+    <script>
+      if (new URLSearchParams(location.search).get('axis') === 'vertical') {
+        document.body.classList.add('vertical');
+        const details = document.createElement('section');
+        details.innerHTML = Array.from({ length: 12 }, (_, index) => '<p>Evaluation configuration section ' + (index + 1) + '</p>').join('');
+        document.querySelector('article').append(details);
+      }
+      document.querySelector('#next').addEventListener('click', () => {
+        document.querySelector('#result').textContent = 'Dataset configuration';
+        document.querySelector('main').innerHTML = '<article style="width:100%;height:100%"><h1>Dataset configuration</h1><p>Select an evaluation dataset.</p></article>';
+      });
+    </script>
+  </body>
+</html>

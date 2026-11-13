@@ -90,6 +90,7 @@
     "test": "rstest",
     "test:u": "rstest -u",
     "test:ai": "AI_TEST_TYPE=web rstest",
+    "test:evaluation": "node --test tests/evaluation/scroll-recovery/summary.test.mjs",
     "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=web rstest",
     "e2e": "playwright test --config=tests/playwright.config.ts",
     "e2e:report": "MIDSCENE_REPORT=true playwright test --config=tests/playwright.config.ts",

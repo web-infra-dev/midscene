@@ -116,6 +116,38 @@ describe('plan XML parse retry', () => {
     rs.mocked(buildYamlFlowFromPlans).mockClear();
   });
 
+  it.each(['balance', 'deepThink'] as const)(
+    'retains the raw plan without recording unexecuted actions with %s effort',
+    async (effort) => {
+      const content =
+        '<log>I intend to tap Save</log><action-type>Tap</action-type><action-param-json>{}</action-param-json>';
+      rs.mocked(callGenerativeAI).mockResolvedValueOnce(
+        mockAIResponse(content),
+      );
+      const history = new ConversationHistory();
+      history.setSubGoals([
+        { index: 1, description: 'Save', status: 'running' },
+      ]);
+      const result = await standardPlan('tap Save', {
+        context: mockContext(),
+        actionSpace: mockActionSpace(),
+        modelRuntime: getModelRuntime({
+          ...mockModelConfig(),
+          retryInterval: 0,
+        }),
+        conversationHistory: history,
+        includeLocateInPlanning: false,
+        effort,
+      });
+      expect(result.actions).toHaveLength(1);
+      expect(history.historicalLogsToText()).toBe('');
+      expect(history.subGoalsToText()).not.toContain('I intend to tap Save');
+      expect(JSON.stringify(history.snapshot())).toContain(
+        'I intend to tap Save',
+      );
+    },
+  );
+
   it('sends complete nested custom-action fields to the model before parsing its reply', async () => {
     const parameters = {
       target: { by: 'label', name: 'Access key' },
@@ -534,6 +566,73 @@ describe('plan XML parse retry', () => {
     expect(result.thought).toBeUndefined();
     expect(result.log).toBe('{"type":"Tap","param":{}}');
     expect(result.actions).toEqual([{ type: 'Tap', param: {} }]);
+  });
+
+  it('retains executed history and prior narrative when adding scroll observation feedback', async () => {
+    const history = new ConversationHistory();
+    history.appendHistoricalLog('Scrolled down twice');
+    history.appendMessage({
+      role: 'assistant',
+      content:
+        '<planning>Maybe below</planning><action-type>Scroll</action-type>',
+    });
+    history.pendingFeedbackMessage =
+      'Independent visual inspection: target unchanged';
+    rs.mocked(callGenerativeAI).mockResolvedValueOnce(
+      mockAIResponse(
+        '<action-type>Tap</action-type><action-param-json>{}</action-param-json>',
+      ),
+    );
+    await standardPlan('Find the item', {
+      context: mockContext(),
+      actionSpace: mockActionSpace(),
+      modelRuntime: getModelRuntime(mockModelConfig()),
+      conversationHistory: history,
+      includeLocateInPlanning: false,
+      effort: 'balance',
+    });
+    const request = JSON.stringify(
+      rs.mocked(callGenerativeAI).mock.calls[0][0],
+    );
+    expect(request).toContain('Scrolled down twice');
+    expect(request).toContain('Maybe below');
+    expect(request).toContain('target unchanged');
+  });
+
+  it('includes fresh executor facts alongside retained history on every planning cycle', async () => {
+    const history = new ConversationHistory();
+    history.appendMessage({
+      role: 'assistant',
+      content: 'Earlier assumption: scroll right',
+    });
+    rs.mocked(callGenerativeAI).mockResolvedValue(
+      mockAIResponse(
+        '<action-type>Tap</action-type><action-param-json>{}</action-param-json>',
+      ),
+    );
+    for (const distance of [100, 70]) {
+      await standardPlan('Find the item', {
+        context: mockContext(),
+        actionSpace: mockActionSpace(),
+        modelRuntime: getModelRuntime(mockModelConfig()),
+        conversationHistory: history,
+        includeLocateInPlanning: false,
+        effort: 'balance',
+        executionFeedback: `Remaining left: ${distance}`,
+      });
+    }
+    const request = rs.mocked(callGenerativeAI).mock.calls[1][0];
+    expect(JSON.stringify(request)).toContain(
+      'Earlier assumption: scroll right',
+    );
+    const serialized = JSON.stringify(request);
+    expect(serialized).toContain(
+      'Current measured execution state: Remaining left: 70',
+    );
+    expect(serialized).not.toContain('No previous actions have been executed');
+    expect(serialized.lastIndexOf('Remaining left: 70')).toBeGreaterThan(
+      serialized.lastIndexOf('Remaining left: 100'),
+    );
   });
 
   it('keeps planning advice separate from user context and instruction', async () => {

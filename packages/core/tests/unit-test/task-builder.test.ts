@@ -55,6 +55,170 @@ describe('TaskBuilder', () => {
     rs.useRealTimers();
   });
 
+  it.each([false, true])(
+    'collects scroll evidence only when enabled (%s), after readiness',
+    async (enabled) => {
+      const order: string[] = [];
+      const action: DeviceAction = {
+        name: 'Scroll',
+        paramSchema: z.object({ direction: z.string() }),
+        call: async () => {
+          order.push('action');
+        },
+      };
+      const device = new MockInterface([action]);
+      device.defaultActionWait = async () => {
+        order.push('ready');
+      };
+      device.captureScrollState = rs.fn(async () => {
+        order.push('capture');
+        return {
+          targetId: 'list',
+          scrollTop: order.includes('ready') ? 100 : 0,
+          scrollLeft: 0,
+          rect: { left: 0, top: 0, width: 100, height: 100 },
+        };
+      });
+      const builder = new TaskBuilder({
+        getDefaultModelRuntime: () => mockModelRuntime,
+        interfaceInstance: device,
+        service: {} as Service,
+        actionSpace: [action],
+        waitAfterAction: 0,
+      });
+      const { tasks } = await builder.build(
+        [{ type: 'Scroll', param: { direction: 'down' } }],
+        mockModelRuntime,
+        mockModelRuntime,
+        { observeScrollProgress: enabled },
+      );
+      const task = { timing: {} } as any;
+      await tasks[0].executor({
+        task,
+        uiContext: { shrunkShotToLogicalRatio: 1 },
+      } as any);
+      expect(order).toEqual(
+        enabled
+          ? ['capture', 'action', 'ready', 'capture']
+          : ['action', 'ready'],
+      );
+      if (enabled) expect(task.scrollProgress.status).toBe('moved');
+      else expect(task.scrollProgress).toBeUndefined();
+    },
+  );
+
+  it('records optional measurement errors while preserving the UI action', async () => {
+    const call = rs.fn();
+    const action: DeviceAction = {
+      name: 'Scroll',
+      paramSchema: z.object({}),
+      call,
+    };
+    const device = new MockInterface([action]);
+    device.captureScrollState = async () => {
+      throw new Error('probe unavailable');
+    };
+    const builder = new TaskBuilder({
+      getDefaultModelRuntime: () => mockModelRuntime,
+      interfaceInstance: device,
+      service: {} as Service,
+      actionSpace: [action],
+      waitAfterAction: 0,
+    });
+    const { tasks } = await builder.build(
+      [{ type: 'Scroll', param: {} }],
+      mockModelRuntime,
+      mockModelRuntime,
+      { observeScrollProgress: true },
+    );
+    const task = { timing: {} } as any;
+    await tasks[0].executor({
+      task,
+      uiContext: { shrunkShotToLogicalRatio: 1 },
+    } as any);
+    expect(call).toHaveBeenCalledOnce();
+    expect(task.scrollProgress).toMatchObject({
+      status: 'uncertain',
+      observationErrors: ['probe unavailable', 'probe unavailable'],
+    });
+  });
+
+  it('does not dispatch a scroll cancelled during evidence capture', async () => {
+    const controller = new AbortController();
+    const call = rs.fn();
+    const action: DeviceAction = {
+      name: 'Scroll',
+      paramSchema: z.object({}),
+      call,
+    };
+    const device = new MockInterface([action]);
+    device.captureScrollState = async () => {
+      controller.abort('cancelled during capture');
+      return undefined;
+    };
+    const builder = new TaskBuilder({
+      getDefaultModelRuntime: () => mockModelRuntime,
+      interfaceInstance: device,
+      service: {} as Service,
+      actionSpace: [action],
+      waitAfterAction: 0,
+    });
+    const { tasks } = await builder.build(
+      [{ type: 'Scroll', param: {} }],
+      mockModelRuntime,
+      mockModelRuntime,
+      { observeScrollProgress: true, abortSignal: controller.signal },
+    );
+    await expect(
+      tasks[0].executor({
+        task: { timing: {} },
+        uiContext: { shrunkShotToLogicalRatio: 1 },
+      } as any),
+    ).rejects.toBe('cancelled during capture');
+    expect(call).not.toHaveBeenCalled();
+  });
+
+  it('cancels a pending measurement without dispatching the UI action', async () => {
+    const controller = new AbortController();
+    let entered!: () => void;
+    const started = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const call = rs.fn();
+    const action: DeviceAction = {
+      name: 'Scroll',
+      paramSchema: z.object({}),
+      call,
+    };
+    const device = new MockInterface([action]);
+    device.captureScrollState = () => {
+      entered();
+      return new Promise(() => {});
+    };
+    const builder = new TaskBuilder({
+      getDefaultModelRuntime: () => mockModelRuntime,
+      interfaceInstance: device,
+      service: {} as Service,
+      actionSpace: [action],
+      waitAfterAction: 0,
+    });
+    const { tasks } = await builder.build(
+      [{ type: 'Scroll', param: {} }],
+      mockModelRuntime,
+      mockModelRuntime,
+      { observeScrollProgress: true, abortSignal: controller.signal },
+    );
+    const run = tasks[0].executor({
+      task: { timing: {} },
+      uiContext: { shrunkShotToLogicalRatio: 1 },
+    } as any);
+    const expected = expect(run).rejects.toBe('cancel pending probe');
+    await started;
+    controller.abort('cancel pending probe');
+    await expected;
+    expect(call).not.toHaveBeenCalled();
+  });
+
   it('normalizes the deprecated locate deepThink alias before task reporting', () => {
     const plan = locatePlanForLocate({
       prompt: 'cart icon',

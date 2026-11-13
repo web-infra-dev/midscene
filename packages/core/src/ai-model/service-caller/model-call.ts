@@ -49,6 +49,8 @@ export async function callAIWithObjectResponse<T>(
     jsonParserSource?: JsonParserSource;
     retryTimes?: number;
     retryInterval?: number;
+    /** Validate semantic structure inside the existing parse-retry boundary. */
+    validate?: (value: unknown) => T;
   },
 ): Promise<AIObjectResponse<T>> {
   const { config: modelConfig } = modelRuntime;
@@ -63,12 +65,16 @@ export async function callAIWithObjectResponse<T>(
           semanticRetryAttempt: retryAttempt,
         },
       ),
-    parseResponse: (response) =>
-      parseAIObjectResponse<T>(
+    parseResponse: (response) => {
+      const parsed = parseAIObjectResponse<T>(
         response,
         modelRuntime,
         options?.jsonParserSource,
-      ),
+      );
+      return options?.validate
+        ? { ...parsed, content: options.validate(parsed.content) }
+        : parsed;
+    },
     toParseError: (error, response) => {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
