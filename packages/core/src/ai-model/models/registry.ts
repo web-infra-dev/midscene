@@ -17,11 +17,13 @@ import { jevAdapters } from './jev/adapter';
 import { kimiAdapters } from './kimi';
 import { mimoAdapters } from './mimo';
 import { qwenAdapters } from './qwen';
+import { stepFunAdapters } from './stepfun';
 import { tencentHyAdapters } from './tencent-hy';
 import { uiTarsAdapters } from './ui-tars/adapter';
 
 export const MODEL_ADAPTER_CONFIGS = {
   ...antLingAdapters,
+  ...stepFunAdapters,
   ...jevAdapters,
   ...qwenAdapters,
   ...deepSeekAdapters,
