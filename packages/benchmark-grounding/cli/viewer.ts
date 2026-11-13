@@ -1,14 +1,15 @@
 import { networkInterfaces } from 'node:os';
 import path from 'node:path';
-import { intro, note, outro, spinner } from '@clack/prompts';
+import { spinner } from '@clack/prompts';
 import { serve } from '@hono/node-server';
 import { createViewer, loadTestcases } from '@midscene/benchmark-grounding';
 import { getDebug } from '@midscene/shared/logger';
 import { Command } from 'commander';
 import { Hono } from 'hono';
 import open from 'open';
+import c from 'tinyrainbow';
 import { z } from 'zod';
-import { version } from '../package.json';
+import { formatDuration, printHeader, printResult, write } from './output';
 
 const warn = getDebug('benchmark-grounding:cli', { console: true });
 const integer = z.coerce.number().int().positive();
@@ -26,9 +27,10 @@ export function viewerCommand() {
     .option('--no-open', 'Do not open a browser.')
     .action(async (options) => {
       const port = integer.max(65535).parse(options.port);
-      intro(`Midscene Grounding Benchmark · v${version}`);
+      printHeader('VIEWER');
       const status = spinner({
         accessible: !process.stdout.isTTY,
+        withGuide: false,
         onCancel: () => process.exit(130),
       });
       status.start('Loading and validating testcases');
@@ -96,7 +98,11 @@ export function viewerCommand() {
             ? '127.0.0.1'
             : options.host;
         const url = `http://${host.includes(':') ? `[${host}]` : host}:${port}/`;
-        status.stop(`Viewer ready in ${Math.round(performance.now())} ms`);
+        status.clear();
+        printResult(
+          'PASS',
+          `Viewer ready ${c.dim(`(${formatDuration(performance.now())})`)}`,
+        );
         const network =
           options.host === '0.0.0.0' || options.host === '::'
             ? Object.values(networkInterfaces())
@@ -108,17 +114,20 @@ export function viewerCommand() {
                   (address) => `Network:  http://${address.address}:${port}/`,
                 )
             : [];
-        note(
-          [
-            `Local:    ${url}`,
-            ...network,
-            `Dataset:  ${options.testcases ? path.resolve(options.testcases) : 'Bundled testcases'}`,
-            `Cases:    ${testcases.length} · ${testcases.filter(({ testcase }) => testcase.platform === 'web').length} Web · ${testcases.filter(({ testcase }) => testcase.platform === 'mobile').length} Mobile`,
-            'Mode:     Read-only',
-          ].join('\n'),
-          'Viewer',
+        write(
+          '',
+          ` Local:    ${c.cyan(url)}`,
+          ...network.map((line) => ` ${c.cyan(line)}`),
+          '',
+          ` Dataset:  ${options.testcases ? path.resolve(options.testcases) : 'Bundled testcases'}`,
+          ` Testcases: ${testcases.length} · ${testcases.filter(({ testcase }) => testcase.platform === 'web').length} Web · ${testcases.filter(({ testcase }) => testcase.platform === 'mobile').length} Mobile`,
+          ' Mode:     Read-only',
+          '',
+          c.dim(
+            ' Press Ctrl+C to stop · Refresh the browser to reload testcases',
+          ),
+          '',
         );
-        outro('Press Ctrl+C to stop · Refresh the browser to reload testcases');
         if (options.open) {
           try {
             await open(url);
@@ -129,7 +138,7 @@ export function viewerCommand() {
           }
         }
       } catch (error) {
-        status.error('Unable to start the viewer');
+        status.clear();
         throw error;
       }
     });

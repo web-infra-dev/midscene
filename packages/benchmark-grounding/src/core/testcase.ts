@@ -8,6 +8,7 @@ import {
   isValidPNGImageBuffer,
 } from '@midscene/shared/img';
 import getSharp from '@midscene/shared/img/get-sharp';
+import { z } from 'zod';
 import {
   type LoadedTestcase,
   sha256Schema,
@@ -59,7 +60,9 @@ export async function validateLoadedTestcase(
       `Testcase ${testcase.name}: parsed testcase does not match index.json bytes`,
     );
   }
-  const testcaseSha256 = sha256Schema.parse(shaFile.toString('utf8').trim());
+  const testcaseSha256 = sha256Schema.parse(shaFile.toString('utf8').trim(), {
+    path: ['index.sha256'],
+  });
   if (record.testcaseSha256 !== testcaseSha256) {
     throw new Error(
       `Testcase ${testcase.name}: supplied SHA does not match index.sha256`,
@@ -109,12 +112,25 @@ export async function validateLoadedTestcase(
 export async function loadTestcases({
   directory,
   names,
-}: { directory?: string; names?: string[] } = {}): Promise<LoadedTestcase[]> {
+  onProgress,
+}: {
+  directory?: string;
+  names?: string[];
+  onProgress?: (progress: {
+    name: string;
+    testcaseSha256?: string;
+    error?: Error;
+  }) => void;
+} = {}): Promise<LoadedTestcase[]> {
   const root =
     directory === undefined
       ? fileURLToPath(new URL('../testcases/', import.meta.url))
       : path.resolve(directory);
-  const entries = await readdir(root, { withFileTypes: true });
+  const entries = await readdir(root, { withFileTypes: true }).catch(
+    (cause) => {
+      throw new Error(`Cannot read testcase directory: ${root}`, { cause });
+    },
+  );
   const available = new Set(
     entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name),
   );
@@ -122,13 +138,12 @@ export async function loadTestcases({
   if (!selected.length) throw new Error('Testcase selection is empty');
   if (new Set(selected).size !== selected.length)
     throw new Error('Duplicate testcase names in selection');
-  for (const name of selected) {
-    testcaseNameSchema.parse(name);
-    if (!available.has(name))
-      throw new Error(`Testcase ${name} does not exist in ${root}`);
-  }
-  return Promise.all(
-    selected.sort().map(async (name) => {
+  // Start all checks together, then report their results in name order.
+  const checks = selected.sort().map((name) =>
+    (async () => {
+      testcaseNameSchema.parse(name);
+      if (!available.has(name))
+        throw new Error('Testcase directory does not exist');
       const [json, shaFile] = await Promise.all([
         readFile(path.join(root, name, 'index.json')),
         readFile(path.join(root, name, 'index.sha256')),
@@ -147,6 +162,49 @@ export async function loadTestcases({
         },
         name,
       );
-    }),
+    })().then(
+      (record) => ({ name, record }),
+      (cause: unknown) => {
+        const file = cause as NodeJS.ErrnoException;
+        const message =
+          file?.code === 'ENOENT' && typeof file.path === 'string'
+            ? `Missing required file "${path.basename(file.path)}"`
+            : cause instanceof z.ZodError
+              ? cause.issues
+                  .map(
+                    (issue) =>
+                      `${issue.path.join('.') || 'testcase'}: ${issue.message}`,
+                  )
+                  .join('; ')
+              : cause instanceof SyntaxError
+                ? 'index.json contains invalid JSON'
+                : cause instanceof Error
+                  ? cause.message.replace(`Testcase ${name}: `, '')
+                  : String(cause);
+        return { name, error: new Error(`${name}: ${message}`, { cause }) };
+      },
+    ),
   );
+  const records: LoadedTestcase[] = [];
+  const errors: Error[] = [];
+  for (const check of checks) {
+    const result = await check;
+    if ('error' in result) {
+      errors.push(result.error);
+      onProgress?.({ name: result.name, error: result.error });
+    } else {
+      records.push(result.record);
+      onProgress?.({
+        name: result.name,
+        testcaseSha256: result.record.testcaseSha256,
+      });
+    }
+  }
+  if (errors.length) {
+    throw new AggregateError(
+      errors,
+      `Validation failed: ${selected.length - errors.length} passed, ${errors.length} failed (${selected.length} total).\n${errors.map((error) => error.message).join('\n')}`,
+    );
+  }
+  return records;
 }

@@ -36,6 +36,10 @@ export function App({ data }: { data: UIData }) {
   const caseNavigation = useRef<HTMLElement>(null);
   const isReport = data.mode === 'report';
   const isOverview = isReport && location.pathname === '/overview';
+  const title =
+    isReport && data.run
+      ? `Midscene Grounding Benchmark - Evaluation ${data.run.id}`
+      : 'Midscene Grounding Benchmark';
   const parts = location.pathname.split('/').filter(Boolean);
   const requestedCase = (() => {
     try {
@@ -91,18 +95,24 @@ export function App({ data }: { data: UIData }) {
   const next = selectedIndex >= 0 ? filtered[selectedIndex + 1] : undefined;
 
   useEffect(() => {
-    document.title = `${isOverview ? 'Overview' : (selected?.name ?? 'Testcases')} · ${isReport ? 'Report' : 'Viewer'} · Midscene Grounding Benchmark`;
-  }, [isOverview, selected, isReport]);
+    document.title = isOverview
+      ? title
+      : `${selected?.name ?? 'Testcases'} · ${isReport ? 'Report' : 'Viewer'} · ${title}`;
+  }, [isOverview, selected, isReport, title]);
   useEffect(() => {
     caseNavigation.current
       ?.querySelector('[aria-current="true"]')
       ?.scrollIntoView({ block: 'nearest' });
-  }, [selectedName]);
+    document
+      .querySelector('.case-model-option[aria-current="true"]')
+      ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [selectedName, selectedModel, isOverview]);
   useEffect(() => {
-    if (isOverview) return;
+    if (isOverview || !selected) return;
     function onKeyDown(event: KeyboardEvent) {
       const target = event.target;
       if (
+        event.defaultPrevented ||
         event.altKey ||
         event.ctrlKey ||
         event.metaKey ||
@@ -115,20 +125,38 @@ export function App({ data }: { data: UIData }) {
           target.closest('#image-viewport[data-zoom="actual"]'))
       )
         return;
-      const testcase =
-        event.key === 'ArrowLeft'
-          ? previous
-          : event.key === 'ArrowRight'
-            ? next
-            : undefined;
-      if (testcase) {
+      if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
         event.preventDefault();
-        navigate(testcasePath(testcase.name, selectedModel, location.search));
+        const testcase = event.key === 'ArrowUp' ? previous : next;
+        if (testcase)
+          navigate(testcasePath(testcase.name, selectedModel, location.search));
+      } else if (
+        isReport &&
+        selectedModel &&
+        (event.key === 'ArrowLeft' || event.key === 'ArrowRight')
+      ) {
+        event.preventDefault();
+        const model =
+          models[
+            models.indexOf(selectedModel) + (event.key === 'ArrowLeft' ? -1 : 1)
+          ];
+        if (model)
+          navigate(testcasePath(selected.name, model, location.search));
       }
     }
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [isOverview, previous, next, selectedModel, location.search, navigate]);
+  }, [
+    isOverview,
+    isReport,
+    selected,
+    previous,
+    next,
+    selectedModel,
+    models,
+    location.search,
+    navigate,
+  ]);
 
   function updateFilters(values: Filters) {
     setSearch(values.search);
@@ -171,7 +199,7 @@ export function App({ data }: { data: UIData }) {
               width="33"
               height="33"
             />
-            <span>Midscene Grounding Benchmark</span>
+            <h1>{title}</h1>
           </div>
         </div>
         {isReport && (
@@ -210,13 +238,6 @@ export function App({ data }: { data: UIData }) {
       )}
       {isOverview ? (
         <main className="overview-page">
-          <header className="overview-heading">
-            <div>
-              <h1>
-                {data.run ? `Evaluation ${data.run.id}` : 'Evaluation report'}
-              </h1>
-            </div>
-          </header>
           <Performance data={data} onOpenTestcase={() => setSearch('')} />
         </main>
       ) : (
@@ -277,7 +298,7 @@ export function App({ data }: { data: UIData }) {
               )}
             </nav>
             <div className="sidebar-footer">
-              <span>← / → Previous / next</span>
+              <span>↑ / ↓ Testcases{isReport && ' · ← / → Models'}</span>
               <output
                 id="result-count"
                 className="result-count"
@@ -319,7 +340,8 @@ export function App({ data }: { data: UIData }) {
                       className="icon-button"
                       type="button"
                       aria-label="Previous"
-                      title="Previous (←)"
+                      aria-keyshortcuts="ArrowUp"
+                      title="Previous testcase (↑)"
                       disabled={!previous}
                       onClick={() =>
                         previous &&
@@ -332,14 +354,15 @@ export function App({ data }: { data: UIData }) {
                         )
                       }
                     >
-                      ←
+                      ↑
                     </button>
                     <button
                       id="next-case"
                       className="icon-button"
                       type="button"
                       aria-label="Next"
-                      title="Next (→)"
+                      aria-keyshortcuts="ArrowDown"
+                      title="Next testcase (↓)"
                       disabled={!next}
                       onClick={() =>
                         next &&
@@ -352,7 +375,7 @@ export function App({ data }: { data: UIData }) {
                         )
                       }
                     >
-                      →
+                      ↓
                     </button>
                   </div>
                 </header>

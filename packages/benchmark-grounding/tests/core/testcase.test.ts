@@ -147,4 +147,113 @@ describe('loadTestcases', () => {
     await rm(path.join(directory, record.testcase.name, 'image.png'));
     await expect(loadTestcases({ directory })).rejects.toThrow();
   });
+
+  it('reports every selected case and aggregates file, data and missing-directory failures', async () => {
+    const directory = await root();
+    const names = [
+      'valid',
+      'unknown',
+      'missing-sha',
+      'missing-json',
+      'missing-image',
+      'bad-sha',
+      'bad-schema',
+      'bad-json',
+    ];
+    await Promise.all(
+      names
+        .filter((name) => name !== 'unknown')
+        .map((name) => writeFixture(directory, fixture(name))),
+    );
+    await Promise.all([
+      rm(path.join(directory, 'missing-sha', 'index.sha256')),
+      rm(path.join(directory, 'missing-json', 'index.json')),
+      rm(path.join(directory, 'missing-image', 'image.png')),
+      writeFile(path.join(directory, 'bad-sha', 'index.sha256'), 'invalid'),
+      writeFile(path.join(directory, 'bad-json', 'index.json'), '{broken'),
+      writeFile(
+        path.join(directory, 'bad-schema', 'index.json'),
+        JSON.stringify({
+          ...fixture('bad-schema').testcase,
+          platform: 'desktop',
+        }),
+      ),
+    ]);
+    const progress: {
+      name: string;
+      error?: Error;
+      testcaseSha256?: string;
+    }[] = [];
+    const error = await loadTestcases({
+      directory,
+      names,
+      onProgress: (result) => progress.push(result),
+    }).catch((cause: unknown) => cause);
+
+    expect(error).toBeInstanceOf(AggregateError);
+    const failure = error as AggregateError;
+    const errors = failure.errors as Error[];
+    expect(errors.map((item) => item.message.split(':')[0])).toEqual(
+      names.filter((name) => name !== 'valid').sort(),
+    );
+    expect(progress.map((item) => item.name)).toEqual([...names].sort());
+    expect(progress.filter((item) => item.error)).toHaveLength(7);
+    expect(progress.find((item) => item.name === 'valid')).toEqual({
+      name: 'valid',
+      testcaseSha256: fixture('valid').testcaseSha256,
+    });
+    for (const item of progress.filter((item) => item.error))
+      expect(item).not.toHaveProperty('testcaseSha256');
+    for (const [name, filename] of [
+      ['missing-sha', 'index.sha256'],
+      ['missing-json', 'index.json'],
+      ['missing-image', 'image.png'],
+    ]) {
+      expect(failure.message).toContain(
+        `${name}: Missing required file "${filename}"`,
+      );
+    }
+    expect(failure.message).toContain('1 passed, 7 failed (8 total)');
+    expect(failure.message).toContain(
+      'bad-json: index.json contains invalid JSON',
+    );
+    expect(failure.message).toContain('bad-schema: platform:');
+    expect(failure.message).toContain('bad-sha: index.sha256:');
+    expect(failure.message).toContain(
+      'unknown: Testcase directory does not exist',
+    );
+    expect(failure.message).not.toContain('ENOENT');
+  });
+
+  it('reports successful checks without changing sorted results or requiring a callback', async () => {
+    const directory = await root();
+    await Promise.all([
+      writeFixture(directory, fixture('case-b')),
+      writeFixture(directory, fixture('case-a')),
+    ]);
+    const progress: {
+      name: string;
+      error?: Error;
+      testcaseSha256?: string;
+    }[] = [];
+    const records = await loadTestcases({
+      directory,
+      names: ['case-b', 'case-a'],
+      onProgress: (result) => progress.push(result),
+    });
+
+    expect(records.map((record) => record.testcase.name)).toEqual([
+      'case-a',
+      'case-b',
+    ]);
+    expect(progress).toEqual(
+      records.map((record) => ({
+        name: record.testcase.name,
+        testcaseSha256: createHash('sha256')
+          .update(record.files['index.json'])
+          .digest('hex'),
+      })),
+    );
+    expect(await loadTestcases({ directory })).toEqual(records);
+  });
 });

@@ -1,6 +1,8 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { stripVTControlCharacters } from 'node:util';
 import {
   afterEach,
   beforeEach,
@@ -17,8 +19,14 @@ const sdk = rs.hoisted(() => ({
   runBenchmark: rs.fn(),
 }));
 const launch = rs.hoisted(() => rs.fn());
+const terminalLink = rs.hoisted(() =>
+  rs.fn(
+    (text: string, _url: string, _options: { fallback: () => string }) => text,
+  ),
+);
 rs.mock('@midscene/benchmark-grounding', () => sdk);
 rs.mock('open', () => ({ default: launch }));
+rs.mock('terminal-link', () => ({ default: terminalLink }));
 import { main } from '../../cli/index';
 import { fixture } from '../fixture';
 
@@ -31,9 +39,15 @@ const model = {
 const temporary: string[] = [];
 const environment = { ...process.env };
 
-beforeEach(() => {
+beforeEach(async () => {
   rs.clearAllMocks();
-  sdk.loadTestcases.mockResolvedValue([]);
+  terminalLink.mockImplementation((text) => text);
+  rs.spyOn(process.stdout, 'write').mockReturnValue(true);
+  rs.spyOn(process.stderr, 'write').mockReturnValue(true);
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'benchmark-cli-cwd-'));
+  temporary.push(directory);
+  rs.spyOn(process, 'cwd').mockReturnValue(directory);
+  sdk.loadTestcases.mockResolvedValue([fixture()]);
   sdk.createReport.mockResolvedValue(
     '<!doctype html><html>saved report</html>',
   );
@@ -52,12 +66,33 @@ afterEach(async () => {
   process.env = { ...environment };
 });
 
-async function runDirectory() {
+async function runDirectory(errors = 0) {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'benchmark-cli-'));
   temporary.push(directory);
   sdk.runBenchmark.mockResolvedValue({
     directory,
-    summary: { planned: 1, completed: 1, models: [] },
+    summary: {
+      planned: 1,
+      completed: 1,
+      missing: 0,
+      correct: 1 - errors,
+      errors,
+      score: (1 - errors) * 100,
+      models: [
+        {
+          model: model.name,
+          count: 1,
+          passed: 1 - errors,
+          errors,
+          duration: { count: 1, average: 1234, total: 1234 },
+          totalTokens: { count: 1, average: 1234, total: 1234 },
+          inputTokens: { count: 1, average: 1200, total: 1200 },
+          outputTokens: { count: 1, average: 34, total: 34 },
+          estimatedCost: { count: 1, average: 0.0001, total: 0.0001 },
+          usage: { complete: 1, partial: 0, missing: 0 },
+        },
+      ],
+    },
   });
   return directory;
 }
@@ -65,43 +100,161 @@ async function runDirectory() {
 describe('CLI validation', () => {
   test('validates bundled or selected testcases without model configuration or other side effects', async () => {
     process.env.MIDSCENE_GROUNDING_EVALUATION_CONFIG = 'invalid JSON';
-    sdk.loadTestcases.mockResolvedValue([fixture('a'), fixture('b')]);
+    const records = [fixture('a'), fixture('b')];
+    sdk.loadTestcases.mockImplementation(async ({ onProgress }) => {
+      for (const record of records)
+        onProgress({
+          name: record.testcase.name,
+          testcaseSha256: record.testcaseSha256,
+        });
+      return records;
+    });
     const stdout = rs.spyOn(process.stdout, 'write').mockReturnValue(true);
+    const stderr = rs.spyOn(process.stderr, 'write').mockReturnValue(true);
 
     expect(await main(['node', 'cli', 'validate'])).toBe(0);
     expect(sdk.loadTestcases).toHaveBeenLastCalledWith({
       directory: undefined,
       names: undefined,
+      onProgress: expect.any(Function),
     });
-    expect(stdout).toHaveBeenCalledWith('Validated 2 testcases.\n');
+    const output = stripVTControlCharacters(
+      stdout.mock.calls.map(([message]) => message).join(''),
+    );
+    expect(output).toContain('VALIDATE');
+    expect(output).toContain('Midscene Grounding Benchmark');
+    expect(output).toContain(
+      'Checking testcase data, hashes, screenshots and ground truth.',
+    );
+    expect(output).toMatch(
+      /PASS\s+a[\s\S]*PASS\s+b[\s\S]*Validation complete: 2 passed, 0 failed \(2 total\)\./,
+    );
+    expect(output.match(/\bPASS\b/g)).toHaveLength(2);
+    expect(output.match(/PASS [^\n]+/g)).toEqual(
+      records.map(
+        (record) =>
+          `PASS ${record.testcase.name} SHA-256 ${record.testcaseSha256}`,
+      ),
+    );
+    expect(terminalLink.mock.calls).toEqual(
+      records.map(({ testcase }) => [
+        testcase.name,
+        new URL(`../testcases/${testcase.name}/index.json`, import.meta.url)
+          .href,
+        { fallback: expect.any(Function) },
+      ]),
+    );
 
     await main([
       'node',
       'cli',
       'validate',
       '--testcases',
-      './dataset',
+      './dataset 中文',
       '--names',
       'a',
       'b',
     ]);
     expect(sdk.loadTestcases).toHaveBeenLastCalledWith({
-      directory: './dataset',
+      directory: './dataset 中文',
       names: ['a', 'b'],
+      onProgress: expect.any(Function),
     });
+    expect(terminalLink.mock.calls.slice(2)).toEqual(
+      records.map(({ testcase }) => [
+        testcase.name,
+        pathToFileURL(path.resolve('dataset 中文', testcase.name, 'index.json'))
+          .href,
+        { fallback: expect.any(Function) },
+      ]),
+    );
+    for (const [, url, options] of terminalLink.mock.calls)
+      expect(options.fallback()).toBe(fileURLToPath(url));
+    expect(stderr).not.toHaveBeenCalled();
     expect(sdk.runBenchmark).not.toHaveBeenCalled();
     expect(sdk.createViewer).not.toHaveBeenCalled();
     expect(sdk.createReport).not.toHaveBeenCalled();
     expect(launch).not.toHaveBeenCalled();
   });
 
-  test('propagates validation errors without reporting success', async () => {
-    sdk.loadTestcases.mockRejectedValue(new Error('image SHA-256 mismatch'));
-    const stdout = rs.spyOn(process.stdout, 'write').mockReturnValue(true);
-    await expect(main(['node', 'cli', 'validate'])).rejects.toThrow(
-      'image SHA-256 mismatch',
+  test('reports all validation outcomes and throws only the failure summary', async () => {
+    terminalLink.mockImplementation((_text, _url, options) =>
+      options.fallback(),
     );
-    expect(stdout).not.toHaveBeenCalled();
+    const filenames = ['a', 'b', 'c', 'd'].map((name) =>
+      fileURLToPath(
+        new URL(`../testcases/${name}/index.json`, import.meta.url),
+      ),
+    );
+    const errors = [
+      new Error('a: Missing required file "index.sha256"', {
+        cause: new Error(
+          "ENOENT: no such file or directory, open '/dataset/a/index.sha256'",
+        ),
+      }),
+      new Error('c: image SHA-256 mismatch'),
+    ];
+    const summary = 'Validation failed: 2 passed, 2 failed (4 total).';
+    sdk.loadTestcases.mockImplementation(async ({ onProgress }) => {
+      onProgress({ name: 'a', error: errors[0] });
+      onProgress({ name: 'b', testcaseSha256: fixture('b').testcaseSha256 });
+      onProgress({ name: 'c', error: errors[1] });
+      onProgress({ name: 'd', testcaseSha256: fixture('d').testcaseSha256 });
+      throw new AggregateError(
+        errors,
+        `${summary}\n${errors.map((error) => error.message).join('\n')}`,
+      );
+    });
+    const stdout = rs.spyOn(process.stdout, 'write').mockReturnValue(true);
+    const stderr = rs.spyOn(process.stderr, 'write').mockReturnValue(true);
+
+    await expect(main(['node', 'cli', 'validate'])).rejects.toMatchObject({
+      message: summary,
+    });
+    const output = stripVTControlCharacters(
+      stdout.mock.calls.map(([message]) => message).join(''),
+    );
+    expect(output).toContain('VALIDATE');
+    expect(output).toContain('Midscene Grounding Benchmark');
+    expect(output.match(/(?:PASS|FAIL) [^\n]+/g)).toEqual([
+      `FAIL ${filenames[0]}: Missing required file "index.sha256"`,
+      `PASS ${filenames[1]} SHA-256 ${fixture('b').testcaseSha256}`,
+      `FAIL ${filenames[2]}: image SHA-256 mismatch`,
+      `PASS ${filenames[3]} SHA-256 ${fixture('d').testcaseSha256}`,
+    ]);
+    expect(output.match(/\b(?:PASS|FAIL)\b/g)).toHaveLength(4);
+    expect(terminalLink.mock.calls).toEqual(
+      ['a', 'b', 'c', 'd'].map((name) => [
+        name,
+        new URL(`../testcases/${name}/index.json`, import.meta.url).href,
+        { fallback: expect.any(Function) },
+      ]),
+    );
+    for (const [, url, options] of terminalLink.mock.calls)
+      expect(options.fallback()).toBe(fileURLToPath(url));
+    expect(output).not.toContain('Validation complete:');
+    expect(output).not.toContain('ENOENT');
+    expect(stderr).not.toHaveBeenCalled();
+  });
+
+  test('propagates directory errors without reporting successful validation', async () => {
+    sdk.loadTestcases.mockRejectedValue(
+      new Error('Cannot read testcase directory: /missing'),
+    );
+    const stdout = rs.spyOn(process.stdout, 'write').mockReturnValue(true);
+    const stderr = rs.spyOn(process.stderr, 'write').mockReturnValue(true);
+
+    await expect(
+      main(['node', 'cli', 'validate', '--testcases', '/missing']),
+    ).rejects.toThrow('Cannot read testcase directory: /missing');
+    const output = stripVTControlCharacters(
+      stdout.mock.calls.map(([message]) => message).join(''),
+    );
+    expect(output).toContain('VALIDATE');
+    expect(output).toContain('Midscene Grounding Benchmark');
+    expect(output).not.toMatch(/\b(?:PASS|FAIL)\b|Validation complete:/);
+    expect(terminalLink).not.toHaveBeenCalled();
+    expect(stderr).not.toHaveBeenCalled();
   });
 });
 
@@ -157,15 +310,7 @@ describe('CLI report workflow', () => {
   });
 
   test('completed model errors still generate and open the automatic report', async () => {
-    const directory = await runDirectory();
-    sdk.runBenchmark.mockResolvedValue({
-      directory,
-      summary: {
-        planned: 1,
-        completed: 1,
-        models: [{ model: model.name, passed: 0, count: 1, errors: 1 }],
-      },
-    });
+    const directory = await runDirectory(1);
     expect(await main(['node', 'cli', 'run', '--output', directory])).toBe(0);
     expect(sdk.createReport).toHaveBeenCalledWith({ runDirectory: directory });
     expect(launch).toHaveBeenCalledTimes(1);
@@ -198,7 +343,159 @@ describe('CLI report workflow', () => {
   });
 });
 
+describe('CLI run progress', () => {
+  test('shows successful task metrics and preserves measured zero values', async () => {
+    const directory = await runDirectory();
+    const result = await sdk.runBenchmark.getMockImplementation()!();
+    for (const metric of [
+      'duration',
+      'totalTokens',
+      'inputTokens',
+      'outputTokens',
+      'estimatedCost',
+    ]) {
+      result.summary.models[0][metric] = { count: 1, average: 0, total: 0 };
+    }
+    sdk.loadTestcases.mockResolvedValue([fixture('a')]);
+    sdk.runBenchmark.mockImplementationOnce(async ({ onProgress }) => {
+      onProgress({
+        completed: 1,
+        total: 1,
+        model: model.name,
+        testcase: 'a',
+        status: 'POINT',
+        correct: true,
+        attemptCount: 1,
+        profiling: {
+          durationMs: 0,
+          totalTokens: 0,
+          totalPromptTokens: 0,
+          totalCompletionTokens: 0,
+          calls: 0,
+          usageStatus: 'complete',
+        },
+      });
+      return result;
+    });
+    const stdout = rs.spyOn(process.stdout, 'write').mockReturnValue(true);
+    const stderr = rs.spyOn(process.stderr, 'write').mockReturnValue(true);
+
+    expect(
+      await main(['node', 'cli', 'run', '--output', directory, '--no-report']),
+    ).toBe(0);
+    const output = stripVTControlCharacters(
+      stdout.mock.calls.map(([message]) => message).join(''),
+    ).replace(/\s+/g, ' ');
+    expect(output).toMatch(/PASS\s+model\s*>\s*a/);
+    expect(output).toMatch(/Duration\s+0(?:\.0+)?\s*s/);
+    expect(output).toMatch(/Tokens\s+0\s*\(in\s+0\s*\/\s*out\s+0\)/);
+    expect(output).toMatch(/Attempts\s+1/);
+    expect(output).toMatch(/Calls\s+0/);
+    expect(output).toMatch(/Avg\. Duration\s+0(?:\.0+)?\s*s/);
+    expect(output).toMatch(/Avg\. Tokens\s+0\s*\(in\s+0\s*\/\s*out\s+0\)/);
+    expect(output).toContain('Avg. Estimated Cost $0.000000');
+    expect(output).not.toContain('Usage partial');
+    expect(output).not.toContain('Usage missing');
+    expect(output).not.toContain(model.apiKey);
+    expect(output).not.toContain(model.baseUrl);
+    expect(stderr).not.toHaveBeenCalled();
+    expect(sdk.createReport).not.toHaveBeenCalled();
+    expect(launch).not.toHaveBeenCalled();
+  });
+
+  test('distinguishes incorrect answers, execution errors and incomplete usage', async () => {
+    const directory = await runDirectory();
+    const result = await sdk.runBenchmark.getMockImplementation()!();
+    Object.assign(result.summary, {
+      planned: 2,
+      completed: 2,
+      correct: 0,
+      errors: 1,
+      score: 0,
+    });
+    Object.assign(result.summary.models[0], {
+      count: 2,
+      passed: 0,
+      errors: 1,
+      duration: { count: 2, average: 617, total: 1234 },
+      estimatedCost: { count: 0, average: null, total: 0 },
+      usage: { complete: 0, partial: 1, missing: 1 },
+    });
+    sdk.loadTestcases.mockResolvedValue([fixture('a'), fixture('b')]);
+    sdk.runBenchmark.mockImplementationOnce(async ({ onProgress }) => {
+      onProgress({
+        completed: 1,
+        total: 2,
+        model: model.name,
+        testcase: 'a',
+        status: 'POINT',
+        correct: false,
+        attemptCount: 2,
+        profiling: {
+          durationMs: 1234,
+          totalTokens: 1234,
+          totalPromptTokens: 1200,
+          totalCompletionTokens: 34,
+          calls: 2,
+          usageStatus: 'partial',
+        },
+      });
+      onProgress({
+        completed: 2,
+        total: 2,
+        model: model.name,
+        testcase: 'b',
+        status: 'ERROR',
+        correct: false,
+        attemptCount: 1,
+        profiling: { durationMs: 0, usageStatus: 'missing' },
+        error: {
+          name: 'Error',
+          message: 'Provider request failed [REDACTED]',
+          code: '400',
+          retryable: false,
+        },
+      });
+      return result;
+    });
+    const stdout = rs.spyOn(process.stdout, 'write').mockReturnValue(true);
+    const stderr = rs.spyOn(process.stderr, 'write').mockReturnValue(true);
+
+    expect(
+      await main(['node', 'cli', 'run', '--output', directory, '--no-report']),
+    ).toBe(0);
+    const output = stripVTControlCharacters(
+      stdout.mock.calls.map(([message]) => message).join(''),
+    ).replace(/\s+/g, ' ');
+    expect(output).toMatch(/FAIL\s+model\s*>\s*a[\s\S]*ERROR\s+model\s*>\s*b/);
+    expect(output).toMatch(/Duration\s+1\.23\s*s/);
+    expect(output).toMatch(/Tokens\s+1,234\s*\(in\s+1,200\s*\/\s*out\s+34\)/);
+    expect(output).toMatch(/Attempts\s+2/);
+    expect(output).toMatch(/Calls\s+2/);
+    expect(output).toContain('Usage partial');
+    expect(output).toContain('Usage missing');
+    expect(output).toMatch(/Tokens\s+—/);
+    expect(output).toMatch(/Calls\s+—/);
+    expect(output).toContain('Provider request failed [REDACTED]');
+    expect(output).toContain('Avg. Estimated Cost —');
+    expect(output).toContain('Usage 0 complete / 1 partial / 1 missing');
+    expect(output).not.toContain(model.apiKey);
+    expect(output).not.toContain(model.baseUrl);
+    expect(stderr).not.toHaveBeenCalled();
+  });
+});
+
 describe('CLI inputs', () => {
+  test('help exits successfully without loading data or calling models', async () => {
+    for (const args of [[], ['--help'], ['help', 'run'], ['run', '--help']])
+      expect(await main(['node', 'cli', ...args])).toBe(0);
+    expect(sdk.loadTestcases).not.toHaveBeenCalled();
+    expect(sdk.runBenchmark).not.toHaveBeenCalled();
+    expect(sdk.createViewer).not.toHaveBeenCalled();
+    expect(sdk.createReport).not.toHaveBeenCalled();
+    expect(launch).not.toHaveBeenCalled();
+  });
+
   test('viewer reports invalid datasets without opening a browser', async () => {
     sdk.loadTestcases.mockRejectedValue(
       new Error('Testcase image SHA-256 mismatch'),

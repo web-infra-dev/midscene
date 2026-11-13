@@ -5,6 +5,8 @@ import { createReport } from '@midscene/benchmark-grounding';
 import { getDebug } from '@midscene/shared/logger';
 import { Command } from 'commander';
 import open from 'open';
+import c from 'tinyrainbow';
+import { formatDuration, printHeader, printResult, write } from './output';
 
 const warn = getDebug('benchmark-grounding:cli', { console: true });
 
@@ -20,10 +22,16 @@ export async function writeReport({
 }) {
   const directory = path.resolve(runDirectory);
   const filename = path.resolve(output ?? path.join(directory, 'report.html'));
+  write('', c.dim(' Generating standalone report...'));
+  const startedAt = performance.now();
   const html = await createReport({ runDirectory: directory });
   await mkdir(path.dirname(filename), { recursive: true });
   await writeFile(filename, html);
-  process.stdout.write(`Report: ${filename}\n`);
+  printResult(
+    'PASS',
+    `Report generated ${c.dim(`(${formatDuration(performance.now() - startedAt)})`)}`,
+  );
+  write(` Report: ${c.cyan(filename)}`, '');
   if (openReport) {
     try {
       await open(pathToFileURL(filename).href);
@@ -46,6 +54,7 @@ export function reportCommand() {
     )
     .option('--no-open', 'Do not open a browser.')
     .action(async (runDirectory, options) => {
+      printHeader('REPORT');
       await writeReport({
         runDirectory,
         output: options.output,

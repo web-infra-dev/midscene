@@ -133,7 +133,15 @@ const meta = {
 
 ```ts
 async function loadTestcases(
-  options: { directory?: string; names?: string[] } = {},
+  options: {
+    directory?: string;
+    names?: string[];
+    onProgress?: (progress: {
+      name: string;
+      testcaseSha256?: string;
+      error?: Error;
+    }) => void;
+  } = {},
 ): Promise<
   Array<{
     testcase: Testcase;
@@ -149,6 +157,9 @@ async function loadTestcases(
 - 传入 `names` 时，只加载并校验选中的题目；未选中题目的文件内容不读取、不校验。
 - 指定名称不存在、名称重复或选择集合为空时明确报错，不静默忽略。
 - 返回顺序始终按题目名称字典序排列，不受 `names` 的传入顺序影响。
+- `onProgress` 是可选的同步回调，每道选中题目检查完成后调用一次；`error` 省略表示通过，并提供已校验的 `testcaseSha256`，即 `index.json` 的完整 SHA-256。失败时不提供散列值。题目并行检查，回调按题名字典序触发；前序题目完成后即可输出，不必等待整批检查结束。SDK 本身不输出日志。
+- 单题失败不会中断其他题目的检查。全部完成后，如有失败，抛出包含逐题诊断的 `AggregateError`，`errors` 按题名字典序保存各题错误，不返回部分成功集合。错误保留原始 `cause`，缺失文件明确指出题号和文件名。
+- 根目录不可读、空选择或重复名称属于整体输入错误，立即抛出。
 
 每条返回记录包含：
 
@@ -161,7 +172,7 @@ async function loadTestcases(
 执行流程：
 
 1. 枚举根目录下的题目子目录，普通文件不视为题目。
-2. 根据 `names` 确定本次加载范围，检查指定名称是否存在且无重复。
+2. 根据 `names` 确定本次加载范围，检查选择非空且无重复；逐题检查目录及名称是否合法。
 3. 读取选中题目的 JSON、SHA 文件和图片，将原始字节保存在内存中。
 4. 校验 JSON 结构、受支持的格式版本及目录名与 `name` 的一致性。
 5. 校验 SHA 文件的内容，并比较 JSON 原始字节的实际 SHA-256。
@@ -233,7 +244,7 @@ async function runBenchmark({
 6. 每个模型／题目组合完成后立即保存结果并通知 `onProgress`。
 7. 保存最终汇总、完成数量、结束时间及运行状态。
 
-进度回调传递完成数量、模型标识、题目名称及结果状态。它不暴露 runner 私有的题目对象或文件 Buffer，不承载模型凭据，也不要求核心层打印或重绘终端。
+进度回调传递 `completed`、`total`、模型展示名 `model`、`testcase`、`status`、`correct`、`profiling`、`attemptCount`，以及最终执行错误的可选 `error`。`profiling` 为全部尝试的聚合耗时和用量，`attemptCount` 包括首轮与重试；缺失用量保持缺失，不以零补齐。`error` 仅包含结果中已脱敏的错误信息。整个事件独立复制，调用方修改回调参数不影响落盘结果或最终汇总。它不暴露 runner 私有的题目对象或文件 Buffer，不承载模型凭据，也不要求核心层打印或重绘终端。
 
 该 SDK 方法在汇总及运行状态落盘后返回，不自行生成 HTML。CLI 的 run 命令收到返回值后，默认接续报告生成流程并打开报告。
 
@@ -433,6 +444,8 @@ Viewer 的数据来自调用方传入的题目；Reporter 的数据来自本次�
 
 切题、上一题／下一题、键盘导航、模型切换及根路由重定向保留查询参数。清除筛选会清空本地搜索词，并只从 URL 移除上述四项，保留 `model` 等其他参数；深链接指定的已有题目不符合筛选时，回退到首个匹配题而不清空筛选，不存在的题目显示 `Testcase not found`。没有匹配题目时保留结构筛选，刷新后按保留的结构筛选重新计算结果。Overview 的模型详情和矩阵跳转会清空题库筛选及本地搜索，确保打开指定题目和模型。
 
+Viewer 和报告的题库页面统一使用 `↑`／`↓` 切换上一题／下一题；报告中使用 `←`／`→` 切换当前题目的上一模型／下一模型。切换按当前题目和模型列表顺序进行，首尾不循环，选中的模型标签自动滚动到可见位置。Overview 不响应这些快捷键；输入框、筛选菜单和原尺寸截图的方向键保留其自身行为，已处理事件或带修饰键的操作不触发全局导航。
+
 页面风格以当前 `benchmark/grounding-new/viewer` 为明确基准，要求一致，不另行设计一套近似风格。需要保留的视觉特征包括：
 
 - Logo、标题、页签、筛选栏和导航层级的呈现方式。
@@ -473,6 +486,8 @@ HTTP Viewer 复用报告的内联脚本与样式模板，截图通过本地 `/im
 2. `Testcases`：第二个页签，查看本次实际执行的题目，并快速切换各模型的结果。
 
 报告根路由默认进入 `#/overview`；独立 Viewer 默认进入 `#/testcases`。已有逐题深链接仍可直接定位题目和模型。
+
+报告页顶部标题为 `Midscene Grounding Benchmark - Evaluation <run-id>`，Overview 不再单独重复显示测评编号；浏览器页签同步显示该标题。独立 Viewer 的顶部标题保持 `Midscene Grounding Benchmark`。
 
 逐题交互约定：
 
@@ -539,10 +554,12 @@ P50 使用模型等权的原始指标中位数，在显示取整和雷达对数�
 | `.env` 加载 | dotenv，仅 CLI 使用 |
 | 打开浏览器或报告 | open |
 | Viewer 本地服务 | Hono、@hono/node-server |
-| Viewer 启动交互 | @clack/prompts 的品牌标题、校验 spinner 和 Ready 信息 |
-| 执行进度 | 订阅 `onProgress` 输出简洁日志 |
+| CLI 展示 | tinyrainbow 提供统一运行标识、状态配色及层级；@clack/prompts 提供 spinner 和实时进度条 |
+| 执行进度 | 订阅 `onProgress` 展示结果、耗时、输入／输出 Token、调用与尝试次数及用量覆盖 |
 
 四个子命令分别定义在 `cli/validate.ts`、`cli/viewer.ts`、`cli/run.ts` 和 `cli/report.ts`；`cli/index.ts` 负责统一注册、帮助、版本和进程退出。每次调用创建新的命令实例，命令处理只完成参数读取、核心方法调用、文件输出和必要的服务管理。
+
+所有子命令使用与 Vitest 测试过程类似的终端布局：运行标识、品牌及版本、当前工作目录、彩色 `✓ PASS`／`× FAIL`／`× ERROR` 状态和结束摘要。共用 `cli/output.ts` 的标题、状态行、耗时和多行输出格式；帮助信息也使用相同标题，`--version` 保持单行版本号。颜色按终端能力启用并尊重 `NO_COLOR`；仅交互终端显示实时进度条，重定向或 CI 输出保留完整静态日志。
 
 run 默认在完成测评后接续报告生成；report 命令保留，用于独立生成、重新生成或重试报告。两个入口共用一处报告生成、文件输出及浏览器打开逻辑，默认在写入成功后打开报告，不启动另一个 CLI 进程。
 
@@ -612,9 +629,9 @@ midscene-benchmark-grounding validate --testcases ./testcases --names MOBILE-v1-
 | `--testcases <directory>` | 使用包内题库 | 题库根目录 |
 | `--names <name...>` | 全部题目 | 按完整题目名称精确选择，空格分隔 |
 
-复用 `loadTestcases({ directory, names })`，校验 JSON 结构与格式版本、目录和题目名称、JSON SHA-256、图片 SHA-256、格式与尺寸，以及 GT 结构、坐标顺序和图片边界。不判断题目语义、指令歧义或 GT 是否指向正确元素。
+复用 `loadTestcases({ directory, names, onProgress })`，校验 JSON 结构与格式版本、目录和题目名称、JSON SHA-256、图片 SHA-256、格式与尺寸，以及 GT 结构、坐标顺序和图片边界。不判断题目语义、指令歧义或 GT 是否指向正确元素。
 
-本命令不加载 `.env`，不需要模型配置，不调用模型、不写文件、不启动服务或浏览器。全部选中题目通过后输出已校验题数并退出 `0`；首个校验错误向 stderr 输出诊断并退出 `1`，不输出部分成功集合。
+本命令不加载 `.env`，不需要模型配置，不调用模型、不写文件、不启动服务或浏览器。按题名字典序逐题单行输出：通过项为绿色 `PASS 题号 SHA-256 <完整散列值>`，散列值对应 `index.json`；失败项为红色 `FAIL 题号: 原因`。支持终端超链接时，通过项与失败项的题名均可点击打开对应题目的 `index.json`；未检测到支持时，以该文件的绝对路径代替题名，供终端或 IDE 自动识别文件链接。默认链接指向包内题库，指定 `--testcases` 时指向该目录。逐题结果统一写入 stdout，避免分流导致显示乱序；失败摘要写入 stderr，不直接暴露原始文件系统错误。检查完全部选中题目后汇总通过数、失败数和总数；全部通过退出 `0`，有任意失败退出 `1`。根目录不可读或选择参数有误时直接给出整体输入错误。
 
 ### 8.4 `viewer`：查看题库
 
@@ -685,8 +702,8 @@ midscene-benchmark-grounding run \
 2. 调用 `loadTestcases({ directory, names })`。
 3. 调用 `runBenchmark({ testcases, models, meta, outputDirectory, concurrency, retries, timeoutMs, onProgress })`。
 4. runner 完成独立题目和 metadata 快照后，执行模型 × 题目的全部组合。
-5. CLI 根据进度回调输出完成数量、模型名称、题目及结果状态，不打印密钥或完整连接配置。
-6. 等待 runner 将全部结果、最终汇总及完成状态落盘，输出运行目录、完成数量和每个模型的基本汇总。
+5. CLI 根据进度回调逐项输出完成数量、模型名称、题目、状态、全部尝试的累计耗时、总／输入／输出 Token、尝试次数及请求次数。部分或缺失用量明确标注 `Usage partial`／`Usage missing`；零值显示 `0`，缺失值显示 `—`。执行错误显示已脱敏的原因，不打印密钥或完整连接配置。交互终端显示实时进度条，结果行输出期间暂停重绘。
+6. 等待 runner 将全部结果、最终汇总及完成状态落盘，输出运行目录、通过／答错／调用错误数量、测评阶段实际墙钟耗时及各模型的平均耗时、Token、预估费用和用量覆盖。模型统计直接使用 SDK 的 `RunSummary`，与报告口径一致；单题耗时不包括排队和重试等待，测评墙钟耗时包含快照、排队和结果写入，不包括前置题库加载或后续报告生成。
 7. 未指定 `--no-report` 时，使用返回的实际运行目录执行与独立 report 命令相同的报告生成及写盘流程，生成 `<run-directory>/report.html`。
 8. 报告写入成功后输出其绝对路径，默认通过浏览器打开；指定 `--no-open` 时只输出路径。指定 `--no-report` 时同时跳过报告生成和打开，在测评完成后直接退出。
 
@@ -778,7 +795,8 @@ cli/
 ├── validate.ts
 ├── viewer.ts
 ├── run.ts
-└── report.ts
+├── report.ts
+└── output.ts
 tests/
 ├── core/
 │   ├── testcase.test.ts
@@ -798,7 +816,7 @@ tests/
 - 通用排序、求和、计数和深冻结使用 `es-toolkit`；零值、缺失值、用量完整性及快照校验等测评规则由本包处理。文件访问沿用 Node 原生 API，题目 JSON 和图片按原始 Buffer 读写。
 - `core/schemas.ts` 维护需要运行时校验的数据契约，类型尽量从 schema 推导；公开模型快照字段通过白名单复用调用配置 schema，继续排除连接凭据。
 - `core/metadata.ts` 负责覆盖合并与自定义 Logo 文件读取；`presets` 只保存可信预设数据。
-- CLI 按子命令拆分；`run` 和 `report` 共用 `cli/report.ts` 的报告写入和打开流程。
+- CLI 按子命令拆分；`run` 和 `report` 共用 `cli/report.ts` 的报告写入和打开流程，终端格式集中在 `cli/output.ts`。
 - `ui` 保留能独立理解的页面级组件，不按每个指标或筛选项拆文件。
 - 筛选下拉框使用无样式 Radix Select，复用现有 CSS；键盘导航、typeahead、焦点、portal 与弹层碰撞由组件库处理，保留 Tab 关闭并继续焦点导航的适配。
 - `ui` 独立保存移植后的样式和资源，与现有 viewer 保持视觉一致，不跨工程导入。`styles.css` 随前端模板内嵌，不依赖额外样式运行时。
@@ -822,7 +840,9 @@ tests/
 | `p-queue` | `^9.3.5` | 全局尝试并发调度 | 最新 `10.0.0` 要求 Node ≥22 |
 | `p-retry` | `^7.1.1` | 可恢复执行错误的重试 | 最新 `9.0.0`；从 8 起要求 Node ≥22 |
 | `commander` | `^14.0.3` | 子命令、参数、帮助及异步执行 | 最新 `15.1.0` 要求 Node ≥22.12 |
-| `@clack/prompts` | `^1.9.0` | CLI Viewer 品牌、校验进度和就绪信息 | ESM；Node ≥20.12，符合本包运行范围 |
+| `@clack/prompts` | `^1.9.0` | CLI 启动 spinner 与实时测评进度条 | ESM；Node ≥20.12，符合本包运行范围 |
+| `tinyrainbow` | `^3.2.0` | 统一 CLI 品牌、状态及信息层级的终端配色 | 当前稳定版；ESM、Node ≥14，无运行时依赖，包体约 8 KB |
+| `terminal-link` | `^5.0.0` | 为校验输出的题名生成终端超链接，自动检测支持情况 | 当前稳定版；ESM、Node ≥20，符合本包运行范围 |
 | `dotenv` | `^16.4.5` | CLI 加载 `.env` | 最新 `18.0.10`；先对齐仓库 |
 | `open` | `10.1.0` | 打开默认浏览器 | 最新 `11.0.4`；先对齐仓库 |
 | `hono` | `^4.13.18` | Viewer 的只读 HTTP 服务 | 最新稳定版 |

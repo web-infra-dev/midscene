@@ -3,8 +3,10 @@ import { realpathSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Command, CommanderError } from 'commander';
+import c from 'tinyrainbow';
 import { z } from 'zod';
 import { version } from '../package.json';
+import { printHeader } from './output';
 import { reportCommand } from './report';
 import { runCommand } from './run';
 import { validateCommand } from './validate';
@@ -27,6 +29,13 @@ export async function main(argv = process.argv) {
   ])
     program.addCommand(command().copyInheritedSettings(program));
 
+  if (
+    argv.length <= 2 ||
+    argv[2] === 'help' ||
+    argv.includes('--help') ||
+    argv.includes('-h')
+  )
+    printHeader('HELP');
   if (argv.length <= 2) {
     program.outputHelp();
     return 0;
@@ -36,7 +45,11 @@ export async function main(argv = process.argv) {
   } catch (error) {
     if (
       error instanceof CommanderError &&
-      ['commander.helpDisplayed', 'commander.version'].includes(error.code)
+      [
+        'commander.help',
+        'commander.helpDisplayed',
+        'commander.version',
+      ].includes(error.code)
     )
       return 0;
     throw error;
@@ -63,7 +76,7 @@ if (
       ]);
       process.exit(code);
     })
-    .catch((error: unknown) => {
+    .catch(async (error: unknown) => {
       const message =
         error instanceof z.ZodError
           ? error.issues
@@ -75,6 +88,12 @@ if (
           : error instanceof Error
             ? error.message
             : String(error);
-      process.stderr.write(`${message}\n`, () => process.exit(1));
+      await new Promise<void>((resolve) =>
+        process.stdout.write('', () => resolve()),
+      );
+      process.stderr.write(
+        `\n ${c.red('× ERROR')} ${message.replaceAll('\n', '\n   ')}\n`,
+        () => process.exit(1),
+      );
     });
 }

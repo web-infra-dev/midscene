@@ -407,6 +407,9 @@ export type BenchmarkProgress = {
   testcase: string;
   status: Output['type'];
   correct: boolean;
+  profiling: Profile;
+  attemptCount: number;
+  error?: Output['error'];
 };
 
 export async function runBenchmark({
@@ -589,14 +592,19 @@ export async function runBenchmark({
     progressWrite = progressWrite.then(async () => {
       run.completed += 1;
       await writeJson('run.json', run);
-      onProgress?.({
-        completed: run.completed,
-        total: run.planned,
-        model: model.displayName,
-        testcase: record.testcase.name,
-        status: result.output.type,
-        correct: result.output.correct,
-      });
+      onProgress?.(
+        structuredClone({
+          completed: run.completed,
+          total: run.planned,
+          model: model.displayName,
+          testcase: record.testcase.name,
+          status: result.output.type,
+          correct: result.output.correct,
+          profiling: result.profiling,
+          attemptCount: result.attempts.length,
+          ...(result.output.error ? { error: result.output.error } : {}),
+        }),
+      );
     });
     await progressWrite;
   });

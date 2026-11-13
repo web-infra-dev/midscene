@@ -44,6 +44,8 @@
     "open": "10.1.0",
     "p-queue": "^9.3.5",
     "p-retry": "^7.1.1",
+    "terminal-link": "^5.0.0",
+    "tinyrainbow": "^3.2.0",
     "zod": "^3.25.1"
   },
   "devDependencies": {

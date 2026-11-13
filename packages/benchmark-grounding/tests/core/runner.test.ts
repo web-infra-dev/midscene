@@ -522,6 +522,8 @@ describe('runBenchmark', () => {
       testcase: 'case-a',
       status: 'POINT',
       correct: true,
+      profiling: result.profiling,
+      attemptCount: 1,
     });
   });
 
@@ -596,6 +598,7 @@ describe('runBenchmark', () => {
   });
 
   it('sums complete raw usage across failed and successful attempts', async () => {
+    const progress = rs.fn();
     mocks.locate
       .mockImplementationOnce(async (_prompt, agent) => {
         await observeRequest(agent, {
@@ -613,6 +616,7 @@ describe('runBenchmark', () => {
       testcases: [fixture()],
       models: [model],
       outputDirectory: await outputRoot(),
+      onProgress: progress,
     });
     const result = await readResult(directory);
     expect(result.attempts).toHaveLength(2);
@@ -624,6 +628,64 @@ describe('runBenchmark', () => {
       totalCompletionTokens: 6,
       totalTokens: 10,
     });
+    expect(progress).toHaveBeenCalledTimes(1);
+    expect(progress).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attemptCount: 2,
+        profiling: result.profiling,
+      }),
+    );
+  });
+
+  it('isolates mutable progress profiling and redacted errors from saved results and summary', async () => {
+    mocks.locate.mockImplementation(async (_prompt, agent) => {
+      await observeRequest(agent, {
+        usage: { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 },
+      });
+      throw Object.assign(
+        new Error(
+          `Request to ${model.baseUrl} failed with Bearer ${model.apiKey}`,
+        ),
+        { cause: { name: 'AuthenticationError', status: 401 } },
+      );
+    });
+    const { directory, summary } = await runBenchmark({
+      testcases: [fixture()],
+      models: [model],
+      outputDirectory: await outputRoot(),
+      onProgress: (progress) => {
+        expect(progress.attemptCount).toBe(1);
+        expect(progress.error?.message).toContain('[redacted]');
+        expect(progress.error?.message).not.toContain(model.apiKey);
+        expect(progress.error?.message).not.toContain(model.baseUrl);
+        progress.profiling.durationMs = 999999;
+        progress.profiling.totalTokens = 999999;
+        progress.profiling.usageStatus = 'missing';
+        if (progress.error) {
+          progress.error.message = 'caller mutation';
+          progress.error.retryable = true;
+        }
+      },
+    });
+    const result = await readResult(directory);
+    expect(result.output.error).toMatchObject({
+      message: 'Request to [redacted] failed with Bearer [redacted]',
+      retryable: false,
+    });
+    expect(result.profiling).toMatchObject({
+      usageStatus: 'complete',
+      totalTokens: 5,
+    });
+    expect(result.profiling.durationMs).not.toBe(999999);
+    expect(summary.models[0]).toMatchObject({
+      errors: 1,
+      totalTokens: { average: 5 },
+      duration: { average: result.profiling.durationMs },
+      usage: { complete: 1, partial: 0, missing: 0 },
+    });
+    expect(
+      JSON.parse(await readFile(path.join(directory, 'summary.json'), 'utf8')),
+    ).toEqual(summary);
   });
 
   it('retains every execution retry and its SDK usage, but never retries wrong answers or refusals', async () => {

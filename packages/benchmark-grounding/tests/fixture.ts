@@ -4,7 +4,7 @@ import path from 'node:path';
 import type { LoadedTestcase, Testcase } from '../src/core/schemas';
 
 const png = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=',
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADElEQVQImWP4//8/AAX+Av5Y8msOAAAAAElFTkSuQmCC',
   'base64',
 );
 const sha = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
