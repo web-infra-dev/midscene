@@ -230,8 +230,8 @@ describe('screenshot and device boundaries', () => {
         plans,
         actionSpace,
         context.shrunkShotToLogicalRatio,
-      )[0].distance,
-    ).toBe(80);
+      )[0],
+    ).toMatchObject({ distance: 80 });
     expect(plans[0].param.distance).toBe(120);
   });
   it('preserves non-spatial custom schemas at execution', () => {
