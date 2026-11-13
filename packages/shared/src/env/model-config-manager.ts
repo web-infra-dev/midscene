@@ -53,6 +53,12 @@ export class ModelConfigManager {
       );
     }
 
+    if (defaultConfig.modelFamily === 'drex') {
+      throw new Error(
+        'Drex cannot be the default model. Configure a general-purpose MIDSCENE_MODEL_FAMILY and use Drex in Planning or Insight.',
+      );
+    }
+
     const insightConfig = decideModelConfigFromIntentConfig(
       'insight',
       configMap,
