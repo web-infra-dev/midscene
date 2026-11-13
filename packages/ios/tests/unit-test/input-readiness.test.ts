@@ -70,6 +70,35 @@ describe('iOS input focus readiness', () => {
     expect(request).toHaveBeenCalledTimes(1);
   });
 
+  it('classifies null focus responses as unavailable rather than malformed', async () => {
+    let now = 0;
+    rs.spyOn(Date, 'now').mockImplementation(() => {
+      now += 500;
+      return now;
+    });
+    request.mockResolvedValue({ value: null });
+    await expect(client.waitForInputFocus()).rejects.toThrow('3000ms');
+  });
+
+  it('does not classify a transport failure after missing focus as recoverable', async () => {
+    const error = new WebDriverRequestError('Connection lost after polling');
+    request.mockRejectedValueOnce(noFocus()).mockRejectedValue(error);
+    await expect(client.waitForInputFocus()).rejects.toBe(error);
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not start a final request with too little timeout budget', async () => {
+    let now = 0;
+    rs.spyOn(Date, 'now').mockImplementation(() => now);
+    request.mockImplementation(async () => {
+      now += 2700;
+      throw noFocus();
+    });
+    await expect(client.waitForInputFocus()).rejects.toThrow('3000ms');
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request.mock.calls[0][3]).toEqual({ timeout: 3000 });
+  });
+
   it('bounds the wait and every request timeout', async () => {
     let now = 0;
     rs.spyOn(Date, 'now').mockImplementation(() => {
