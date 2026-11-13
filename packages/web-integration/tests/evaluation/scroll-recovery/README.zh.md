@@ -112,3 +112,9 @@ EVAL_REPLAY_DIR=/path/to/private/fixture EVAL_REPETITIONS=5 pnpm exec node packa
 EVAL_SUITE=boundary EVAL_TRACK=controlled EVAL_PREFIX_SCROLLS=3 EVAL_ARMS=0,3 EVAL_REPETITIONS=3 pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/run.mjs
 pnpm exec node --test packages/web-integration/tests/evaluation/scroll-recovery/boundary-fixtures.test.mjs
 ```
+
+## 默认开启候选版验证
+
+使用 `EVAL_ARMS=0,default` 对比关闭恢复与真正省略选项的 aiAct 调用。`3` 是显式开启，会允许视觉回退，不能代替原生测量默认模式。`EVAL_SUITE=routine` 提供八种普通任务布局，包含不滚动的表单和弹窗、有效滚动列表、加载更多，以及边界处严格次数约束。判定器同时检查指令和页面结果。
+
+重复运行用于观察模型波动；八个布局仍然只有八个场景簇。该试跑不能证明一个百分点的不劣门槛，也不能证明严重退化率的上界低于百分之一。必须保留全部失败，并在改变发布默认值前使用有代表性的独立工作负载验证。

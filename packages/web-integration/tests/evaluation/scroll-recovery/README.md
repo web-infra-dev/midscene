@@ -125,3 +125,9 @@ For controlled boundary confirmation, freeze `EVAL_PREFIX_SCROLLS=3` before runn
 EVAL_SUITE=boundary EVAL_TRACK=controlled EVAL_PREFIX_SCROLLS=3 EVAL_ARMS=0,3 EVAL_REPETITIONS=3 pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/run.mjs
 pnpm exec node --test packages/web-integration/tests/evaluation/scroll-recovery/boundary-fixtures.test.mjs
 ```
+
+## Default-on candidate validation
+
+Use `EVAL_ARMS=0,default` to compare disabled recovery with an aiAct call that omits the option. `3` is an explicit opt-in and permits visual fallback, so it does not test the native-only default policy. `EVAL_SUITE=routine` provides eight ordinary task layouts, including no-scroll forms/dialogs, moving lists, load-more and exact-count scrolling at a boundary. A result checker verifies instructions and page outcomes.
+
+Repetitions estimate model variability; eight layouts remain eight scenario clusters. This pilot cannot establish a one-percentage-point non-inferiority margin or a one-percent upper bound on serious regressions. Preserve all failures and use representative independent workloads before changing release defaults.

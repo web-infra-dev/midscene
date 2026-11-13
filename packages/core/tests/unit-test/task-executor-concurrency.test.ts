@@ -1075,7 +1075,7 @@ describe('TaskExecutor concurrency isolation', () => {
         undefined,
         undefined,
         undefined,
-        2,
+        { afterScrolls: 2, allowVisualFallback: true },
       );
       expect(scroll).toHaveBeenCalledTimes(2);
       expect(reviewScroll).toHaveBeenCalledOnce();
@@ -1145,7 +1145,7 @@ describe('TaskExecutor concurrency isolation', () => {
         undefined,
         undefined,
         undefined,
-        interval,
+        { afterScrolls: interval, allowVisualFallback: true },
       );
       expect(scroll).toHaveBeenCalledTimes(6);
       expect(reviewScroll).toHaveBeenCalledTimes(Math.floor(6 / interval));
@@ -1242,7 +1242,7 @@ describe('TaskExecutor concurrency isolation', () => {
         undefined,
         controller.signal,
         undefined,
-        2,
+        { afterScrolls: 2, allowVisualFallback: true },
       );
       if (failure === 'cancelled')
         await expect(run).rejects.toThrow('cancel review');

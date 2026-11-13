@@ -39,15 +39,17 @@ export function summarize(records) {
   const aggregate = (rows) => ({
     attempts: rows.length,
     passed: rows.filter((r) => r.success).length,
-    goalReachedBeforeExit: rows.filter((r) =>
-      r.family === 'explicit'
-        ? r.compliant &&
-          Math.abs(
-            (r.final?.y ?? Number.NaN) - (r.initial?.y ?? Number.NaN) - 400,
-          ) <= 2
-        : r.family === 'boundary'
-          ? r.compliant
-          : r.final?.clicks?.includes('target'),
+    goalReachedBeforeExit: rows.filter(
+      (r) =>
+        r.goalReached ??
+        (r.family === 'explicit'
+          ? r.compliant &&
+            Math.abs(
+              (r.final?.y ?? Number.NaN) - (r.initial?.y ?? Number.NaN) - 400,
+            ) <= 2
+          : r.family === 'boundary'
+            ? r.compliant
+            : r.final?.clicks?.includes('target')),
     ).length,
     successRate: rows.filter((r) => r.success).length / rows.length,
     constraintFailures: rows.filter((r) => !r.compliant).length,
@@ -101,7 +103,7 @@ export function summarize(records) {
   });
   const comparisons = {};
   for (const track of new Set(records.map((r) => r.track)))
-    for (const arm of [2, 3, 'feedback']) {
+    for (const arm of [2, 3, 'feedback', 'default']) {
       const pairs = [];
       for (const r of records.filter(
         (r) => r.track === track && r.arm === arm,

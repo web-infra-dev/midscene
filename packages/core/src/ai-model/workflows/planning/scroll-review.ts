@@ -150,6 +150,25 @@ export function findScrollToReview(
   return count >= afterScrolls ? last : undefined;
 }
 
+export function nativeScrollReview(
+  task: ExecutionTask,
+): ScrollReview | undefined {
+  if (task.scrollProgress?.status !== 'unchanged' || !confirmedTarget(task))
+    return undefined;
+  const state = task.scrollProgress.after;
+  const available = availableScrollDirections(state);
+  if (!state || !available) return undefined;
+  const direction = scrollDirection(task);
+  return {
+    progress: 'unchanged',
+    observation: `The target's own scroll offsets did not change. Native offsets are (${state.scrollLeft}, ${state.scrollTop}), with maximum offsets (${state.maxScrollLeft}, ${state.maxScrollTop}). Directions with remaining native range: ${available.join(', ') || 'none'}. ${available.includes(direction) ? 'The requested direction still has range; reassess the dispatch position or target instead of assuming a boundary.' : 'The requested direction has no remaining native range.'} Native range does not establish whether content has loaded or the task goal is present.`,
+    nextSearchDirection:
+      !available.includes(direction) && available.length === 1
+        ? (available[0] as ScrollReview['nextSearchDirection'])
+        : null,
+  };
+}
+
 /** A separate observation avoids anchoring on the previous planner's guesses. */
 export async function reviewScroll(options: {
   task: ExecutionTask;
@@ -164,24 +183,12 @@ export async function reviewScroll(options: {
   abortSignal?.throwIfAborted();
   const direction = scrollDirection(task);
   const measuredStall = task.scrollProgress?.status === 'unchanged';
-  const available =
-    measuredStall && confirmedTarget(task)
-      ? availableScrollDirections(task.scrollProgress?.after)
-      : undefined;
-  // Native ranges settle these facts. Ask the planner, rather than another model,
-  // to choose a task-appropriate action from them.
-  if (available) {
-    const state = task.scrollProgress!.after!;
-    const content: ScrollReview = {
-      progress: 'unchanged',
-      observation: `The target's own scroll offsets did not change. Native offsets are (${state.scrollLeft}, ${state.scrollTop}), with maximum offsets (${state.maxScrollLeft}, ${state.maxScrollTop}). Directions with remaining native range: ${available.join(', ') || 'none'}. ${available.includes(direction) ? 'The requested direction still has range; reassess the dispatch position or target instead of assuming a boundary.' : 'The requested direction has no remaining native range.'} Native range does not establish whether content has loaded or the task goal is present.`,
-      nextSearchDirection:
-        !available.includes(direction) && available.length === 1
-          ? (available[0] as ScrollReview['nextSearchDirection'])
-          : null,
+  const nativeReview = nativeScrollReview(task);
+  if (nativeReview)
+    return {
+      content: nativeReview,
+      contentString: JSON.stringify(nativeReview),
     };
-    return { content, contentString: JSON.stringify(content) };
-  }
 
   const images = await Promise.all(
     [task.uiContext, current].map((context) =>

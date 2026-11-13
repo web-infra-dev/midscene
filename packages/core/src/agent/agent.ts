@@ -108,7 +108,7 @@ import {
 import { markdownToAiActPrompt } from './run-markdown';
 import {
   type ScrollRecoveryOptions,
-  resolveScrollRecoveryInterval,
+  resolveScrollRecovery,
 } from './scroll-recovery';
 import { TaskCache } from './task-cache';
 import { TaskExecutor, locatePlanForLocate, withFileChooser } from './tasks';
@@ -157,11 +157,11 @@ class AgentScopedModelConfigManager extends ModelConfigManager {
 
 export type AiActOptions = {
   /**
-   * Opt in to visual review after repeated same-direction scrolls. Defaults to false.
-   * Confirmed target progress resets the count when execution evidence is available.
-   * Otherwise a model compares screenshots after three scrolls by default.
-   * Use { afterScrolls: n } to configure the interval (integer >= 2).
-   * Review failures fail aiAct.
+   * Native scroll recovery is enabled by default when the interface can measure scroll state
+   * and the planner supports execution feedback. Set false to disable it.
+   * Explicit true/{afterScrolls} also permits visual fallback when native evidence is unavailable.
+   * The default interval is three; custom intervals must be integers >= 2.
+   * Malformed auxiliary output is recorded without stopping main planning.
    */
   scrollRecovery?: ScrollRecoveryOptions;
   cacheable?: boolean;
@@ -1303,20 +1303,15 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     }
 
     const runAiAct = async () => {
-      const scrollRecoveryInterval = resolveScrollRecoveryInterval(
-        opt?.scrollRecovery,
-      );
       const planningModel = this.resolveModelRuntime('planning', 'planning');
       const locateModel = this.resolveModelRuntime('locate', 'locate');
-      if (
-        scrollRecoveryInterval !== undefined &&
-        (planningModel.adapter.planning.kind !== 'standard' ||
-          planningModel.config.protocol === 'openai-responses')
-      ) {
-        throw new Error(
-          'scrollRecovery requires a standard planner using openai-chat',
-        );
-      }
+      const scrollRecovery = resolveScrollRecovery(
+        opt?.scrollRecovery,
+        planningModel,
+        opt?.scrollRecovery === undefined &&
+          planningModel.adapter.planning.kind === 'standard' &&
+          typeof this.interface.captureScrollState === 'function',
+      );
       const aiActContext = this.resolveUserContext('aiAct', opt?.context);
       const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
       // Resolve the public planning controls at the API boundary. Internal
@@ -1431,7 +1426,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         deepLocate,
         abortSignal,
         internalReportDisplay,
-        scrollRecoveryInterval,
+        scrollRecovery,
       );
 
       // update cache

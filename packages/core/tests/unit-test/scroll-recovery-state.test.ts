@@ -38,14 +38,23 @@ const scroll = (id: string, left = 100): ExecutionTask => ({
   },
   executor: async () => ({}),
 });
-function setup() {
+function setup(allowVisualFallback = true) {
   const tasks = [scroll('list'), { ...scroll('list'), taskId: 'second' }];
   const session = {
     getRunner: () => ({ tasks }),
     appendAndRun: async (task: ExecutionTask) =>
       task.executor({ task, uiContext: {} } as ExecutorContext),
   } as unknown as ExecutionSession;
-  return { tasks, recovery: new ScrollRecovery(session, runtime, 2) };
+  return {
+    tasks,
+    recovery: new ScrollRecovery(
+      session,
+      runtime,
+      2,
+      undefined,
+      allowVisualFallback,
+    ),
+  };
 }
 it('updates remaining distance on each plan only after recovery has engaged', async () => {
   const { tasks, recovery } = setup();
@@ -80,3 +89,19 @@ it.each(['action', 'target', 'unknown'] as const)(
     expect(recovery.planningFeedback()).toBeUndefined();
   },
 );
+
+it('default native mode skips incomplete measurements without invoking visual fallback', async () => {
+  const { tasks, recovery } = setup(false);
+  for (const task of tasks) {
+    task.scrollProgress!.before!.maxScrollLeft = undefined;
+    task.scrollProgress!.after!.maxScrollLeft = undefined;
+  }
+  let started = false;
+  expect(
+    await recovery.review(async () => {
+      started = true;
+    }),
+  ).toBeUndefined();
+  expect(started).toBe(false);
+  expect(recovery.planningFeedback()).toBeUndefined();
+});

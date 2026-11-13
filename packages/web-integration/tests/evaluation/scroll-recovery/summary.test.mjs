@@ -101,3 +101,21 @@ test('retains recovered provider errors without classifying a completed task as 
   assert.equal(group.serviceFailures, 0);
   assert.equal(group.attemptsWithServiceErrors, 1);
 });
+
+test('validates and compares the omitted-option default arm', () => {
+  const records = [record('off', 0, true), record('default', 'default', false)];
+  validateRun(
+    {
+      track: 'natural',
+      jobs: [
+        { case: 'same', arm: 0, rep: 0 },
+        { case: 'same', arm: 'default', rep: 0 },
+      ],
+    },
+    records,
+  );
+  assert.equal(
+    summarize(records).comparisons['natural/default-vs-0'].delta,
+    -1,
+  );
+});

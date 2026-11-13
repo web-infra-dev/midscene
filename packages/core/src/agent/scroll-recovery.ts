@@ -4,6 +4,7 @@ import {
   DEFAULT_SCROLL_REVIEW_INTERVAL,
   type ScrollReview,
   findScrollToReview,
+  nativeScrollReview,
   reviewScroll,
   scrollPlanningFeedback,
 } from '@/ai-model/workflows/planning/scroll-review';
@@ -21,19 +22,32 @@ export type ScrollRecoveryOptions =
       afterScrolls?: number;
     };
 
-export function resolveScrollRecoveryInterval(
-  options?: ScrollRecoveryOptions,
-): number | undefined {
-  if (!options) return undefined;
-  const interval =
-    typeof options === 'boolean'
-      ? DEFAULT_SCROLL_REVIEW_INTERVAL
-      : (options.afterScrolls ?? DEFAULT_SCROLL_REVIEW_INTERVAL);
-  if (!Number.isSafeInteger(interval) || interval < 2)
+export interface ResolvedScrollRecovery {
+  afterScrolls: number;
+  allowVisualFallback: boolean;
+}
+
+/** Default-on native observation; explicit opt-in also permits visual fallback. */
+export function resolveScrollRecovery(
+  options: ScrollRecoveryOptions | undefined,
+  model: ModelRuntime,
+  canMeasure: boolean,
+): ResolvedScrollRecovery | undefined {
+  if (options === false) return undefined;
+  const afterScrolls =
+    typeof options === 'object'
+      ? (options.afterScrolls ?? DEFAULT_SCROLL_REVIEW_INTERVAL)
+      : DEFAULT_SCROLL_REVIEW_INTERVAL;
+  if (!Number.isSafeInteger(afterScrolls) || afterScrolls < 2)
     throw new Error(
       'scrollRecovery.afterScrolls must be a safe integer greater than or equal to 2',
     );
-  return interval;
+  if (
+    model.adapter.planning.kind !== 'standard' ||
+    (options === undefined && !canMeasure)
+  )
+    return undefined;
+  return { afterScrolls, allowVisualFallback: options !== undefined };
 }
 
 /** Per-aiAct review state and report lifecycle; never executes a UI action. */
@@ -46,16 +60,8 @@ export class ScrollRecovery {
     private readonly model: ModelRuntime,
     private readonly afterScrolls: number,
     private readonly userPrompt?: string,
-  ) {
-    if (
-      model.adapter.planning.kind !== 'standard' ||
-      model.config.protocol === 'openai-responses'
-    ) {
-      throw new Error(
-        'scrollRecovery requires a standard planner using openai-chat',
-      );
-    }
-  }
+    private readonly allowVisualFallback = true,
+  ) {}
 
   /** Keep measured state fresh until the action or target changes. */
   planningFeedback(): string | undefined {
@@ -85,7 +91,8 @@ export class ScrollRecovery {
       this.afterScrolls,
       this.reviewedTaskId,
     );
-    if (!task) return undefined;
+    if (!task || (!this.allowVisualFallback && !nativeScrollReview(task)))
+      return undefined;
     this.reviewedTaskId = task.taskId;
     await onStart();
     let observation: ScrollReview | undefined;

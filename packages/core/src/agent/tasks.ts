@@ -56,7 +56,7 @@ import {
   errorMessageForAiAct,
 } from './progress';
 import { renderAIContext } from './prompt-context';
-import { ScrollRecovery } from './scroll-recovery';
+import { type ResolvedScrollRecovery, ScrollRecovery } from './scroll-recovery';
 import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
@@ -451,7 +451,7 @@ export class TaskExecutor {
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
     reportOptions?: ActionReportOptions,
-    scrollRecoveryInterval?: number,
+    scrollRecoveryConfig?: ResolvedScrollRecovery,
   ): Promise<
     ExecutionResult<
       | {
@@ -474,7 +474,7 @@ export class TaskExecutor {
         deepLocate,
         abortSignal,
         reportOptions,
-        scrollRecoveryInterval,
+        scrollRecoveryConfig,
       );
     });
   }
@@ -524,7 +524,7 @@ export class TaskExecutor {
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
     reportOptions?: ActionReportOptions,
-    scrollRecoveryInterval?: number,
+    scrollRecoveryConfig?: ResolvedScrollRecovery,
   ): Promise<
     ExecutionResult<
       | {
@@ -620,12 +620,13 @@ export class TaskExecutor {
     let latestPlanResult: PlanningAIResponse | undefined;
     let latestPlanIndex = 0;
     const scrollRecovery =
-      scrollRecoveryInterval !== undefined
+      scrollRecoveryConfig !== undefined
         ? new ScrollRecovery(
             session,
             planningModel,
-            scrollRecoveryInterval,
+            scrollRecoveryConfig.afterScrolls,
             userPromptToString(userPrompt),
+            scrollRecoveryConfig.allowVisualFallback,
           )
         : undefined;
 
@@ -906,7 +907,7 @@ export class TaskExecutor {
             locateModel,
             {
               cacheable,
-              observeScrollProgress: scrollRecoveryInterval !== undefined,
+              observeScrollProgress: scrollRecoveryConfig !== undefined,
               multimodalPrompt: userPromptToMultimodalPrompt(userPrompt),
               deepLocate,
               abortSignal,

@@ -12,13 +12,31 @@ import {
   cases as regressionCases,
   fixture as regressionFixture,
 } from './fixtures.mjs';
+import {
+  cases as routineCases,
+  fixture as routineFixture,
+} from './routine-fixtures.mjs';
 const suite = process.env.EVAL_SUITE || 'regression';
-if (!['regression', 'boundary'].includes(suite))
+if (!['regression', 'boundary', 'routine'].includes(suite))
   throw new Error('Invalid EVAL_SUITE');
-const cases = suite === 'boundary' ? boundaryCases : regressionCases;
-const fixture = suite === 'boundary' ? boundaryFixture : regressionFixture;
+const cases =
+  suite === 'boundary'
+    ? boundaryCases
+    : suite === 'routine'
+      ? routineCases
+      : regressionCases;
+const fixture =
+  suite === 'boundary'
+    ? boundaryFixture
+    : suite === 'routine'
+      ? routineFixture
+      : regressionFixture;
 const fixtureSource = new URL(
-  suite === 'boundary' ? './boundary-fixtures.mjs' : './fixtures.mjs',
+  suite === 'boundary'
+    ? './boundary-fixtures.mjs'
+    : suite === 'routine'
+      ? './routine-fixtures.mjs'
+      : './fixtures.mjs',
   import.meta.url,
 );
 const prefixScrolls = Number(process.env.EVAL_PREFIX_SCROLLS || 2);
@@ -39,11 +57,13 @@ if (process.env.EVAL_FEEDBACK_ONLY === '1')
   throw new Error(
     'Feedback-only is now the production policy. Use EVAL_ARMS=3. Replay the old ablation at its recorded revision.',
   );
-const requestedArms = (process.env.EVAL_ARMS || '0,2,3').split(',').map(Number);
+const requestedArms = (process.env.EVAL_ARMS || '0,2,3')
+  .split(',')
+  .map((value) => (value === 'default' ? value : Number(value)));
 if (
   !requestedArms.length ||
   new Set(requestedArms).size !== requestedArms.length ||
-  requestedArms.some((arm) => ![0, 2, 3].includes(arm))
+  requestedArms.some((arm) => ![0, 2, 3, 'default'].includes(arm))
 )
   throw new Error('Invalid EVAL_ARMS');
 const { PuppeteerAgent } = require(
@@ -61,6 +81,10 @@ if (
 const track = process.env.EVAL_TRACK || 'natural';
 if (!['natural', 'controlled', 'oracle'].includes(track))
   throw new Error('Invalid track');
+if (suite === 'routine' && track !== 'natural')
+  throw new Error(
+    'Routine suite uses natural model runs; use routine-fixtures.test.mjs for its model-free oracle',
+  );
 const selected = cases.filter(
   (c) =>
     (!process.env.EVAL_CASES ||
@@ -395,7 +419,9 @@ async function attempt({ c, rep, arm }) {
         },
       });
       await agent.aiAct(c.prompt, {
-        scrollRecovery: arm ? { afterScrolls: arm } : false,
+        ...(arm === 'default'
+          ? {}
+          : { scrollRecovery: arm ? { afterScrolls: arm } : false }),
         cacheable: false,
         abortSignal: controller.signal,
       });
@@ -439,8 +465,10 @@ async function attempt({ c, rep, arm }) {
   }
   const scrolls = actions.filter((a) => a.name === 'Scroll');
   const wrongClicks = final?.clicks?.filter((c) => c === 'wrong').length || 0;
+  const evaluated = c.evaluate?.({ actions, initial, final });
   const compliant =
-    c.family === 'explicit'
+    evaluated?.compliant ??
+    (c.family === 'explicit'
       ? actions.length === 4 &&
         scrolls.length === 4 &&
         scrolls.every(
@@ -451,14 +479,17 @@ async function attempt({ c, rep, arm }) {
           actions.every(
             (a) => a.name === 'Scroll' && a.param.direction === 'down',
           )
-        : wrongClicks === 0;
-  const success =
-    !error &&
-    (track === 'oracle' ||
-      (['explicit', 'boundary'].includes(c.family)
-        ? compliant &&
-          (c.family !== 'explicit' || Math.abs(final.y - initial.y - 400) <= 2)
-        : final?.clicks.includes('target') && compliant));
+        : wrongClicks === 0);
+  const goalReached =
+    evaluated?.goalReached ??
+    (c.family === 'explicit'
+      ? compliant &&
+        Math.abs((final?.y ?? Number.NaN) - (initial?.y ?? Number.NaN) - 400) <=
+          2
+      : c.family === 'boundary'
+        ? compliant
+        : !!final?.clicks?.includes('target'));
+  const success = !error && (track === 'oracle' || (goalReached && compliant));
   const record = {
     id,
     caseId: c.id,
@@ -469,6 +500,7 @@ async function attempt({ c, rep, arm }) {
     rep,
     success,
     compliant,
+    goalReached,
     wrongClicks,
     error,
     prefix,

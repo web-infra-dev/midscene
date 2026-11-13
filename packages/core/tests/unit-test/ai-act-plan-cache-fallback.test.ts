@@ -131,6 +131,8 @@ describe('aiAct plan cache fallback', () => {
 
   it('keeps using the cached YAML when it succeeds', async () => {
     const { agent } = createAgentWithPlanCache();
+    const captureScrollState = rs.fn();
+    (agent as any).interface.captureScrollState = captureScrollState;
     const taskExecutor = {
       loadYamlFlowAsPlanning: rs.fn().mockResolvedValue(undefined),
       action: rs.fn().mockResolvedValue({
@@ -151,5 +153,6 @@ describe('aiAct plan cache fallback', () => {
 
     expect(runYaml).toHaveBeenCalledWith(stalePlanYaml);
     expect(taskExecutor.action).not.toHaveBeenCalled();
+    expect(captureScrollState).not.toHaveBeenCalled();
   });
 });

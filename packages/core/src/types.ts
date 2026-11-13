@@ -615,6 +615,7 @@ export interface ScrollState {
 }
 
 export interface ScrollProgress {
+  observationErrors?: string[];
   before?: ScrollState;
   after?: ScrollState;
   status: 'moved' | 'unchanged' | 'uncertain';
