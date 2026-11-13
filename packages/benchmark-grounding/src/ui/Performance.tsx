@@ -363,9 +363,7 @@ function TestcaseMatrix({
   const location = useLocation();
   const [filter, setFilter] = useState('all');
   const { models, rows, counts } = useMemo(() => {
-    const models = (data.run?.models.map((model) => model.displayName) ?? [])
-      .sort()
-      .reverse();
+    const models = [...(data.models ?? [])].sort().reverse();
     const byKey = new Map(
       data.results?.map((result) => [
         resultKey(result.input.testcase, result.input.displayName),

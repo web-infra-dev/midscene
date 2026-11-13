@@ -16,7 +16,6 @@ import {
   type LoadedTestcase,
   type ReportMeta,
   type Result,
-  type RunManifest,
   reportMetaSchema,
 } from '../../src/core/schemas';
 import { presetMeta } from '../../src/presets';
@@ -49,31 +48,6 @@ afterEach(async () => {
       .map((directory) => rm(directory, { recursive: true, force: true })),
   );
 });
-function manifest(record: LoadedTestcase): RunManifest {
-  return {
-    schemaVersion: 1,
-    id: 'fixture',
-    startedAt: '2026-11-12',
-    status: 'completed',
-    planned: 1,
-    completed: 1,
-    options: { concurrency: 1, retries: 2, timeoutMs: 60000 },
-    versions: { package: '1', sdk: '1' },
-    models: [
-      {
-        name: 'api-model',
-        family: 'qwen3',
-        displayName: 'model',
-        directory: 'model',
-      },
-    ],
-    testcases: [
-      { name: record.testcase.name, testcaseSha256: record.testcaseSha256 },
-    ],
-    tasks: [{ model: 'model', testcase: record.testcase.name }],
-  };
-}
-
 function result(record: LoadedTestcase): Result {
   const attempt: Result['attempts'][number] = {
     output: {
@@ -111,6 +85,9 @@ function result(record: LoadedTestcase): Result {
 const capturedMeta: ReportMeta = {
   models: {
     model: {
+      name: 'api-model',
+      family: 'qwen3',
+      displayName: 'model',
       displayFamily: 'Captured',
       reference: {
         source: 'Snapshot source',
@@ -131,10 +108,6 @@ async function fixture(record = testcase('one')) {
   await mkdir(path.join(directory, 'results', 'model'), { recursive: true });
   await Promise.all([
     writeFixture(path.join(directory, 'testcases'), record),
-    writeFile(
-      path.join(directory, 'run.json'),
-      JSON.stringify(manifest(record)),
-    ),
     writeFile(path.join(directory, 'meta.json'), JSON.stringify(capturedMeta)),
     writeFile(
       path.join(directory, 'results', 'model', `${record.testcase.name}.json`),
@@ -217,7 +190,9 @@ describe('grounding HTML assembly', () => {
     record.testcase.instruction.en = 'Caller changed';
     const html = await createReport({ runDirectory: directory });
     const data = payload(html);
-    expect(data.incomplete).toBe(false);
+    expect(data.summaries.missing).toBe(0);
+    expect(data.evaluationId).toBe(path.basename(directory));
+    expect(data.models).toEqual(['model']);
     expect(data.results).toHaveLength(1);
     expect(data.testcases[0].instruction.en).toBe('Locate the target');
     expect(data.meta).toEqual(capturedMeta);
@@ -230,7 +205,7 @@ describe('grounding HTML assembly', () => {
     const { directory } = await fixture();
     await unlink(path.join(directory, 'results', 'model', 'one.json'));
     const data = payload(await createReport({ runDirectory: directory }));
-    expect(data).toMatchObject({ incomplete: true, missingResults: 1 });
+    expect(data.summaries.missing).toBe(1);
     expect(data.summaries.models[0]).toMatchObject({
       count: 0,
       missing: 1,
@@ -289,19 +264,37 @@ describe('grounding HTML assembly', () => {
     );
   });
 
-  it('rejects a manifest whose snapshot hashes or task identities have been changed', async () => {
-    const { directory, record } = await fixture();
-    const changed = manifest(record);
-    changed.testcases[0].testcaseSha256 = '0'.repeat(64);
-    await writeFile(path.join(directory, 'run.json'), JSON.stringify(changed));
-    await expect(createReport({ runDirectory: directory })).rejects.toThrow(
-      /identities or SHA-256/,
+  it('retains versioned model identities when their result directories are empty or missing', async () => {
+    const { directory } = await fixture();
+    await mkdir(path.join(directory, 'results', 'empty'));
+    await writeFile(
+      path.join(directory, 'meta.json'),
+      JSON.stringify({
+        ...capturedMeta,
+        models: {
+          ...capturedMeta.models,
+          empty: {
+            name: 'empty-api-v2',
+            family: 'qwen3',
+            displayName: 'empty',
+          },
+        },
+      }),
     );
-    changed.tasks[0].model = 'unknown';
-    await writeFile(path.join(directory, 'run.json'), JSON.stringify(changed));
-    await expect(createReport({ runDirectory: directory })).rejects.toThrow(
-      /planned model\/testcase/,
-    );
+    const data = payload(await createReport({ runDirectory: directory }));
+    expect(data.models).toEqual(['model', 'empty']);
+    expect(data.summaries).toMatchObject({ total: 2, count: 1, missing: 1 });
+    expect(data.summaries.models[1]).toMatchObject({
+      model: 'empty',
+      modelId: 'empty-api-v2',
+      count: 0,
+      missing: 1,
+      score: null,
+    });
+    await rm(path.join(directory, 'results', 'empty'), { recursive: true });
+    const missing = payload(await createReport({ runDirectory: directory }));
+    expect(missing.models).toEqual(data.models);
+    expect(missing.summaries.missing).toBe(1);
   });
 
   it.each([
@@ -333,21 +326,15 @@ describe('grounding HTML assembly', () => {
     },
   );
 
-  it('rejects duplicated manifest tasks, unknown result directories and incorrect final outputs', async () => {
+  it('rejects misplaced model results and inconsistent final outputs', async () => {
     const first = await fixture();
-    const run = manifest(first.record);
-    run.tasks.push(run.tasks[0]);
+    await mkdir(path.join(first.directory, 'results', 'unknown'));
     await writeFile(
-      path.join(first.directory, 'run.json'),
-      JSON.stringify(run),
+      path.join(first.directory, 'results', 'unknown', 'one.json'),
+      JSON.stringify(result(first.record)),
     );
     await expect(
       createReport({ runDirectory: first.directory }),
-    ).rejects.toThrow(/Duplicate tasks/);
-    const second = await fixture();
-    await mkdir(path.join(second.directory, 'results', 'unknown'));
-    await expect(
-      createReport({ runDirectory: second.directory }),
     ).rejects.toThrow(/Unexpected model/);
     const third = await fixture();
     const wrong = result(third.record);
@@ -402,13 +389,19 @@ describe('public metadata snapshots', () => {
     expect(saved.families!.Http.logo).toBe('http://example.com/logo.svg');
     expect(saved.models!['qwen3.8-flash']).toBeDefined();
     const report = await fixture();
+    const snapshot = {
+      ...saved,
+      models: {
+        model: { ...capturedMeta.models!.model, displayFamily: 'Custom' },
+      },
+    };
     await writeFile(
       path.join(report.directory, 'meta.json'),
-      JSON.stringify(saved),
+      JSON.stringify(snapshot),
     );
     expect(
       payload(await createReport({ runDirectory: report.directory })).meta,
-    ).toEqual(saved);
+    ).toEqual(snapshot);
   });
 
   it('rejects unsupported logo schemes and missing local files', async () => {

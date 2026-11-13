@@ -37,8 +37,8 @@ export function App({ data }: { data: UIData }) {
   const isReport = data.mode === 'report';
   const isOverview = isReport && location.pathname === '/overview';
   const title =
-    isReport && data.run
-      ? `Midscene Grounding Benchmark - Evaluation ${data.run.id}`
+    isReport && data.evaluationId
+      ? `Midscene Grounding Benchmark - Evaluation ${data.evaluationId}`
       : 'Midscene Grounding Benchmark';
   const parts = location.pathname.split('/').filter(Boolean);
   const requestedCase = (() => {
@@ -56,10 +56,7 @@ export function App({ data }: { data: UIData }) {
     () => filterTestcases(testcases, filters),
     [testcases, filters],
   );
-  const models = useMemo(
-    () => (data.run?.models.map((model) => model.displayName) ?? []).sort(),
-    [data],
-  );
+  const models = useMemo(() => [...(data.models ?? [])].sort(), [data.models]);
   const requestedModel = new URLSearchParams(location.search).get('model');
   const selectedModel =
     requestedModel && models.includes(requestedModel)
@@ -227,13 +224,19 @@ export function App({ data }: { data: UIData }) {
           />
         )}
       </header>
-      {isReport && data.incomplete && (
+      {isReport && (data.summaries?.missing ?? 0) > 0 && (
         <output className="app-error incomplete-run">
-          <strong>Incomplete run</strong>
-          <span>
-            {data.missingResults ?? data.summaries?.missing ?? 0} missing
-            results. Missing results are excluded from scores.
-          </span>
+          <strong>
+            {data.results?.length
+              ? 'Incomplete evaluation'
+              : 'No results available.'}
+          </strong>
+          {data.results?.length ? (
+            <span>
+              {data.summaries?.missing} missing results. Missing results are
+              excluded from scores.
+            </span>
+          ) : null}
         </output>
       )}
       {isOverview ? (

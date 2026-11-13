@@ -37,7 +37,7 @@ function model(
     modelId: name,
     family: 'Other',
     color: '#64748b',
-    planned: 2,
+    total: 2,
     count: score === null ? 0 : 2,
     missing: score === null ? 2 : 0,
     passed: score ? 2 : 0,

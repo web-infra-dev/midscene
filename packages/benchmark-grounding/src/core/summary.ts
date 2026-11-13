@@ -1,5 +1,5 @@
 import { countBy, sum, sumBy } from 'es-toolkit';
-import type { Profile, ReportMeta, Result, RunManifest } from './schemas';
+import type { Profile, ReportMeta, Result } from './schemas';
 
 const nonnegative = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0;
@@ -46,21 +46,23 @@ function ratio(numerator: number, denominator: number | null) {
   return Number.isFinite(value) ? value : null;
 }
 
-/** Shared by the runner and reporter. All measurements include every attempt. */
+/** Report measurements include every attempt. */
 export function calculateSummary({
-  run,
+  models: modelNames,
+  testcaseCount,
   results,
   meta,
 }: {
-  run: RunManifest;
+  models: string[];
+  testcaseCount: number;
   results: Result[];
   meta?: ReportMeta;
 }) {
-  const models = run.models.map((model) => {
+  const models = modelNames.map((model) => {
     const items = results.filter(
-      (result) => result.input.displayName === model.displayName,
+      (result) => result.input.displayName === model,
     );
-    const configured = meta?.models?.[model.displayName];
+    const configured = meta?.models?.[model];
     const reference = configured?.reference;
     const family = configured?.displayFamily ?? 'Other';
     const style = meta?.families?.[family] ?? meta?.families?.Other;
@@ -134,9 +136,6 @@ export function calculateSummary({
       );
     }
     const passed = items.filter((result) => result.output.correct).length;
-    const planned = run.tasks.filter(
-      (task) => task.model === model.displayName,
-    ).length;
     const usage = countBy(profiles, (attempts) =>
       completeUsage(attempts)
         ? 'complete'
@@ -145,15 +144,15 @@ export function calculateSummary({
           : 'missing',
     );
     return {
-      model: model.displayName,
-      modelId: model.name,
+      model,
+      modelId: configured?.name ?? items[0]?.input.model,
       family,
       color: style?.color ?? '#94a3b8',
       ...(style?.logo ? { icon: style.logo } : {}),
       ...(reference ? { reference } : {}),
-      planned,
+      total: testcaseCount,
       count: items.length,
-      missing: Math.max(planned - items.length, 0),
+      missing: Math.max(testcaseCount - items.length, 0),
       passed,
       errors: items.filter((result) => result.output.type === 'ERROR').length,
       score: items.length ? (passed / items.length) * 100 : null,
@@ -179,10 +178,11 @@ export function calculateSummary({
     };
   });
   const correct = results.filter((result) => result.output.correct).length;
+  const total = modelNames.length * testcaseCount;
   return {
-    planned: run.planned,
-    completed: results.length,
-    missing: Math.max(run.planned - results.length, 0),
+    total,
+    count: results.length,
+    missing: Math.max(total - results.length, 0),
     correct,
     errors: results.filter((result) => result.output.type === 'ERROR').length,
     score: results.length ? (correct / results.length) * 100 : null,

@@ -111,6 +111,11 @@ export const reportMetaSchema = z
       .record(
         z
           .object({
+            name: text.optional(),
+            family: text.optional(),
+            displayName: text.optional(),
+            protocol: modelCallConfigSchema.shape.protocol,
+            reasoningEnabled: modelCallConfigSchema.shape.reasoningEnabled,
             displayFamily: text.optional(),
             reference: z
               .object({
@@ -220,53 +225,5 @@ export const resultSchema = z
   .strict();
 export type Result = z.infer<typeof resultSchema>;
 
-export const runSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    id: text,
-    startedAt: text,
-    endedAt: text.optional(),
-    status: z.enum(['running', 'completed', 'interrupted']),
-    planned: nonnegative.int(),
-    completed: nonnegative.int(),
-    versions: z.object({ package: text, sdk: text }).strict(),
-    options: z
-      .object({
-        concurrency: finite.int().positive(),
-        retries: nonnegative.int(),
-        timeoutMs: finite.positive(),
-      })
-      .strict(),
-    models: z
-      .array(
-        modelCallConfigSchema
-          .pick({
-            name: true,
-            family: true,
-            displayName: true,
-            protocol: true,
-            reasoningEnabled: true,
-          })
-          .extend({
-            family: text,
-            displayName: text,
-            directory: testcaseNameSchema,
-          }),
-      )
-      .min(1),
-    testcases: z
-      .array(
-        z
-          .object({ name: testcaseNameSchema, testcaseSha256: sha256Schema })
-          .strict(),
-      )
-      .min(1),
-    tasks: z
-      .array(z.object({ model: text, testcase: testcaseNameSchema }).strict())
-      .min(1),
-  })
-  .strict();
-export type RunManifest = z.infer<typeof runSchema>;
-
-// The statistical contract is shared by runner, reporter and the browser UI.
-export type RunSummary = ReturnType<typeof calculateSummary>;
+// The statistical contract is shared by the reporter and the browser UI.
+export type ReportSummary = ReturnType<typeof calculateSummary>;

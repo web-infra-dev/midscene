@@ -5,12 +5,10 @@ import { sortBy } from 'es-toolkit';
 import {
   type LoadedTestcase,
   type ReportMeta,
+  type ReportSummary,
   type Result,
-  type RunManifest,
-  type RunSummary,
   reportMetaSchema,
   resultSchema,
-  runSchema,
 } from './schemas';
 import { calculateSummary } from './summary';
 import {
@@ -24,12 +22,11 @@ import {
 export type UIData = {
   mode: 'viewer' | 'report';
   testcases: ReturnType<typeof embeddedTestcases>;
-  run?: RunManifest;
+  evaluationId?: string;
+  models?: string[];
   results?: Result[];
   meta?: ReportMeta;
-  summaries?: RunSummary;
-  incomplete?: boolean;
-  missingResults?: number;
+  summaries?: ReportSummary;
 };
 
 function embeddedTestcases(testcases: LoadedTestcase[], imageBaseUrl?: string) {
@@ -111,62 +108,43 @@ async function readJSON(filename: string): Promise<unknown> {
   }
 }
 
-function unique(values: string[], description: string) {
-  if (new Set(values).size !== values.length)
-    throw new Error(`Duplicate ${description} in run manifest`);
-}
-
-function taskKey(model: string, testcase: string) {
-  return JSON.stringify([model, testcase]);
-}
-
 export async function createReport({
   runDirectory,
 }: { runDirectory: string }): Promise<string> {
   const directory = path.resolve(runDirectory);
-  const [runValue, metaValue] = await Promise.all([
-    readJSON(path.join(directory, 'run.json')),
-    readJSON(path.join(directory, 'meta.json')),
-  ]);
-  const run = runSchema.parse(runValue);
-  const meta = reportMetaSchema.parse(metaValue);
-
-  unique(
-    run.models.map((model) => model.displayName),
-    'model display names',
+  const meta = reportMetaSchema.parse(
+    await readJSON(path.join(directory, 'meta.json')),
   );
-  unique(
-    run.models.map((model) => model.directory),
-    'model directories',
-  );
-  unique(
-    run.testcases.map((testcase) => testcase.name),
-    'testcase names',
-  );
-  const tasks = run.tasks.map((task) => taskKey(task.model, task.testcase));
-  unique(tasks, 'tasks');
-  const expected = new Set(
-    run.models.flatMap((model) =>
-      run.testcases.map((testcase) =>
-        taskKey(model.displayName, testcase.name),
-      ),
-    ),
-  );
-  if (
-    run.planned !== run.tasks.length ||
-    tasks.length !== expected.size ||
-    tasks.some((task) => !expected.has(task))
-  ) {
-    throw new Error(
-      'Run manifest tasks do not match the planned model/testcase combinations',
-    );
-  }
-  if (run.completed > run.planned)
-    throw new Error('Run manifest completed count exceeds planned tasks');
   if (!meta.models || !meta.families)
     throw new Error(
       'Metadata snapshot must contain complete models and families maps',
     );
+  const models = Object.keys(meta.models);
+  if (!models.length)
+    throw new Error('Metadata snapshot must contain model identities');
+  const modelsByDirectory = new Map(
+    Object.entries(meta.models).map(([displayName, model]) => {
+      if (
+        !displayName ||
+        !model.name ||
+        !model.family ||
+        model.displayName !== displayName
+      )
+        throw new Error(
+          `Metadata snapshot model ${displayName}: missing model identity`,
+        );
+      return [
+        displayName.replace(/^\.+$|[^a-zA-Z0-9._-]/g, '_'),
+        { displayName, name: model.name, family: model.family },
+      ] as const;
+    }),
+  );
+  if (
+    modelsByDirectory.size !== models.length ||
+    new Set([...modelsByDirectory.keys()].map((name) => name.toLowerCase()))
+      .size !== models.length
+  )
+    throw new Error('Duplicate model directories in metadata snapshot');
   for (const [name, family] of Object.entries(meta.families)) {
     if (
       family.logo &&
@@ -207,25 +185,8 @@ export async function createReport({
     }
   }
   const testcases = await loadTestcases({ directory: testcaseDirectory });
-  const expectedCases = new Map(
-    run.testcases.map((testcase) => [testcase.name, testcase.testcaseSha256]),
-  );
-  if (
-    testcases.length !== expectedCases.size ||
-    testcases.some(
-      (testcase) =>
-        expectedCases.get(testcase.testcase.name) !== testcase.testcaseSha256,
-    )
-  ) {
-    throw new Error(
-      'Testcase snapshot identities or SHA-256 values do not match run manifest',
-    );
-  }
   const casesByName = new Map(
     testcases.map((testcase) => [testcase.testcase.name, testcase]),
-  );
-  const modelsByDirectory = new Map(
-    run.models.map((model) => [model.directory, model]),
   );
   const results: Result[] = [];
   const resultsPath = path.join(directory, 'results');
@@ -239,7 +200,7 @@ export async function createReport({
       return [];
     }
   })();
-  for (const modelDirectory of directories) {
+  for (const modelDirectory of sortBy(directories, [(entry) => entry.name])) {
     const model = modelsByDirectory.get(modelDirectory.name);
     if (!model || !modelDirectory.isDirectory())
       throw new Error('Unexpected model results directory');
@@ -255,7 +216,7 @@ export async function createReport({
       const testcase = casesByName.get(result.input.testcase);
       if (!testcase || entry.name !== `${result.input.testcase}.json`)
         throw new Error(
-          'Result file testcase identity does not match run manifest',
+          'Result file testcase identity does not match its filename or snapshot',
         );
       const input = result.input;
       const expected = testcase.testcase;
@@ -265,7 +226,7 @@ export async function createReport({
         input.family !== model.family
       ) {
         throw new Error(
-          'Result model identity does not match the run manifest',
+          'Result model identity does not match metadata snapshot',
         );
       }
       if (
@@ -309,15 +270,19 @@ export async function createReport({
       results.push(result);
     }
   }
-  const summaries = calculateSummary({ run, results, meta });
+  const summaries = calculateSummary({
+    models,
+    testcaseCount: testcases.length,
+    results,
+    meta,
+  });
   return assembleHTML({
     mode: 'report',
     testcases: embeddedTestcases(testcases),
-    run,
+    evaluationId: path.basename(directory),
+    models,
     results,
     meta,
     summaries,
-    incomplete: run.status !== 'completed' || summaries.missing > 0,
-    missingResults: summaries.missing,
   });
 }

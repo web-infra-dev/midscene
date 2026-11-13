@@ -4,36 +4,9 @@ import type {
   Profile,
   ReportMeta,
   Result,
-  RunManifest,
 } from '../../src/core/schemas';
 import { calculateSummary, summarizeMetric } from '../../src/core/summary';
 
-const run: RunManifest = {
-  schemaVersion: 1,
-  id: 'test',
-  startedAt: '2026-11-12T00:00:00Z',
-  status: 'completed',
-  planned: 2,
-  completed: 2,
-  versions: { package: '1', sdk: '1' },
-  options: { concurrency: 1, retries: 2, timeoutMs: 60000 },
-  models: [
-    {
-      name: 'api-model',
-      family: 'qwen3',
-      displayName: 'model',
-      directory: 'model',
-    },
-  ],
-  testcases: [
-    { name: 'one', testcaseSha256: 'a'.repeat(64) },
-    { name: 'two', testcaseSha256: 'b'.repeat(64) },
-  ],
-  tasks: [
-    { model: 'model', testcase: 'one' },
-    { model: 'model', testcase: 'two' },
-  ],
-};
 const meta: ReportMeta = {
   models: {
     model: {
@@ -119,7 +92,12 @@ describe('grounding summary', () => {
         }),
       ]),
     ];
-    const summary = calculateSummary({ run, results: items, meta });
+    const summary = calculateSummary({
+      models: ['model'],
+      testcaseCount: 2,
+      results: items,
+      meta,
+    });
     const model = summary.models[0];
     expect(model.duration).toEqual({ count: 1, total: 3000, average: 3000 });
     expect(model.inputTokens.average).toBe(30);
@@ -129,8 +107,10 @@ describe('grounding summary', () => {
     expect(model.estimatedElapsedTime.average).toBe(1000);
     expect(model.speed).toBe(60);
     expect(model.affordability).toBeCloseTo(1 / 1.3);
+    expect(model).toMatchObject({ modelId: 'api-model', total: 2, missing: 1 });
     expect(summary).toMatchObject({
-      completed: 1,
+      total: 2,
+      count: 1,
       missing: 1,
       correct: 1,
       score: 100,
@@ -142,7 +122,12 @@ describe('grounding summary', () => {
       result('one', [attempt({ durationMs: 200, totalCompletionTokens: 10 })]),
       result('two', [attempt({ durationMs: 5000, totalCompletionTokens: 1 })]),
     ];
-    const model = calculateSummary({ run, results: items, meta }).models[0];
+    const model = calculateSummary({
+      models: ['model'],
+      testcaseCount: 2,
+      results: items,
+      meta,
+    }).models[0];
     expect(model.duration.average).toBe(2600);
     expect(model.estimatedElapsedTime.average).toBe(550);
   });
@@ -153,7 +138,8 @@ describe('grounding summary', () => {
     [1000, 300],
   ])('corrects measured %sms to estimated %sms', (durationMs, expected) => {
     const model = calculateSummary({
-      run,
+      models: ['model'],
+      testcaseCount: 2,
       results: [result('one', [attempt({ durationMs })])],
       meta,
     }).models[0];
@@ -182,7 +168,12 @@ describe('grounding summary', () => {
         },
       ]),
     ];
-    const summary = calculateSummary({ run, results: items, meta });
+    const summary = calculateSummary({
+      models: ['model'],
+      testcaseCount: 2,
+      results: items,
+      meta,
+    });
     const model = summary.models[0];
     expect(model.inputTokens).toEqual({ count: 1, total: 15, average: 15 });
     expect(model.estimatedCost).toEqual({ count: 0, average: null, total: 0 });
@@ -208,7 +199,8 @@ describe('grounding summary', () => {
       responseLatencyMs: 200,
     };
     const model = calculateSummary({
-      run,
+      models: ['model'],
+      testcaseCount: 2,
       results: [result('one', [attempt({ calls: 2 })])],
       meta: custom,
     }).models[0];
@@ -216,17 +208,27 @@ describe('grounding summary', () => {
     expect(model.estimatedElapsedTime.average).toBe(400);
   });
 
-  it('shows models without metadata or results and never turns a zero denominator into infinity', () => {
-    const empty = calculateSummary({ run, results: [] });
+  it('preserves captured model identities without results and never turns a zero denominator into infinity', () => {
+    const empty = calculateSummary({
+      models: ['model', 'other-model'],
+      testcaseCount: 2,
+      results: [],
+      meta: { models: { model: { name: 'api-model-20261113' } } },
+    });
     expect(empty.score).toBeNull();
+    expect(empty).toMatchObject({ total: 4, count: 0, missing: 4 });
+    expect(empty.models).toHaveLength(2);
     expect(empty.models[0]).toMatchObject({
       model: 'model',
+      modelId: 'api-model-20261113',
+      total: 2,
       count: 0,
       missing: 2,
       score: null,
       speed: null,
       affordability: null,
     });
+    expect(empty.models[1].modelId).toBeUndefined();
     const custom = structuredClone(meta);
     custom.models!.model.reference!.pricing = {
       currency: 'USD',
@@ -234,7 +236,8 @@ describe('grounding summary', () => {
       outputPerToken: 0,
     };
     const zero = calculateSummary({
-      run,
+      models: ['model'],
+      testcaseCount: 2,
       results: [
         result('one', [
           attempt({

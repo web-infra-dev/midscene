@@ -33,7 +33,6 @@ const mocks = rs.hoisted(() => ({
   }[],
 }));
 rs.mock('@midscene/core', () => ({
-  getVersion: () => 'test-sdk-version',
   Agent: class {
     constructor(
       public device: (typeof mocks.instances)[number]['device'],
@@ -462,7 +461,7 @@ describe('runTestcase', () => {
 });
 
 describe('runBenchmark', () => {
-  it('captures inputs before awaiting, writes exact independent snapshots and manifest identities', async () => {
+  it('captures inputs before awaiting and writes only independent snapshots and results', async () => {
     const outputDirectory = await outputRoot();
     const record = fixture();
     const originalJson = Buffer.from(record.files['index.json']);
@@ -480,8 +479,7 @@ describe('runBenchmark', () => {
     record.files['index.json'].fill(0);
     record.files['image.png'].fill(0);
     record.testcaseSha256 = '0'.repeat(64);
-    const { directory, summary } = await pending;
-    expect(summary).toMatchObject({ completed: 1, correct: 1, missing: 0 });
+    const { directory } = await pending;
     expect(
       await readFile(path.join(directory, 'testcases/case-a/index.json')),
     ).toEqual(originalJson);
@@ -489,28 +487,19 @@ describe('runBenchmark', () => {
       await readFile(path.join(directory, 'testcases/case-a/image.png')),
     ).toEqual(originalImage);
     const result = await readResult(directory);
+    expect(result.output).toMatchObject({ type: 'POINT', correct: true });
     expect(result.consistency.testcaseSha256).toBe(sha);
     expect(result.input).toMatchObject({
       instruction: 'Locate the target',
       groundTruth: [0, 1, 1, 0],
       displayName: 'Test model',
     });
-    const manifest = JSON.parse(
-      await readFile(path.join(directory, 'run.json'), 'utf8'),
-    );
-    expect(manifest).toMatchObject({
-      status: 'completed',
-      planned: 1,
-      completed: 1,
-      testcases: [{ name: 'case-a', testcaseSha256: sha }],
-      tasks: [{ model: 'Test model', testcase: 'case-a' }],
-    });
-    for (const file of [
-      'run.json',
+    expect((await readdir(directory)).sort()).toEqual([
       'meta.json',
-      'summary.json',
-      'results/Test_model/case-a.json',
-    ]) {
+      'results',
+      'testcases',
+    ]);
+    for (const file of ['meta.json', 'results/Test_model/case-a.json']) {
       const contents = await readFile(path.join(directory, file), 'utf8');
       expect(contents).not.toContain(model.apiKey);
       expect(contents).not.toContain(model.baseUrl);
@@ -544,8 +533,34 @@ describe('runBenchmark', () => {
 
   it('saves independent metadata and physical testcase files before the first request', async () => {
     const outputDirectory = await outputRoot();
+    const models: ModelCallConfig[] = [
+      {
+        ...model,
+        name: 'test-api-model-20261113',
+        protocol: 'openai-chat',
+        reasoningEnabled: false,
+      },
+      { ...model, name: 'second-api-model-20261114', displayName: 'No flags' },
+    ];
     const meta = {
-      models: { 'Test model': { displayFamily: 'Captured family' } },
+      models: {
+        'Test model': {
+          displayFamily: 'Captured family',
+          name: 'wrong-version',
+          family: 'wrong-family',
+          displayName: 'wrong-display-name',
+          protocol: 'openai-responses' as const,
+          reasoningEnabled: true,
+        },
+        'No flags': {
+          name: 'wrong-version',
+          family: 'wrong-family',
+          displayName: 'wrong-display-name',
+          protocol: 'openai-responses' as const,
+          reasoningEnabled: true,
+        },
+        Unused: { displayFamily: 'Unused family' },
+      },
     };
     mocks.locate.mockImplementation(async () => {
       const [id] = await readdir(outputDirectory);
@@ -553,9 +568,23 @@ describe('runBenchmark', () => {
       const metadata = JSON.parse(
         await readFile(path.join(directory, 'meta.json'), 'utf8'),
       );
-      expect(metadata.models['Test model'].displayFamily).toBe(
-        'Captured family',
-      );
+      expect(metadata.models).toEqual({
+        'Test model': {
+          displayFamily: 'Captured family',
+          name: 'test-api-model-20261113',
+          family: model.family,
+          displayName: 'Test model',
+          protocol: 'openai-chat',
+          reasoningEnabled: false,
+        },
+        'No flags': {
+          name: 'second-api-model-20261114',
+          family: model.family,
+          displayName: 'No flags',
+        },
+      });
+      expect(JSON.stringify(metadata)).not.toContain(model.apiKey);
+      expect(JSON.stringify(metadata)).not.toContain(model.baseUrl);
       for (const filename of ['index.json', 'index.sha256', 'image.png']) {
         const stat = await lstat(
           path.join(directory, 'testcases/case-a', filename),
@@ -567,12 +596,20 @@ describe('runBenchmark', () => {
     });
     const pending = runBenchmark({
       testcases: [fixture()],
-      models: [model],
+      models,
       meta,
       outputDirectory,
     });
     meta.models['Test model'].displayFamily = 'Later mutation';
-    await pending;
+    models[0].name = 'Later model mutation';
+    const { directory } = await pending;
+    for (const name of ['Test_model', 'No_flags'])
+      expect(
+        (await readResult(directory, 'case-a', name)).output,
+      ).toMatchObject({
+        type: 'POINT',
+        correct: true,
+      });
   });
 
   it('refuses to overwrite an existing run directory', async () => {
@@ -591,10 +628,10 @@ describe('runBenchmark', () => {
       }),
     ).rejects.toThrow();
     expect(mocks.locate).toHaveBeenCalledTimes(1);
-    expect(
-      JSON.parse(await readFile(path.join(first.directory, 'run.json'), 'utf8'))
-        .status,
-    ).toBe('completed');
+    expect((await readResult(first.directory)).output).toMatchObject({
+      type: 'POINT',
+      correct: true,
+    });
   });
 
   it('sums complete raw usage across failed and successful attempts', async () => {
@@ -637,7 +674,7 @@ describe('runBenchmark', () => {
     );
   });
 
-  it('isolates mutable progress profiling and redacted errors from saved results and summary', async () => {
+  it('isolates mutable progress profiling and redacted errors from saved results', async () => {
     mocks.locate.mockImplementation(async (_prompt, agent) => {
       await observeRequest(agent, {
         usage: { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 },
@@ -649,7 +686,7 @@ describe('runBenchmark', () => {
         { cause: { name: 'AuthenticationError', status: 401 } },
       );
     });
-    const { directory, summary } = await runBenchmark({
+    const { directory } = await runBenchmark({
       testcases: [fixture()],
       models: [model],
       outputDirectory: await outputRoot(),
@@ -674,18 +711,13 @@ describe('runBenchmark', () => {
     });
     expect(result.profiling).toMatchObject({
       usageStatus: 'complete',
+      calls: 1,
+      totalPromptTokens: 2,
+      totalCompletionTokens: 3,
       totalTokens: 5,
     });
     expect(result.profiling.durationMs).not.toBe(999999);
-    expect(summary.models[0]).toMatchObject({
-      errors: 1,
-      totalTokens: { average: 5 },
-      duration: { average: result.profiling.durationMs },
-      usage: { complete: 1, partial: 0, missing: 0 },
-    });
-    expect(
-      JSON.parse(await readFile(path.join(directory, 'summary.json'), 'utf8')),
-    ).toEqual(summary);
+    expect(result.attempts).toHaveLength(1);
   });
 
   it('retains every execution retry and its SDK usage, but never retries wrong answers or refusals', async () => {
@@ -755,6 +787,7 @@ describe('runBenchmark', () => {
     let active = 0;
     let maxActive = 0;
     const order: string[] = [];
+    const progress = rs.fn();
     const firstBatch: Promise<void> = new Promise((resolve) => {
       mocks.locate.mockImplementation(async (_prompt, agent) => {
         active += 1;
@@ -768,15 +801,25 @@ describe('runBenchmark', () => {
         return { center: [0.5, 0.5] };
       });
     });
-    const { summary } = await runBenchmark({
+    const { directory } = await runBenchmark({
       testcases: [fixture('a'), fixture('b'), fixture('c')],
       models: [model, { ...model, name: 'second', displayName: 'Second' }],
       outputDirectory: await outputRoot(),
       concurrency: 2,
+      onProgress: progress,
     });
     expect(maxActive).toBe(2);
     expect(order.slice(0, 2).sort()).toEqual([model.name, 'second'].sort());
-    expect(summary.completed).toBe(6);
+    expect(progress.mock.calls.map(([event]) => event.completed)).toEqual([
+      1, 2, 3, 4, 5, 6,
+    ]);
+    expect(progress).toHaveBeenLastCalledWith(
+      expect.objectContaining({ completed: 6, total: 6 }),
+    );
+    for (const name of ['Test_model', 'Second'])
+      expect(await readdir(path.join(directory, 'results', name))).toHaveLength(
+        3,
+      );
     expect(
       mocks.instances.map(
         (instance) => instance.options.modelConfig.MIDSCENE_MODEL_API_KEY,

@@ -16,16 +16,17 @@ const formatTokens = (value?: number | null) =>
 export function runCommand() {
   return new Command('run')
     .description('Evaluate models, then generate and open a standalone report.')
-    .requiredOption(
+    .option(
       '--output <directory>',
       'Output root; a timestamped run directory is created inside it.',
+      './output',
     )
     .option(
       '--testcases <directory>',
       'Testcase directory (defaults to the bundled dataset).',
     )
     .option('--names <name...>', 'Exact testcase names to run.')
-    .option('--concurrency <number>', 'Global attempt concurrency.', '32')
+    .option('--concurrency <number>', 'Global attempt concurrency.', '64')
     .option('--retries <number>', 'Retries after an execution error.', '2')
     .option(
       '--timeout-ms <number>',
@@ -87,7 +88,7 @@ export function runCommand() {
           })
         : undefined;
       live?.start(`Tests 0/${total}`);
-      const { directory, summary } = await runBenchmark({
+      const { directory } = await runBenchmark({
         testcases,
         models,
         meta,
@@ -133,24 +134,11 @@ export function runCommand() {
           if (completed < total) live?.start(`Tests ${completed}/${total}`);
         },
       }).finally(() => live?.clear());
-      const failed = summary.completed - summary.correct - summary.errors;
       write(
         '',
-        ` ${c.bold('Models')}    ${summary.models.length}`,
-        ` ${c.bold('Tests')}     ${c.green(`${summary.correct} passed`)} ${c.dim('|')} ${(failed ? c.red : c.dim)(`${failed} failed`)} ${c.dim('|')} ${(summary.errors ? c.red : c.dim)(`${summary.errors} errors`)} ${c.dim(`(${summary.completed}/${summary.planned})`)}`,
-        ` ${c.bold('Duration')}  ${formatDuration(performance.now() - startedAt)}`,
-        ` ${c.bold('Run')}       ${directory}`,
-        '',
-        ` ${c.bold('Model Summary')}`,
+        ` ${c.green('✓')} Evaluation completed ${c.dim(`(${formatDuration(performance.now() - startedAt)})`)}`,
+        ` Run: ${c.cyan(directory)}`,
       );
-      for (const model of summary.models) {
-        write(
-          '',
-          ` ${c.bold(model.model)} ${c.dim(`(${model.count} tests)`)} ${c.green(`${model.passed} passed`)} ${c.dim('|')} ${(model.errors ? c.red : c.dim)(`${model.errors} errors`)}`,
-          `   Avg. Duration ${formatDuration(model.duration.average)} ${c.dim('·')} Avg. Tokens ${formatTokens(model.totalTokens.average)} ${c.dim(`(in ${formatTokens(model.inputTokens.average)} / out ${formatTokens(model.outputTokens.average)})`)}`,
-          `   Avg. Estimated Cost ${model.estimatedCost.average === null ? '—' : `$${model.estimatedCost.average.toFixed(6)}`} ${c.dim('·')} Usage ${model.usage.complete} complete / ${model.usage.partial} partial / ${model.usage.missing} missing`,
-        );
-      }
       if (options.report) {
         await writeReport({
           runDirectory: directory,

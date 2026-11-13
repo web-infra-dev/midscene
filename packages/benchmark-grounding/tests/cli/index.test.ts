@@ -66,34 +66,10 @@ afterEach(async () => {
   process.env = { ...environment };
 });
 
-async function runDirectory(errors = 0) {
+async function runDirectory() {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'benchmark-cli-'));
   temporary.push(directory);
-  sdk.runBenchmark.mockResolvedValue({
-    directory,
-    summary: {
-      planned: 1,
-      completed: 1,
-      missing: 0,
-      correct: 1 - errors,
-      errors,
-      score: (1 - errors) * 100,
-      models: [
-        {
-          model: model.name,
-          count: 1,
-          passed: 1 - errors,
-          errors,
-          duration: { count: 1, average: 1234, total: 1234 },
-          totalTokens: { count: 1, average: 1234, total: 1234 },
-          inputTokens: { count: 1, average: 1200, total: 1200 },
-          outputTokens: { count: 1, average: 34, total: 34 },
-          estimatedCost: { count: 1, average: 0.0001, total: 0.0001 },
-          usage: { complete: 1, partial: 0, missing: 0 },
-        },
-      ],
-    },
-  });
+  sdk.runBenchmark.mockResolvedValue({ directory });
   return directory;
 }
 
@@ -268,7 +244,7 @@ describe('CLI report workflow', () => {
     expect(sdk.createReport).toHaveBeenCalledWith({ runDirectory: directory });
     expect(sdk.runBenchmark).toHaveBeenCalledWith(
       expect.objectContaining({
-        concurrency: 32,
+        concurrency: 64,
         retries: 2,
         timeoutMs: 60000,
       }),
@@ -298,19 +274,32 @@ describe('CLI report workflow', () => {
 
   test('a generation failure preserves run artifacts and does not open a browser', async () => {
     const directory = await runDirectory();
-    await writeFile(path.join(directory, 'run.json'), '{"status":"completed"}');
+    await writeFile(path.join(directory, 'meta.json'), '{"models":{}}');
     sdk.createReport.mockRejectedValue(new Error('Invalid snapshot'));
     await expect(
       main(['node', 'cli', 'run', '--output', directory]),
     ).rejects.toThrow('Invalid snapshot');
-    expect(await readFile(path.join(directory, 'run.json'), 'utf8')).toBe(
-      '{"status":"completed"}',
+    expect(await readFile(path.join(directory, 'meta.json'), 'utf8')).toBe(
+      '{"models":{}}',
     );
     expect(launch).not.toHaveBeenCalled();
   });
 
   test('completed model errors still generate and open the automatic report', async () => {
-    const directory = await runDirectory(1);
+    const directory = await runDirectory();
+    sdk.runBenchmark.mockImplementationOnce(async ({ onProgress }) => {
+      onProgress({
+        completed: 1,
+        total: 1,
+        model: model.name,
+        testcase: 'case-a',
+        status: 'ERROR',
+        correct: false,
+        attemptCount: 1,
+        profiling: { durationMs: 0, usageStatus: 'missing' },
+      });
+      return { directory };
+    });
     expect(await main(['node', 'cli', 'run', '--output', directory])).toBe(0);
     expect(sdk.createReport).toHaveBeenCalledWith({ runDirectory: directory });
     expect(launch).toHaveBeenCalledTimes(1);
@@ -346,16 +335,6 @@ describe('CLI report workflow', () => {
 describe('CLI run progress', () => {
   test('shows successful task metrics and preserves measured zero values', async () => {
     const directory = await runDirectory();
-    const result = await sdk.runBenchmark.getMockImplementation()!();
-    for (const metric of [
-      'duration',
-      'totalTokens',
-      'inputTokens',
-      'outputTokens',
-      'estimatedCost',
-    ]) {
-      result.summary.models[0][metric] = { count: 1, average: 0, total: 0 };
-    }
     sdk.loadTestcases.mockResolvedValue([fixture('a')]);
     sdk.runBenchmark.mockImplementationOnce(async ({ onProgress }) => {
       onProgress({
@@ -375,7 +354,7 @@ describe('CLI run progress', () => {
           usageStatus: 'complete',
         },
       });
-      return result;
+      return { directory };
     });
     const stdout = rs.spyOn(process.stdout, 'write').mockReturnValue(true);
     const stderr = rs.spyOn(process.stderr, 'write').mockReturnValue(true);
@@ -391,9 +370,10 @@ describe('CLI run progress', () => {
     expect(output).toMatch(/Tokens\s+0\s*\(in\s+0\s*\/\s*out\s+0\)/);
     expect(output).toMatch(/Attempts\s+1/);
     expect(output).toMatch(/Calls\s+0/);
-    expect(output).toMatch(/Avg\. Duration\s+0(?:\.0+)?\s*s/);
-    expect(output).toMatch(/Avg\. Tokens\s+0\s*\(in\s+0\s*\/\s*out\s+0\)/);
-    expect(output).toContain('Avg. Estimated Cost $0.000000');
+    expect(output).toMatch(/Evaluation completed\s*\(\d+(?:\.\d+)?\s+s\)/);
+    expect(output).toContain(directory);
+    expect(output).not.toContain('Model Summary');
+    expect(output).not.toContain('Avg.');
     expect(output).not.toContain('Usage partial');
     expect(output).not.toContain('Usage missing');
     expect(output).not.toContain(model.apiKey);
@@ -405,22 +385,6 @@ describe('CLI run progress', () => {
 
   test('distinguishes incorrect answers, execution errors and incomplete usage', async () => {
     const directory = await runDirectory();
-    const result = await sdk.runBenchmark.getMockImplementation()!();
-    Object.assign(result.summary, {
-      planned: 2,
-      completed: 2,
-      correct: 0,
-      errors: 1,
-      score: 0,
-    });
-    Object.assign(result.summary.models[0], {
-      count: 2,
-      passed: 0,
-      errors: 1,
-      duration: { count: 2, average: 617, total: 1234 },
-      estimatedCost: { count: 0, average: null, total: 0 },
-      usage: { complete: 0, partial: 1, missing: 1 },
-    });
     sdk.loadTestcases.mockResolvedValue([fixture('a'), fixture('b')]);
     sdk.runBenchmark.mockImplementationOnce(async ({ onProgress }) => {
       onProgress({
@@ -456,7 +420,7 @@ describe('CLI run progress', () => {
           retryable: false,
         },
       });
-      return result;
+      return { directory };
     });
     const stdout = rs.spyOn(process.stdout, 'write').mockReturnValue(true);
     const stderr = rs.spyOn(process.stderr, 'write').mockReturnValue(true);
@@ -477,8 +441,10 @@ describe('CLI run progress', () => {
     expect(output).toMatch(/Tokens\s+—/);
     expect(output).toMatch(/Calls\s+—/);
     expect(output).toContain('Provider request failed [REDACTED]');
-    expect(output).toContain('Avg. Estimated Cost —');
-    expect(output).toContain('Usage 0 complete / 1 partial / 1 missing');
+    expect(output).toContain('Evaluation completed');
+    expect(output).toContain(directory);
+    expect(output).not.toContain('Model Summary');
+    expect(output).not.toContain('Avg.');
     expect(output).not.toContain(model.apiKey);
     expect(output).not.toContain(model.baseUrl);
     expect(stderr).not.toHaveBeenCalled();
@@ -527,7 +493,7 @@ describe('CLI inputs', () => {
     );
   });
 
-  test('run forwards exact filters and parsed numeric options to the SDK', async () => {
+  test('run forwards explicit options and defaults the output root when omitted', async () => {
     const directory = await runDirectory();
     await main([
       'node',
@@ -560,6 +526,10 @@ describe('CLI inputs', () => {
         timeoutMs: 1200,
         outputDirectory: directory,
       }),
+    );
+    await main(['node', 'cli', 'run', '--no-report']);
+    expect(sdk.runBenchmark).toHaveBeenLastCalledWith(
+      expect.objectContaining({ outputDirectory: './output' }),
     );
   });
 

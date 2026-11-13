@@ -5,7 +5,7 @@ export type {
   LoadedTestcase,
   ModelCallConfig,
   ReportMeta,
-  RunSummary,
+  ReportSummary,
   Testcase,
 } from './core/schemas';
 export { loadTestcases } from './core/testcase';

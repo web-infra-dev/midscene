@@ -1,12 +1,12 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
-import { type AIUsageInfo, Agent, getVersion } from '@midscene/core';
+import { type AIUsageInfo, Agent } from '@midscene/core';
 import { encodedImageInfoOfBuffer } from '@midscene/shared/img';
-import { deepFreeze, pick, sortBy, sum, sumBy } from 'es-toolkit';
+import { deepFreeze, sortBy, sum, sumBy } from 'es-toolkit';
 import PQueue from 'p-queue';
 import pRetry, { AbortError } from 'p-retry';
-import { version } from '../../package.json';
+import { z } from 'zod';
 import { mergeReportMeta } from './metadata';
 import {
   type AttemptResult,
@@ -14,15 +14,10 @@ import {
   type ModelCallConfig,
   type Profile,
   type ReportMeta,
-  type Result,
-  type RunManifest,
-  type RunSummary,
   modelCallConfigSchema,
   outputSchema,
   resultSchema,
-  runSchema,
 } from './schemas';
-import { calculateSummary } from './summary';
 import {
   cloneLoadedTestcases,
   imageFilename,
@@ -417,7 +412,7 @@ export async function runBenchmark({
   models: suppliedModels,
   meta: suppliedMeta,
   outputDirectory,
-  concurrency = 32,
+  concurrency = 64,
   retries = 2,
   timeoutMs = 60_000,
   onProgress,
@@ -430,7 +425,7 @@ export async function runBenchmark({
   retries?: number;
   timeoutMs?: number;
   onProgress?: (progress: BenchmarkProgress) => void;
-}): Promise<{ directory: string; summary: RunSummary }> {
+}): Promise<{ directory: string }> {
   // Capture every caller-owned reference before the first asynchronous boundary.
   const captured = cloneLoadedTestcases(supplied);
   const models = suppliedModels.map((model) => {
@@ -451,11 +446,9 @@ export async function runBenchmark({
     throw new Error('Model output directory collision (case-insensitive)');
   if (typeof outputDirectory !== 'string' || !outputDirectory)
     throw new Error('outputDirectory is required');
-  const options = runSchema.shape.options.parse({
-    concurrency,
-    retries,
-    timeoutMs,
-  });
+  z.number().finite().int().positive().parse(concurrency);
+  z.number().finite().int().nonnegative().parse(retries);
+  z.number().finite().positive().parse(timeoutMs);
   const [testcases, metadata] = await Promise.all([
     Promise.all(captured.map((record) => validateLoadedTestcase(record))).then(
       (records) => sortBy(records, [(record) => record.testcase.name]),
@@ -472,9 +465,7 @@ export async function runBenchmark({
       .size !== testcases.length
   )
     throw new Error('Testcase snapshot directory collision (case-insensitive)');
-  const startedAt = new Date().toISOString();
-  const id = String(Date.now());
-  const directory = path.resolve(outputDirectory, id);
+  const directory = path.resolve(outputDirectory, String(Date.now()));
   const tasks = testcases.flatMap((record) =>
     models.map(({ directory: modelDirectory, ...model }) => ({
       model,
@@ -482,34 +473,6 @@ export async function runBenchmark({
       record,
     })),
   );
-  const run: RunManifest = {
-    schemaVersion: 1,
-    id,
-    startedAt,
-    status: 'running',
-    planned: tasks.length,
-    completed: 0,
-    versions: { package: version, sdk: getVersion() },
-    options,
-    models: models.map((model) =>
-      pick(model, [
-        'name',
-        'family',
-        'displayName',
-        'directory',
-        'protocol',
-        'reasoningEnabled',
-      ]),
-    ),
-    testcases: testcases.map((record) => ({
-      name: record.testcase.name,
-      testcaseSha256: record.testcaseSha256,
-    })),
-    tasks: tasks.map(({ model, record }) => ({
-      model: model.displayName,
-      testcase: record.testcase.name,
-    })),
-  };
   const writeJson = (filename: string, value: unknown) =>
     writeFile(
       path.join(directory, filename),
@@ -528,8 +491,22 @@ export async function runBenchmark({
       );
     }),
   );
-  await writeJson('meta.json', metadata);
-  await writeJson('run.json', run);
+  await writeJson('meta.json', {
+    ...metadata,
+    models: Object.fromEntries(
+      models.map((model) => [
+        model.displayName,
+        {
+          ...metadata.models?.[model.displayName],
+          name: model.name,
+          family: model.family,
+          displayName: model.displayName,
+          protocol: model.protocol,
+          reasoningEnabled: model.reasoningEnabled,
+        },
+      ]),
+    ),
+  });
   await Promise.all(
     models.map((model) =>
       mkdir(path.join(directory, 'results', model.directory), {
@@ -537,9 +514,8 @@ export async function runBenchmark({
       }),
     ),
   );
-  const results: Result[] = [];
   const queue = new PQueue({ concurrency });
-  let progressWrite = Promise.resolve();
+  let completed = 0;
   const pending = tasks.map(async ({ model, modelDirectory, record }) => {
     const attempts: AttemptResult[] = [];
     try {
@@ -588,44 +564,23 @@ export async function runBenchmark({
       path.join('results', modelDirectory, `${record.testcase.name}.json`),
       result,
     );
-    results.push(result);
-    progressWrite = progressWrite.then(async () => {
-      run.completed += 1;
-      await writeJson('run.json', run);
-      onProgress?.(
-        structuredClone({
-          completed: run.completed,
-          total: run.planned,
-          model: model.displayName,
-          testcase: record.testcase.name,
-          status: result.output.type,
-          correct: result.output.correct,
-          profiling: result.profiling,
-          attemptCount: result.attempts.length,
-          ...(result.output.error ? { error: result.output.error } : {}),
-        }),
-      );
-    });
-    await progressWrite;
+    completed += 1;
+    onProgress?.(
+      structuredClone({
+        completed,
+        total: tasks.length,
+        model: model.displayName,
+        testcase: record.testcase.name,
+        status: result.output.type,
+        correct: result.output.correct,
+        profiling: result.profiling,
+        attemptCount: result.attempts.length,
+        ...(result.output.error ? { error: result.output.error } : {}),
+      }),
+    );
   });
-  try {
-    const settled = await Promise.allSettled(pending);
-    const failed = settled.find((result) => result.status === 'rejected');
-    if (failed?.status === 'rejected') throw failed.reason;
-    run.status = 'completed';
-    run.endedAt = new Date().toISOString();
-    const summary = calculateSummary({
-      run,
-      results,
-      meta: metadata,
-    });
-    await writeJson('summary.json', summary);
-    await writeJson('run.json', run);
-    return { directory, summary };
-  } catch (error) {
-    run.status = 'interrupted';
-    run.endedAt = new Date().toISOString();
-    await writeJson('run.json', run);
-    throw error;
-  }
+  const settled = await Promise.allSettled(pending);
+  const failed = settled.find((result) => result.status === 'rejected');
+  if (failed?.status === 'rejected') throw failed.reason;
+  return { directory };
 }

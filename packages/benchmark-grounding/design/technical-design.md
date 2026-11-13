@@ -11,7 +11,7 @@
 | 能力 | 输入 | 输出 |
 | --- | --- | --- |
 | Viewer | 题目集合 | 只读题库页面，默认通过 CLI 启动并打开浏览器 |
-| Runner | 题目集合、模型调用配置、模型 metadata、执行参数 | 独立题目与 metadata 快照、逐题结果、运行信息和汇总 |
+| Runner | 题目集合、模型调用配置、模型 metadata、执行参数 | 独立题目与 metadata 快照、逐题结果 |
 | Reporter | 某次运行目录中的快照和结果 | 可通过 `file:///` 独立打开的单文件 HTML |
 
 已确认的边界：
@@ -25,7 +25,7 @@
 - CLI 负责环境变量、参数解析、终端交互、启动服务和打开浏览器。
 - CLI 的 `run` 完成测评后默认使用与独立 `report` 命令相同的逻辑生成并打开静态报告。两者都可用 `--no-open` 关闭自动打开；`run --no-report` 同时跳过生成和打开。此编排留在 CLI，`runBenchmark` 仅负责测评与结果落盘。
 - `createViewer` 接收题目集合及可选的 `imageBaseUrl`，不提供标题参数。默认内嵌图片；CLI 传入本地图片路由前缀，按需读取原图。每次页面刷新均重新加载题库并调用该方法，不复用上次请求的题目数据或 HTML。
-- `runBenchmark` 在执行前接收自定义 metadata，与 presets 合并后保存独立快照；reporter 只读取该快照，不再接收 metadata 或读取当前 presets。
+- `runBenchmark` 在执行前接收自定义 metadata，与 presets 合并后，按本次参测模型注入公开调用身份并保存独立快照；reporter 只读取该快照，不再接收 metadata 或读取当前 presets。
 - CLI 的模型调用配置和自定义 metadata 都只允许来自环境变量，包括 `.env` 和命令行环境变量赋值，不接受 JSON、TS、JS 等配置文件。
 - 公司测试用例及测评数据不得上传 Hugging Face，也不默认使用其他公开托管服务。
 - 不增加截图压缩、图片分片、公开托管或题库缓存系统。HTTP Viewer 通过本地服务按需读取原图；静态报告内嵌代码、样式、题目截图及测评数据，Logo 和 favicon 可通过网络加载。
@@ -78,11 +78,15 @@ testcases/<testcase-name>/
 
 必要的其他 SDK 调用选项后续根据实际支持情况补充，不在本包另写供应商协议适配层。
 
-一次运行中的有效 `displayName` 必须唯一。输出目录名经过文件名转换后也必须唯一，否则执行前报错。模型身份和 metadata 匹配始终使用结果中记录的 `displayName`，不根据目录名或模型名前缀推断。
+一次运行中的有效 `displayName` 必须唯一。输出目录名经过文件名转换后也必须唯一，否则执行前报错。模型身份和 metadata 匹配始终使用有效 `displayName`，不根据目录名或模型名前缀推断；结果中的身份必须与 metadata 快照一致。
+
+Runner 和 Reporter 使用同一安全文件名规则推导模型结果目录：`displayName.replace(/^\.+$|[^a-zA-Z0-9._-]/g, '_')`，并按忽略大小写的目录名检查唯一性。目录名不作为 metadata 字段保存。
 
 ### 2.3 模型 metadata
 
 `ReportMeta` 只描述公开的报告参考信息，与 API Key、Base URL 等连接配置分离。调用方通过 `runBenchmark({ meta })` 传入；`meta` 及其 `models`、`families` 均可省略，未提供的条目使用 presets。
+
+这是调用输入的结构，调用方无需在 metadata 中填写模型调用身份。runner 从实际 `models` 配置中提取身份并注入 `meta.json.models`，只保存本次参测模型；持久化结构见第 4.2 节。
 
 ```ts
 const meta = {
@@ -122,7 +126,7 @@ const meta = {
 - 性能提供 TTFT 与输出吞吐量，或完整响应延迟；根据实际提供的指标计算估算耗时，不另设性能类型或分位标记。
 - 预设位于 `src/presets`，保存已知模型、家族及公开 Logo URL，不包含连接配置或内部凭据。Logo 直接使用 `metadata.json` 中的 HTTPS 地址，图标集 CDN 锁定版本。
 - presets 视为合法数据，直接导出 `metadata.json`，运行时仅校验外部自定义 metadata；`runBenchmark` 在首次 `await` 前独立捕获覆盖合并结果。`models` 按 `displayName`、`families` 按家族名称整条覆盖，不引入递归合并规则，自定义同名条目中未填写的字段不会从原条目补回。
-- 合并后的完整 metadata 保存为独立快照。HTTP(S) Logo 地址和已有图片 data URI 原样保存；自定义本地 Logo 在运行开始时读取并转为 data URI，不保留调用方对象、本地文件路径或对当前 presets 的依赖。
+- 本次参测模型的合并 metadata 与公开调用身份保存为独立快照。HTTP(S) Logo 地址和已有图片 data URI 原样保存；自定义本地 Logo 在运行开始时读取并转为 data URI，不保留调用方对象、本地文件路径或对当前 presets 的依赖。
 - 合并后仍缺少 metadata 的模型展示 Score、实测耗时和用量；依赖参考数据的估算显示 `—`。
 
 ## 3. 核心方法
@@ -221,7 +225,7 @@ async function runBenchmark({
   retries,
   timeoutMs,
   onProgress,
-}): Promise<{ directory: string; summary: RunSummary }>;
+}): Promise<{ directory: string }>;
 ```
 
 `testcases` 是本次实际要执行的加载结果，可以由 `loadTestcases` 按名称选择，也可以是调用方进一步筛选后的子集。`models` 是调用配置数组。`meta` 是可选的 `ReportMeta`，省略时使用 presets。`outputDirectory` 显式指定输出根目录。
@@ -236,17 +240,17 @@ async function runBenchmark({
 
 主要流程按顺序实现：
 
-1. 同步接管题目字节及交叉比对值，完成上述校验，并检查输入、题目及模型身份唯一性；将自定义 metadata 与 presets 覆盖合并，将本地 Logo 转为 data URI、保留 HTTP(S) 地址及已有 data URI，确定本次运行的全部任务。
+1. 同步接管题目字节及交叉比对值，完成上述校验，并检查输入、题目及模型身份唯一性；将自定义 metadata 与 presets 覆盖合并，只保留本次参测模型的条目，再从实际调用配置注入公开身份。将本地 Logo 转为 data URI、保留 HTTP(S) 地址及已有 data URI。
 2. 创建新的 run 目录；已有同名目录时拒绝覆盖。
 3. 在开始模型调用前，保存本批题目的独立快照及合并后的 metadata 快照，全部写入完成后才开始执行。
-4. 保存运行信息和模型必要身份，建立模型与题目的执行队列。
+4. 创建各模型的结果目录，建立模型与题目的执行队列。每道结果的 `input` 记录与 `meta.json` 一致的模型身份。
 5. 调度 `runTestcase`，按规则重试，记录每次尝试。
 6. 每个模型／题目组合完成后立即保存结果并通知 `onProgress`。
-7. 保存最终汇总、完成数量、结束时间及运行状态。
+7. 全部模型／题目组合的结果写入完成后，返回运行目录。
 
-进度回调传递 `completed`、`total`、模型展示名 `model`、`testcase`、`status`、`correct`、`profiling`、`attemptCount`，以及最终执行错误的可选 `error`。`profiling` 为全部尝试的聚合耗时和用量，`attemptCount` 包括首轮与重试；缺失用量保持缺失，不以零补齐。`error` 仅包含结果中已脱敏的错误信息。整个事件独立复制，调用方修改回调参数不影响落盘结果或最终汇总。它不暴露 runner 私有的题目对象或文件 Buffer，不承载模型凭据，也不要求核心层打印或重绘终端。
+进度回调传递 `completed`、`total`、模型展示名 `model`、`testcase`、`status`、`correct`、`profiling`、`attemptCount`，以及最终执行错误的可选 `error`。`profiling` 为全部尝试的聚合耗时和用量，`attemptCount` 包括首轮与重试；缺失用量保持缺失，不以零补齐。`error` 仅包含结果中已脱敏的错误信息。整个事件独立复制，调用方修改回调参数不影响落盘结果或后续执行。它不暴露 runner 私有的题目对象或文件 Buffer，不承载模型凭据，也不要求核心层打印或重绘终端。
 
-该 SDK 方法在汇总及运行状态落盘后返回，不自行生成 HTML。CLI 的 run 命令收到返回值后，默认接续报告生成流程并打开报告。
+该 SDK 方法在全部结果落盘后，仅返回 `{ directory }`，不计算跨题汇总或生成 HTML。runner 只写入 `meta.json`、独立的 `testcases` 快照和 `results`。CLI 的 run 命令收到返回值后，默认接续报告生成流程并打开报告。
 
 ### 3.4 `createViewer`
 
@@ -279,15 +283,15 @@ async function createViewer({
 async function createReport({ runDirectory }): Promise<string>;
 ```
 
-读取本次运行的 manifest、结果、独立题目快照及 `meta.json`，完成交叉校验、统计计算和 HTML 装配。
+扫描本次运行目录中的 `meta.json`、独立 `testcases` 快照和 `results`，完成交叉校验，依据这些数据计算报告统计并装配 HTML。`evaluationId` 取运行目录的名称；参测模型集合与具体调用版本来自 `meta.json.models`，结果目录按各条目的 `displayName` 推导。
 
 - 不读取当前包内题库来替换快照。
 - 不接收 metadata 参数，不读取当前 presets，也不读取 CLI 的模型调用配置或 metadata 环境变量。metadata 快照缺失或格式不合法时明确报错，不以当前预设补齐。
-- 校验 manifest 中模型身份、模型目录、题目和任务的唯一性，以及任务集合是否覆盖全部计划的模型／题目组合。
-- 核对题目快照、manifest 和结果 `consistency.testcaseSha256` 的一致性；核对结果所属模型、文件名及任务身份，拒绝重复或额外结果。
-- 核对结果 `input` 的模型身份、平台、实际语言指令和 GT 与快照一致；最终输出须等于最后一次尝试的输出，并按快照 GT 重新核对每次尝试的 `correct`。任一失配明确报错。
+- 校验 metadata 的模型 map 键与条目的 `displayName` 一致，并校验按安全文件名规则推导的结果目录唯一性。每个结果子目录必须对应一个参测模型；组内结果的 `input.model`、`input.family` 和 `input.displayName` 必须与对应 metadata 的 `name`、`family` 和 `displayName` 一致，拒绝未记录模型的额外结果目录。
+- 核对结果 `consistency.testcaseSha256` 与独立题目快照的一致性；核对结果文件名、`input.testcase` 和所属模型分组，拒绝重复结果或没有对应题目快照的结果。
+- 核对结果 `input` 的平台、实际语言指令和 GT 与快照一致；最终输出须等于最后一次尝试的输出，并按快照 GT 重新核对每次尝试的 `correct`。任一失配明确报错。
 - 题目快照必须是独立的普通目录和三个原始文件，拒绝软链接；metadata 快照须包含完整的 `models`、`families`，Logo 可为 HTTP(S) URL 或图片 data URI，不接受本地文件路径。
-- 运行未完成时，可以展示已保存的结果，但必须标明不完整及缺失数量。
+- 每个参测模型的总题数等于题目快照数量，缺失数量由 metadata 中模型集合 × 题目矩阵与已有结果之差计算。有缺失时展示已保存结果，并显著标明缺失数量。结果目录为空或完全缺失的模型仍保留在报告中，其全部题目显示 `No result`。
 - 报告嵌入本次运行保存的 metadata，使用快照中的 Logo 地址或 data URI，不下载 Logo。后续修改 presets 或调用方原始数据，不改变快照中的参考数据和 URL；远端图片内容不承诺冻结。
 - 返回 HTML 字符串，由调用层决定保存位置及是否打开。
 
@@ -297,8 +301,6 @@ async function createReport({ runDirectory }): Promise<string>;
 
 ```text
 <outputDirectory>/<run-id>/
-├── run.json
-├── summary.json
 ├── meta.json
 ├── report.html（CLI run 默认生成）
 ├── testcases/
@@ -318,13 +320,16 @@ async function createReport({ runDirectory }): Promise<string>;
 - 不使用软链接或硬链接，不引用包内图片路径作为快照资源。
 - runner 的执行对象由这些字节解析，实际指令、截图和 GT 均来自该对象及对应原图；reporter 只使用本次运行落盘的快照。内存中的运行数据与快照内容必须一致，不进行二次加载后替换。
 - 原题库修改或删除后，快照及其执行、报告能力不受影响。
-- 题目快照本身若被修改，后续一致性检查应报错，而不是静默替换或更新结果哈希。
+- 题目快照的文件内容与其 SHA 不一致，或结果引用的题目快照缺失时，后续一致性检查应报错，而不是静默替换或更新结果哈希。
 
 ### 4.2 Metadata 快照
 
-`meta.json` 保存 `runBenchmark` 将外部 `meta` 与 presets 覆盖合并后的完整 `ReportMeta`。不只保存覆盖项，也不在生成报告时重新执行合并。
+`meta.json` 保存本次参测模型的实际调用身份及外部 `meta` 与 presets 覆盖合并后的参考 metadata。调用输入仍使用 `ReportMeta`；runner 注入身份后形成完整快照，生成报告时不重新执行合并。
 
-- `models` 的键是有效 `displayName`，`families` 的键是 `displayFamily`；报告只展示本次参与运行的模型。
+- `models` 仅包含本次参测模型，键为有效 `displayName`，值中也显式保存相同的 `displayName`。`families` 的键是 `displayFamily`。
+- 每个模型条目保存 `name`、`family` 和 `displayName`，分别对应实际调用的完整模型 ID、SDK 模型家族和有效展示名；可选 `protocol`、`reasoningEnabled` 按实际配置保存。`displayFamily`、`reference` 等参考字段取合并后的 metadata，不保存 `directory`。
+- 身份字段由 runner 从实际模型调用配置白名单提取并最后写入，不能被参考 metadata 覆盖。调用方无需在 `ReportMeta` 中手填身份字段。
+- Reporter 以这些模型条目为参测模型集合，按 `displayName` 推导的安全目录名读取结果；空目录或缺失目录不会使模型从报告消失。
 - 合并结果转换为独立的 JSON 数据后保存，不与调用方继续共享可修改的对象。
 - 预设直接导出 `metadata.json` 中的公开 Logo URL，图标集 CDN 使用固定版本；自定义 Logo 的相对文件路径按调用时的工作目录解析。
 - 在运行开始时读取自定义本地 Logo 原始字节，并将其转为 data URI 写入 `families[*].logo`。HTTP(S) 地址及已有图片 data URI 原样保存，不下载远端图片；快照不保留本地 Logo 文件路径。
@@ -332,17 +337,7 @@ async function createReport({ runDirectory }): Promise<string>;
 - 原始 metadata、本地 Logo 文件或 presets 后续修改、删除后，仅保留运行目录仍可重新生成报告；估算价格、性能、颜色及 Logo URL 不变。URL 指向的远端图片可能变化或不可用，不视为冻结的图片快照。
 - 快照整体缺失或不合法时 reporter 报错；快照内某个模型没有参考价格或性能数据时，对应估算正常显示 `—`。
 
-### 4.3 运行信息
-
-`run.json` 包含独立的产物 `schemaVersion`、run-id、起止时间、状态、计划数量、完成数量、本包和 Midscene SDK 版本、调度参数以及模型身份清单。
-
-模型身份采用白名单记录 `name`、`family`、有效 `displayName`、协议和必要的非敏感调用选项。API Key 不落盘；Base URL 默认也不进入公共产物。
-
-状态区分运行中、已完成和已中断。普通预测失败不等于运行失败；文件写入失败等基础设施错误须明确抛出，并保留已产生的结果。
-
-产物版本与 testcase 格式版本分别演进，不能因为版本号恰好相同就认为两者是同一套格式。
-
-### 4.4 单题结果
+### 4.3 单题结果
 
 ```ts
 {
@@ -396,7 +391,7 @@ SDK 与 CLI 使用相同的当前默认参数：
 
 | 参数 | 默认值 | 含义 |
 | --- | --- | --- |
-| `concurrency` | `32` | 全局同时执行的 `runTestcase` 尝试数量 |
+| `concurrency` | `64` | 全局同时执行的 `runTestcase` 尝试数量 |
 | `retries` | `2` | 首次执行之外最多重试两次，最多执行三次 |
 | `timeoutMs` | `60000` | 单次尝试的整体超时，与 `durationMs` 同口径，等待排队不计入 |
 
@@ -412,7 +407,7 @@ SDK 与 CLI 使用相同的当前默认参数：
 - SDK 请求级重试显式关闭，由 runner 统一控制，避免两层重试倍增。
 - SDK 在一次定位内的实际模型调用数量如实记录，不能假设一次尝试必然只有一次 HTTP 调用。
 - Token 和耗时汇总覆盖全部尝试，不能只保留最终成功尝试的成本。
-- 不可获得的用量不伪造为零；缺失值及有效样本数量应在汇总中保留。
+- 不可获得的用量不伪造为零；缺失值及有效样本数量应在报告统计中保留。
 
 ### 5.2 超时行为（已确认）
 
@@ -489,6 +484,8 @@ HTTP Viewer 复用报告的内联脚本与样式模板，截图通过本地 `/im
 
 报告页顶部标题为 `Midscene Grounding Benchmark - Evaluation <run-id>`，Overview 不再单独重复显示测评编号；浏览器页签同步显示该标题。独立 Viewer 的顶部标题保持 `Midscene Grounding Benchmark`。
 
+Reporter 的 UI 数据包含 `evaluationId`、由 metadata 快照确定的 `models`、题目快照、结果、metadata 和报告统计，不携带运行配置或执行状态对象。独立 Viewer 只需要题目数据。
+
 逐题交互约定：
 
 - 提供模型切换器及各模型通过、失败、错误和缺失状态。
@@ -519,13 +516,13 @@ HTTP Viewer 复用报告的内联脚本与样式模板，截图通过本地 `/im
 
 ## 7. 统计口径
 
-基础统计保留一个共用的纯函数，在同一处完成计算，不在 runner、reporter 和各组件之间分别复制公式。runner 生成执行汇总；reporter 使用运行目录中的 metadata 快照补充估算指标，不使用生成报告时的最新预设。
+报告统计统一由 `core/summary.ts` 中的 `calculateSummary` 计算，返回类型为 `ReportSummary`，不在 reporter 和各组件之间复制公式。reporter 从运行目录中的题目、metadata 快照及结果计算统计，不使用生成报告时的最新预设；runner 不计算或保存跨题统计。
 
 | 指标 | 当前口径 |
 | --- | --- |
 | Score | 正确结果数／已有最终结果数 × 100，范围 0–100，不显示百分号 |
 | 错误 | 计入最终结果数，视为不正确 |
-| 缺失 | 不计入 Score 分母，独立显示数量；不完整运行必须显著标记 |
+| 缺失 | metadata 中每个参测模型以题目快照数量为总题数；缺失不计入 Score 分母，独立显示数量；有缺失时必须显著标记 |
 | Token、费用和实测耗时 | 有效非负样本的算术平均；零计入，缺失排除 |
 | Token 用量 | 汇总全部尝试中可获得的 SDK 用量，不重复加算推理 Token |
 | 估算费用 | 单题输入／输出分别计价，计入全部尝试，再对有效样本求平均 |
@@ -559,7 +556,7 @@ P50 使用模型等权的原始指标中位数，在显示取整和雷达对数�
 
 四个子命令分别定义在 `cli/validate.ts`、`cli/viewer.ts`、`cli/run.ts` 和 `cli/report.ts`；`cli/index.ts` 负责统一注册、帮助、版本和进程退出。每次调用创建新的命令实例，命令处理只完成参数读取、核心方法调用、文件输出和必要的服务管理。
 
-所有子命令使用与 Vitest 测试过程类似的终端布局：运行标识、品牌及版本、当前工作目录、彩色 `✓ PASS`／`× FAIL`／`× ERROR` 状态和结束摘要。共用 `cli/output.ts` 的标题、状态行、耗时和多行输出格式；帮助信息也使用相同标题，`--version` 保持单行版本号。颜色按终端能力启用并尊重 `NO_COLOR`；仅交互终端显示实时进度条，重定向或 CI 输出保留完整静态日志。
+所有子命令使用与 Vitest 测试过程类似的终端布局：运行标识、品牌及版本、当前工作目录、彩色 `✓ PASS`／`× FAIL`／`× ERROR` 状态和完成或错误提示。共用 `cli/output.ts` 的标题、状态行、耗时和多行输出格式；帮助信息也使用相同标题，`--version` 保持单行版本号。颜色按终端能力启用并尊重 `NO_COLOR`；仅交互终端显示实时进度条，重定向或 CI 输出保留完整静态日志。
 
 run 默认在完成测评后接续报告生成；report 命令保留，用于独立生成、重新生成或重试报告。两个入口共用一处报告生成、文件输出及浏览器打开逻辑，默认在写入成功后打开报告，不启动另一个 CLI 进程。
 
@@ -570,7 +567,7 @@ CLI 提供以下命令：
 ```sh
 midscene-benchmark-grounding validate
 midscene-benchmark-grounding viewer
-midscene-benchmark-grounding run --output ./output
+midscene-benchmark-grounding run
 midscene-benchmark-grounding report ./output/<run-id> --output report.html
 ```
 
@@ -668,21 +665,23 @@ midscene-benchmark-grounding viewer \
 ### 8.5 `run`：执行测评
 
 ```sh
+midscene-benchmark-grounding run
+
 midscene-benchmark-grounding run \
   --output ./output \
   --testcases ./testcases \
   --names MOBILE-v1-001 WEB-v1-001 \
-  --concurrency 32 \
+  --concurrency 64 \
   --retries 2 \
   --timeout-ms 60000
 ```
 
 | 参数 | 默认行为 | 含义 |
 | --- | --- | --- |
-| `--output <directory>` | 必填 | 输出根目录，runner 在其下创建独立的 `<run-id>` 目录 |
+| `--output <directory>` | `./output` | 输出根目录，相对于当前工作目录；runner 在其下创建独立的 `<run-id>` 目录 |
 | `--testcases <directory>` | 使用包内题库 | 与 viewer 相同的题库目录参数 |
 | `--names <name...>` | 全部题目 | 与 viewer 相同的精确名称过滤器 |
-| `--concurrency <number>` | `32` | 所有模型与题目共享的尝试并发上限 |
+| `--concurrency <number>` | `64` | 所有模型与题目共享的尝试并发上限 |
 | `--retries <number>` | `2` | 首次尝试之外的最大重试次数 |
 | `--timeout-ms <number>` | `60000` | 每次尝试的整体超时，单位毫秒 |
 | `--no-report` | 完成测评后自动生成并打开报告 | 指定后仅执行测评并保存运行产物 |
@@ -703,7 +702,7 @@ midscene-benchmark-grounding run \
 3. 调用 `runBenchmark({ testcases, models, meta, outputDirectory, concurrency, retries, timeoutMs, onProgress })`。
 4. runner 完成独立题目和 metadata 快照后，执行模型 × 题目的全部组合。
 5. CLI 根据进度回调逐项输出完成数量、模型名称、题目、状态、全部尝试的累计耗时、总／输入／输出 Token、尝试次数及请求次数。部分或缺失用量明确标注 `Usage partial`／`Usage missing`；零值显示 `0`，缺失值显示 `—`。执行错误显示已脱敏的原因，不打印密钥或完整连接配置。交互终端显示实时进度条，结果行输出期间暂停重绘。
-6. 等待 runner 将全部结果、最终汇总及完成状态落盘，输出运行目录、通过／答错／调用错误数量、测评阶段实际墙钟耗时及各模型的平均耗时、Token、预估费用和用量覆盖。模型统计直接使用 SDK 的 `RunSummary`，与报告口径一致；单题耗时不包括排队和重试等待，测评墙钟耗时包含快照、排队和结果写入，不包括前置题库加载或后续报告生成。
+6. 等待 runner 将全部结果落盘，输出完成提示、运行目录和测评阶段实际墙钟耗时，不输出跨题或逐模型汇总。单题耗时不包括排队和重试等待，测评墙钟耗时包含快照、排队和结果写入，不包括前置题库加载或后续报告生成。
 7. 未指定 `--no-report` 时，使用返回的实际运行目录执行与独立 report 命令相同的报告生成及写盘流程，生成 `<run-directory>/report.html`。
 8. 报告写入成功后输出其绝对路径，默认通过浏览器打开；指定 `--no-open` 时只输出路径。指定 `--no-report` 时同时跳过报告生成和打开，在测评完成后直接退出。
 
@@ -720,7 +719,7 @@ midscene-benchmark-grounding run --output ./output --no-report
 midscene-benchmark-grounding report ./output/<run-id>
 ```
 
-模型答错或重试耗尽后的模型 `ERROR` 不阻止自动报告。测评阶段抛错或用户中断时保留已有产物，不进入自动报告阶段；可以稍后独立生成注明不完整的报告。报告生成或写入失败时 CLI 退出 `1`，但测评完成状态、快照和结果保持不变，用户可直接重试 report，无需重新调用模型。
+模型答错或重试耗尽后的模型 `ERROR` 不阻止自动报告。测评阶段抛错或用户中断时保留已有产物，不进入自动报告阶段；可以稍后独立生成报告，缺失项按 metadata 中的参测模型与题目快照统计。报告生成或写入失败时 CLI 退出 `1`，但快照和结果保持不变，用户可直接重试 report，无需重新调用模型。
 
 ### 8.6 `report`：生成单文件报告
 
@@ -752,7 +751,7 @@ midscene-benchmark-grounding report ./output/<run-id> \
 - `validate`、`viewer` 和 `run` 的 `--names` 复用 `loadTestcases` 的规则：完整名称精确匹配、输出字典序，缺失、重复或空选择报错。
 - 所有相对路径均按当前工作目录解析；各子命令负责参数转换，仅 `cli/run.ts` 加载模型环境变量，进程生命周期统一由 `cli/index.ts` 管理。
 - 正常进度和产物路径写入 stdout；错误写入 stderr，不输出密钥、认证头或完整配置对象。
-- 浏览器打开失败时告警并告知可手动访问的地址或文件路径，已经启动的服务和已经生成的报告保留；打开失败不使已成功生成报告的命令退出失败，也不改变测评状态。
+- 浏览器打开失败时告警并告知可手动访问的地址或文件路径，已经启动的服务和已经生成的报告保留；打开失败不使已成功生成报告的命令退出失败，也不改变已有测评结果。
 
 | 退出码 | 含义 |
 | --- | --- |
@@ -762,7 +761,7 @@ midscene-benchmark-grounding report ./output/<run-id> \
 
 run 的退出码描述命令要求的阶段是否完成，不表示模型成绩是否达到某个门槛。有效答错、错误拒识或重试耗尽后的模型 `ERROR` 都作为最终结果保存，其他任务继续执行。全部测评任务完成，且默认报告成功生成或已指定 `--no-report` 时，退出 `0`。仅报告生成或写入阶段失败时退出 `1`，不将已完成的测评改为中断或失败；仅浏览器打开失败不影响成功退出。
 
-中断时保留已落盘的快照和结果，不将尚未完成的任务伪造为失败结果。突然终止可能使 `run.json` 保留运行中状态；reporter 结合运行状态与已有结果标明不完整，不假定这些任务已全部完成。
+中断时保留已落盘的快照、模型结果目录和结果，不将尚未完成的任务伪造为失败结果。reporter 根据 metadata 中参测模型与题目快照组成的矩阵标注缺失；空或完全缺失的模型结果目录同样计入。
 
 ## 9. 源码组织与构建
 
@@ -812,7 +811,7 @@ tests/
 - `core/testcase.ts` 集中处理题目读取、文件字节和一致性。
 - `core/runner.ts` 按执行流程组织单题执行、批量调度及落盘，不为每个步骤建立一层封装。
 - `core/reporter.ts` 提供 viewer/report HTML 装配，共用 UI 模板。
-- `core/summary.ts` 只保留真正复用的统计计算。
+- `core/summary.ts` 统一实现报告的统计计算。
 - 通用排序、求和、计数和深冻结使用 `es-toolkit`；零值、缺失值、用量完整性及快照校验等测评规则由本包处理。文件访问沿用 Node 原生 API，题目 JSON 和图片按原始 Buffer 读写。
 - `core/schemas.ts` 维护需要运行时校验的数据契约，类型尽量从 schema 推导；公开模型快照字段通过白名单复用调用配置 schema，继续排除连接凭据。
 - `core/metadata.ts` 负责覆盖合并与自定义 Logo 文件读取；`presets` 只保存可信预设数据。
@@ -919,7 +918,7 @@ Node 产物采用 ESM，使用 `.mjs` 扩展名和明确的 `import` 入口，�
 | `createViewer` | 装配只读题库 HTML |
 | `createReport` | 从运行目录装配独立单文件测评报告 |
 
-公共类型包括 `Testcase`、`LoadedTestcase`、`ModelCallConfig`、`ReportMeta`、`AttemptResult`、`RunSummary`，从对应 schema、SDK 类型和实现返回值推导，不另外维护重复结构。
+公共类型包括 `Testcase`、`LoadedTestcase`、`ModelCallConfig`、`ReportMeta`、`AttemptResult`、`ReportSummary`，从对应 schema、SDK 类型和实现返回值推导，不另外维护重复结构；`ReportSummary` 仅用于报告统计。
 
 子入口 `@midscene/benchmark-grounding/presets` 导出 `presetMeta`，结构为 `ReportMeta`，包含已知模型的参考价格、性能和家族样式，预设 Logo 为公开 HTTPS URL，图标集 CDN 使用固定版本。单独导入预设不加载 runner、CLI 或启动模型调用。
 
@@ -996,13 +995,14 @@ SDK、CLI、Viewer 和 Reporter 均已实现。验证采用单元测试、独立
 - 通过、答错、拒识、解析失败、超时和重试次数均有确定行为。
 - runner 调度中的并发不超限；超时任务及时释放名额，不等待后台请求。普通答错不会重试，重试用量不会被最终成功结果覆盖掉。
 - `durationMs` 与 `timeoutMs` 同口径，达到或等于阈值即失败；迟到响应与后台清理不阻塞返回、不改写结果。
-- 一个模型失败不阻止其他任务，执行进度和最终完整性能够核对。
+- 一个模型失败不阻止其他任务；执行进度通过回调通知，落盘结果与 metadata 中参测模型 × 题目矩阵可以交叉核对。
 - SDK 参数和环境变量互不串扰，两个并发模型不通过全局状态切换配置。
 - runner 产物和报告中不包含 API Key 或完整连接配置。
 - metadata 通过 displayName 精确匹配，模型和家族同名条目整体覆盖；缺少参考数据不使模型从报告消失。
-- 在首次模型调用前保存完整 metadata 快照；本地 Logo 已转为 data URI，HTTP(S) 地址和已有 data URI 保持原样。之后改写调用方对象、修改 presets 或删除本地 Logo 源文件，仍可仅使用运行目录重新生成报告；远端图片内容不承诺冻结。
+- 在首次模型调用前保存完整 metadata 快照；模型条目只包含本次参测模型，实际调用身份优先于参考 metadata，明确记录 `name`、`family`、`displayName` 及可选协议、推理配置。map 键与条目的 `displayName` 相同，不保存 `directory`、API Key 或 Base URL；Runner 和 Reporter 按同一规则推导并校验结果目录。本地 Logo 已转为 data URI，HTTP(S) 地址和已有 data URI 保持原样。之后改写调用方对象、修改 presets 或删除本地 Logo 源文件，仍可仅使用运行目录重新生成报告；远端图片内容不承诺冻结。
 - CLI 只从环境变量向 `runBenchmark` 传入模型调用配置和 metadata；`createReport` 只使用运行目录中的快照，不需要模型配置环境变量，快照缺失时明确报错。
-- run 默认在测评和最终状态落盘后生成 `<run-directory>/report.html`，与独立 report 共用数据读取、校验、统计、装配、写文件及打开逻辑；文件写入成功后默认通过浏览器打开，无需启动 HTTP 服务。
+- runner 只写 `meta.json`、独立题目快照和逐题 `results`，只返回 `{ directory }`。报告扫描这些数据，以目录名为 `evaluationId`、以 metadata 中的模型条目确定参测模型；结果身份、文件名、题目 SHA、GT、最终输出和每次尝试的判定均相互一致。空或完全缺失的模型结果目录显示无结果，缺失数量由参测模型 × 题目矩阵计算。
+- run 默认在全部测评结果落盘后生成 `<run-directory>/report.html`，与独立 report 共用数据读取、校验、统计、装配、写文件及打开逻辑；文件写入成功后默认通过浏览器打开，无需启动 HTTP 服务。
 - `run --no-report` 不调用报告生成逻辑、不写 HTML、也不打开报告；随后独立 report 采用同一快照和默认路径生成相同内容的报告，并默认打开。
 - run 和 report 的 `--no-open` 只阻止浏览器打开，不改变报告生成及其内容。报告生成或写入失败时不得打开；仅浏览器打开失败时保留文件、输出路径并告警，命令仍按成功退出。
 - 模型答错或最终 `ERROR` 不阻止报告；仅报告生成或写入失败时 CLI 退出 `1`，保留已完成测评，可独立重试报告而不再调用模型。测评阶段中断或抛错时不自动生成报告。
@@ -1018,8 +1018,8 @@ SDK、CLI、Viewer 和 Reporter 均已实现。验证采用单元测试、独立
 
 | 事项 | 当前约定 |
 | --- | --- |
-| 调度默认值 | 全局并发 `32`、单次尝试整体超时 `60000ms`；首次执行之外最多重试 `2` 次 |
-| 产物布局与版本 | `run.json`、`summary.json`、`meta.json`、题目快照和 results，运行／结果格式从版本 1 开始；CLI run 默认额外生成 `report.html` |
+| 调度默认值 | 全局并发 `64`、单次尝试整体超时 `60000ms`；首次执行之外最多重试 `2` 次 |
+| 产物布局 | `meta.json`、独立题目快照和 `results`；CLI run 默认额外生成 `report.html` |
 | Viewer 默认服务参数 | 监听 `127.0.0.1:4319` 并自动打开浏览器，可用参数调整；HTTP 原图通过 `/images` 按需读取，SHA 不匹配返回 `409` |
 | 耗时估算 | min(参考估算平均耗时, max(实测平均耗时 − 100ms, 0))；零值计入，零分母不显示无穷大 |
 
