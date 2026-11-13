@@ -197,28 +197,21 @@ it('rejects a model attempting to overwrite measured target progress', async () 
 });
 
 it.each([
-  { top: 565, max: 1115, proposed: 'up', expected: null },
-  { top: 1115, max: 1115, proposed: 'right', expected: 'up' },
+  { top: 565, max: 1115, expected: null },
+  { top: 1115, max: 1115, expected: 'up' },
+  { top: 0, max: 0, left: 2324, maxLeft: 2324, expected: 'left' },
+  { top: 10, max: 20, left: 10, maxLeft: 20, expected: null },
 ])(
-  'rejects direction advice contradicted by native ranges: %j',
-  async ({ top, max, proposed, expected }) => {
+  'uses authoritative native ranges without an auxiliary model: %j',
+  async ({ top, max, expected, ...horizontal }) => {
     const state = {
       targetId: 'list',
-      scrollLeft: 0,
+      scrollLeft: ('left' in horizontal ? horizontal.left : 0) ?? 0,
       scrollTop: top,
-      maxScrollLeft: 0,
+      maxScrollLeft: ('maxLeft' in horizontal ? horizontal.maxLeft : 0) ?? 0,
       maxScrollTop: max,
       rect: { left: 0, top: 0, width: 100, height: 100 },
     };
-    rs.mocked(callGenerativeAI)
-      .mockResolvedValueOnce({
-        content: JSON.stringify({ ...good, nextSearchDirection: proposed }),
-        isStreamed: false,
-      })
-      .mockResolvedValueOnce({
-        content: JSON.stringify({ ...good, nextSearchDirection: expected }),
-        isStreamed: false,
-      });
     const result = await reviewScroll({
       task: {
         ...task,
@@ -226,12 +219,40 @@ it.each([
       },
       current: context,
       modelRuntime: runtime,
-      userPrompt: 'Find the code, load more if needed',
     });
     expect(result.content.nextSearchDirection).toBe(expected);
-    expect(callGenerativeAI).toHaveBeenCalledTimes(2);
-    expect(
-      JSON.stringify(rs.mocked(callGenerativeAI).mock.calls[0][0]),
-    ).toContain('Find the code, load more if needed');
+    expect(result.content.observation).toContain('Native offsets');
+    expect(result.usage).toBeUndefined();
+    expect(callGenerativeAI).not.toHaveBeenCalled();
   },
 );
+
+it('passes task context to visual fallback when native ranges are unavailable', async () => {
+  rs.mocked(callGenerativeAI).mockResolvedValueOnce({
+    content: JSON.stringify(good),
+    isStreamed: false,
+  });
+  await reviewScroll({
+    task,
+    current: context,
+    modelRuntime: runtime,
+    userPrompt: 'Find the code, load more if needed',
+  });
+  expect(
+    JSON.stringify(rs.mocked(callGenerativeAI).mock.calls[0][0]),
+  ).toContain('Find the code, load more if needed');
+});
+
+it('does not hide cancellation when native ranges are available', async () => {
+  const controller = new AbortController();
+  controller.abort(new Error('cancel native review'));
+  await expect(
+    reviewScroll({
+      task: { ...task, scrollProgress: { status: 'unchanged' } },
+      current: context,
+      modelRuntime: runtime,
+      abortSignal: controller.signal,
+    }),
+  ).rejects.toThrow('cancel native review');
+  expect(callGenerativeAI).not.toHaveBeenCalled();
+});

@@ -7,7 +7,10 @@ import type {
 import { z } from 'zod';
 import { prepareModelImage } from '../../model-adapter/image-preprocess';
 import type { ModelRuntime } from '../../models';
-import { callAIWithObjectResponse } from '../../service-caller';
+import {
+  type AIObjectResponse,
+  callAIWithObjectResponse,
+} from '../../service-caller';
 
 const scrollReviewSchema = z.object({
   progress: z.enum(['moved', 'unchanged', 'uncertain']),
@@ -154,10 +157,32 @@ export async function reviewScroll(options: {
   modelRuntime: ModelRuntime;
   abortSignal?: AbortSignal;
   userPrompt?: string;
-}) {
+}): Promise<AIObjectResponse<ScrollReview>> {
   const { task, current, modelRuntime, abortSignal, userPrompt } = options;
   if (!task.uiContext)
     throw new Error('Scroll review requires a before-action screenshot');
+  abortSignal?.throwIfAborted();
+  const direction = scrollDirection(task);
+  const measuredStall = task.scrollProgress?.status === 'unchanged';
+  const available =
+    measuredStall && confirmedTarget(task)
+      ? availableScrollDirections(task.scrollProgress?.after)
+      : undefined;
+  // Native ranges settle these facts. Ask the planner, rather than another model,
+  // to choose a task-appropriate action from them.
+  if (available) {
+    const state = task.scrollProgress!.after!;
+    const content: ScrollReview = {
+      progress: 'unchanged',
+      observation: `The target's own scroll offsets did not change. Native offsets are (${state.scrollLeft}, ${state.scrollTop}), with maximum offsets (${state.maxScrollLeft}, ${state.maxScrollTop}). Directions with remaining native range: ${available.join(', ') || 'none'}. ${available.includes(direction) ? 'The requested direction still has range; reassess the dispatch position or target instead of assuming a boundary.' : 'The requested direction has no remaining native range.'} Native range does not establish whether content has loaded or the task goal is present.`,
+      nextSearchDirection:
+        !available.includes(direction) && available.length === 1
+          ? (available[0] as ScrollReview['nextSearchDirection'])
+          : null,
+    };
+    return { content, contentString: JSON.stringify(content) };
+  }
+
   const images = await Promise.all(
     [task.uiContext, current].map((context) =>
       prepareModelImage({
@@ -168,8 +193,6 @@ export async function reviewScroll(options: {
       }),
     ),
   );
-  const direction = scrollDirection(task);
-  const measuredStall = task.scrollProgress?.status === 'unchanged';
   const result = await callAIWithObjectResponse(
     [
       {
@@ -239,19 +262,6 @@ export async function reviewScroll(options: {
           throw new Error(
             'A moved or uncertain scroll must have nextSearchDirection: null',
           );
-        const available =
-          measuredStall && confirmedTarget(task)
-            ? availableScrollDirections(task.scrollProgress?.after)
-            : undefined;
-        if (
-          available &&
-          review.nextSearchDirection &&
-          (available.includes(direction) ||
-            !available.includes(review.nextSearchDirection))
-        )
-          throw new Error(
-            'Direction advice contradicts the measured scroll range. Use null and reassess the dispatch position when the requested direction still has range.',
-          );
         if (review.nextSearchDirection === direction)
           throw new Error(
             `The stalled direction was ${direction}. Choose a different direction only if visible overflow supports it, otherwise use null.`,
@@ -264,5 +274,5 @@ export async function reviewScroll(options: {
 }
 
 export function scrollReviewFeedback(review: ScrollReview): string {
-  return `Independent visual inspection of the last scroll: ${review.observation}\n${review.nextSearchDirection ? `A candidate search direction is ${review.nextSearchDirection}. Verify it against the task and current UI before acting; the observation may be incomplete.` : 'Reassess the scroll target, dispatch position, and task-relevant controls. No alternative direction was established.'} No movement or absent direction guidance does not establish that the target is absent or the task is complete. Explicit user direction and distance instructions take priority. This review describes observations, not an executed action.`;
+  return `Review of the last scroll: ${review.observation}\n${review.nextSearchDirection ? `A candidate search direction is ${review.nextSearchDirection}. Verify it against the task and current UI before acting; the observation may be incomplete.` : 'Reassess the scroll target, dispatch position, and task-relevant controls. No alternative direction was established.'} For goal-driven searches, choose a distance appropriate to the remaining range instead of copying the stalled scroll distance. No movement or absent direction guidance does not establish that the target is absent or the task is complete. Explicit user direction and distance instructions take priority. This review describes observations, not an executed action.`;
 }
