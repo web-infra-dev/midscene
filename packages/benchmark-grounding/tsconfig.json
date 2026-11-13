@@ -1,0 +1,15 @@
+{
+  "extends": "../shared/tsconfig.base.json",
+  "compilerOptions": {
+    "allowJs": false,
+    "rootDir": ".",
+    "declarationDir": "dist/types",
+    "jsx": "react-jsx",
+    "paths": {
+      "@midscene/benchmark-grounding": ["./src/index.ts"]
+    },
+    "types": ["node", "react", "react-dom"]
+  },
+  "include": ["src", "cli", "tests", "*.config.ts"],
+  "references": [{ "path": "../core" }, { "path": "../shared" }]
+}
