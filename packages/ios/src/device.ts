@@ -107,6 +107,12 @@ export class IOSDevice implements AbstractInterface {
         const focusRestorePoint = target
           ? { x: target.center[0], y: target.center[1] }
           : undefined;
+        // Only an explicit typeOnly operation with a located target may use
+        // keyboard delivery when WDA cannot expose an active input.
+        const typingApp =
+          target && opts?.replace === false && !opts.focusOnly && value
+            ? await this.foregroundApp()
+            : undefined;
         if (target && opts?.replace !== false) {
           await this.clearInput(target);
         } else if (target) {
@@ -122,6 +128,7 @@ export class IOSDevice implements AbstractInterface {
           opts,
           focusRestorePoint,
           resolvedInputOptions,
+          typingApp,
         );
       },
       clearInput: (target) =>
@@ -274,7 +281,7 @@ export class IOSDevice implements AbstractInterface {
     const cleared = await this.wdaBackend.clearActiveElement();
     assert(
       cleared,
-      'Cannot verify that input was cleared; refusing to append text',
+      'Cannot verify that input was cleared; refusing to append text. No text was sent. For an empty or visually cleared field, use Input mode="typeOnly" with locate pointing to that field. Do not repeat replacement while focus is unavailable.',
     );
     debugDevice('Successfully cleared input with WebDriver Clear API');
   }
@@ -289,7 +296,15 @@ export class IOSDevice implements AbstractInterface {
       },
       getDefaultAutoDismissKeyboard: () => this.options?.autoDismissKeyboard,
     };
-    const defaultActions = [...createDefaultMobileActions(mobileActionContext)];
+    const defaultActions = createDefaultMobileActions(mobileActionContext).map(
+      (action) =>
+        action.name === 'Input'
+          ? {
+              ...action,
+              description: `${action.description}. On iOS, a visually empty field may use mode="typeOnly" with locate, requiring a visible keyboard and unchanged foreground App. For replacement, use the default mode or visually clear and verify the field is empty before typeOnly. Never append over text that should be replaced.`,
+            }
+          : action,
+    );
 
     const platformSpecificActions = Object.values(createPlatformActions(this));
 
@@ -660,6 +675,18 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     await this.swipePoint({ x: fromX, y: fromY }, { x: toX, y: toY }, duration);
   }
 
+  private async foregroundApp(): Promise<string> {
+    const response = await this.wdaBackend.executeRequest<{
+      value: { bundleId?: unknown };
+    }>('GET', '/wda/activeAppInfo');
+    const bundleId = response?.value?.bundleId;
+    assert(
+      typeof bundleId === 'string' && bundleId.length > 0,
+      'Invalid WDA foreground App response; no text was sent',
+    );
+    return bundleId;
+  }
+
   private async typeText(
     text: string,
     options?: IOSDeviceInputOpt & { skipDefaultWait?: boolean },
@@ -668,6 +695,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       options,
       this.options,
     ),
+    typingApp?: string,
   ): Promise<void> {
     this.invalidatePendingKeyboardFollowUp('new text input');
     if (!text) return;
@@ -680,7 +708,20 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     debugDevice(`Typing text: "${text}"`);
 
     try {
-      await this.wdaBackend.waitForInputFocus();
+      if (typingApp) {
+        // Explicit typeOnly with a located target does not require an
+        // accessibility focus owner: some custom inputs accept keys without one.
+        assert(
+          await this.wdaBackend.isKeyboardVisible(),
+          'Keyboard is not visible; no text was sent',
+        );
+        assert(
+          (await this.foregroundApp()) === typingApp,
+          'Foreground App changed during input; no text was sent',
+        );
+      } else {
+        await this.wdaBackend.waitForInputFocus();
+      }
 
       if (inputSequentially) {
         // Type one character at a time with a delay between keystrokes.
