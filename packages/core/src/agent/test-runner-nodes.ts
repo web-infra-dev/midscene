@@ -6,6 +6,7 @@ import { NodeExecutionError } from '../test-runner/errors';
 import type { LocateOption, ScrollParam } from '../yaml';
 import { buildDetailedLocateParam } from '../yaml/utils';
 import type { Agent } from './agent';
+import { executeObserve } from './observe-node';
 
 export interface AgentTestRunnerNodeResult<TData = unknown> {
   summary?: string;
@@ -148,6 +149,25 @@ export const userPromptInputSchema = z.union([
   nonBlankText('The natural-language prompt.'),
   structuredUserPromptInputSchema,
 ]);
+
+/** A single action and assertion over its recorded screenshot window. */
+export const observeInputSchema = z.strictObject({
+  act: userPromptInputSchema.describe(
+    'Action to perform inside the observation window.',
+  ),
+  assert: userPromptInputSchema.describe(
+    'Condition to verify against the recorded screenshot sequence.',
+  ),
+  settleMs: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(2_147_483_647)
+    .default(0)
+    .describe('Additional observation time after the action, in milliseconds.'),
+});
+
+export type ObserveNodeInput = z.input<typeof observeInputSchema>;
 
 export const aiActOptionsInputSchema = z.strictObject({
   effort: z
@@ -798,6 +818,16 @@ export const commonAgentTestRunnerNodeDefinitions: readonly AgentTestRunnerNodeD
         return [input.ms, { abortSignal: signal }];
       },
     }),
+    {
+      name: 'observe',
+      description:
+        'Observe one AI action and assert against its screenshot sequence, including transient states.',
+      stringInputKey: false,
+      inputSchema: observeInputSchema,
+      execute(agent, input, { signal }) {
+        return executeObserve(agent, observeInputSchema.parse(input), signal);
+      },
+    },
     aiActNode,
     aiTapNode,
     aiAssertNode,
