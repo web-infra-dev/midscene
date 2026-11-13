@@ -16,7 +16,7 @@
 
 已确认的边界：
 
-- 本包与旧 benchmark 工程在构建、发布和运行时相互独立，不建立跨工程代码引用、路径依赖或数据同步逻辑。现有 viewer 仅作为界面风格参照，采用的样式和资源已移入本包独立维护。
+- 本包与旧 benchmark 工程在构建、发布和运行时相互独立，不建立跨工程代码引用、路径依赖或数据同步逻辑。现有 viewer 仅作为界面风格参照，样式由本包独立维护，Logo 和 favicon 使用现成的公开图片 URL。
 - Viewer 与 Reporter 的页面风格必须与当前 `benchmark/grounding-new/viewer` 一致。允许用 CSS、Less 或必要的轻量组件／样式库重写，但实现方式不能改变视觉风格。
 - `runBenchmark` 以入口接管的原始文件字节为唯一数据来源。实际校验、快照、模型指令和图片、GT 及一致性记录均从这一份运行数据产生，接管后不再读取调用方可变对象或源题库。
 - `src` 仅提供可调用的方法，通过函数参数接收配置，不加载 `.env`，不读取或修改环境变量来切换模型。
@@ -28,7 +28,7 @@
 - `runBenchmark` 在执行前接收自定义 metadata，与 presets 合并后保存独立快照；reporter 只读取该快照，不再接收 metadata 或读取当前 presets。
 - CLI 的模型调用配置和自定义 metadata 都只允许来自环境变量，包括 `.env` 和命令行环境变量赋值，不接受 JSON、TS、JS 等配置文件。
 - 公司测试用例及测评数据不得上传 Hugging Face，也不默认使用其他公开托管服务。
-- 不增加截图压缩、图片分片、公开托管或题库缓存系统。HTTP Viewer 通过本地服务按需读取原图；静态报告始终内嵌全部资源。
+- 不增加截图压缩、图片分片、公开托管或题库缓存系统。HTTP Viewer 通过本地服务按需读取原图；静态报告内嵌代码、样式、题目截图及测评数据，Logo 和 favicon 可通过网络加载。
 - 使用 TypeScript、React 和成熟 SDK；主要流程按顺序写在所属文件中，不建设额外的 service、repository、provider 或插件框架。
 - 本阶段不设计跨 benchmark 的通用框架；后续系列包出现明确共性后再决定是否提取。
 
@@ -99,8 +99,6 @@ const meta = {
           outputPerToken: 0.000005,
         },
         performance: {
-          basis: 'best-per-metric',
-          percentile: 'p50',
           timeToFirstTokenMs: 1000,
           outputTokensPerSecond: 100,
         },
@@ -121,10 +119,10 @@ const meta = {
 - `models` 的键就是 `displayName`，不维护额外的别名映射。
 - `displayFamily` 精确对应 `families` 的键；它与调用配置中的 SDK `family` 是两个概念。
 - 价格分别记录输入、输出单 Token 价格。支持 USD；CNY 需要同时记录汇率及其来源、时间。价格来源和适用条件由引用信息说明。
-- 性能支持 TTFT 加输出吞吐量；决策类模型也可以记录 P50 完整响应延迟。
-- 预设位于 `src/presets`，保存已知模型、家族及本地 Logo 资源，不包含连接配置或内部凭据。
-- `runBenchmark` 在开始模型调用前完成覆盖合并：`models` 按 `displayName`、`families` 按家族名称整条覆盖，不引入递归合并规则。自定义同名条目中未填写的字段不会从原条目补回。
-- 合并后的完整 metadata 连同 Logo 内容保存为本次运行的独立快照，不保留对调用方对象、Logo 源文件或包内 presets 的运行依赖。
+- 性能提供 TTFT 与输出吞吐量，或完整响应延迟；根据实际提供的指标计算估算耗时，不另设性能类型或分位标记。
+- 预设位于 `src/presets`，保存已知模型、家族及公开 Logo URL，不包含连接配置或内部凭据。Logo 直接使用 `metadata.json` 中的 HTTPS 地址，图标集 CDN 锁定版本。
+- presets 视为合法数据，直接导出 `metadata.json`，运行时仅校验外部自定义 metadata；`runBenchmark` 在首次 `await` 前独立捕获覆盖合并结果。`models` 按 `displayName`、`families` 按家族名称整条覆盖，不引入递归合并规则，自定义同名条目中未填写的字段不会从原条目补回。
+- 合并后的完整 metadata 保存为独立快照。HTTP(S) Logo 地址和已有图片 data URI 原样保存；自定义本地 Logo 在运行开始时读取并转为 data URI，不保留调用方对象、本地文件路径或对当前 presets 的依赖。
 - 合并后仍缺少 metadata 的模型展示 Score、实测耗时和用量；依赖参考数据的估算显示 `—`。
 
 ## 3. 核心方法
@@ -227,7 +225,7 @@ async function runBenchmark({
 
 主要流程按顺序实现：
 
-1. 同步接管题目字节及交叉比对值，完成上述校验，并检查输入、题目及模型身份唯一性；将自定义 metadata 与 presets 覆盖合并并读取 Logo 内容，确定本次运行的全部任务。
+1. 同步接管题目字节及交叉比对值，完成上述校验，并检查输入、题目及模型身份唯一性；将自定义 metadata 与 presets 覆盖合并，将本地 Logo 转为 data URI、保留 HTTP(S) 地址及已有 data URI，确定本次运行的全部任务。
 2. 创建新的 run 目录；已有同名目录时拒绝覆盖。
 3. 在开始模型调用前，保存本批题目的独立快照及合并后的 metadata 快照，全部写入完成后才开始执行。
 4. 保存运行信息和模型必要身份，建立模型与题目的执行队列。
@@ -277,9 +275,9 @@ async function createReport({ runDirectory }): Promise<string>;
 - 校验 manifest 中模型身份、模型目录、题目和任务的唯一性，以及任务集合是否覆盖全部计划的模型／题目组合。
 - 核对题目快照、manifest 和结果 `consistency.testcaseSha256` 的一致性；核对结果所属模型、文件名及任务身份，拒绝重复或额外结果。
 - 核对结果 `input` 的模型身份、平台、实际语言指令和 GT 与快照一致；最终输出须等于最后一次尝试的输出，并按快照 GT 重新核对每次尝试的 `correct`。任一失配明确报错。
-- 题目快照必须是独立的普通目录和三个原始文件，拒绝软链接；metadata 快照须包含完整的 `models`、`families`，Logo 须为内嵌 data URI。
+- 题目快照必须是独立的普通目录和三个原始文件，拒绝软链接；metadata 快照须包含完整的 `models`、`families`，Logo 可为 HTTP(S) URL 或图片 data URI，不接受本地文件路径。
 - 运行未完成时，可以展示已保存的结果，但必须标明不完整及缺失数量。
-- 报告嵌入本次运行保存的 metadata 与 Logo；后续修改 presets 或调用方原始数据，不影响从该运行目录重新生成报告时采用的参考数据。
+- 报告嵌入本次运行保存的 metadata，使用快照中的 Logo 地址或 data URI，不下载 Logo。后续修改 presets 或调用方原始数据，不改变快照中的参考数据和 URL；远端图片内容不承诺冻结。
 - 返回 HTML 字符串，由调用层决定保存位置及是否打开。
 
 ## 4. 独立快照与输出格式
@@ -317,10 +315,10 @@ async function createReport({ runDirectory }): Promise<string>;
 
 - `models` 的键是有效 `displayName`，`families` 的键是 `displayFamily`；报告只展示本次参与运行的模型。
 - 合并结果转换为独立的 JSON 数据后保存，不与调用方继续共享可修改的对象。
-- 预设 Logo 以 data URI 字面量随源码维护，并内嵌到构建后的 metadata 产物；自定义 Logo 的相对文件路径按调用时的工作目录解析。
-- 在运行开始时读取自定义本地 Logo 原始字节，并将其转为 data URI 写入 `families[*].logo`。预设和其他已有 data URI 直接保存，快照不保留 Logo 文件路径或外部资源依赖。
+- 预设直接导出 `metadata.json` 中的公开 Logo URL，图标集 CDN 使用固定版本；自定义 Logo 的相对文件路径按调用时的工作目录解析。
+- 在运行开始时读取自定义本地 Logo 原始字节，并将其转为 data URI 写入 `families[*].logo`。HTTP(S) 地址及已有图片 data URI 原样保存，不下载远端图片；快照不保留本地 Logo 文件路径。
 - `meta.json` 不包含 API Key、Base URL 或完整模型调用配置。
-- 原始 metadata、Logo 文件或 presets 后续修改、删除后，仅保留运行目录仍可重新生成报告；估算使用的价格、性能、家族样式不变。
+- 原始 metadata、本地 Logo 文件或 presets 后续修改、删除后，仅保留运行目录仍可重新生成报告；估算价格、性能、颜色及 Logo URL 不变。URL 指向的远端图片可能变化或不可用，不视为冻结的图片快照。
 - 快照整体缺失或不合法时 reporter 报错；快照内某个模型没有参考价格或性能数据时，对应估算正常显示 `—`。
 
 ### 4.3 运行信息
@@ -431,6 +429,10 @@ runner 收到超时失败后，可按现有重试规则开始下一次尝试；�
 
 Viewer 的数据来自调用方传入的题目；Reporter 的数据来自本次运行的独立快照。核心 UI 只消费已经装配好的数据，不推断包目录或运行目录。
 
+两种页面的平台、分类、来源和预期结果筛选以 HashRouter 查询参数为唯一状态来源：`platform`、`category`、`dataset` 和 `outcome`，空值省略，不使用 localStorage。例如 `#/testcases/WEB-v1-001?platform=web&category=Basic+Element&model=my-model`。这四项变化时使用 replace 更新当前历史记录，刷新和浏览器前进／后退从 URL 恢复。搜索词只保存在页面本地状态，不写入或读取 URL，刷新后清空。
+
+切题、上一题／下一题、键盘导航、模型切换及根路由重定向保留查询参数。清除筛选会清空本地搜索词，并只从 URL 移除上述四项，保留 `model` 等其他参数；深链接指定的已有题目不符合筛选时，回退到首个匹配题而不清空筛选，不存在的题目显示 `Testcase not found`。没有匹配题目时保留结构筛选，刷新后按保留的结构筛选重新计算结果。Overview 的模型详情和矩阵跳转会清空题库筛选及本地搜索，确保打开指定题目和模型。
+
 页面风格以当前 `benchmark/grounding-new/viewer` 为明确基准，要求一致，不另行设计一套近似风格。需要保留的视觉特征包括：
 
 - Logo、标题、页签、筛选栏和导航层级的呈现方式。
@@ -441,7 +443,7 @@ Viewer 的数据来自调用方传入的题目；Reporter 的数据来自本次�
 
 现有样式和视觉资源已移植到包内，React 组件按本包接口与字段组织。样式使用 CSS，未增加 Less 或额外组件库；图表使用 Recharts 并沿用现有视觉风格。
 
-移植后的样式、Logo 和其他资源由本包独立维护、构建并内嵌到页面，不在运行或构建时导入旧 viewer，也不要求旧工程继续存在。新增的逐题模型切换及报告内容沿用同一套视觉规范。
+移植后的样式由本包独立维护、构建并内嵌到页面，品牌 Logo 和 favicon 使用 Midscene 官方图片地址，家族 Logo 使用 metadata 中的图片地址或 data URI；不在运行或构建时导入旧 viewer，也不要求旧工程继续存在。新增的逐题模型切换及报告内容沿用同一套视觉规范。
 
 风格一致性针对本方案中对应的只读页面和控件，功能范围仍由 Viewer 与 Reporter 的契约决定，不额外引入候选题管理、评审编辑或多次测评管理功能。
 
@@ -486,19 +488,19 @@ HTTP Viewer 复用报告的内联脚本与样式模板，截图通过本地 `/im
 
 `createReport` 生成的静态报告必须是完整的一个 HTML 文件，内嵌：
 
-- JavaScript、CSS、必要字体和 Logo。
+- JavaScript 和 CSS；字体使用系统字体。
 - 本次使用的题目、原图、GT 和修订信息。
 - 测评结果、统计和实际采用的 metadata。
 
 包构建时通过 Rsbuild 生成内联脚本和样式的页面模板；生成每份报告时只装配数据，不重复运行前端构建。
 
-原图转为 data URI，每个 testcase 保存一份供全部模型共享。报告 Logo 直接使用 `meta.json` 中已保存的 data URI，不再读取包内预设资源或调用方的本地文件。最终 HTML 不保留运行所必需的外部资源链接。
+原图转为 data URI，每个 testcase 保存一份供全部模型共享。报告家族 Logo 直接使用 `meta.json` 中保存的 HTTP(S) URL 或 data URI，不下载图片、不读取当前预设或调用方的本地文件。品牌 Logo 和 favicon 使用 `https://midscenejs.com/favicon.png`，公开图标 URL 由浏览器加载。
 
 嵌入数据应采用正确转义的 JSON，避免题目中的文本被解释为 HTML 或脚本。
 
 使用 React Router 的 HashRouter，例如 `#/overview` 和 `#/testcases/WEB-v1-090?model=my-model`，不依赖服务端路由重写。
 
-报告生成后不再依赖 Node.js、后端服务、本地 API、运行目录、当前包题库或 CDN。用户复制这一个 HTML 文件，即可通过 `file:///` 在断网条件下使用。来源链接可以供用户主动点击，但不是运行依赖。
+报告生成后不再依赖 Node.js、后端服务、本地 API、运行目录或当前包题库，用户复制一个 HTML 文件即可通过 `file:///` 直接打开。Logo 和 favicon 加载需要网络；题目截图、结果、图表计算和交互所需的脚本与样式均在文件内。来源链接供用户主动访问。
 
 ## 7. 统计口径
 
@@ -513,7 +515,7 @@ HTTP Viewer 复用报告的内联脚本与样式模板，截图通过本地 `/im
 | Token 用量 | 汇总全部尝试中可获得的 SDK 用量，不重复加算推理 Token |
 | 估算费用 | 单题输入／输出分别计价，计入全部尝试，再对有效样本求平均 |
 | 参考估算耗时 | 调用数 × TTFT + max(输出 Token − 调用数, 0)／输出吞吐量；单位统一后计算 |
-| 决策类参考耗时 | 调用数 × 参考完整响应延迟 |
+| 提供完整响应延迟时的参考耗时 | 调用数 × 参考完整响应延迟 |
 | Estimated Model Duration Avg. | min(参考估算平均耗时, max(实测平均耗时 − 100ms, 0)) |
 | Speed | 60／平均估算耗时（秒），单位 cases/min，不乘 Score |
 | Affordability | 1／平均估算费用（USD），单位 cases/$1，不乘 Score |
@@ -540,7 +542,7 @@ P50 使用模型等权的原始指标中位数，在显示取整和雷达对数�
 | Viewer 启动交互 | @clack/prompts 的品牌标题、校验 spinner 和 Ready 信息 |
 | 执行进度 | 订阅 `onProgress` 输出简洁日志 |
 
-先集中在 `cli/index.ts` 定义三个子命令，处理函数只完成参数读取、核心方法调用、文件输出和必要的服务管理。
+四个子命令分别定义在 `cli/validate.ts`、`cli/viewer.ts`、`cli/run.ts` 和 `cli/report.ts`；`cli/index.ts` 负责统一注册、帮助、版本和进程退出。每次调用创建新的命令实例，命令处理只完成参数读取、核心方法调用、文件输出和必要的服务管理。
 
 run 默认在完成测评后接续报告生成；report 命令保留，用于独立生成、重新生成或重试报告。两个入口共用一处报告生成、文件输出及浏览器打开逻辑，默认在写入成功后打开报告，不启动另一个 CLI 进程。
 
@@ -549,6 +551,7 @@ Viewer 服务只保留题库目录和名称过滤器等启动参数，不把已�
 CLI 提供以下命令：
 
 ```sh
+midscene-benchmark-grounding validate
 midscene-benchmark-grounding viewer
 midscene-benchmark-grounding run --output ./output
 midscene-benchmark-grounding report ./output/<run-id> --output report.html
@@ -597,7 +600,23 @@ MIDSCENE_GROUNDING_EVALUATION_CONFIG='{
 - 模型 metadata 与连接配置保持独立字段；省略 `meta` 时 runner 使用 presets。上例仅提供家族归属与展示信息，整条覆盖后未填写价格、性能，相应估算显示 `—`。
 - `report` 命令只接收运行目录及输出选项，不读取该环境变量，也不允许生成报告时重新指定 metadata。
 
-### 8.3 `viewer`：查看题库
+### 8.3 `validate`：校验题库
+
+```sh
+midscene-benchmark-grounding validate
+midscene-benchmark-grounding validate --testcases ./testcases --names MOBILE-v1-001 WEB-v1-001
+```
+
+| 参数 | 默认行为 | 含义 |
+| --- | --- | --- |
+| `--testcases <directory>` | 使用包内题库 | 题库根目录 |
+| `--names <name...>` | 全部题目 | 按完整题目名称精确选择，空格分隔 |
+
+复用 `loadTestcases({ directory, names })`，校验 JSON 结构与格式版本、目录和题目名称、JSON SHA-256、图片 SHA-256、格式与尺寸，以及 GT 结构、坐标顺序和图片边界。不判断题目语义、指令歧义或 GT 是否指向正确元素。
+
+本命令不加载 `.env`，不需要模型配置，不调用模型、不写文件、不启动服务或浏览器。全部选中题目通过后输出已校验题数并退出 `0`；首个校验错误向 stderr 输出诊断并退出 `1`，不输出部分成功集合。
+
+### 8.4 `viewer`：查看题库
 
 ```sh
 midscene-benchmark-grounding viewer \
@@ -629,7 +648,7 @@ midscene-benchmark-grounding viewer \
 
 输出是持续运行的 HTTP 服务及终端中的访问地址，不写报告文件，不读取模型配置环境变量。端口占用时明确报错，不自动切换端口。按 Ctrl+C 停止服务。
 
-### 8.4 `run`：执行测评
+### 8.5 `run`：执行测评
 
 ```sh
 midscene-benchmark-grounding run \
@@ -686,7 +705,7 @@ midscene-benchmark-grounding report ./output/<run-id>
 
 模型答错或重试耗尽后的模型 `ERROR` 不阻止自动报告。测评阶段抛错或用户中断时保留已有产物，不进入自动报告阶段；可以稍后独立生成注明不完整的报告。报告生成或写入失败时 CLI 退出 `1`，但测评完成状态、快照和结果保持不变，用户可直接重试 report，无需重新调用模型。
 
-### 8.5 `report`：生成单文件报告
+### 8.6 `report`：生成单文件报告
 
 ```sh
 midscene-benchmark-grounding report ./output/<run-id> \
@@ -710,11 +729,11 @@ midscene-benchmark-grounding report ./output/<run-id> \
 
 本命令不加载 `.env`，不读取模型配置或当前 presets，不调用模型，不启动 HTTP 服务，不重新执行前端构建。运行未完成时仍可生成明确标注缺失结果的报告；题目或 metadata 快照缺失、格式错误、一致性失配时明确失败。
 
-### 8.6 公共行为和退出状态
+### 8.7 公共行为和退出状态
 
 - 提供 `--help` 和 `--version`；未传子命令时显示帮助，不隐式启动服务或调用模型。
-- `viewer` 和 `run` 的 `--names` 复用 `loadTestcases` 的规则：完整名称精确匹配、输出字典序，缺失、重复或空选择报错。
-- 所有相对路径均按当前工作目录解析；CLI 的参数转换、环境变量处理及进程生命周期集中在 `cli/index.ts`。
+- `validate`、`viewer` 和 `run` 的 `--names` 复用 `loadTestcases` 的规则：完整名称精确匹配、输出字典序，缺失、重复或空选择报错。
+- 所有相对路径均按当前工作目录解析；各子命令负责参数转换，仅 `cli/run.ts` 加载模型环境变量，进程生命周期统一由 `cli/index.ts` 管理。
 - 正常进度和产物路径写入 stdout；错误写入 stderr，不输出密钥、认证头或完整配置对象。
 - 浏览器打开失败时告警并告知可手动访问的地址或文件路径，已经启动的服务和已经生成的报告保留；打开失败不使已成功生成报告的命令退出失败，也不改变测评状态。
 
@@ -735,16 +754,16 @@ run 的退出码描述命令要求的阶段是否完成，不表示模型成绩�
 ```text
 src/
 ├── index.ts
-├── testcase.ts
-├── runner.ts
-├── reporter.ts
-├── summary.ts
-├── schemas.ts
+├── core/
+│   ├── testcase.ts
+│   ├── runner.ts
+│   ├── reporter.ts
+│   ├── summary.ts
+│   ├── schemas.ts
+│   └── metadata.ts
 ├── presets/
 │   ├── index.ts
-│   ├── metadata.json
-│   ├── logos.ts
-│   └── normalize.ts
+│   └── metadata.json
 └── ui/
     ├── App.tsx
     ├── Performance.tsx
@@ -755,15 +774,33 @@ src/
     ├── brand.ts
     └── styles.css
 cli/
-└── index.ts
+├── index.ts
+├── validate.ts
+├── viewer.ts
+├── run.ts
+└── report.ts
+tests/
+├── core/
+│   ├── testcase.test.ts
+│   ├── runner.test.ts
+│   ├── reporter.test.ts
+│   └── summary.test.ts
+├── ui/types.test.ts
+├── cli/index.test.ts
+└── fixture.ts
 ```
 
-- `testcase.ts` 集中处理题目读取、文件字节和一致性。
-- `runner.ts` 按执行流程组织单题执行、批量调度及落盘，不为每个步骤建立一层封装。
-- `reporter.ts` 提供 viewer/report HTML 装配，共用 UI 模板。
-- `summary.ts` 只保留真正复用的统计计算。
-- `schemas.ts` 维护需要运行时校验的数据契约，类型尽量从 schema 推导。
+- `src/core` 集中实现可调用的原子能力，由 `src/index.ts` 保持公共导出；单元测试按 `core`、`ui`、`cli` 对齐，共享测试数据放在 `tests/fixture.ts`。
+- `core/testcase.ts` 集中处理题目读取、文件字节和一致性。
+- `core/runner.ts` 按执行流程组织单题执行、批量调度及落盘，不为每个步骤建立一层封装。
+- `core/reporter.ts` 提供 viewer/report HTML 装配，共用 UI 模板。
+- `core/summary.ts` 只保留真正复用的统计计算。
+- 通用排序、求和、计数和深冻结使用 `es-toolkit`；零值、缺失值、用量完整性及快照校验等测评规则由本包处理。文件访问沿用 Node 原生 API，题目 JSON 和图片按原始 Buffer 读写。
+- `core/schemas.ts` 维护需要运行时校验的数据契约，类型尽量从 schema 推导；公开模型快照字段通过白名单复用调用配置 schema，继续排除连接凭据。
+- `core/metadata.ts` 负责覆盖合并与自定义 Logo 文件读取；`presets` 只保存可信预设数据。
+- CLI 按子命令拆分；`run` 和 `report` 共用 `cli/report.ts` 的报告写入和打开流程。
 - `ui` 保留能独立理解的页面级组件，不按每个指标或筛选项拆文件。
+- 筛选下拉框使用无样式 Radix Select，复用现有 CSS；键盘导航、typeahead、焦点、portal 与弹层碰撞由组件库处理，保留 Tab 关闭并继续焦点导航的适配。
 - `ui` 独立保存移植后的样式和资源，与现有 viewer 保持视觉一致，不跨工程导入。`styles.css` 随前端模板内嵌，不依赖额外样式运行时。
 - Node SDK 和 CLI 使用 Rslib 构建 ESM 产物与类型声明；浏览器模板使用 Rsbuild、React 和 Recharts。
 - 发布时包含构建产物、内置题库和必要资源；导入 runner 不应触发 CLI 执行、浏览器启动或构建。
@@ -780,6 +817,7 @@ cli/
 | --- | --- | --- | --- |
 | `@midscene/core` | `workspace:*` | Agent、定位、模型调用与用量统计 | 使用仓库当前版本 |
 | `@midscene/shared` | `workspace:*` | 图片信息及现有公共工具 | 使用仓库当前版本，不直接新增 Sharp |
+| `es-toolkit` | `^1.53.2` | 多条件排序、求和、计数、深冻结 | 已核对当前稳定版；提供 ESM 和 TypeScript 类型，无额外依赖 |
 | `zod` | `^3.25.1` | 配置、题目、结果校验与类型推导 | 最新 `4.6.7`；先与 SDK 和仓库对齐 |
 | `p-queue` | `^9.3.5` | 全局尝试并发调度 | 最新 `10.0.0` 要求 Node ≥22 |
 | `p-retry` | `^7.1.1` | 可恢复执行错误的重试 | 最新 `9.0.0`；从 8 起要求 Node ≥22 |
@@ -796,7 +834,8 @@ cli/
 | --- | --- | --- | --- |
 | `react`、`react-dom` | `18.3.1` | Viewer 与 Report 页面 | 最新 `19.3.1`；对齐仓库 |
 | `react-is` | `18.3.1` | Recharts 所需的 React 类型判断 | 与 React 版本一致 |
-| `react-router` | `^7.18.5` | 离线 HTML 的 HashRouter 路由 | 最新 `8.5.1` 要求 Node ≥22.22、React ≥19.2.7 |
+| `@radix-ui/react-select` | `^2.4.1` | 无样式筛选下拉框、键盘、焦点与弹层定位 | 已核对当前稳定版；支持 React 18，样式由本包维护 |
+| `react-router` | `^7.18.5` | 静态 HTML 的 HashRouter 路由 | 最新 `8.5.1` 要求 Node ≥22.22、React ≥19.2.7 |
 | `recharts` | `^3.10.1` | 散点图、雷达图及交互提示 | 最新稳定版，支持 React 18 |
 | `@rsbuild/core` | `^1.7.6` | 构建单文件页面模板 | 最新 `2.3.2`；对齐仓库构建链 |
 | `@rsbuild/plugin-react` | `^1.4.6` | React 编译支持 | 最新 `2.1.1` 需匹配 Rsbuild 2 |
@@ -814,7 +853,7 @@ cli/
 - React Router 7 已包含需要的 DOM 功能，不额外安装 `react-router-dom`；Recharts 配套的 `react-is` 必须与 React 同版本。
 - Rsbuild 2、Rslib 1、React 19、Zod 4 可以构成另一套独立技术栈，但本次先与仓库共享依赖对齐。不得只升级其中一项而忽略 peer 约束，例如 Rslib 0.19 要求 TypeScript 5。
 - 不增加 glob、fs-extra、额外模板引擎、额外模型 SDK 或直接 Sharp 依赖。目录遍历、SHA、文件读写、Base64、时间戳使用 Node 内置能力；图片 metadata 通过 Shared 的 `getSharp()` 读取原始 Buffer，沿用 Shared 的 Sharp 实现。
-- 不以全局 overrides 强行替换 SDK 的依赖版本，不将 Node SDK、Sharp 或 Photon 打入报告前端。浏览器只消费数据和内嵌资源，公开 API 不暴露 React 类型。
+- 不以全局 overrides 强行替换 SDK 的依赖版本，不将 Node SDK、Sharp 或 Photon 打入报告前端。浏览器消费报告数据、内嵌脚本与样式，并按图片 URL 加载图标；公开 API 不暴露 React 类型。
 
 参考：[npm registry](https://registry.npmjs.org/)、[npm 官方下载 API](https://api.npmjs.org/downloads/point/last-week/@rslib%2fcore)、[Commander 15 发布说明](https://github.com/tj/commander.js/releases/tag/v15.0.0)、[React Router 7 升级说明](https://reactrouter.com/7.18.5/upgrading/v6)、[Recharts 安装说明](https://github.com/recharts/recharts#installation)。
 
@@ -825,7 +864,7 @@ cli/
 | 工具 | 职责 |
 | --- | --- |
 | Rslib `~0.19.6` | 构建 Node SDK、CLI、预设 metadata 的 ESM 模块及 TypeScript 声明，通过 `output.copy` 将页面模板纳入最终产物 |
-| Rsbuild `^1.7.6`、React plugin `^1.4.6` | 在独立缓存目录预构建 Viewer／Report 共用的单文件 HTML 模板，内嵌前端代码、样式和静态资源 |
+| Rsbuild `^1.7.6`、React plugin `^1.4.6` | 在独立缓存目录预构建 Viewer／Report 共用的单文件 HTML 模板，内嵌前端代码和样式，图标保留 URL |
 | Nx | 调度本包及 workspace 依赖的构建，缓存本包的完整最终产物 |
 | pnpm | 安装依赖、执行构建及打包；发布沿用仓库统一版本和发布流程 |
 
@@ -838,15 +877,15 @@ rsbuild build && rslib build
 包级构建顺序固定为：
 
 1. Rsbuild 按默认行为清理自己的输出目录 `node_modules/.cache/benchmark-grounding-ui/`，将页面构建为其中的 `index.html`。该通用模板不包含任何一次运行数据。
-2. Rslib 按默认行为清理 `dist`，构建 SDK、CLI 和 presets 的 ESM 产物与声明，并通过 `output.copy` 将缓存目录的 `index.html` 纳入同次构建，输出为 `dist/ui-template.html`。预设 Logo 已作为 data URI 字面量保存在源码中，直接内嵌到 metadata 产物。
+2. Rslib 按默认行为清理 `dist`，构建 SDK、CLI 和 presets 的 ESM 产物与声明，并通过 `output.copy` 将缓存目录的 `index.html` 纳入同次构建，输出为 `dist/ui-template.html`。预设 metadata 直接保留公开 Logo URL，不在构建时下载或内嵌图标。
 
 构建配置集中在 `rsbuild.config.ts` 和 `rslib.config.ts`，输出清理和模板复制由构建器完成。两套构建器使用隔离输出，Rslib 清理 `dist` 时保留 Rsbuild 的模板缓存；缓存目录不进入源码输入或发布包。Nx 将这两个命令视为一个构建单元，缓存完整的 `dist`，缓存恢复后可直接使用最终产物。
 
-入口、类型声明、模板资源、CLI shebang 和 `bin` 的有效性由现有 e2e 及 `pnpm pack` 后的独立安装验收检查。
+入口、类型声明、模板资源、CLI shebang 和 `bin` 的有效性通过构建产物检查及 `pnpm pack` 后的独立安装验证。
 
 Node 产物采用 ESM，使用 `.mjs` 扩展名和明确的 `import` 入口，不额外产出 CommonJS 版本。第三方运行时依赖通过 dependencies 安装，保留为外部依赖；UI 的 React、Recharts、路由及样式已编译进模板，不需要用户再安装构建工具。Node SDK、Sharp 和模型调用代码不进入 UI 模板。
 
-模板自身的脚本、样式、品牌图片和 favicon 全部内嵌，字体使用系统字体，动态导入不能留下运行时加载的外部 chunk。静态报告的截图从运行快照转为 data URI，并与结果一起注入模板；HTTP Viewer 的截图通过本地图片路由按需提供。模板和默认题库按安装后的包位置定位，不依赖使用方的工作目录、仓库源码或旧 benchmark。
+模板自身的脚本和样式全部内嵌，字体使用系统字体，动态导入不能留下运行时加载的外部 chunk。品牌 Logo 和 favicon 使用 Midscene 官方图片 URL，家族图标使用 metadata 快照中的 URL 或 data URI。静态报告的截图从运行快照转为 data URI，并与结果一起注入模板；HTTP Viewer 的截图通过本地图片路由按需提供。模板和默认题库按安装后的包位置定位，不依赖使用方的工作目录、仓库源码或旧 benchmark。
 
 ### 9.4 公开导出
 
@@ -862,7 +901,7 @@ Node 产物采用 ESM，使用 `.mjs` 扩展名和明确的 `import` 入口，�
 
 公共类型包括 `Testcase`、`LoadedTestcase`、`ModelCallConfig`、`ReportMeta`、`AttemptResult`、`RunSummary`，从对应 schema、SDK 类型和实现返回值推导，不另外维护重复结构。
 
-子入口 `@midscene/benchmark-grounding/presets` 导出 `presetMeta`，结构为 `ReportMeta`，包含已知模型的参考价格、性能和家族样式，预设 Logo 为 data URI。单独导入预设不加载 runner、CLI 或启动模型调用。
+子入口 `@midscene/benchmark-grounding/presets` 导出 `presetMeta`，结构为 `ReportMeta`，包含已知模型的参考价格、性能和家族样式，预设 Logo 为公开 HTTPS URL，图标集 CDN 使用固定版本。单独导入预设不加载 runner、CLI 或启动模型调用。
 
 CLI 通过 `bin` 提供 `midscene-benchmark-grounding` 命令，指向编译后的 CLI 入口并保留 Node shebang。CLI 不作为 SDK 函数导出。内部 React 组件、样式、校验 schema、统计实现和模板不作为公共子路径；不提供任意内部路径的通配导出。内置题库作为原始文件分发，由 `loadTestcases` 访问。
 
@@ -917,14 +956,14 @@ package.json 的核心入口映射如下：
 ```
 
 - 内置题库当前为 200 道、600 个原始文件。构建和打包均保持 JSON、SHA 及图片字节不变，不将数据集改写进 JavaScript。
-- `dist` 包含 SDK、CLI、公共类型、预设 metadata 和完整页面模板；预设 Logo 随 metadata 内嵌，不依赖源码资源路径。
+- `dist` 包含 SDK、CLI、公共类型、预设 metadata 和完整页面模板；预设 Logo URL 随 metadata 保存，不依赖源码资源路径。
 - 通过 files 白名单纳入 `dist` 和 `testcases`，核对 pnpm 最终打包结果包含 package.json 和许可证；当前不增加 README 等额外文档。
 - 内部设计、评审、历史测评输出、候选题、测试 fixture、TypeScript／前端源码、构建临时文件、`.env` 和密钥配置不进入发布包。node_modules 不打入包，由包管理器按 dependencies 安装运行依赖。
-- 发布前检查 `pnpm pack` 的实际 tarball；从 tarball 在仓库外安装，验证根入口和 presets 导入、类型解析、CLI 帮助、内置题库默认加载及报告生成。生成报告时不需要 Rsbuild、Rslib、仓库或临时构建目录，导出的 HTML 可独立离线打开。
+- 发布前检查 `pnpm pack` 的实际 tarball；从 tarball 在仓库外安装，验证根入口和 presets 导入、类型解析、CLI 帮助、内置题库默认加载及报告生成。生成报告时不需要 Rsbuild、Rslib、仓库或临时构建目录，导出的 HTML 可通过 `file:///` 直接打开，Logo 和 favicon 需要网络加载。
 
 ## 10. 验证范围
 
-SDK、CLI、Viewer 和 Reporter 均已实现。验证覆盖单元测试、独立安装及离线端到端测试；34 个模型各执行 3 道题的真实测评已生成 102 个最终结果，其中 83 个正确、0 个 `ERROR`。
+SDK、CLI、Viewer 和 Reporter 均已实现。验证采用单元测试、独立安装及必要的手动浏览器检查；34 个模型各执行 3 道题的真实测评已生成 102 个最终结果，其中 83 个正确、0 个 `ERROR`。
 
 主要验证项：
 
@@ -941,7 +980,7 @@ SDK、CLI、Viewer 和 Reporter 均已实现。验证覆盖单元测试、独立
 - SDK 参数和环境变量互不串扰，两个并发模型不通过全局状态切换配置。
 - runner 产物和报告中不包含 API Key 或完整连接配置。
 - metadata 通过 displayName 精确匹配，模型和家族同名条目整体覆盖；缺少参考数据不使模型从报告消失。
-- 在首次模型调用前保存完整 metadata 快照和 Logo 内容；之后改写调用方对象、修改 presets 或删除 Logo 源文件，仅使用运行目录重新生成报告，参考数据仍保持不变。
+- 在首次模型调用前保存完整 metadata 快照；本地 Logo 已转为 data URI，HTTP(S) 地址和已有 data URI 保持原样。之后改写调用方对象、修改 presets 或删除本地 Logo 源文件，仍可仅使用运行目录重新生成报告；远端图片内容不承诺冻结。
 - CLI 只从环境变量向 `runBenchmark` 传入模型调用配置和 metadata；`createReport` 只使用运行目录中的快照，不需要模型配置环境变量，快照缺失时明确报错。
 - run 默认在测评和最终状态落盘后生成 `<run-directory>/report.html`，与独立 report 共用数据读取、校验、统计、装配、写文件及打开逻辑；文件写入成功后默认通过浏览器打开，无需启动 HTTP 服务。
 - `run --no-report` 不调用报告生成逻辑、不写 HTML、也不打开报告；随后独立 report 采用同一快照和默认路径生成相同内容的报告，并默认打开。
@@ -949,8 +988,8 @@ SDK、CLI、Viewer 和 Reporter 均已实现。验证覆盖单元测试、独立
 - 模型答错或最终 `ERROR` 不阻止报告；仅报告生成或写入失败时 CLI 退出 `1`，保留已完成测评，可独立重试报告而不再调用模型。测评阶段中断或抛错时不自动生成报告。
 - 模型切换、矩阵跳转、原图缩放和 GT／预测叠加正确。
 - Viewer 启动后修改、增加或删除源题目，刷新页面即可读取最新数据，不需要重启；页面及图片均不缓存。图片 SHA 与页面引用不一致时返回 `409`；`createViewer` 没有标题参数，默认 SDK 图片内嵌，CLI 使用 `imageBaseUrl`。
-- Viewer 与 Reporter 在相同视口、相同内容下与现有 viewer 保持页面风格一致；样式和资源均在本包内，旧工程移走后构建、页面查看及报告仍可独立工作。
-- 断开网络、移走运行目录并删除包内题库后，导出的 HTML 仍能通过 `file:///` 完整打开和交互。
+- Viewer 与 Reporter 在相同视口、相同内容下与现有 viewer 保持页面风格一致；样式由本包维护，图标使用公开 URL 或 data URI，旧工程移走后构建、页面查看及报告仍可独立工作。
+- 移走运行目录并删除包内题库后，导出的 HTML 仍能通过 `file:///` 直接打开，题目截图、数据、图表及交互均来自单文件；Logo 和 favicon 通过网络加载。
 - 从 pnpm 实际打包产物安装后，公开 exports、types 和 bin 均指向存在的文件；600 个题库文件逐字节一致，模板和预设完整，命中 Nx 缓存时仍可直接使用完整产物。
 
 测试优先覆盖数据、调度及导出行为，使用离线 fixture 和模型 mock；真实模型测评验证 SDK 调用、用量记录和报告生成链路。不以大量细碎视觉断言固定页面实现。

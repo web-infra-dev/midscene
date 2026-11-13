@@ -135,7 +135,6 @@ export async function loadTestcases({
       ]);
       const testcase = testcaseSchema.parse(JSON.parse(json.toString('utf8')));
       const filename = imageFilename(testcase);
-      const image = await readFile(path.join(root, name, filename));
       return validateLoadedTestcase(
         {
           testcase,
@@ -143,7 +142,7 @@ export async function loadTestcases({
           files: {
             'index.json': json,
             'index.sha256': shaFile,
-            [filename]: image,
+            [filename]: await readFile(path.join(root, name, filename)),
           },
         },
         name,

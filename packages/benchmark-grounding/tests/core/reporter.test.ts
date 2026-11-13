@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import {
   mkdir,
   mkdtemp,
@@ -11,16 +10,17 @@ import * as actual from 'node:fs/promises' with { rstest: 'importActual' };
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
-import { presetMeta } from '../src/presets';
-import { mergeReportMeta } from '../src/presets/normalize';
-import { createReport, createViewer } from '../src/reporter';
+import { mergeReportMeta } from '../../src/core/metadata';
+import { createReport, createViewer } from '../../src/core/reporter';
 import {
   type LoadedTestcase,
   type ReportMeta,
   type Result,
   type RunManifest,
   reportMetaSchema,
-} from '../src/schemas';
+} from '../../src/core/schemas';
+import { presetMeta } from '../../src/presets';
+import { fixture as testcase, writeFixture } from '../fixture';
 
 rs.mock('node:fs/promises', () => {
   return {
@@ -31,7 +31,7 @@ rs.mock('node:fs/promises', () => {
         filename.pathname.endsWith('/ui-template.html')
       ) {
         return Promise.resolve(
-          '<!doctype html><title>Midscene Grounding Benchmark</title><script id="benchmark-data" type="application/json">__MIDSCENE_BENCHMARK_DATA__</script>',
+          '<!doctype html><title>Midscene Grounding Benchmark</title><script id="benchmark-data" type="application/json">"__MIDSCENE_BENCHMARK_DATA__"</script>',
         );
       }
       return options === 'utf8'
@@ -49,47 +49,6 @@ afterEach(async () => {
       .map((directory) => rm(directory, { recursive: true, force: true })),
   );
 });
-const hash = (bytes: Buffer) =>
-  createHash('sha256').update(bytes).digest('hex');
-
-function testcase(
-  name = 'one',
-  instruction = 'Find the pixel',
-): LoadedTestcase {
-  const image = Buffer.from(
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aG2kAAAAASUVORK5CYII=',
-    'base64',
-  );
-  const data = {
-    schemaVersion: 1 as const,
-    name,
-    platform: 'web' as const,
-    category: { item: 'Basic Element', reason: 'Visible' },
-    instruction: { en: instruction, zh: '找到像素' },
-    instructionLanguage: 'en' as const,
-    groundTruth: [0, 1, 1, 0] as [number, number, number, number],
-    reference: {
-      url: 'https://example.com/source',
-      dataset: 'fixture',
-      recordId: '1',
-      image: { format: 'png' as const, sha256: hash(image) },
-      patch: '',
-      collectedAt: 1,
-    },
-  };
-  const json = Buffer.from(`${JSON.stringify(data, null, 2)}\n`);
-  const sha = hash(json);
-  return {
-    testcase: data,
-    testcaseSha256: sha,
-    files: {
-      'index.json': json,
-      'index.sha256': Buffer.from(`${sha}\n`),
-      'image.png': image,
-    },
-  };
-}
-
 function manifest(record: LoadedTestcase): RunManifest {
   return {
     schemaVersion: 1,
@@ -116,15 +75,15 @@ function manifest(record: LoadedTestcase): RunManifest {
 }
 
 function result(record: LoadedTestcase): Result {
-  const attempt = {
+  const attempt: Result['attempts'][number] = {
     output: {
-      type: 'POINT' as const,
+      type: 'POINT',
       correct: true,
-      center: [0.5, 0.5] as [number, number],
+      center: [0.5, 0.5],
     },
     profiling: {
       durationMs: 100,
-      usageStatus: 'complete' as const,
+      usageStatus: 'complete',
       calls: 1,
       totalPromptTokens: 10,
       totalCompletionTokens: 2,
@@ -166,20 +125,12 @@ const capturedMeta: ReportMeta = {
   },
 };
 
-async function fixture(record = testcase()) {
+async function fixture(record = testcase('one')) {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'grounding-report-'));
   temporary.push(directory);
-  await mkdir(path.join(directory, 'testcases', record.testcase.name), {
-    recursive: true,
-  });
   await mkdir(path.join(directory, 'results', 'model'), { recursive: true });
   await Promise.all([
-    ...Object.entries(record.files).map(([name, bytes]) =>
-      writeFile(
-        path.join(directory, 'testcases', record.testcase.name, name),
-        bytes,
-      ),
-    ),
+    writeFixture(path.join(directory, 'testcases'), record),
     writeFile(
       path.join(directory, 'run.json'),
       JSON.stringify(manifest(record)),
@@ -201,10 +152,12 @@ function payload(html: string) {
 
 describe('grounding HTML assembly', () => {
   it('embeds raw snapshot JSON, SHA, and image once, safely escaping script terminators', async () => {
-    const record = testcase(
-      'one',
-      '</script><script>alert("x")</script>&\u2028\u2029$&',
-    );
+    const record = testcase('one', {
+      instruction: {
+        en: '</script><script>alert("x")</script>&\u2028\u2029$&',
+        zh: '定位目标',
+      },
+    });
     const html = await createViewer({ testcases: [record] });
     expect(html).not.toContain('<script>alert');
     expect(html).toContain('\\u003c/script\\u003e');
@@ -266,7 +219,7 @@ describe('grounding HTML assembly', () => {
     const data = payload(html);
     expect(data.incomplete).toBe(false);
     expect(data.results).toHaveLength(1);
-    expect(data.testcases[0].instruction.en).toBe('Find the pixel');
+    expect(data.testcases[0].instruction.en).toBe('Locate the target');
     expect(data.meta).toEqual(capturedMeta);
     expect(data.summaries.models[0].estimatedCost.average).toBe(14);
     expect(html).not.toContain('apiKey');
@@ -410,29 +363,31 @@ describe('grounding HTML assembly', () => {
 });
 
 describe('public metadata snapshots', () => {
-  it('retains all model reference data and embeds every preset logo', () => {
-    expect(Object.keys(presetMeta.models!)).toHaveLength(34);
+  it('retains model reference data and public preset logo URLs', () => {
     expect(reportMetaSchema.safeParse(presetMeta).success).toBe(true);
-    expect(presetMeta.models!['qwen3.8-max'].reference?.url).toBe(
-      'https://openrouter.ai/qwen/qwen3.8-max-0902',
-    );
     expect(
       Object.values(presetMeta.families!).every(
-        (family) => !family.logo || family.logo.startsWith('data:image/'),
+        (family) => !family.logo || family.logo.startsWith('https://'),
       ),
     ).toBe(true);
     expect(JSON.stringify(presetMeta)).not.toContain('apiKey');
     expect(JSON.stringify(presetMeta)).not.toContain('baseUrl');
   });
 
-  it('replaces entire matching entries, captures local logo bytes, and retains no caller references', async () => {
+  it('captures local logo bytes, preserves remote URLs, and retains no caller references', async () => {
     const directory = await mkdtemp(path.join(os.tmpdir(), 'grounding-logo-'));
     temporary.push(directory);
     const logo = path.join(directory, 'custom.svg');
     await writeFile(logo, '<svg/>');
+    const encodedLogo = 'data:image/svg+xml;charset=utf-8,%3Csvg%2F%3E';
     const input: ReportMeta = {
       models: { 'qwen3.8-max': { displayFamily: 'Custom' } },
-      families: { Custom: { color: '#abcdef', logo } },
+      families: {
+        Custom: { color: '#abcdef', logo },
+        Encoded: { color: '#123', logo: encodedLogo },
+        Remote: { color: '#456', logo: 'https://example.com/logo.svg' },
+        Http: { color: '#789', logo: 'http://example.com/logo.svg' },
+      },
     };
     const promise = mergeReportMeta(input);
     input.models!['qwen3.8-max'].displayFamily = 'Mutated';
@@ -442,6 +397,9 @@ describe('public metadata snapshots', () => {
     expect(saved.families!.Custom.logo).toBe(
       'data:image/svg+xml;base64,PHN2Zy8+',
     );
+    expect(saved.families!.Encoded.logo).toBe(encodedLogo);
+    expect(saved.families!.Remote.logo).toBe('https://example.com/logo.svg');
+    expect(saved.families!.Http.logo).toBe('http://example.com/logo.svg');
     expect(saved.models!['qwen3.8-flash']).toBeDefined();
     const report = await fixture();
     await writeFile(
@@ -453,11 +411,11 @@ describe('public metadata snapshots', () => {
     ).toEqual(saved);
   });
 
-  it('rejects logo URLs and missing local files', async () => {
+  it('rejects unsupported logo schemes and missing local files', async () => {
     await expect(
       mergeReportMeta({
         families: {
-          Remote: { color: '#123', logo: 'https://example.com/logo.svg' },
+          Invalid: { color: '#123', logo: 'javascript:alert(1)' },
         },
       }),
     ).rejects.toThrow(/local file/);
@@ -469,42 +427,4 @@ describe('public metadata snapshots', () => {
       }),
     ).rejects.toThrow();
   });
-
-  it('preserves an existing percent-encoded image data URI without filesystem reads', async () => {
-    const logo = 'data:image/svg+xml;charset=utf-8,%3Csvg%2F%3E';
-    const saved = await mergeReportMeta({
-      families: { Encoded: { color: '#123', logo } },
-    });
-    expect(saved.families!.Encoded.logo).toBe(logo);
-  });
-});
-
-it('embeds an absolute Windows logo path using Windows filesystem semantics', async () => {
-  const directory = await mkdtemp(
-    path.join(os.tmpdir(), 'grounding-windows-logo-'),
-  );
-  temporary.push(directory);
-  const localLogo = path.join(directory, 'custom.svg');
-  await writeFile(localLogo, '<svg/>');
-  const windowsLogo = 'C:\\logos\\custom.svg';
-  const originalResolve = path.resolve;
-  const absolute = rs
-    .spyOn(path, 'isAbsolute')
-    .mockImplementation(path.win32.isAbsolute);
-  const resolve = rs
-    .spyOn(path, 'resolve')
-    .mockImplementation((...segments) =>
-      segments.includes(windowsLogo) ? localLogo : originalResolve(...segments),
-    );
-  try {
-    const saved = await mergeReportMeta({
-      families: { Windows: { color: '#123', logo: windowsLogo } },
-    });
-    expect(saved.families!.Windows.logo).toBe(
-      'data:image/svg+xml;base64,PHN2Zy8+',
-    );
-  } finally {
-    absolute.mockRestore();
-    resolve.mockRestore();
-  }
 });

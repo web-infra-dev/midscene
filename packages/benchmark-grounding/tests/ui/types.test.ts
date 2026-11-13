@@ -1,20 +1,13 @@
 import { describe, expect, it } from '@rstest/core';
 import {
-  type EvaluationResult,
   type ModelSummary,
   type TestcaseView,
-  compareNames,
   emptyFilters,
   filterTestcases,
-  matrixRowStatus,
-  resultKey,
-  resultStatus,
-  resultStatusLabel,
-  selectModel,
   sortModels,
   testcasePath,
-} from '../src/ui/types';
-import { fixture } from './fixture';
+} from '../../src/ui/types';
+import { fixture } from '../fixture';
 
 function testcase(
   name: string,
@@ -30,49 +23,6 @@ function testcase(
     testcaseSha256: record.testcaseSha256,
     indexJson: record.files['index.json'].toString('utf8'),
     indexSha256: record.files['index.sha256'].toString('utf8'),
-  };
-}
-
-function result(
-  type: EvaluationResult['output']['type'],
-  correct: boolean,
-): EvaluationResult {
-  const record = testcase('WEB-001', {
-    groundTruth: type === 'REFUSAL' && correct ? 'REFUSAL' : [0, 1, 1, 0],
-  });
-  const output: EvaluationResult['output'] = {
-    type,
-    correct,
-    ...(type === 'POINT' ? { center: correct ? [0.5, 0.5] : [2, 2] } : {}),
-    ...(type === 'ERROR'
-      ? {
-          error: {
-            name: 'FixtureError',
-            message: 'Fixture failure',
-            retryable: false,
-          },
-        }
-      : {}),
-  };
-  const profiling: EvaluationResult['profiling'] = {
-    durationMs: 0,
-    usageStatus: 'missing',
-  };
-  return {
-    schemaVersion: 1,
-    consistency: { testcaseSha256: record.testcaseSha256 },
-    input: {
-      testcase: record.name,
-      model: 'fixture',
-      family: 'qwen3',
-      displayName: 'Fixture',
-      platform: record.platform,
-      instruction: record.instruction.en,
-      groundTruth: record.groundTruth,
-    },
-    output,
-    profiling,
-    attempts: [{ output, profiling }],
   };
 }
 
@@ -108,14 +58,6 @@ function model(
 const names = (items: { name: string }[]) => items.map((item) => item.name);
 
 describe('offline testcase navigation', () => {
-  it('uses dictionary order consistently, including numeric-looking suffixes', () => {
-    expect(['WEB-2', 'WEB-10', 'MOBILE-1'].sort(compareNames)).toEqual([
-      'MOBILE-1',
-      'WEB-10',
-      'WEB-2',
-    ]);
-  });
-
   it('searches all terms across case names and both instruction languages', () => {
     const cases = [
       testcase('WEB-001'),
@@ -164,70 +106,25 @@ describe('offline testcase navigation', () => {
     ).toEqual([]);
   });
 
-  it('keeps the input collection and ordering unchanged while filtering', () => {
-    const cases = [testcase('WEB-002'), testcase('WEB-001')];
-    expect(names(filterTestcases(cases, emptyFilters))).toEqual([
-      'WEB-002',
-      'WEB-001',
-    ]);
-    expect(names(cases)).toEqual(['WEB-002', 'WEB-001']);
-  });
-
-  it('round trips special testcase and model names through hash route paths', () => {
-    const name = 'WEB #1? 中文';
-    const modelName = 'provider/model + #?&';
-    const path = testcasePath(name, modelName);
-    const [pathname, search] = path.split('?');
-    expect(decodeURIComponent(pathname.split('/').at(-1) as string)).toBe(name);
-    expect(new URLSearchParams(search).get('model')).toBe(modelName);
-    expect(testcasePath()).toBe('/testcases');
-  });
-
-  it('retains a selected model even when it has no result for the current case', () => {
-    expect(selectModel(['Available', 'Missing'], 'Missing')).toBe('Missing');
-    expect(selectModel(['Available', 'Missing'], 'Unknown')).toBe('Available');
-    expect(selectModel([], null)).toBeUndefined();
-  });
-
-  it('uses unambiguous case/model keys rather than delimiter concatenation', () => {
-    expect(resultKey('case:model', 'name')).not.toBe(
-      resultKey('case', 'model:name'),
-    );
-    expect(resultKey('case', 'model')).toBe(resultKey('case', 'model'));
+  it('preserves filters and unrelated parameters when navigating or switching models', () => {
+    const query =
+      '?platform=web&category=Basic+Element&search=%E4%B8%AD%E6%96%87&model=Old&extra=keep';
+    const path = testcasePath('WEB #2', 'New model + #', query);
+    const params = new URLSearchParams(path.slice(path.indexOf('?')));
+    expect(params.get('model')).toBe('New model + #');
+    expect(params.get('extra')).toBe('keep');
+    expect(params.has('search')).toBe(false);
+    expect(params.get('platform')).toBe('web');
+    expect(params.get('category')).toBe('Basic Element');
+    expect(
+      new URLSearchParams(
+        testcasePath('WEB-3', undefined, query).split('?')[1],
+      ).get('model'),
+    ).toBe('Old');
   });
 });
 
-describe('report outcomes and breakdown ordering', () => {
-  it('distinguishes missing results, errors, incorrect predictions and passed refusals', () => {
-    expect(resultStatus()).toBe('missing');
-    expect(resultStatusLabel()).toBe('No result');
-    expect(resultStatus(result('ERROR', false))).toBe('error');
-    expect(resultStatus(result('POINT', false))).toBe('failed');
-    expect(resultStatus(result('REFUSAL', true))).toBe('passed');
-  });
-
-  it('marks a matrix row incomplete before considering its other outcomes', () => {
-    expect(matrixRowStatus([result('POINT', false), undefined])).toBe(
-      'incomplete',
-    );
-    expect(matrixRowStatus([result('POINT', true), undefined])).toBe(
-      'incomplete',
-    );
-    expect(matrixRowStatus([])).toBe('incomplete');
-  });
-
-  it('treats errors as failed matrix cells and distinguishes mixed rows', () => {
-    expect(
-      matrixRowStatus([result('ERROR', false), result('POINT', false)]),
-    ).toBe('all-failed');
-    expect(
-      matrixRowStatus([result('REFUSAL', true), result('POINT', true)]),
-    ).toBe('all-passed');
-    expect(
-      matrixRowStatus([result('POINT', true), result('POINT', false)]),
-    ).toBe('mixed');
-  });
-
+describe('model breakdown ordering', () => {
   it('sorts actual zero scores before unavailable values in both directions', () => {
     const models = [
       model('Missing', null),

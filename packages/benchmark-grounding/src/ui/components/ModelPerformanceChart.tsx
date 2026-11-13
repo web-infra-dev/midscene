@@ -1,3 +1,4 @@
+import { sumBy } from 'es-toolkit';
 import {
   type CSSProperties,
   createContext,
@@ -28,7 +29,7 @@ import {
   useXAxisScale,
 } from 'recharts';
 
-import { median } from '../../summary';
+import { median } from '../../core/summary';
 import type { ModelSummary } from '../types';
 
 function measureScatterLabel(
@@ -117,10 +118,8 @@ function createElapsedTimeAxis(values: number[], p50: number | null) {
     end: maximum,
     folded: false,
   });
-  const retainedSpan = intervals.reduce(
-    (total, interval) =>
-      total + (interval.folded ? 0 : interval.end - interval.start),
-    0,
+  const retainedSpan = sumBy(intervals, (interval) =>
+    interval.folded ? 0 : interval.end - interval.start,
   );
   // Compress only empty intervals, retaining more space for larger gaps. Bound
   // their total width so extreme outliers still leave the main cluster readable.
@@ -129,10 +128,7 @@ function createElapsedTimeAxis(values: number[], p50: number | null) {
       size * 0.5,
       typicalGap * (2 + Math.log2(size) - Math.log2(typicalGap)),
     );
-  const foldedSpan = folded.reduce(
-    (sum, gap) => sum + foldedWidth(gap.end - gap.start),
-    0,
-  );
+  const foldedSpan = sumBy(folded, (gap) => foldedWidth(gap.end - gap.start));
   const foldedScale = Math.min(1, (retainedSpan * 0.5) / (foldedSpan || 1));
   const pieces = intervals.map((interval) => ({
     ...interval,
@@ -140,7 +136,7 @@ function createElapsedTimeAxis(values: number[], p50: number | null) {
       ? foldedWidth(interval.end - interval.start) * foldedScale
       : interval.end - interval.start,
   }));
-  const totalWidth = pieces.reduce((sum, piece) => sum + piece.width, 0);
+  const totalWidth = sumBy(pieces, (piece) => piece.width);
   const project = (value: number) => {
     const normalizedValue = value / scale;
     if (normalizedValue < minimum) return normalizedValue - minimum;

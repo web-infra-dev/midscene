@@ -12,8 +12,6 @@
           "outputPerToken": 6e-6
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 2200,
           "outputTokensPerSecond": 35
         },
@@ -32,8 +30,6 @@
           "outputPerToken": 4.6999999999999995e-7
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 1660,
           "outputTokensPerSecond": 52
         },
@@ -52,8 +48,6 @@
           "outputPerToken": 1.28e-6
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 1370,
           "outputTokensPerSecond": 49
         },
@@ -72,7 +66,6 @@
           "outputPerToken": 7.5e-6
         },
         "performance": {
-          "basis": "mixed-source",
           "timeToFirstTokenMs": 1990,
           "outputTokensPerSecond": 53.81,
           "url": "https://www.edenai.co/models/qwen3-7-max-2026-06-08",
@@ -94,8 +87,6 @@
           "outputPerToken": 1.95e-6
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 1110,
           "outputTokensPerSecond": 45
         },
@@ -115,8 +106,6 @@
           "outputPerToken": 1.56e-6
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 960,
           "outputTokensPerSecond": 59
         }
@@ -134,8 +123,6 @@
           "outputPerToken": 6.525e-7
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 1030,
           "outputTokensPerSecond": 166
         },
@@ -154,8 +141,6 @@
           "outputPerToken": 2.8e-7
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 530,
           "outputTokensPerSecond": 85
         },
@@ -174,8 +159,6 @@
           "outputPerToken": 1.8e-7
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 600,
           "outputTokensPerSecond": 108
         },
@@ -194,8 +177,6 @@
           "outputPerToken": 1e-5
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 6200,
           "outputTokensPerSecond": 33
         },
@@ -214,8 +195,6 @@
           "outputPerToken": 9.339e-6
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 460,
           "outputTokensPerSecond": 113
         },
@@ -234,8 +213,6 @@
           "outputPerToken": 0
         },
         "performance": {
-          "basis": "best-response-latency",
-          "percentile": "p50",
           "responseLatencyMs": 80
         },
         "note": "ModelHub returned jev-1.14.0 for request ID typesafe-jev during the smoke run. Complete round-trip latency, not TTFT. The reference is not specific to image or Box requests; OpenRouter provides no output TPS for Jev. Pricing basis: model-page-header."
@@ -253,8 +230,6 @@
           "outputPerToken": 1.251e-6
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 3260,
           "outputTokensPerSecond": 50
         },
@@ -273,8 +248,6 @@
           "outputPerToken": 5e-6
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 1740,
           "outputTokensPerSecond": 85
         },
@@ -293,8 +266,6 @@
           "outputPerToken": 1e-5
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 2180,
           "outputTokensPerSecond": 98
         },
@@ -313,8 +284,6 @@
           "outputPerToken": 1e-5
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 1670,
           "outputTokensPerSecond": 103
         },
@@ -333,8 +302,6 @@
           "outputPerToken": 5e-7
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 1340,
           "outputTokensPerSecond": 116
         },
@@ -353,8 +320,6 @@
           "outputPerToken": 5e-5
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 1170,
           "outputTokensPerSecond": 62
         },
@@ -373,8 +338,6 @@
           "outputPerToken": 1.2e-5
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 940,
           "outputTokensPerSecond": 100
         },
@@ -393,8 +356,6 @@
           "outputPerToken": 2e-5
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 3090,
           "outputTokensPerSecond": 109
         },
@@ -413,8 +374,6 @@
           "outputPerToken": 1.2e-6
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 640,
           "outputTokensPerSecond": 109
         },
@@ -433,8 +392,6 @@
           "outputPerToken": 4e-6
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 1230,
           "outputTokensPerSecond": 45
         },
@@ -453,8 +410,6 @@
           "outputPerToken": 9.000000000000001e-7
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 1110,
           "outputTokensPerSecond": 64
         },
@@ -474,8 +429,6 @@
           "outputPerToken": 1e-5
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 4650,
           "outputTokensPerSecond": 47
         }
@@ -493,8 +446,6 @@
           "outputPerToken": 1e-5
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 3310,
           "outputTokensPerSecond": 59
         },
@@ -513,8 +464,6 @@
           "outputPerToken": 3.75e-6
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 2240,
           "outputTokensPerSecond": 87
         },
@@ -533,8 +482,6 @@
           "outputPerToken": 9e-6
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 1420,
           "outputTokensPerSecond": 215
         },
@@ -559,7 +506,6 @@
           }
         },
         "performance": {
-          "basis": "window-mean",
           "url": "https://ark.volcengine.com/region:cn-beijing/model/leaderboard",
           "observedAt": "2026-10-26T03:41:21Z",
           "conditions": "10k input tokens, trailing 6 hours, thinking disabled, no cache hits",
@@ -587,7 +533,6 @@
           }
         },
         "performance": {
-          "basis": "window-mean",
           "url": "https://console.volcengine.com/ark/region:cn-beijing/model/leaderboard",
           "observedAt": "2026-10-26T09:37:00Z",
           "conditions": "Standard inference, 10k input tokens, trailing 6 hours, thinking disabled, no cache hits",
@@ -615,7 +560,6 @@
           }
         },
         "performance": {
-          "basis": "window-mean",
           "url": "https://console.volcengine.com/ark/region:cn-beijing/model/leaderboard",
           "observedAt": "2026-10-27T02:30:40Z",
           "conditions": "Standard inference, 10k input tokens, trailing 6 hours, thinking disabled, no cache hits",
@@ -643,7 +587,6 @@
           }
         },
         "performance": {
-          "basis": "window-mean",
           "url": "https://console.volcengine.com/ark/region:cn-beijing/model/leaderboard",
           "observedAt": "2026-10-26T09:37:00Z",
           "conditions": "Standard inference, 10k input tokens, trailing 6 hours, thinking disabled, no cache hits",
@@ -671,7 +614,6 @@
           }
         },
         "performance": {
-          "basis": "window-mean",
           "url": "https://console.volcengine.com/ark/region:cn-beijing/model/leaderboard",
           "observedAt": "2026-10-28T07:40:37Z",
           "conditions": "Standard inference, 10k input tokens, trailing 6 hours, thinking disabled, no cache hits",
@@ -699,7 +641,6 @@
           }
         },
         "performance": {
-          "basis": "window-mean",
           "url": "https://console.volcengine.com/ark/region:cn-beijing/model/leaderboard",
           "observedAt": "2026-10-28T07:40:37Z",
           "conditions": "Standard inference, 10k input tokens, trailing 6 hours, thinking disabled, no cache hits",
@@ -721,8 +662,6 @@
           "outputPerToken": 1e-6
         },
         "performance": {
-          "basis": "best-per-metric",
-          "percentile": "p50",
           "timeToFirstTokenMs": 250,
           "outputTokensPerSecond": 234
         },

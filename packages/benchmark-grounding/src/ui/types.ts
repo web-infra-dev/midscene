@@ -1,28 +1,18 @@
-import type { UIData } from '../reporter';
+import { orderBy } from 'es-toolkit';
+import type { UIData } from '../core/reporter';
 
 export type TestcaseView = UIData['testcases'][number];
 export type EvaluationResult = NonNullable<UIData['results']>[number];
 export type ModelSummary = NonNullable<UIData['summaries']>['models'][number];
 
-export interface Filters {
-  search: string;
-  platform: string;
-  category: string;
-  dataset: string;
-  outcome: string;
-}
-
-export const emptyFilters: Filters = {
+export const emptyFilters = {
   search: '',
   platform: '',
   category: '',
   dataset: '',
   outcome: '',
 };
-
-export function compareNames(left: string, right: string) {
-  return left < right ? -1 : left > right ? 1 : 0;
-}
+export type Filters = typeof emptyFilters;
 
 export function filterTestcases(testcases: TestcaseView[], filters: Filters) {
   const terms = filters.search
@@ -45,8 +35,12 @@ export function filterTestcases(testcases: TestcaseView[], filters: Filters) {
   });
 }
 
-export function testcasePath(name?: string, model?: string) {
-  return `/testcases${name ? `/${encodeURIComponent(name)}` : ''}${model ? `?model=${encodeURIComponent(model)}` : ''}`;
+export function testcasePath(name?: string, model?: string, search = '') {
+  const params = new URLSearchParams(search);
+  params.delete('search');
+  if (model) params.set('model', model);
+  const query = params.toString();
+  return `/testcases${name ? `/${encodeURIComponent(name)}` : ''}${query ? `?${query}` : ''}`;
 }
 
 export function resultKey(testcase: string, model: string) {
@@ -63,18 +57,12 @@ export function resultStatus(result?: EvaluationResult) {
         : 'failed';
 }
 
-export function resultStatusLabel(result?: EvaluationResult) {
-  return {
-    missing: 'No result',
-    error: 'Error',
-    passed: 'Passed',
-    failed: 'Failed',
-  }[resultStatus(result)];
-}
-
-export function selectModel(models: string[], requested: string | null) {
-  return requested && models.includes(requested) ? requested : models[0];
-}
+export const resultStatusLabels = {
+  missing: 'No result',
+  error: 'Error',
+  passed: 'Passed',
+  failed: 'Failed',
+};
 
 export type ModelSortKey =
   | 'model'
@@ -91,31 +79,11 @@ export function sortModels(
   key: ModelSortKey,
   direction: 'ascending' | 'descending',
 ) {
-  return [...models].sort((left, right) => {
-    const a =
-      key === 'model' || key === 'score' ? left[key] : left[key].average;
-    const b =
-      key === 'model' || key === 'score' ? right[key] : right[key].average;
-    if (a === null)
-      return b === null ? compareNames(left.model, right.model) : 1;
-    if (b === null) return -1;
-    const value =
-      typeof a === 'number' && typeof b === 'number'
-        ? a - b
-        : compareNames(String(a), String(b));
-    return (
-      (direction === 'ascending' ? value : -value) ||
-      compareNames(left.model, right.model)
-    );
-  });
-}
-
-export function matrixRowStatus(cells: (EvaluationResult | undefined)[]) {
-  if (!cells.length || cells.some((result) => !result)) return 'incomplete';
-  const passed = cells.filter((result) => result?.output.correct).length;
-  return passed === cells.length
-    ? 'all-passed'
-    : passed === 0
-      ? 'all-failed'
-      : 'mixed';
+  const value = (model: ModelSummary) =>
+    key === 'model' || key === 'score' ? model[key] : model[key].average;
+  return orderBy(
+    models,
+    [(model) => value(model) === null, value, 'model'],
+    ['asc', direction === 'ascending' ? 'asc' : 'desc', 'asc'],
+  );
 }

@@ -1,11 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { EvaluationResult, TestcaseView } from '../types';
 
-interface Dimensions {
-  width: number;
-  height: number;
-}
-
 export function ScreenshotPanel({
   testcase,
   zoom,
@@ -26,8 +21,11 @@ export function ScreenshotPanel({
   onShowPredictionChange: (value: boolean) => void;
 }) {
   const viewportRef = useRef<HTMLElement>(null);
-  const [dimensions, setDimensions] = useState<Dimensions | null>(null);
-  const [viewportSize, setViewportSize] = useState<Dimensions>({
+  const [dimensions, setDimensions] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
+  const [viewportSize, setViewportSize] = useState({
     width: 0,
     height: 0,
   });

@@ -261,6 +261,7 @@ button {
   white-space: nowrap;
 }
 .scatter-budget-slider {
+  --budget-progress: 100%;
   display: block;
   width: 100%;
   height: 34px;
@@ -271,8 +272,8 @@ button {
   background: linear-gradient(
       to right,
       var(--budget-accent) 0%,
-      var(--budget-accent) var(--budget-progress, 100%),
-      #f5e4d5 var(--budget-progress, 100%),
+      var(--budget-accent) var(--budget-progress),
+      #f5e4d5 var(--budget-progress),
       #f5e4d5 100%
     )
     center / 100% 14px no-repeat;
@@ -1163,20 +1164,30 @@ a.matrix-cell:hover {
   grid-area: 1 / 1;
 }
 .filter-options {
-  position: fixed;
+  --radix-select-trigger-width: 180px;
+  --radix-select-content-available-height: calc(100vh - 16px);
   z-index: 100;
+  width: min(max(var(--radix-select-trigger-width), 180px), calc(100vw - 16px));
+  max-height: min(320px, var(--radix-select-content-available-height));
   margin: 0;
-  padding: 5px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: hidden;
   border: 1px solid #dfe5ed;
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 8px 28px #17233220, 0 2px 6px #17233208;
+}
+.filter-options .filter-options-viewport {
+  padding: 5px;
+  overscroll-behavior: contain;
   scrollbar-width: thin;
+}
+.filter-options .filter-options-viewport::-webkit-scrollbar {
+  display: block;
+  width: 6px;
 }
 .filter-option {
   position: relative;
+  outline: none;
   padding: 9px 30px 9px 11px;
   border-radius: 4px;
   color: #40516a;
@@ -1185,22 +1196,22 @@ a.matrix-cell:hover {
   cursor: pointer;
   overflow-wrap: anywhere;
 }
-.filter-option.is-active {
+.filter-option[data-highlighted] {
   background: #f1f5fc;
 }
-.filter-option.is-selected {
+.filter-option[data-state="checked"] {
   color: #245cbb;
   font-weight: 600;
   background: #edf4ff;
 }
-.filter-option.is-selected::after {
+.filter-option[data-state="checked"]::after {
   content: "✓";
   position: absolute;
   right: 11px;
   top: 9px;
   color: #2563eb;
 }
-.filter-option.is-active.is-selected {
+.filter-option[data-highlighted][data-state="checked"] {
   background: #e2edff;
 }
 .text-button {

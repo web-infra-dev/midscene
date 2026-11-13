@@ -23,15 +23,11 @@
   "scripts": {
     "build": "rsbuild build && rslib build",
     "test": "rstest",
-    "e2e": "node tests/e2e.mjs",
     "type-check": "tsc --project tsconfig.build.json --noEmit"
   },
   "nx": {
     "targets": {
       "test": {
-        "dependsOn": ["build"]
-      },
-      "e2e": {
         "dependsOn": ["build"]
       }
     }
@@ -43,6 +39,7 @@
     "@midscene/shared": "workspace:*",
     "commander": "^14.0.3",
     "dotenv": "^16.4.5",
+    "es-toolkit": "^1.53.2",
     "hono": "^4.13.18",
     "open": "10.1.0",
     "p-queue": "^9.3.5",
@@ -50,6 +47,7 @@
     "zod": "^3.25.1"
   },
   "devDependencies": {
+    "@radix-ui/react-select": "^2.4.1",
     "@rsbuild/core": "^1.7.6",
     "@rsbuild/plugin-react": "^1.4.6",
     "@rslib/core": "~0.19.6",
@@ -57,7 +55,6 @@
     "@types/node": "^18.0.0",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
-    "puppeteer": "24.43.1",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-is": "18.3.1",

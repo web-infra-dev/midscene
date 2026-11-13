@@ -1,6 +1,7 @@
+import { sortBy } from 'es-toolkit';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router';
-import type { UIData } from '../reporter';
+import type { UIData } from '../core/reporter';
 import { Performance } from './Performance';
 import { brandLogo } from './brand';
 import { DetailsPanel } from './components/DetailsPanel';
@@ -9,18 +10,26 @@ import { ResultPanel, ResultStatus } from './components/ResultPanel';
 import { ScreenshotPanel } from './components/ScreenshotPanel';
 import {
   type Filters,
-  compareNames,
   emptyFilters,
   filterTestcases,
   resultKey,
-  selectModel,
   testcasePath,
 } from './types';
 
 export function App({ data }: { data: UIData }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const [filters, setFilters] = useState<Filters>(emptyFilters);
+  const [search, setSearch] = useState('');
+  const filters = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return {
+      search,
+      platform: params.get('platform') ?? '',
+      category: params.get('category') ?? '',
+      dataset: params.get('dataset') ?? '',
+      outcome: params.get('outcome') ?? '',
+    };
+  }, [location.search, search]);
   const [zoom, setZoom] = useState<'fit' | 'actual'>('fit');
   const [showGT, setShowGT] = useState(true);
   const [showPrediction, setShowPrediction] = useState(true);
@@ -35,9 +44,8 @@ export function App({ data }: { data: UIData }) {
       return undefined;
     }
   })();
-  const previousRequestedCase = useRef(requestedCase);
   const testcases = useMemo(
-    () => [...data.testcases].sort((a, b) => compareNames(a.name, b.name)),
+    () => sortBy(data.testcases, ['name']),
     [data.testcases],
   );
   const filtered = useMemo(
@@ -45,21 +53,26 @@ export function App({ data }: { data: UIData }) {
     [testcases, filters],
   );
   const models = useMemo(
-    () =>
-      (data.run?.models.map((model) => model.displayName) ?? []).sort(
-        compareNames,
-      ),
+    () => (data.run?.models.map((model) => model.displayName) ?? []).sort(),
     [data],
   );
-  const selectedModel = selectModel(
-    models,
-    new URLSearchParams(location.search).get('model'),
-  );
-  const selectedName = requestedCase ?? filtered[0]?.name;
-  const selectedIndex = filtered.findIndex(
-    (testcase) => testcase.name === selectedName,
-  );
+  const requestedModel = new URLSearchParams(location.search).get('model');
+  const selectedModel =
+    requestedModel && models.includes(requestedModel)
+      ? requestedModel
+      : models[0];
+  const unknownCase =
+    requestedCase !== undefined &&
+    !testcases.some((testcase) => testcase.name === requestedCase);
+  const selectedIndex =
+    !unknownCase && filtered.length
+      ? Math.max(
+          0,
+          filtered.findIndex((testcase) => testcase.name === requestedCase),
+        )
+      : -1;
   const selected = filtered[selectedIndex];
+  const selectedName = selected?.name;
   const byCaseAndModel = useMemo(
     () =>
       new Map(
@@ -86,19 +99,6 @@ export function App({ data }: { data: UIData }) {
       ?.scrollIntoView({ block: 'nearest' });
   }, [selectedName]);
   useEffect(() => {
-    // Reset filters only for a new route, not while a filter change is
-    // navigating from the old selection to its first match.
-    const changed = previousRequestedCase.current !== requestedCase;
-    previousRequestedCase.current = requestedCase;
-    if (
-      changed &&
-      requestedCase &&
-      testcases.some((testcase) => testcase.name === requestedCase) &&
-      !filtered.some((testcase) => testcase.name === requestedCase)
-    )
-      setFilters(emptyFilters);
-  }, [requestedCase, testcases, filtered]);
-  useEffect(() => {
     if (isOverview) return;
     function onKeyDown(event: KeyboardEvent) {
       const target = event.target;
@@ -123,24 +123,41 @@ export function App({ data }: { data: UIData }) {
             : undefined;
       if (testcase) {
         event.preventDefault();
-        navigate(testcasePath(testcase.name, selectedModel));
+        navigate(testcasePath(testcase.name, selectedModel, location.search));
       }
     }
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [isOverview, previous, next, selectedModel, navigate]);
+  }, [isOverview, previous, next, selectedModel, location.search, navigate]);
 
   function updateFilters(values: Filters) {
-    setFilters(values);
+    setSearch(values.search);
+    const params = new URLSearchParams(location.search);
+    for (const [key, value] of Object.entries(values)) {
+      if (key === 'search') continue;
+      if (value) params.set(key, value);
+      else params.delete(key);
+    }
     const matches = filterTestcases(testcases, values);
-    if (!matches.some((testcase) => testcase.name === selectedName))
-      navigate(testcasePath(matches[0]?.name, selectedModel), {
-        replace: true,
-      });
+    navigate(
+      testcasePath(
+        matches.some((testcase) => testcase.name === selectedName)
+          ? selectedName
+          : matches[0]?.name,
+        selectedModel,
+        params.toString(),
+      ),
+      { replace: true },
+    );
   }
 
   if (location.pathname === '/' || (parts[0] !== 'testcases' && !isOverview))
-    return <Navigate to={isReport ? '/overview' : '/testcases'} replace />;
+    return (
+      <Navigate
+        to={`${isReport ? '/overview' : '/testcases'}${location.search}`}
+        replace
+      />
+    );
 
   return (
     <>
@@ -159,11 +176,14 @@ export function App({ data }: { data: UIData }) {
         </div>
         {isReport && (
           <nav className="page-navigation" aria-label="Main navigation">
-            <Link to="/overview" aria-current={isOverview ? 'page' : undefined}>
+            <Link
+              to={{ pathname: '/overview', search: location.search }}
+              aria-current={isOverview ? 'page' : undefined}
+            >
               Overview
             </Link>
             <Link
-              to={testcasePath(selected?.name, selectedModel)}
+              to={testcasePath(selected?.name, selectedModel, location.search)}
               aria-current={!isOverview ? 'page' : undefined}
             >
               Testcases
@@ -197,7 +217,7 @@ export function App({ data }: { data: UIData }) {
               </h1>
             </div>
           </header>
-          <Performance data={data} />
+          <Performance data={data} onOpenTestcase={() => setSearch('')} />
         </main>
       ) : (
         <div className="app-shell">
@@ -218,7 +238,11 @@ export function App({ data }: { data: UIData }) {
                     <li key={testcase.name}>
                       <Link
                         className="case-button"
-                        to={testcasePath(testcase.name, selectedModel)}
+                        to={testcasePath(
+                          testcase.name,
+                          selectedModel,
+                          location.search,
+                        )}
                         aria-current={
                           testcase.name === selectedName ? 'true' : 'false'
                         }
@@ -299,7 +323,13 @@ export function App({ data }: { data: UIData }) {
                       disabled={!previous}
                       onClick={() =>
                         previous &&
-                        navigate(testcasePath(previous.name, selectedModel))
+                        navigate(
+                          testcasePath(
+                            previous.name,
+                            selectedModel,
+                            location.search,
+                          ),
+                        )
                       }
                     >
                       ←
@@ -312,7 +342,14 @@ export function App({ data }: { data: UIData }) {
                       title="Next (→)"
                       disabled={!next}
                       onClick={() =>
-                        next && navigate(testcasePath(next.name, selectedModel))
+                        next &&
+                        navigate(
+                          testcasePath(
+                            next.name,
+                            selectedModel,
+                            location.search,
+                          ),
+                        )
                       }
                     >
                       →
@@ -329,7 +366,11 @@ export function App({ data }: { data: UIData }) {
                       {models.map((model) => (
                         <Link
                           key={model}
-                          to={testcasePath(selected.name, model)}
+                          to={testcasePath(
+                            selected.name,
+                            model,
+                            location.search,
+                          )}
                           className="case-model-option"
                           aria-current={
                             selectedModel === model ? 'true' : 'false'
@@ -374,12 +415,10 @@ export function App({ data }: { data: UIData }) {
                   ⌕
                 </div>
                 <h2>
-                  {requestedCase && filtered.length
-                    ? 'Testcase not found'
-                    : 'No matching testcases'}
+                  {unknownCase ? 'Testcase not found' : 'No matching testcases'}
                 </h2>
                 <p>
-                  {requestedCase && filtered.length
+                  {unknownCase
                     ? 'Select a testcase from the list.'
                     : 'Try changing or clearing the filters.'}
                 </p>

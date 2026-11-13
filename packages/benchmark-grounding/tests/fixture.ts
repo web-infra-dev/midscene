@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { LoadedTestcase, Testcase } from '../src/schemas';
+import type { LoadedTestcase, Testcase } from '../src/core/schemas';
 
 const png = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=',

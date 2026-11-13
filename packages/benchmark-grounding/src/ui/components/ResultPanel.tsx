@@ -1,7 +1,7 @@
 import {
   type EvaluationResult,
   resultStatus,
-  resultStatusLabel,
+  resultStatusLabels,
 } from '../types';
 
 export function ResultStatus({ result }: { result?: EvaluationResult }) {
@@ -10,7 +10,7 @@ export function ResultStatus({ result }: { result?: EvaluationResult }) {
     <span
       className={`evaluation-status ${status === 'missing' ? 'pending' : status}`}
     >
-      {resultStatusLabel(result)}
+      {resultStatusLabels[status]}
     </span>
   );
 }

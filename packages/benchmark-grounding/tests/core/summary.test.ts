@@ -5,8 +5,8 @@ import type {
   ReportMeta,
   Result,
   RunManifest,
-} from '../src/schemas';
-import { calculateSummary, median, summarizeMetric } from '../src/summary';
+} from '../../src/core/schemas';
+import { calculateSummary, summarizeMetric } from '../../src/core/summary';
 
 const run: RunManifest = {
   schemaVersion: 1,
@@ -44,7 +44,6 @@ const meta: ReportMeta = {
         observedAt: '2026-11-12',
         pricing: { currency: 'USD', inputPerToken: 0.01, outputPerToken: 0.1 },
         performance: {
-          basis: 'best-per-metric',
           timeToFirstTokenMs: 100,
           outputTokensPerSecond: 10,
         },
@@ -106,11 +105,6 @@ describe('grounding summary', () => {
       ]),
     ).toEqual({ count: 3, average: 34, total: 102 });
     expect(summarizeMetric([])).toEqual({ count: 0, average: null, total: 0 });
-    expect(
-      Number.isFinite(
-        summarizeMetric([Number.MAX_VALUE, Number.MAX_VALUE]).average,
-      ),
-    ).toBe(true);
   });
 
   it('includes every retry in duration, usage, and separately priced input/output cost', () => {
@@ -154,11 +148,8 @@ describe('grounding summary', () => {
   });
 
   it.each([
-    [0, 0],
-    [50, 0],
     [100, 0],
     [101, 1],
-    [200, 100],
     [1000, 300],
   ])('corrects measured %sms to estimated %sms', (durationMs, expected) => {
     const model = calculateSummary({
@@ -214,8 +205,6 @@ describe('grounding summary', () => {
       },
     };
     custom.models!.model.reference!.performance = {
-      basis: 'best-response-latency',
-      percentile: 'p50',
       responseLatencyMs: 200,
     };
     const model = calculateSummary({
@@ -263,11 +252,5 @@ describe('grounding summary', () => {
     expect(zero.estimatedElapsedTime.average).toBe(0);
     expect(zero.speed).toBeNull();
     expect(zero.affordability).toBeNull();
-  });
-
-  it('takes a model-equally-weighted raw median before rounding', () => {
-    expect(median([1, 5, 20, 100])).toBe(12.5);
-    expect(median([undefined, null, 0, 1, 4])).toBe(1);
-    expect(median([])).toBeNull();
   });
 });

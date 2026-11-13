@@ -3,10 +3,11 @@ import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { type AIUsageInfo, Agent, getVersion } from '@midscene/core';
 import { encodedImageInfoOfBuffer } from '@midscene/shared/img';
+import { deepFreeze, pick, sortBy, sum, sumBy } from 'es-toolkit';
 import PQueue from 'p-queue';
 import pRetry, { AbortError } from 'p-retry';
-import { version } from '../package.json';
-import { mergeReportMeta } from './presets/normalize';
+import { version } from '../../package.json';
+import { mergeReportMeta } from './metadata';
 import {
   type AttemptResult,
   type LoadedTestcase,
@@ -31,14 +32,6 @@ import {
 type Output = AttemptResult['output'];
 const usageNote =
   'SDK normalizes missing provider usage fields to zero. Reported usage and calls may be partial; completeness cannot be verified.';
-const usageKeys = [
-  'totalPromptTokens',
-  'totalCompletionTokens',
-  'totalTokens',
-  'totalCachedInput',
-  'totalTimeCostMs',
-  'calls',
-] as const;
 type ObservedCall = {
   input?: number;
   output?: number;
@@ -101,11 +94,7 @@ function usageProfile(
   } as const;
   for (const [target, source] of Object.entries(fields)) {
     const values = samples.map((sample) => sample[source]).filter(validCount);
-    if (values.length)
-      profiling[target as keyof typeof fields] = values.reduce(
-        (sum, value) => sum + value,
-        0,
-      );
+    if (values.length) profiling[target as keyof typeof fields] = sum(values);
   }
   if (!complete)
     profiling.usageNote = observed
@@ -151,12 +140,13 @@ function errorOutput(
         `${item.name ?? ''} ${item.code ?? ''}`,
       ),
     );
-  let message = error instanceof Error ? error.message : String(error);
   // Error messages may include provider request details; retain a bounded diagnostic only.
-  for (const secret of [model.apiKey, model.baseUrl]) {
-    if (secret) message = message.split(secret).join('[redacted]');
-  }
-  message = message
+  const message = [model.apiKey, model.baseUrl]
+    .filter(Boolean)
+    .reduce(
+      (message, secret) => message.split(secret).join('[redacted]'),
+      error instanceof Error ? error.message : String(error),
+    )
     .replace(/Bearer\s+\S+/gi, 'Bearer [redacted]')
     .slice(0, 2000);
   return {
@@ -169,16 +159,6 @@ function errorOutput(
       retryable: !deterministic,
     },
   };
-}
-
-function freezeAttempt(output: Output, profiling: Profile): AttemptResult {
-  if (output.center) Object.freeze(output.center);
-  if (output.rect) Object.freeze(output.rect);
-  if (output.error) Object.freeze(output.error);
-  return Object.freeze({
-    output: Object.freeze(output),
-    profiling: Object.freeze(profiling),
-  });
 }
 
 export async function runTestcase({
@@ -220,157 +200,154 @@ export async function runTestcase({
   });
   // Both branches resolve, so a rejection arriving after timeout is always handled.
   const work = (async (): Promise<Output> => {
-    let agent: Agent | undefined;
-    try {
-      const record = await validateLoadedTestcase(captured);
-      validated = true;
-      if (settled || performance.now() - startedAt >= timeoutMs)
-        return timeoutOutput;
-      const { testcase } = record;
-      const image = record.files[imageFilename(testcase)];
-      const { width, height } = encodedImageInfoOfBuffer(image);
-      const shrink =
-        model.family === 'jev' ? Math.max(1, width / 1568, height / 1568) : 1;
-      agent = new Agent(
-        {
-          interfaceType: 'static',
-          actionSpace: () => [],
-          screenshotBase64: async () =>
-            `data:image/${testcase.reference.image.format};base64,${image.toString('base64')}`,
-          size: async () => ({ width, height }),
-        },
-        {
-          generateReport: false,
-          screenshotShrinkFactor: shrink,
-          modelConfig: {
-            MIDSCENE_MODEL_BASE_URL: model.baseUrl,
-            MIDSCENE_MODEL_API_KEY: model.apiKey,
-            MIDSCENE_MODEL_FAMILY: model.family,
-            MIDSCENE_MODEL_NAME: model.name,
-            MIDSCENE_MODEL_RETRY_COUNT: '0',
-            MIDSCENE_MODEL_STREAM_MODE: 'non-stream',
-            ...(model.protocol
-              ? { MIDSCENE_MODEL_PROTOCOL: model.protocol }
-              : {}),
-            ...(model.reasoningEnabled !== undefined
-              ? {
-                  MIDSCENE_MODEL_REASONING_ENABLED: String(
-                    model.reasoningEnabled,
-                  ),
-                }
-              : {}),
-          },
-          onLLMUsage: (usage) => {
-            if (!settled) usages.push(structuredClone(usage));
-          },
-          createOpenAIClient: async (client, options) => {
-            const transport = options.fetch as typeof fetch;
-            if (typeof transport !== 'function')
-              throw new Error('SDK did not provide its request transport');
-            return client.withOptions({
-              maxRetries: 0,
-              fetch: async (
-                input: Parameters<typeof fetch>[0],
-                init: Parameters<typeof fetch>[1],
-              ) => {
-                const call: ObservedCall = {};
-                const requestStarted = performance.now();
-                if (!settled) calls.push(call);
-                const response = await transport(input, init);
-                if (!settled) call.status = response.status;
-                try {
-                  const body: unknown = await response.clone().json();
-                  if (
-                    !settled &&
-                    body &&
-                    typeof body === 'object' &&
-                    'usage' in body &&
-                    body.usage &&
-                    typeof body.usage === 'object'
-                  ) {
-                    const usage = body.usage as Record<string, unknown>;
-                    const input = usage.prompt_tokens ?? usage.input_tokens;
-                    const output =
-                      usage.completion_tokens ?? usage.output_tokens;
-                    if (validCount(input)) call.input = input;
-                    if (validCount(output)) call.output = output;
-                    if (validCount(usage.total_tokens))
-                      call.total = usage.total_tokens;
-                    const details =
-                      usage.prompt_tokens_details ?? usage.input_tokens_details;
-                    if (
-                      details &&
-                      typeof details === 'object' &&
-                      'cached_tokens' in details &&
-                      validCount(details.cached_tokens)
-                    )
-                      call.cached = details.cached_tokens;
-                  }
-                } catch {
-                  // The SDK owns response parsing; lack of readable usage is recorded as unknown.
-                }
-                if (!settled)
-                  call.durationMs = performance.now() - requestStarted;
-                return response;
-              },
-            });
-          },
-        },
-      );
-      try {
-        const located = await agent.aiLocate(
-          testcase.instruction[testcase.instructionLanguage],
-        );
-        const scaleX = width / Math.round(width / shrink);
-        const scaleY = height / Math.round(height / shrink);
-        if (
-          !located.center ||
-          located.center.some((value) => !Number.isFinite(value))
-        ) {
-          throw new Error('Model returned an invalid locate point');
-        }
-        const center: [number, number] = [
-          located.center[0] * scaleX,
-          located.center[1] * scaleY,
-        ];
-        const gt = testcase.groundTruth;
-        return outputSchema.parse({
-          type: 'POINT',
-          center,
-          correct:
-            gt !== 'REFUSAL' &&
-            center[0] >= gt[3] &&
-            center[0] <= gt[1] &&
-            center[1] >= gt[0] &&
-            center[1] <= gt[2],
-          ...(located.rect
+    const record = await validateLoadedTestcase(captured);
+    validated = true;
+    if (settled || performance.now() - startedAt >= timeoutMs)
+      return timeoutOutput;
+    const { testcase } = record;
+    const image = record.files[imageFilename(testcase)];
+    const { width, height } = encodedImageInfoOfBuffer(image);
+    const shrink =
+      model.family === 'jev' ? Math.max(1, width / 1568, height / 1568) : 1;
+    const agent = new Agent(
+      {
+        interfaceType: 'static',
+        actionSpace: () => [],
+        screenshotBase64: async () =>
+          `data:image/${testcase.reference.image.format};base64,${image.toString('base64')}`,
+        size: async () => ({ width, height }),
+      },
+      {
+        generateReport: false,
+        screenshotShrinkFactor: shrink,
+        modelConfig: {
+          MIDSCENE_MODEL_BASE_URL: model.baseUrl,
+          MIDSCENE_MODEL_API_KEY: model.apiKey,
+          MIDSCENE_MODEL_FAMILY: model.family,
+          MIDSCENE_MODEL_NAME: model.name,
+          MIDSCENE_MODEL_RETRY_COUNT: '0',
+          MIDSCENE_MODEL_STREAM_MODE: 'non-stream',
+          ...(model.protocol
+            ? { MIDSCENE_MODEL_PROTOCOL: model.protocol }
+            : {}),
+          ...(model.reasoningEnabled !== undefined
             ? {
-                rect: {
-                  left: located.rect.left * scaleX,
-                  top: located.rect.top * scaleY,
-                  width: located.rect.width * scaleX,
-                  height: located.rect.height * scaleY,
-                },
+                MIDSCENE_MODEL_REASONING_ENABLED: String(
+                  model.reasoningEnabled,
+                ),
               }
             : {}),
-          ...(located.dpr !== undefined ? { dpr: located.dpr } : {}),
-        });
-      } catch (error) {
-        // TaskExecutionError exposes this only for an explicitly parsed absent target.
-        if (
-          error &&
-          typeof error === 'object' &&
-          'locateOutcome' in error &&
-          error.locateOutcome === 'not-found'
-        ) {
-          return {
-            type: 'REFUSAL',
-            correct: testcase.groundTruth === 'REFUSAL',
-          };
-        } else throw error;
+        },
+        onLLMUsage: (usage) => {
+          if (!settled) usages.push(structuredClone(usage));
+        },
+        createOpenAIClient: async (client, options) => {
+          const transport = options.fetch as typeof fetch;
+          if (typeof transport !== 'function')
+            throw new Error('SDK did not provide its request transport');
+          return client.withOptions({
+            maxRetries: 0,
+            fetch: async (
+              input: Parameters<typeof fetch>[0],
+              init: Parameters<typeof fetch>[1],
+            ) => {
+              const call: ObservedCall = {};
+              const requestStarted = performance.now();
+              if (!settled) calls.push(call);
+              const response = await transport(input, init);
+              if (!settled) call.status = response.status;
+              try {
+                const body: unknown = await response.clone().json();
+                if (
+                  !settled &&
+                  body &&
+                  typeof body === 'object' &&
+                  'usage' in body &&
+                  body.usage &&
+                  typeof body.usage === 'object'
+                ) {
+                  const usage = body.usage as Record<string, unknown>;
+                  const input = usage.prompt_tokens ?? usage.input_tokens;
+                  const output = usage.completion_tokens ?? usage.output_tokens;
+                  if (validCount(input)) call.input = input;
+                  if (validCount(output)) call.output = output;
+                  if (validCount(usage.total_tokens))
+                    call.total = usage.total_tokens;
+                  const details =
+                    usage.prompt_tokens_details ?? usage.input_tokens_details;
+                  if (
+                    details &&
+                    typeof details === 'object' &&
+                    'cached_tokens' in details &&
+                    validCount(details.cached_tokens)
+                  )
+                    call.cached = details.cached_tokens;
+                }
+              } catch {
+                // The SDK owns response parsing; lack of readable usage is recorded as unknown.
+              }
+              if (!settled)
+                call.durationMs = performance.now() - requestStarted;
+              return response;
+            },
+          });
+        },
+      },
+    );
+    try {
+      const located = await agent.aiLocate(
+        testcase.instruction[testcase.instructionLanguage],
+      );
+      const scaleX = width / Math.round(width / shrink);
+      const scaleY = height / Math.round(height / shrink);
+      if (
+        !located.center ||
+        located.center.some((value) => !Number.isFinite(value))
+      ) {
+        throw new Error('Model returned an invalid locate point');
       }
+      const center: [number, number] = [
+        located.center[0] * scaleX,
+        located.center[1] * scaleY,
+      ];
+      const gt = testcase.groundTruth;
+      return outputSchema.parse({
+        type: 'POINT',
+        center,
+        correct:
+          gt !== 'REFUSAL' &&
+          center[0] >= gt[3] &&
+          center[0] <= gt[1] &&
+          center[1] >= gt[0] &&
+          center[1] <= gt[2],
+        ...(located.rect
+          ? {
+              rect: {
+                left: located.rect.left * scaleX,
+                top: located.rect.top * scaleY,
+                width: located.rect.width * scaleX,
+                height: located.rect.height * scaleY,
+              },
+            }
+          : {}),
+        ...(located.dpr !== undefined ? { dpr: located.dpr } : {}),
+      });
+    } catch (error) {
+      // TaskExecutionError exposes this only for an explicitly parsed absent target.
+      if (
+        error &&
+        typeof error === 'object' &&
+        'locateOutcome' in error &&
+        error.locateOutcome === 'not-found'
+      ) {
+        return {
+          type: 'REFUSAL',
+          correct: testcase.groundTruth === 'REFUSAL',
+        };
+      }
+      throw error;
     } finally {
-      await agent?.destroy();
+      await agent.destroy();
     }
   })().catch((error) => {
     const output = errorOutput(error, model, calls[calls.length - 1]?.status);
@@ -383,18 +360,21 @@ export async function runTestcase({
   clearTimeout(timer);
   const finalOutput: Output =
     !output || durationMs >= timeoutMs ? timeoutOutput : output;
-  return freezeAttempt(
-    finalOutput,
-    usageProfile(usages, calls, durationMs, model.family, finalOutput),
-  );
+  return deepFreeze({
+    output: finalOutput,
+    profiling: usageProfile(
+      usages,
+      calls,
+      durationMs,
+      model.family,
+      finalOutput,
+    ),
+  });
 }
 
 function aggregateProfiles(attempts: AttemptResult[]): Profile {
   const profile: Profile = {
-    durationMs: attempts.reduce(
-      (sum, attempt) => sum + attempt.profiling.durationMs,
-      0,
-    ),
+    durationMs: sumBy(attempts, (attempt) => attempt.profiling.durationMs),
     usageStatus: attempts.every(
       (attempt) => attempt.profiling.usageStatus === 'complete',
     )
@@ -403,12 +383,18 @@ function aggregateProfiles(attempts: AttemptResult[]): Profile {
         ? 'missing'
         : 'partial',
   };
-  for (const key of usageKeys) {
+  for (const key of [
+    'totalPromptTokens',
+    'totalCompletionTokens',
+    'totalTokens',
+    'totalCachedInput',
+    'totalTimeCostMs',
+    'calls',
+  ] as const) {
     const values = attempts.flatMap((attempt) =>
       attempt.profiling[key] === undefined ? [] : [attempt.profiling[key]],
     );
-    if (values.length)
-      profile[key] = values.reduce((sum, value) => sum + value, 0);
+    if (values.length) profile[key] = sum(values);
   }
   if (profile.usageStatus === 'partial') profile.usageNote = usageNote;
   return profile;
@@ -468,7 +454,9 @@ export async function runBenchmark({
     timeoutMs,
   });
   const [testcases, metadata] = await Promise.all([
-    Promise.all(captured.map((record) => validateLoadedTestcase(record))),
+    Promise.all(captured.map((record) => validateLoadedTestcase(record))).then(
+      (records) => sortBy(records, [(record) => record.testcase.name]),
+    ),
     mergeReportMeta(meta),
   ]);
   if (
@@ -481,13 +469,6 @@ export async function runBenchmark({
       .size !== testcases.length
   )
     throw new Error('Testcase snapshot directory collision (case-insensitive)');
-  testcases.sort((a, b) =>
-    a.testcase.name < b.testcase.name
-      ? -1
-      : a.testcase.name > b.testcase.name
-        ? 1
-        : 0,
-  );
   const startedAt = new Date().toISOString();
   const id = String(Date.now());
   const directory = path.resolve(outputDirectory, id);
@@ -507,22 +488,15 @@ export async function runBenchmark({
     completed: 0,
     versions: { package: version, sdk: getVersion() },
     options,
-    models: models.map(
-      ({
-        name,
-        family,
-        displayName,
-        directory: modelDirectory,
-        protocol,
-        reasoningEnabled,
-      }) => ({
-        name,
-        family,
-        displayName,
-        directory: modelDirectory,
-        ...(protocol ? { protocol } : {}),
-        ...(reasoningEnabled !== undefined ? { reasoningEnabled } : {}),
-      }),
+    models: models.map((model) =>
+      pick(model, [
+        'name',
+        'family',
+        'displayName',
+        'directory',
+        'protocol',
+        'reasoningEnabled',
+      ]),
     ),
     testcases: testcases.map((record) => ({
       name: record.testcase.name,

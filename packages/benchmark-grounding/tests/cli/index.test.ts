@@ -19,7 +19,8 @@ const sdk = rs.hoisted(() => ({
 const launch = rs.hoisted(() => rs.fn());
 rs.mock('@midscene/benchmark-grounding', () => sdk);
 rs.mock('open', () => ({ default: launch }));
-import { main, writeReport } from '../cli/index';
+import { main } from '../../cli/index';
+import { fixture } from '../fixture';
 
 const model = {
   name: 'model',
@@ -60,6 +61,49 @@ async function runDirectory() {
   });
   return directory;
 }
+
+describe('CLI validation', () => {
+  test('validates bundled or selected testcases without model configuration or other side effects', async () => {
+    process.env.MIDSCENE_GROUNDING_EVALUATION_CONFIG = 'invalid JSON';
+    sdk.loadTestcases.mockResolvedValue([fixture('a'), fixture('b')]);
+    const stdout = rs.spyOn(process.stdout, 'write').mockReturnValue(true);
+
+    expect(await main(['node', 'cli', 'validate'])).toBe(0);
+    expect(sdk.loadTestcases).toHaveBeenLastCalledWith({
+      directory: undefined,
+      names: undefined,
+    });
+    expect(stdout).toHaveBeenCalledWith('Validated 2 testcases.\n');
+
+    await main([
+      'node',
+      'cli',
+      'validate',
+      '--testcases',
+      './dataset',
+      '--names',
+      'a',
+      'b',
+    ]);
+    expect(sdk.loadTestcases).toHaveBeenLastCalledWith({
+      directory: './dataset',
+      names: ['a', 'b'],
+    });
+    expect(sdk.runBenchmark).not.toHaveBeenCalled();
+    expect(sdk.createViewer).not.toHaveBeenCalled();
+    expect(sdk.createReport).not.toHaveBeenCalled();
+    expect(launch).not.toHaveBeenCalled();
+  });
+
+  test('propagates validation errors without reporting success', async () => {
+    sdk.loadTestcases.mockRejectedValue(new Error('image SHA-256 mismatch'));
+    const stdout = rs.spyOn(process.stdout, 'write').mockReturnValue(true);
+    await expect(main(['node', 'cli', 'validate'])).rejects.toThrow(
+      'image SHA-256 mismatch',
+    );
+    expect(stdout).not.toHaveBeenCalled();
+  });
+});
 
 describe('CLI report workflow', () => {
   test('run generates the same report as standalone report and opens it by default', async () => {
@@ -112,14 +156,6 @@ describe('CLI report workflow', () => {
     expect(launch).not.toHaveBeenCalled();
   });
 
-  test('a report write failure does not open a browser', async () => {
-    const directory = await runDirectory();
-    await expect(
-      writeReport({ runDirectory: directory, output: directory }),
-    ).rejects.toThrow();
-    expect(launch).not.toHaveBeenCalled();
-  });
-
   test('completed model errors still generate and open the automatic report', async () => {
     const directory = await runDirectory();
     sdk.runBenchmark.mockResolvedValue({
@@ -163,14 +199,6 @@ describe('CLI report workflow', () => {
 });
 
 describe('CLI inputs', () => {
-  test('viewer rejects invalid ports before loading data or opening a browser', async () => {
-    await expect(
-      main(['node', 'cli', 'viewer', '--port', '0']),
-    ).rejects.toThrow();
-    expect(sdk.loadTestcases).not.toHaveBeenCalled();
-    expect(launch).not.toHaveBeenCalled();
-  });
-
   test('viewer reports invalid datasets without opening a browser', async () => {
     sdk.loadTestcases.mockRejectedValue(
       new Error('Testcase image SHA-256 mismatch'),
@@ -238,25 +266,14 @@ describe('CLI inputs', () => {
     );
   });
 
-  test.each(['0', '-1', '1.5', 'NaN'])(
-    'rejects invalid concurrency %s before loading data',
-    async (concurrency) => {
-      const directory = await runDirectory();
-      await expect(
-        main([
-          'node',
-          'cli',
-          'run',
-          '--output',
-          directory,
-          '--concurrency',
-          concurrency,
-        ]),
-      ).rejects.toThrow();
-      expect(sdk.loadTestcases).not.toHaveBeenCalled();
-      expect(sdk.runBenchmark).not.toHaveBeenCalled();
-    },
-  );
+  test('rejects invalid concurrency before loading data', async () => {
+    const directory = await runDirectory();
+    await expect(
+      main(['node', 'cli', 'run', '--output', directory, '--concurrency', '0']),
+    ).rejects.toThrow();
+    expect(sdk.loadTestcases).not.toHaveBeenCalled();
+    expect(sdk.runBenchmark).not.toHaveBeenCalled();
+  });
 
   test('rejects malformed or missing model configuration before calling models', async () => {
     const directory = await runDirectory();

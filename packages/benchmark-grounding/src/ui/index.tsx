@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter } from 'react-router';
-import type { UIData } from '../reporter';
+import type { UIData } from '../core/reporter';
 import { App } from './App';
 import { brandLogo } from './brand';
 import './styles.css';

@@ -1,5 +1,5 @@
-export { createReport, createViewer } from './reporter';
-export { runBenchmark, runTestcase } from './runner';
+export { createReport, createViewer } from './core/reporter';
+export { runBenchmark, runTestcase } from './core/runner';
 export type {
   AttemptResult,
   LoadedTestcase,
@@ -7,5 +7,5 @@ export type {
   ReportMeta,
   RunSummary,
   Testcase,
-} from './schemas';
-export { loadTestcases } from './testcase';
+} from './core/schemas';
+export { loadTestcases } from './core/testcase';

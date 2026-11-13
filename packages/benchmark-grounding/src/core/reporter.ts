@@ -1,6 +1,7 @@
 import { lstat, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
+import { sortBy } from 'es-toolkit';
 import {
   type LoadedTestcase,
   type ReportMeta,
@@ -50,7 +51,7 @@ async function assembleHTML(data: UIData): Promise<string> {
     new URL('./ui-template.html', import.meta.url),
     'utf8',
   );
-  const placeholder = '__MIDSCENE_BENCHMARK_DATA__';
+  const placeholder = '"__MIDSCENE_BENCHMARK_DATA__"';
   if (template.split(placeholder).length !== 2) {
     throw new Error(
       'Benchmark UI template must contain exactly one data placeholder',
@@ -83,22 +84,17 @@ export async function createViewer({
   const validated = await Promise.all(
     captured.map((record) => validateLoadedTestcase(record)),
   );
-  validated.sort((a, b) =>
-    a.testcase.name < b.testcase.name
-      ? -1
-      : a.testcase.name > b.testcase.name
-        ? 1
-        : 0,
-  );
   return assembleHTML({
     mode: 'viewer',
-    testcases: embeddedTestcases(validated, imageBaseUrl),
+    testcases: embeddedTestcases(
+      sortBy(validated, [(record) => record.testcase.name]),
+      imageBaseUrl,
+    ),
   });
 }
 
 async function ordinaryDirectory(directory: string) {
-  const stat = await lstat(directory);
-  if (!stat.isDirectory()) {
+  if (!(await lstat(directory)).isDirectory()) {
     throw new Error(
       `Run snapshot must contain ordinary directories: ${directory}`,
     );
@@ -174,22 +170,22 @@ export async function createReport({
   for (const [name, family] of Object.entries(meta.families)) {
     if (
       family.logo &&
+      !/^https?:\/\//i.test(family.logo) &&
       !/^data:image\/(?:png|jpeg|gif|webp|svg\+xml|avif|x-icon)(?:;base64,[A-Za-z0-9+/]+={0,2}|(?:;charset=[\w-]+|;utf8)?,[^\r\n]+)$/i.test(
         family.logo,
       )
     ) {
       throw new Error(
-        `Metadata snapshot family ${name}: logo must be an embedded image data URI`,
+        `Metadata snapshot family ${name}: logo must be an HTTP(S) URL or embedded image data URI`,
       );
     }
   }
 
   const testcaseDirectory = path.join(directory, 'testcases');
   await ordinaryDirectory(testcaseDirectory);
-  const snapshotEntries = await readdir(testcaseDirectory, {
+  for (const entry of await readdir(testcaseDirectory, {
     withFileTypes: true,
-  });
-  for (const entry of snapshotEntries) {
+  })) {
     if (!entry.isDirectory())
       throw new Error('Testcase snapshots must be ordinary directories');
     const files = await readdir(path.join(testcaseDirectory, entry.name), {
@@ -232,7 +228,6 @@ export async function createReport({
     run.models.map((model) => [model.directory, model]),
   );
   const results: Result[] = [];
-  const seen = new Set<string>();
   const resultsPath = path.join(directory, 'results');
   const directories = await (async () => {
     try {
@@ -248,11 +243,7 @@ export async function createReport({
     const model = modelsByDirectory.get(modelDirectory.name);
     if (!model || !modelDirectory.isDirectory())
       throw new Error('Unexpected model results directory');
-    const resultsDirectory = path.join(
-      directory,
-      'results',
-      modelDirectory.name,
-    );
+    const resultsDirectory = path.join(resultsPath, modelDirectory.name);
     for (const entry of await readdir(resultsDirectory, {
       withFileTypes: true,
     })) {
@@ -266,10 +257,6 @@ export async function createReport({
         throw new Error(
           'Result file testcase identity does not match run manifest',
         );
-      const key = taskKey(result.input.displayName, result.input.testcase);
-      if (seen.has(key))
-        throw new Error('Duplicate result for a model/testcase task');
-      seen.add(key);
       const input = result.input;
       const expected = testcase.testcase;
       if (

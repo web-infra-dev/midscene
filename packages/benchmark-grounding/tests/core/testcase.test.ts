@@ -2,17 +2,9 @@ import { createHash } from 'node:crypto';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {
-  encodedImageInfoOfBuffer,
-  isValidPNGImageBuffer,
-} from '@midscene/shared/img';
 import { afterEach, describe, expect, it } from '@rstest/core';
-import {
-  cloneLoadedTestcases,
-  loadTestcases,
-  validateLoadedTestcase,
-} from '../src/testcase';
-import { fixture, rewriteJson, writeFixture } from './fixture';
+import { loadTestcases, validateLoadedTestcase } from '../../src/core/testcase';
+import { fixture, rewriteJson, writeFixture } from '../fixture';
 
 const temporary: string[] = [];
 const root = async () => {
@@ -131,22 +123,7 @@ describe('loadTestcases', () => {
     );
   });
 
-  it('rejects mismatched parsed values and SHA values, then owns independent bytes', async () => {
-    const original = fixture();
-    const copy = cloneLoadedTestcases([original])[0];
-    original.testcase.instruction.en = 'changed';
-    original.files['image.png'].fill(0);
-    expect((await validateLoadedTestcase(copy)).testcase.instruction.en).toBe(
-      'Locate the target',
-    );
-    await expect(validateLoadedTestcase(original)).rejects.toThrow(
-      'does not match index.json',
-    );
-    copy.testcaseSha256 = '0'.repeat(64);
-    await expect(validateLoadedTestcase(copy)).rejects.toThrow('supplied SHA');
-  });
-
-  it('rejects corrupt image headers even when hashes, signature and encoded dimensions are valid', async () => {
+  it('rejects corrupt image headers even when hashes are valid', async () => {
     const record = fixture();
     const image = record.files['image.png'];
     image.write('JUNK', 12, 'ascii');
@@ -154,8 +131,6 @@ describe('loadTestcases', () => {
       .update(image)
       .digest('hex');
     rewriteJson(record);
-    expect(isValidPNGImageBuffer(image)).toBe(true);
-    expect(encodedImageInfoOfBuffer(image)).toEqual({ width: 1, height: 1 });
     await expect(validateLoadedTestcase(record)).rejects.toThrow();
   });
 

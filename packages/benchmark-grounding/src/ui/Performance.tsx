@@ -1,14 +1,14 @@
+import { mean, meanBy, sortBy } from 'es-toolkit';
 import { useEffect, useId, useMemo, useState } from 'react';
-import { Link } from 'react-router';
-import type { UIData } from '../reporter';
+import { Link, useLocation } from 'react-router';
+import type { UIData } from '../core/reporter';
 import { ModelPerformanceChart } from './components/ModelPerformanceChart';
 import {
   type ModelSortKey,
   type ModelSummary,
-  compareNames,
-  matrixRowStatus,
   resultKey,
-  resultStatusLabel,
+  resultStatus,
+  resultStatusLabels,
   sortModels,
   testcasePath,
 } from './types';
@@ -29,7 +29,7 @@ const columns = [
     key: 'estimatedElapsedTime',
     label: 'Estimated Model Duration',
     unit: 'seconds',
-    help: 'Model average (seconds): min(Reference Estimate Avg., max(Measured Duration Avg. − 0.10, 0)). Reference estimates use Model Calls × TTFT + max(Output Tokens − Model Calls, 0) ÷ Output Throughput per testcase. Decision models use Model Calls × reference response latency. The fixed 100ms allowance is an approximation, deducted once per testcase. Negative corrected durations are clamped to zero. Each input is averaged over its own valid samples before taking the minimum. Missing measured timing uses the reference estimate.',
+    help: 'Model average (seconds): min(Reference Estimate Avg., max(Measured Duration Avg. − 0.10, 0)). Reference estimates use Model Calls × TTFT + max(Output Tokens − Model Calls, 0) ÷ Output Throughput per testcase. When response latency is provided, estimates use Model Calls × response latency. The fixed 100ms allowance is an approximation, deducted once per testcase. Negative corrected durations are clamped to zero. Each input is averaged over its own valid samples before taking the minimum. Missing measured timing uses the reference estimate.',
   },
   {
     key: 'duration',
@@ -117,20 +117,12 @@ function Reference({ model }: { model: ModelSummary }) {
       <summary>{ref.source}</summary>
       <div className="model-breakdown-reference-details">
         <p>
-          {performance?.basis === 'best-response-latency'
-            ? 'P50 response latency'
-            : performance?.basis === 'best-per-metric'
-              ? 'Best P50'
-              : performance?.basis === 'mixed-source'
-                ? 'Mixed performance references'
-                : performance
-                  ? 'Benchmark mean'
-                  : 'Pricing only'}{' '}
-          · {(performance?.observedAt ?? ref.observedAt).slice(0, 10)}
+          {performance ? 'Performance reference' : 'Pricing only'} ·{' '}
+          {(performance?.observedAt ?? ref.observedAt).slice(0, 10)}
         </p>
         {performance ? (
           <p>
-            {performance.basis === 'best-response-latency'
+            {'responseLatencyMs' in performance
               ? `${(performance.responseLatencyMs / 1000).toFixed(2)} s per call`
               : `TTFT ${(performance.timeToFirstTokenMs / 1000).toFixed(2)} s · ${performance.outputTokensPerSecond.toLocaleString('en-US', { maximumFractionDigits: 2 })} tokens/s`}
           </p>
@@ -181,7 +173,10 @@ function Reference({ model }: { model: ModelSummary }) {
   );
 }
 
-export function Performance({ data }: { data: UIData }) {
+export function Performance({
+  data,
+  onOpenTestcase,
+}: { data: UIData; onOpenTestcase: () => void }) {
   const models = data.summaries?.models ?? [];
   useEffect(() => {
     function dismissHelp() {
@@ -294,6 +289,7 @@ export function Performance({ data }: { data: UIData }) {
                     <Link
                       className="model-breakdown-link"
                       to={testcasePath(data.testcases[0]?.name, model.model)}
+                      onClick={onOpenTestcase}
                       aria-label={`View details for ${model.model}`}
                     >
                       View details →
@@ -355,16 +351,20 @@ export function Performance({ data }: { data: UIData }) {
           </table>
         </section>
       </section>
-      <TestcaseMatrix data={data} />
+      <TestcaseMatrix data={data} onOpenTestcase={onOpenTestcase} />
     </>
   );
 }
 
-export function TestcaseMatrix({ data }: { data: UIData }) {
+function TestcaseMatrix({
+  data,
+  onOpenTestcase,
+}: { data: UIData; onOpenTestcase: () => void }) {
+  const location = useLocation();
   const [filter, setFilter] = useState('all');
   const { models, rows, counts } = useMemo(() => {
     const models = (data.run?.models.map((model) => model.displayName) ?? [])
-      .sort(compareNames)
+      .sort()
       .reverse();
     const byKey = new Map(
       data.results?.map((result) => [
@@ -373,31 +373,31 @@ export function TestcaseMatrix({ data }: { data: UIData }) {
       ]),
     );
     const counts = { 'all-passed': 0, 'all-failed': 0, incomplete: 0 };
-    const rows = [...data.testcases]
-      .sort((a, b) => compareNames(a.name, b.name))
-      .map(({ name }) => {
-        const cells = models.map((model) => byKey.get(resultKey(name, model)));
-        const passed = cells.filter((result) => result?.output.correct).length;
-        const status = matrixRowStatus(cells);
-        if (status !== 'mixed') counts[status]++;
-        return { name, cells, passed, status };
-      });
+    const rows = sortBy(data.testcases, ['name']).map(({ name }) => {
+      const cells = models.map((model) => byKey.get(resultKey(name, model)));
+      const passed = cells.filter((result) => result?.output.correct).length;
+      const status =
+        !cells.length || cells.some((result) => !result)
+          ? 'incomplete'
+          : passed === cells.length
+            ? 'all-passed'
+            : passed === 0
+              ? 'all-failed'
+              : 'mixed';
+      if (status !== 'mixed') counts[status]++;
+      return { name, cells, passed, status };
+    });
     return { models, rows, counts: { all: rows.length, ...counts } };
   }, [data]);
   const scores =
     data.summaries?.models.flatMap((model) =>
       model.score === null ? [] : [model.score],
     ) ?? [];
-  const mean = scores.length
-    ? scores.reduce((sum, score) => sum + score, 0) / scores.length
-    : null;
+  const average = scores.length ? mean(scores) : null;
   const deviation =
-    mean === null
+    average === null
       ? null
-      : Math.sqrt(
-          scores.reduce((sum, score) => sum + (score - mean) ** 2, 0) /
-            scores.length,
-        );
+      : Math.sqrt(meanBy(scores, (score) => (score - average) ** 2));
   const visible =
     filter === 'all' ? rows : rows.filter((row) => row.status === filter);
   return (
@@ -483,7 +483,15 @@ export function TestcaseMatrix({ data }: { data: UIData }) {
             {visible.map(({ name, cells, passed, status }) => (
               <tr key={name} data-status={status}>
                 <th scope="row">
-                  <Link className="matrix-case-link" to={testcasePath(name)}>
+                  <Link
+                    className="matrix-case-link"
+                    to={testcasePath(
+                      name,
+                      new URLSearchParams(location.search).get('model') ??
+                        undefined,
+                    )}
+                    onClick={onOpenTestcase}
+                  >
                     {name}
                   </Link>
                 </th>
@@ -493,12 +501,13 @@ export function TestcaseMatrix({ data }: { data: UIData }) {
                   </span>
                 </td>
                 {cells.map((result, index) => {
-                  const label = `${name} · ${models[index]} · ${resultStatusLabel(result)}`;
+                  const label = `${name} · ${models[index]} · ${resultStatusLabels[resultStatus(result)]}`;
                   return (
                     <td key={models[index]}>
                       <Link
                         className={`matrix-cell ${!result ? 'missing' : result.output.correct ? 'passed' : 'failed'}`}
                         to={testcasePath(name, models[index])}
+                        onClick={onOpenTestcase}
                         title={label}
                         aria-label={label}
                       >

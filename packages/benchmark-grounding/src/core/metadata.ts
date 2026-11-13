@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { type ReportMeta, reportMetaSchema } from '../schemas';
-import { presetMeta } from './index';
+import { presetMeta } from '../presets';
+import { type ReportMeta, reportMetaSchema } from './schemas';
 
 const imageDataUri =
   /^data:image\/(?:png|jpeg|gif|webp|svg\+xml|avif|x-icon)(?:;base64,[A-Za-z0-9+/]+={0,2}|(?:;charset=[\w-]+|;utf8)?,[^\r\n]+)$/i;
@@ -9,20 +9,26 @@ const imageDataUri =
 /** Capture user data before awaiting; same-name entries replace whole entries. */
 export async function mergeReportMeta(meta?: ReportMeta): Promise<ReportMeta> {
   const custom = reportMetaSchema.parse(meta ?? {});
-  const merged = reportMetaSchema.parse({
+  const merged = structuredClone({
     models: { ...presetMeta.models, ...custom.models },
     families: { ...presetMeta.families, ...custom.families },
   });
   const workingDirectory = process.cwd();
   await Promise.all(
-    Object.entries(merged.families ?? {}).map(async ([name, family]) => {
-      if (!family.logo || imageDataUri.test(family.logo)) return;
+    Object.keys(custom.families ?? {}).map(async (name) => {
+      const family = merged.families[name];
+      if (
+        !family.logo ||
+        /^https?:\/\//i.test(family.logo) ||
+        imageDataUri.test(family.logo)
+      )
+        return;
       if (
         !path.isAbsolute(family.logo) &&
         /^[a-z][a-z\d+.-]*:/i.test(family.logo)
       ) {
         throw new Error(
-          `Metadata family ${name}: logo must be a local file or image data URI`,
+          `Metadata family ${name}: logo must be an HTTP(S) URL, local file or image data URI`,
         );
       }
       const filename = path.resolve(workingDirectory, family.logo);

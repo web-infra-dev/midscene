@@ -87,19 +87,15 @@ const pricingSchema = z.discriminatedUnion('currency', [
     })
     .strict(),
 ]);
-const performanceSchema = z.discriminatedUnion('basis', [
+const performanceSchema = z.union([
   z
     .object({
-      basis: z.literal('best-response-latency'),
-      percentile: z.literal('p50'),
       responseLatencyMs: nonnegative,
       observedAt: text.optional(),
     })
     .strict(),
   z
     .object({
-      basis: z.enum(['best-per-metric', 'mixed-source', 'window-mean']),
-      percentile: z.literal('p50').optional(),
       timeToFirstTokenMs: nonnegative,
       outputTokensPerSecond: finite.positive(),
       url: text.url().optional(),
@@ -148,7 +144,7 @@ export const reportMetaSchema = z
   .strict();
 export type ReportMeta = z.infer<typeof reportMetaSchema>;
 
-export const profileSchema = z
+const profileSchema = z
   .object({
     durationMs: nonnegative,
     usageStatus: z.enum(['complete', 'partial', 'missing']),
@@ -198,7 +194,7 @@ export const outputSchema = z
         message: 'ERROR requires an error and must be incorrect',
       });
   });
-export const attemptResultSchema = z
+const attemptResultSchema = z
   .object({ output: outputSchema, profiling: profileSchema })
   .strict();
 export type AttemptResult = z.infer<typeof attemptResultSchema>;
@@ -243,18 +239,19 @@ export const runSchema = z
       .strict(),
     models: z
       .array(
-        z
-          .object({
-            name: text,
+        modelCallConfigSchema
+          .pick({
+            name: true,
+            family: true,
+            displayName: true,
+            protocol: true,
+            reasoningEnabled: true,
+          })
+          .extend({
             family: text,
             displayName: text,
             directory: testcaseNameSchema,
-            protocol: z.enum(['openai-chat', 'openai-responses']).optional(),
-            reasoningEnabled: z
-              .union([z.boolean(), z.literal('default')])
-              .optional(),
-          })
-          .strict(),
+          }),
       )
       .min(1),
     testcases: z

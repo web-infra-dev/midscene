@@ -3,10 +3,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
-import { runBenchmark, runTestcase } from '../src/runner';
-import type { ModelCallConfig } from '../src/schemas';
-import { loadTestcases } from '../src/testcase';
-import { fixture } from './fixture';
+import { runBenchmark, runTestcase } from '../../src/core/runner';
+import type { ModelCallConfig } from '../../src/core/schemas';
+import { loadTestcases } from '../../src/core/testcase';
+import { fixture } from '../fixture';
 
 const mocks = rs.hoisted(() => ({
   locate: rs.fn(),
@@ -35,14 +35,10 @@ const mocks = rs.hoisted(() => ({
 rs.mock('@midscene/core', () => ({
   getVersion: () => 'test-sdk-version',
   Agent: class {
-    device: (typeof mocks.instances)[number]['device'];
-    options: (typeof mocks.instances)[number]['options'];
     constructor(
-      device: (typeof mocks.instances)[number]['device'],
-      options: (typeof mocks.instances)[number]['options'],
+      public device: (typeof mocks.instances)[number]['device'],
+      public options: (typeof mocks.instances)[number]['options'],
     ) {
-      this.device = device;
-      this.options = options;
       mocks.instances.push(this);
     }
     aiLocate(prompt: string) {
@@ -91,9 +87,8 @@ async function observeRequest(
     headers: { 'Content-Type': 'application/json' },
   });
   const transport = rs.fn(async () => response);
-  const withOptions = rs.fn((options) => options);
   const wrapped = (await agent.options.createOpenAIClient(
-    { withOptions },
+    { withOptions: (options) => options },
     { fetch: transport },
   )) as { fetch: typeof fetch; maxRetries: number };
   expect(wrapped.maxRetries).toBe(0);
@@ -467,31 +462,6 @@ describe('runTestcase', () => {
 });
 
 describe('runBenchmark', () => {
-  it('uses the loader binary name order for its manifest and execution queue', async () => {
-    const { directory } = await runBenchmark({
-      testcases: [
-        fixture('a', { instruction: { en: 'Locate a', zh: '定位a' } }),
-        fixture('B', { instruction: { en: 'Locate B', zh: '定位B' } }),
-      ],
-      models: [model],
-      concurrency: 1,
-      outputDirectory: await outputRoot(),
-    });
-    const manifest = JSON.parse(
-      await readFile(path.join(directory, 'run.json'), 'utf8'),
-    );
-    expect(
-      manifest.testcases.map((testcase: { name: string }) => testcase.name),
-    ).toEqual(['B', 'a']);
-    expect(
-      manifest.tasks.map((task: { testcase: string }) => task.testcase),
-    ).toEqual(['B', 'a']);
-    expect(mocks.locate.mock.calls.map(([prompt]) => prompt)).toEqual([
-      'Locate B',
-      'Locate a',
-    ]);
-  });
-
   it('captures inputs before awaiting, writes exact independent snapshots and manifest identities', async () => {
     const outputDirectory = await outputRoot();
     const record = fixture();
