@@ -116,6 +116,38 @@ describe('plan XML parse retry', () => {
     rs.mocked(buildYamlFlowFromPlans).mockClear();
   });
 
+  it.each(['balance', 'deepThink'] as const)(
+    'retains the raw plan without recording unexecuted actions with %s effort',
+    async (effort) => {
+      const content =
+        '<log>I intend to tap Save</log><action-type>Tap</action-type><action-param-json>{}</action-param-json>';
+      rs.mocked(callGenerativeAI).mockResolvedValueOnce(
+        mockAIResponse(content),
+      );
+      const history = new ConversationHistory();
+      history.setSubGoals([
+        { index: 1, description: 'Save', status: 'running' },
+      ]);
+      const result = await standardPlan('tap Save', {
+        context: mockContext(),
+        actionSpace: mockActionSpace(),
+        modelRuntime: getModelRuntime({
+          ...mockModelConfig(),
+          retryInterval: 0,
+        }),
+        conversationHistory: history,
+        includeLocateInPlanning: false,
+        effort,
+      });
+      expect(result.actions).toHaveLength(1);
+      expect(history.historicalLogsToText()).toBe('');
+      expect(history.subGoalsToText()).not.toContain('I intend to tap Save');
+      expect(JSON.stringify(history.snapshot())).toContain(
+        'I intend to tap Save',
+      );
+    },
+  );
+
   it('sends complete nested custom-action fields to the model before parsing its reply', async () => {
     const parameters = {
       target: { by: 'label', name: 'Access key' },

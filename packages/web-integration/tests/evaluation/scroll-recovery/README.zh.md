@@ -118,3 +118,17 @@ pnpm exec node --test packages/web-integration/tests/evaluation/scroll-recovery/
 使用 `EVAL_ARMS=0,default` 对比关闭恢复与真正省略选项的 aiAct 调用。`3` 是显式开启，会允许视觉回退，不能代替原生测量默认模式。`EVAL_SUITE=routine` 提供八种普通任务布局，包含不滚动的表单和弹窗、有效滚动列表、加载更多，以及边界处严格次数约束。判定器同时检查指令和页面结果。
 
 重复运行用于观察模型波动；八个布局仍然只有八个场景簇。该试跑不能证明一个百分点的不劣门槛，也不能证明严重退化率的上界低于百分之一。必须保留全部失败，并在改变发布默认值前使用有代表性的独立工作负载验证。
+
+
+## 仓库已有页面任务
+
+`EVAL_SUITE=repository EVAL_TRACK=natural` 复用四个已有 HTML 页面，不修改其源码：窄输入框、含禁用和只读字段的表单、原生下拉框，以及被广告弹窗打断的登录。只在页面末尾追加独立结果判定脚本。判定会检查字段值、禁止点击的按钮等约束；登录页面本身接受任意非空值，因此还会核对实际输入的用户名与密码。无模型测试同时检查成功路径和未完成任务的拒绝判定。
+
+先运行页面判定测试：
+
+```sh
+pnpm exec node --test packages/web-integration/tests/evaluation/scroll-recovery/repository-fixtures.test.mjs
+EVAL_SUITE=repository EVAL_TRACK=natural EVAL_ARMS=0,default EVAL_REPETITIONS=3 pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/run.mjs
+```
+
+运行清单为每个最终页面计算哈希，覆盖被引用的 HTML 文件；每次尝试也保留完整页面源码。已有页面扩大了交互覆盖范围，但不能代表生产任务分布、跨模型验证或原始网站验收。结果应与八个普通任务布局及受控边界任务分别汇总。

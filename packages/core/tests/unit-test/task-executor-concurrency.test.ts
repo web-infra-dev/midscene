@@ -1578,7 +1578,9 @@ mCurrentFocus=Window{abc}`;
 
     expect(
       seenPendingFeedback[1],
-    ).toBe(`Time: 2023-10-15 08:30:00 (YYYY-MM-DD HH:mm:ss), ${firstPlanningFeedback}
+    ).toBe(`Time: 2023-10-15 08:30:00 (YYYY-MM-DD HH:mm:ss), Executed UI commands: RunAdbShell; RunAdbShell; RunAdbShell; Tap. The commands returned without an execution error; this alone does not verify the business outcome.
+
+${firstPlanningFeedback}
 
 ${secondPlanningFeedback}
 
@@ -1586,7 +1588,7 @@ ${thirdPlanningFeedback}`);
     expect(seenPendingFeedback[1]).not.toContain(finalActionOutput);
   });
 
-  it('should not pass empty planning feedback into the next planning request', async () => {
+  it('records a returned command even when its tool feedback is empty', async () => {
     const seenPendingFeedback: string[] = [];
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
       getDefaultModelRuntime: defaultModel,
@@ -1657,8 +1659,98 @@ ${thirdPlanningFeedback}`);
       defaultModel(),
     );
 
-    expect(seenPendingFeedback[1]).not.toContain('WriteState');
+    expect(seenPendingFeedback[1]).toContain(
+      'Executed UI commands: WriteState.',
+    );
+    expect(seenPendingFeedback[1]).toContain(
+      'does not verify the business outcome',
+    );
   });
+
+  it.each(['balance', 'deepThink'] as const)(
+    'records only the completed prefix of a failed batch with %s effort',
+    async (effort) => {
+      const seen: { feedback: string; history: string }[] = [];
+      rs.spyOn(taskExecutor, 'convertPlanToExecutable')
+        .mockResolvedValueOnce({
+          tasks: [
+            {
+              type: 'Action Space',
+              subType: 'Tap',
+              param: { locate: { prompt: 'Save' } },
+              executor: async () => ({}),
+            },
+            {
+              type: 'Action Space',
+              subType: 'Input',
+              executor: async () => {
+                throw new Error('input dispatch failed');
+              },
+            },
+            {
+              type: 'Action Space',
+              subType: 'Scroll',
+              executor: async () => ({}),
+            },
+          ],
+          yamlFlow: [],
+        } as any)
+        .mockResolvedValue({ tasks: [], yamlFlow: [] } as any);
+      rs.mocked(standardPlan)
+        .mockImplementationOnce(async (_instruction, opts: any) => {
+          opts.conversationHistory.setSubGoals([
+            { index: 1, description: 'Save', status: 'running' },
+          ]);
+          expect(opts.conversationHistory.historicalLogsToText()).toBe('');
+          return {
+            actions: [{ type: 'Tap' }],
+            yamlFlow: [],
+            shouldContinuePlanning: true,
+            log: 'I intend to save',
+            rawResponse: '',
+          } as any;
+        })
+        .mockImplementationOnce(async (_instruction, opts: any) => {
+          seen.push({
+            feedback: opts.conversationHistory.pendingFeedbackMessage,
+            history:
+              effort === 'deepThink'
+                ? opts.conversationHistory.subGoalsToText()
+                : opts.conversationHistory.historicalLogsToText(),
+          });
+          opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+          return {
+            actions: [],
+            yamlFlow: [],
+            shouldContinuePlanning: false,
+            log: '',
+            rawResponse: '',
+            finalizeSuccess: true,
+          } as any;
+        });
+      await taskExecutor.action(
+        'save',
+        planningModel(),
+        defaultModel(),
+        undefined,
+        false,
+        undefined,
+        effort,
+      );
+      expect(seen).toHaveLength(1);
+      expect(seen[0].feedback).toContain(
+        'Error executing running tasks: input dispatch failed',
+      );
+      for (const value of [seen[0].feedback, seen[0].history]) {
+        expect(value).toContain(
+          'Executed UI commands: Tap (planned target: "Save").',
+        );
+        expect(value).not.toContain('Executed UI commands: Input');
+        expect(value).not.toContain('; Scroll');
+        expect(value).not.toContain('I intend to save');
+      }
+    },
+  );
 
   it('should fall back to runtime time instead of device timestamp when device-local time is unavailable', async () => {
     rs.useFakeTimers();

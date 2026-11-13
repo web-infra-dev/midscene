@@ -48,12 +48,23 @@ export function inspectScrollTarget(
     state.ids.set(target, id);
   }
   const rect = target.getBoundingClientRect();
+  const style = getComputedStyle(target);
+  // RTL, vertical writing and reverse flow may scroll toward negative offsets
+  // even when starting at zero. Keep identity/progress, but leave ranges unknown.
+  const ordinaryRanges =
+    style.direction === 'ltr' &&
+    style.writingMode === 'horizontal-tb' &&
+    !style.flexDirection.endsWith('reverse');
   return {
     targetId: id,
     scrollLeft: target.scrollLeft,
     scrollTop: target.scrollTop,
-    maxScrollLeft: Math.max(0, target.scrollWidth - target.clientWidth),
-    maxScrollTop: Math.max(0, target.scrollHeight - target.clientHeight),
+    ...(ordinaryRanges
+      ? {
+          maxScrollLeft: Math.max(0, target.scrollWidth - target.clientWidth),
+          maxScrollTop: Math.max(0, target.scrollHeight - target.clientHeight),
+        }
+      : {}),
     rect: {
       left: rect.left,
       top: rect.top,

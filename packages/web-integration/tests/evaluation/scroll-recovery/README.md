@@ -131,3 +131,17 @@ pnpm exec node --test packages/web-integration/tests/evaluation/scroll-recovery/
 Use `EVAL_ARMS=0,default` to compare disabled recovery with an aiAct call that omits the option. `3` is an explicit opt-in and permits visual fallback, so it does not test the native-only default policy. `EVAL_SUITE=routine` provides eight ordinary task layouts, including no-scroll forms/dialogs, moving lists, load-more and exact-count scrolling at a boundary. A result checker verifies instructions and page outcomes.
 
 Repetitions estimate model variability; eight layouts remain eight scenario clusters. This pilot cannot establish a one-percentage-point non-inferiority margin or a one-percent upper bound on serious regressions. Preserve all failures and use representative independent workloads before changing release defaults.
+
+
+## Existing repository tasks
+
+`EVAL_SUITE=repository EVAL_TRACK=natural` reuses four existing HTML fixtures without modifying them: narrow text input, a disabled/read-only form, a native select, and login interrupted by an advertisement. Only a separate outcome script is appended. Each task is graded against page state, including exact field values and prohibited button clicks. The fixture tests verify both successful completion and rejection of incomplete work; login additionally checks the submitted credentials because the original page accepts arbitrary nonempty values.
+
+Run the model-free oracle first:
+
+```sh
+pnpm exec node --test packages/web-integration/tests/evaluation/scroll-recovery/repository-fixtures.test.mjs
+EVAL_SUITE=repository EVAL_TRACK=natural EVAL_ARMS=0,default EVAL_REPETITIONS=3 pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/run.mjs
+```
+
+The manifest includes a hash of each rendered fixture, so reused HTML dependencies are covered as well as the suite module. Per-attempt fixture HTML is retained. These existing local fixtures broaden interaction coverage; they are not a production sample, cross-model validation, or original-site acceptance. Keep this suite separate from the eight developmental routine layouts and controlled-stall results.

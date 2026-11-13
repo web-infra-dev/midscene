@@ -93,3 +93,34 @@ it('does not infer a default target from a stale pointer after a direct gesture'
     await adapter.captureScrollState({ direction: 'down' } as any),
   ).toBeDefined();
 });
+
+it.each([
+  'direction:rtl',
+  'display:flex;flex-direction:row-reverse',
+  'display:flex;flex-direction:column-reverse',
+  'writing-mode:vertical-rl',
+  'writing-mode:vertical-lr',
+])(
+  'keeps progress identity without inventing positive ranges for %s',
+  async (layout) => {
+    await page.setContent(
+      `<style>body{margin:0}#target{width:100px;height:100px;overflow:auto;${layout}}</style><div id="target"><div style="width:500px;height:500px;flex-shrink:0">content</div></div>`,
+    );
+    const before = await page.evaluate(inspectScrollTarget, 30, 30);
+    expect(before).toMatchObject({ scrollLeft: 0, scrollTop: 0 });
+    expect(before!.maxScrollLeft).toBeUndefined();
+    expect(before!.maxScrollTop).toBeUndefined();
+    const offsets = await page.evaluate(() => {
+      const target = document.querySelector('#target')!;
+      target.scrollLeft = -400;
+      target.scrollTop = -400;
+      return { scrollLeft: target.scrollLeft, scrollTop: target.scrollTop };
+    });
+    const after = await page.evaluate(inspectScrollTarget, 30, 30);
+    expect(after!.targetId).toBe(before!.targetId);
+    expect(after).toMatchObject(offsets);
+    if (layout !== 'writing-mode:vertical-lr') {
+      expect(offsets.scrollLeft < 0 || offsets.scrollTop < 0).toBe(true);
+    }
+  },
+);

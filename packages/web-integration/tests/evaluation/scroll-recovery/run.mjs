@@ -13,30 +13,24 @@ import {
   fixture as regressionFixture,
 } from './fixtures.mjs';
 import {
+  cases as repositoryCases,
+  fixture as repositoryFixture,
+} from './repository-fixtures.mjs';
+import {
   cases as routineCases,
   fixture as routineFixture,
 } from './routine-fixtures.mjs';
 const suite = process.env.EVAL_SUITE || 'regression';
-if (!['regression', 'boundary', 'routine'].includes(suite))
-  throw new Error('Invalid EVAL_SUITE');
-const cases =
-  suite === 'boundary'
-    ? boundaryCases
-    : suite === 'routine'
-      ? routineCases
-      : regressionCases;
-const fixture =
-  suite === 'boundary'
-    ? boundaryFixture
-    : suite === 'routine'
-      ? routineFixture
-      : regressionFixture;
+const suites = {
+  regression: { cases: regressionCases, fixture: regressionFixture },
+  boundary: { cases: boundaryCases, fixture: boundaryFixture },
+  routine: { cases: routineCases, fixture: routineFixture },
+  repository: { cases: repositoryCases, fixture: repositoryFixture },
+};
+if (!Object.hasOwn(suites, suite)) throw new Error('Invalid EVAL_SUITE');
+const { cases, fixture } = suites[suite];
 const fixtureSource = new URL(
-  suite === 'boundary'
-    ? './boundary-fixtures.mjs'
-    : suite === 'routine'
-      ? './routine-fixtures.mjs'
-      : './fixtures.mjs',
+  `./${suite === 'regression' ? '' : `${suite}-`}fixtures.mjs`,
   import.meta.url,
 );
 const prefixScrolls = Number(process.env.EVAL_PREFIX_SCROLLS || 2);
@@ -81,9 +75,9 @@ if (
 const track = process.env.EVAL_TRACK || 'natural';
 if (!['natural', 'controlled', 'oracle'].includes(track))
   throw new Error('Invalid track');
-if (suite === 'routine' && track !== 'natural')
+if (['routine', 'repository'].includes(suite) && track !== 'natural')
   throw new Error(
-    'Routine suite uses natural model runs; use routine-fixtures.test.mjs for its model-free oracle',
+    `${suite} suite uses natural model runs; use ${suite}-fixtures.test.mjs for its model-free oracle`,
   );
 const selected = cases.filter(
   (c) =>
@@ -139,6 +133,12 @@ await writeFile(
       runnerSHA,
       policy: 'retained-history',
       fixtureSHA: sha,
+      fixtureContentSHA: Object.fromEntries(
+        selected.map((c) => [
+          c.id,
+          createHash('sha256').update(fixture(c)).digest('hex'),
+        ]),
+      ),
       suite,
       controlledPrefixScrolls: prefixScrolls,
       track,

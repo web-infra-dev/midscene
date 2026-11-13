@@ -2,6 +2,11 @@ name: Scroll recovery evaluation
 on:
   workflow_dispatch:
     inputs:
+      suite:
+        description: Evaluation suite (routine and repository require natural track)
+        type: choice
+        options: [regression, boundary, routine, repository]
+        default: regression
       track:
         description: Evaluation track
         type: choice
@@ -33,6 +38,7 @@ jobs:
       MIDSCENE_MODEL_PROTOCOL: openai-chat
       MIDSCENE_MODEL_STREAM_MODE: non-stream
       MIDSCENE_REPORT_QUIET: 'true'
+      EVAL_SUITE: ${{ inputs.suite }}
       EVAL_TRACK: ${{ inputs.track }}
       EVAL_REPETITIONS: ${{ inputs.repetitions }}
       EVAL_WORKERS: '3'
@@ -51,6 +57,10 @@ jobs:
         with:
           command: |
             if [ "$EVAL_TRACK" = observer ]; then
+              if [ "$EVAL_SUITE" != regression ]; then
+                echo '::error::The observer track requires the regression suite'
+                exit 1
+              fi
               pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/observe.mjs
             else
               pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/run.mjs
