@@ -15,6 +15,14 @@ const debugUtils = getDebug('yaml:utils');
 const topLevelTasksPattern = /^tasks\s*:/;
 const topLevelYamlKeyPattern = /^[^\s#][^:]*:/;
 
+// An unquoted deviceId made only of digits, e.g. `deviceId: 001234567890`.
+// It is quoted before parsing, so YAML does not read it as a number. The value
+// must end there (end of line, a comment, or the `,` / `}` of a flow mapping):
+// a serial that only starts with digits, such as `8209406e` or
+// `192.168.1.2:5555`, is already a string and must stay untouched.
+const numericDeviceIdPattern =
+  /(deviceId:[ \t]*)(\d+)(?=[ \t]*\r?$|[ \t]+#|[ \t]*[,}])/gm;
+
 export type WebTargetSource = 'page' | 'browser' | 'web' | 'target';
 
 export type ResolvedWebTarget = {
@@ -268,18 +276,20 @@ export function parseLegacyYamlScript(
   onConfig?: (config: Omit<MidsceneYamlScript, 'tasks'>) => void,
 ): MidsceneYamlScript {
   let processedContent = content;
-  if (content.indexOf('android') !== -1 && content.match(/deviceId:\s*(\d+)/)) {
-    let matchedDeviceId;
+  if (content.indexOf('android') !== -1) {
+    let matchedDeviceId: string | undefined;
     processedContent = content.replace(
-      /deviceId:\s*(\d+)/g,
-      (match, deviceId) => {
+      numericDeviceIdPattern,
+      (_match, key: string, deviceId: string) => {
         matchedDeviceId = deviceId;
-        return `deviceId: '${deviceId}'`;
+        return `${key}'${deviceId}'`;
       },
     );
-    console.warn(
-      `please use string-style deviceId in yaml script, for example: deviceId: "${matchedDeviceId}"`,
-    );
+    if (matchedDeviceId !== undefined) {
+      console.warn(
+        `please use string-style deviceId in yaml script, for example: deviceId: "${matchedDeviceId}"`,
+      );
+    }
   }
   const interpolatedContent = interpolateYamlScriptEnvVars(processedContent);
   const obj = yaml.load(interpolatedContent, {
@@ -289,6 +299,13 @@ export function parseLegacyYamlScript(
   if (obj && typeof obj === 'object' && !Array.isArray(obj)) onConfig?.(obj);
   const pathTip = filePath ? `, failed to load ${filePath}` : '';
   resolveWebTarget(obj);
+  const androidDeviceId: unknown = obj.android?.deviceId;
+  assert(
+    androidDeviceId === undefined ||
+      androidDeviceId === null ||
+      typeof androidDeviceId === 'string',
+    `android.deviceId must be a string in yaml script, but got ${typeof androidDeviceId} ${androidDeviceId}. Please wrap it in quotes${pathTip}`,
+  );
   assert(obj.tasks, `property "tasks" is required in yaml script ${pathTip}`);
   assert(
     Array.isArray(obj.tasks),

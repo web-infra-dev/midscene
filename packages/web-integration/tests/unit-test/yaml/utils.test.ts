@@ -3,7 +3,7 @@ import {
   parseYamlScript,
   resolveWebTarget,
 } from '@midscene/core/yaml';
-import { describe, expect, test } from '@rstest/core';
+import { describe, expect, rs, test } from '@rstest/core';
 
 describe('utils', () => {
   test('build yaml', () => {
@@ -124,6 +124,60 @@ tasks:
 
       const result = parseYamlScript(yamlContent);
       expect(result.android?.deviceId).toBe('0aacde222');
+    });
+
+    test.each([
+      '8209406e',
+      '0123456789ABCDEF',
+      '192.168.1.2:5555',
+      'emulator-5554',
+      '123#serial',
+    ])('android deviceId that starts with digits: %s', (deviceId) => {
+      const warn = rs.spyOn(console, 'warn').mockImplementation(() => {});
+      const yamlContent = `
+android:
+  deviceId: ${deviceId}
+tasks:
+- sleep: 1000
+`;
+
+      try {
+        const result = parseYamlScript(yamlContent);
+        expect(result.android?.deviceId).toBe(deviceId);
+        expect(warn).not.toHaveBeenCalled();
+      } finally {
+        warn.mockRestore();
+      }
+    });
+
+    test.each([
+      ['a trailing comment', 'android:\n  deviceId: 0123 # my phone\n'],
+      ['CRLF line endings', 'android:\r\n  deviceId: 0123\r\n'],
+      ['a flow mapping', 'android: { deviceId: 0123, launch: "app" }\n'],
+      ['a flow mapping end', 'android: { deviceId: 0123 }\n'],
+    ])('android number-style deviceId with %s', (_name, target) => {
+      const warn = rs.spyOn(console, 'warn').mockImplementation(() => {});
+
+      try {
+        const result = parseYamlScript(`${target}tasks:\n- sleep: 1000\n`);
+        expect(result.android?.deviceId).toBe('0123');
+        expect(warn).toHaveBeenCalledTimes(1);
+      } finally {
+        warn.mockRestore();
+      }
+    });
+
+    test('illegal android deviceId reports the reason', () => {
+      const yamlContent = `
+android:
+  deviceId: 0x222
+tasks:
+- sleep: 1000
+`;
+
+      expect(() => parseYamlScript(yamlContent)).toThrow(
+        'android.deviceId must be a string',
+      );
     });
 
     test('aiRightClick', () => {
