@@ -4,7 +4,30 @@ import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { cases, fixture } from './fixtures.mjs';
+import {
+  cases as boundaryCases,
+  fixture as boundaryFixture,
+} from './boundary-fixtures.mjs';
+import {
+  cases as regressionCases,
+  fixture as regressionFixture,
+} from './fixtures.mjs';
+const suite = process.env.EVAL_SUITE || 'regression';
+if (!['regression', 'boundary'].includes(suite))
+  throw new Error('Invalid EVAL_SUITE');
+const cases = suite === 'boundary' ? boundaryCases : regressionCases;
+const fixture = suite === 'boundary' ? boundaryFixture : regressionFixture;
+const fixtureSource = new URL(
+  suite === 'boundary' ? './boundary-fixtures.mjs' : './fixtures.mjs',
+  import.meta.url,
+);
+const prefixScrolls = Number(process.env.EVAL_PREFIX_SCROLLS || 2);
+if (
+  !Number.isSafeInteger(prefixScrolls) ||
+  prefixScrolls < 1 ||
+  prefixScrolls > 10
+)
+  throw new Error('EVAL_PREFIX_SCROLLS must be an integer from 1 to 10');
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../../../../..');
 const require = createRequire(
@@ -72,7 +95,7 @@ const runnerSHA = createHash('sha256')
   .update(await readFile(fileURLToPath(import.meta.url)))
   .digest('hex');
 const sha = createHash('sha256')
-  .update(await readFile(new URL('./fixtures.mjs', import.meta.url)))
+  .update(await readFile(fixtureSource))
   .digest('hex');
 const jobs = [];
 for (const c of selected)
@@ -92,6 +115,8 @@ await writeFile(
       runnerSHA,
       policy: 'retained-history',
       fixtureSHA: sha,
+      suite,
+      controlledPrefixScrolls: prefixScrolls,
       track,
       repetitions,
       workers,
@@ -117,7 +142,7 @@ await writeFile(
 );
 await writeFile(
   path.join(out, 'fixtures-source.mjs'),
-  await readFile(new URL('./fixtures.mjs', import.meta.url)),
+  await readFile(fixtureSource),
 );
 console.log(`EVAL_OUTPUT ${out}`);
 const browser = await puppeteer.launch({
@@ -248,7 +273,7 @@ async function attempt({ c, rep, arm }) {
               body.messages.filter((m) => m.role === 'system'),
             );
             const planning = system.includes('action-type');
-            if (track === 'controlled' && planning && prefix < 2) {
+            if (track === 'controlled' && planning && prefix < prefixScrolls) {
               prefix++;
               // Inject a fixed erroneous plan, not a page mutation or an observer result.
               const param = { direction: 'down', distance: 200 };
@@ -287,7 +312,11 @@ async function attempt({ c, rep, arm }) {
                   ].map(Math.round),
                 };
               }
-              const content = `<planning>Continue scrolling down through the records.</planning><log>Scroll down</log><action-type>Scroll</action-type><action-param-json>${JSON.stringify(param)}</action-param-json>`;
+              const injectedReason =
+                suite === 'boundary'
+                  ? 'Continue scrolling down within the current panel.'
+                  : 'Continue scrolling down through the records.';
+              const content = `<planning>${injectedReason}</planning><log>Scroll down</log><action-type>Scroll</action-type><action-param-json>${JSON.stringify(param)}</action-param-json>`;
               calls.push({ synthetic: true, type: 'prefix', time: Date.now() });
               if (body.stream)
                 return (async function* () {

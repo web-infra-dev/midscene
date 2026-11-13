@@ -114,3 +114,14 @@ Agree these thresholds before the confirmation run; do not choose them from its 
 Store immutable manifests, JSONL attempt records, screenshots and self-contained HTML reports under the configured MIDSCENE_RUN_DIR. Each record includes case/split/arm/repetition IDs, source and fixture SHA, model configuration without credentials, ground truth, action/review traces, outcome, errors, usage and timings. Retain failed experiments.
 
 Implement in order: deterministic fixture/oracle tests; frozen screenshot observer evaluation; natural and controlled task runner; aggregation with confidence intervals; held-out confirmation. Run model-free fixture checks in normal CI and explicitly opted-in model evaluations through the shared AI CI action. The existing private screenshot stays a local regression case and must not be committed as public fixture data.
+
+## New boundary layouts
+
+`EVAL_SUITE=boundary` selects four separately constructed synthetic layouts: an invoice comparison matrix, shipment board, expense ledger and release timeline. Two goals are left of the initial viewport, two are right. These do not use the regression card builder, but remain synthetic fixtures rather than independent real-site acceptance.
+
+For controlled boundary confirmation, freeze `EVAL_PREFIX_SCROLLS=3` before running. Both arms execute the same three injected wrong-direction plans through the real Agent; these are deliberately induced stalls, not naturally sampled planner failures. The default remains two prefix plans for historical regression reproducibility. `EVAL_PREFIX_SCROLLS` accepts integers from 1 to 10 and is saved in the manifest along with the suite and selected fixture hash. Keep the same 14-action / 180-second budget, report every layout and trigger coverage, and do not select successful cases after seeing outcomes.
+
+```sh
+EVAL_SUITE=boundary EVAL_TRACK=controlled EVAL_PREFIX_SCROLLS=3 EVAL_ARMS=0,3 EVAL_REPETITIONS=3 pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/run.mjs
+pnpm exec node --test packages/web-integration/tests/evaluation/scroll-recovery/boundary-fixtures.test.mjs
+```

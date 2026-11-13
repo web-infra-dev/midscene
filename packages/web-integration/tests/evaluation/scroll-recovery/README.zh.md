@@ -101,3 +101,14 @@ EVAL_REPLAY_DIR=/path/to/private/fixture EVAL_REPETITIONS=5 pnpm exec node packa
 
 
 观察层可设置 `EVAL_EXECUTION_EVIDENCE=1`，传入生产浏览器适配器采集的执行证据；默认仍是纯截图输入。两种输入应分开汇总，用 `EVAL_WORKERS=1` 串行运行。任务运行器收到 SIGINT/SIGTERM 后停止排队并取消在途任务，保留中断清单；中断运行不能作为完整效果对照。`attemptsWithServiceErrors` 也统计重试后恢复的服务错误，`serviceFailures` 只统计最终失败。
+
+## 新布局边界验证
+
+`EVAL_SUITE=boundary` 选择四种单独构建的模拟页面：发票比较矩阵、发货看板、费用台账和发布时间线。两个目标在初始视口左侧，两个在右侧。这些页面不复用回归集的卡片构造逻辑，但仍然是模拟页面，不能替代独立真实网站验收。
+
+受控验证开始前固定 `EVAL_PREFIX_SCROLLS=3`。开关两组都通过真实 Agent 执行相同的三次错误方向计划；这是人为制造的卡住状态，不代表规划器自然犯错的频率。为复现历史回归，默认仍注入两次。该参数接受 1 至 10 的整数，会与集合名称及所选页面源码哈希一起写入清单。预算仍为 14 个动作和 180 秒，逐个页面报告结果与触发覆盖，不能看完结果后只保留成功页面。
+
+```sh
+EVAL_SUITE=boundary EVAL_TRACK=controlled EVAL_PREFIX_SCROLLS=3 EVAL_ARMS=0,3 EVAL_REPETITIONS=3 pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/run.mjs
+pnpm exec node --test packages/web-integration/tests/evaluation/scroll-recovery/boundary-fixtures.test.mjs
+```
