@@ -1,3 +1,4 @@
+import { unwrapZodField } from '@midscene/shared/zod-schema-utils';
 import { z } from 'zod';
 
 export type DistanceUnit = 'model-input-image-pixel' | 'device-logical';
@@ -9,22 +10,18 @@ export function getMidsceneDistanceSchema() {
   return schema;
 }
 
-function isDistanceField(schema: z.ZodTypeAny): boolean {
-  const def = schema._def;
-  if (def.midsceneDistance !== undefined) {
-    return def.midsceneDistance === true;
-  }
-  if (def.innerType) {
-    return isDistanceField(def.innerType);
-  }
-  return false;
-}
-
 export function findDistanceFields(schema?: z.ZodTypeAny) {
-  if (!schema || schema._def.typeName !== 'ZodObject') {
+  if (!schema) {
     return [];
   }
-  return Object.entries((schema as z.AnyZodObject).shape)
-    .filter(([, field]) => isDistanceField(field as z.ZodTypeAny))
+  const unwrapped = unwrapZodField(schema) as z.ZodTypeAny;
+  if (unwrapped._def.typeName !== 'ZodObject') {
+    return [];
+  }
+  return Object.entries((unwrapped as z.AnyZodObject).shape)
+    .filter(([, field]) => {
+      const inner = unwrapZodField(field) as z.ZodTypeAny;
+      return inner._def.midsceneDistance === true;
+    })
     .map(([name]) => name);
 }

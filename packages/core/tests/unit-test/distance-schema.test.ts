@@ -143,6 +143,33 @@ describe('model distance normalization', () => {
       null,
     ]);
   });
+  it.each(['field', 'object'])('recognizes a refined %s schema', (target) => {
+    const distance = getMidsceneDistanceSchema();
+    const object = z.object({
+      travel:
+        target === 'field' ? distance.refine((value) => value > 0) : distance,
+    });
+    const paramSchema =
+      target === 'object' ? object.refine(({ travel }) => travel > 0) : object;
+
+    expect(
+      parseActionParam({ travel: 90 }, paramSchema, {
+        distanceUnit: 'model-input-image-pixel',
+        shrunkShotToLogicalRatio: 3,
+      }),
+    ).toEqual({ travel: 30 });
+    expect(
+      buildActionDescription({
+        action: { name: 'Move', paramSchema, call: async () => {} },
+        locateFieldDescription: 'locator',
+      }).param,
+    ).toMatchObject({
+      travel: {
+        description: expect.stringContaining('pixels of the input image'),
+      },
+    });
+  });
+
   it('describes input-image units on marked planning fields only', () => {
     const paramSchema = z.object({
       travel: getMidsceneDistanceSchema().optional().describe('Travel amount'),
