@@ -5,12 +5,14 @@ import {
   type ScrollReview,
   findScrollToReview,
   reviewScroll,
+  scrollPlanningFeedback,
 } from '@/ai-model/workflows/planning/scroll-review';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-const warn = getDebug('scroll-recovery', { console: true });
 import type { ExecutionSession } from './execution-session';
 import { withUsageIntent } from './usage-intent';
+
+const warn = getDebug('scroll-recovery', { console: true });
 
 export type ScrollRecoveryOptions =
   | boolean
@@ -37,6 +39,7 @@ export function resolveScrollRecoveryInterval(
 /** Per-aiAct review state and report lifecycle; never executes a UI action. */
 export class ScrollRecovery {
   private reviewedTaskId?: string;
+  private recoveringTargetId?: string;
 
   constructor(
     private readonly session: ExecutionSession,
@@ -52,6 +55,25 @@ export class ScrollRecovery {
         'scrollRecovery requires a standard planner using openai-chat',
       );
     }
+  }
+
+  /** Keep measured state fresh until the action or target changes. */
+  planningFeedback(): string | undefined {
+    if (!this.recoveringTargetId) return undefined;
+    const task = this.session
+      .getRunner()
+      .tasks.filter((t) => t.type === 'Action Space')
+      .at(-1);
+    if (
+      task?.subType === 'Scroll' &&
+      task.status === 'finished' &&
+      task.scrollProgress?.after?.targetId === this.recoveringTargetId
+    ) {
+      const feedback = scrollPlanningFeedback(task);
+      if (feedback) return feedback;
+    }
+    this.recoveringTargetId = undefined;
+    return undefined;
   }
 
   async review(
@@ -117,6 +139,12 @@ export class ScrollRecovery {
       observation || formatError,
       'Scroll review completed without an observation',
     );
+    if (
+      observation?.progress === 'unchanged' &&
+      task.scrollProgress?.before?.targetId ===
+        task.scrollProgress?.after?.targetId
+    )
+      this.recoveringTargetId = task.scrollProgress?.after?.targetId;
     return observation;
   }
 }

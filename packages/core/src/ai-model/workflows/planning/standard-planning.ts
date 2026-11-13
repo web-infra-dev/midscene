@@ -232,7 +232,7 @@ export async function standardPlan(
     : conversationHistory.historicalLogsToText();
   const executionProgressSection = executionProgressText
     ? `\n\n<execution_history>${executionProgressText}</execution_history>`
-    : conversationHistory.pendingFeedbackMessage
+    : conversationHistory.pendingFeedbackMessage || opts.executionFeedback
       ? ''
       : `\n\n${noPreviousActionsText}`;
 
@@ -240,13 +240,16 @@ export async function standardPlan(
   const memoriesText = conversationHistory.memoriesToText();
   const memoriesSection = memoriesText ? `\n\n${memoriesText}` : '';
 
+  const executionFeedback = opts.executionFeedback
+    ? `\n\nCurrent measured execution state: ${opts.executionFeedback}`
+    : '';
   if (conversationHistory.pendingFeedbackMessage) {
     latestFeedbackMessage = {
       role: 'user',
       content: [
         {
           type: 'text',
-          text: `${memoriesSection}${executionProgressSection}\n\nLatest execution feedback: ${conversationHistory.pendingFeedbackMessage}. Here is the latest screenshot. Use the observed result, not the intent of previous actions, to choose the next action.`,
+          text: `${memoriesSection}${executionProgressSection}${executionFeedback}\n\nLatest execution feedback: ${conversationHistory.pendingFeedbackMessage}. Here is the latest screenshot. Use the observed result, not the intent of previous actions, to choose the next action.`,
         },
         {
           type: 'image',
@@ -262,7 +265,7 @@ export async function standardPlan(
       content: [
         {
           type: 'text',
-          text: `${memoriesSection}${executionProgressSection}\n\nThis is the current screenshot. Use the observed result, not the intent of previous actions, to choose the next action.`,
+          text: `${memoriesSection}${executionProgressSection}${executionFeedback}\n\nThis is the current screenshot. Use the observed result, not the intent of previous actions, to choose the next action.`,
         },
         {
           type: 'image',

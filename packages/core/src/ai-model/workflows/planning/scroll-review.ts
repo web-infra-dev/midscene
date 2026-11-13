@@ -273,6 +273,17 @@ export async function reviewScroll(options: {
   return result;
 }
 
+/** Fresh facts, supplied only while recovering the same measured container. */
+export function scrollPlanningFeedback(
+  task: ExecutionTask,
+): string | undefined {
+  const state = task.scrollProgress?.after;
+  if (!state || !confirmedTarget(task)) return undefined;
+  const available = availableScrollDirections(state);
+  if (!available) return undefined;
+  return `For the same scroll container ${state.targetId}, the latest executed scroll was ${scrollDirection(task)}. Current offsets: (${state.scrollLeft}, ${state.scrollTop}); maximum offsets: (${state.maxScrollLeft}, ${state.maxScrollTop}). Remaining native distances: ${JSON.stringify({ left: state.scrollLeft, right: state.maxScrollLeft! - state.scrollLeft, up: state.scrollTop, down: state.maxScrollTop! - state.scrollTop })}. Directions with remaining range: ${available.join(', ') || 'none'}. These current measurements supersede earlier assumptions about this container. For a goal-driven search, do not repeat a direction with no remaining range on this target; choose a supported direction or reassess the target/loading controls. Choose a search distance or boundary scroll appropriate to the remaining range rather than copying the previous small step. Explicit user directions, distances, counts and stop conditions take priority. No remaining range does not establish task completion or that the requested item is absent.`;
+}
+
 export function scrollReviewFeedback(review: ScrollReview): string {
   return `Review of the last scroll: ${review.observation}\n${review.nextSearchDirection ? `A candidate search direction is ${review.nextSearchDirection}. Verify it against the task and current UI before acting; the observation may be incomplete.` : 'Reassess the scroll target, dispatch position, and task-relevant controls. No alternative direction was established.'} For goal-driven searches, choose a distance appropriate to the remaining range instead of copying the stalled scroll distance. No movement or absent direction guidance does not establish that the target is absent or the task is complete. Explicit user direction and distance instructions take priority. This review describes observations, not an executed action.`;
 }

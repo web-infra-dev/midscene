@@ -770,6 +770,9 @@ export class TaskExecutor {
                 actionSpace,
                 modelRuntime,
                 planningAdvice,
+                executionFeedback: !delegation
+                  ? scrollRecovery?.planningFeedback()
+                  : undefined,
                 getDefaultModelRuntime: this.getDefaultModelRuntime,
                 conversationHistory,
                 includeLocateInPlanning: !delegation && includeLocateInPlanning,

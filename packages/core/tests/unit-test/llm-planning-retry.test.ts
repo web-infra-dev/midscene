@@ -567,6 +567,42 @@ describe('plan XML parse retry', () => {
     expect(request).toContain('target unchanged');
   });
 
+  it('includes fresh executor facts alongside retained history on every planning cycle', async () => {
+    const history = new ConversationHistory();
+    history.appendMessage({
+      role: 'assistant',
+      content: 'Earlier assumption: scroll right',
+    });
+    rs.mocked(callGenerativeAI).mockResolvedValue(
+      mockAIResponse(
+        '<action-type>Tap</action-type><action-param-json>{}</action-param-json>',
+      ),
+    );
+    for (const distance of [100, 70]) {
+      await standardPlan('Find the item', {
+        context: mockContext(),
+        actionSpace: mockActionSpace(),
+        modelRuntime: getModelRuntime(mockModelConfig()),
+        conversationHistory: history,
+        includeLocateInPlanning: false,
+        effort: 'balance',
+        executionFeedback: `Remaining left: ${distance}`,
+      });
+    }
+    const request = rs.mocked(callGenerativeAI).mock.calls[1][0];
+    expect(JSON.stringify(request)).toContain(
+      'Earlier assumption: scroll right',
+    );
+    const serialized = JSON.stringify(request);
+    expect(serialized).toContain(
+      'Current measured execution state: Remaining left: 70',
+    );
+    expect(serialized).not.toContain('No previous actions have been executed');
+    expect(serialized.lastIndexOf('Remaining left: 70')).toBeGreaterThan(
+      serialized.lastIndexOf('Remaining left: 100'),
+    );
+  });
+
   it('keeps planning advice separate from user context and instruction', async () => {
     rs.mocked(callGenerativeAI).mockResolvedValueOnce(
       mockAIResponse(`<action-type>Tap</action-type>
