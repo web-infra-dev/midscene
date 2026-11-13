@@ -1,7 +1,7 @@
 import { getModelAdapter } from '@/ai-model/models';
 import { describe, expect, it } from '@rstest/core';
 
-const adapter = getModelAdapter('stepfun');
+const adapter = getModelAdapter('step');
 const locate = adapter.locate;
 if (locate.kind !== 'standard') {
   throw new Error('Expected standard localization');

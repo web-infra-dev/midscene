@@ -53,7 +53,7 @@ const buildStepFunChatCompletionParams = (
 };
 
 export const stepFunAdapters = {
-  stepfun: {
+  step: {
     supportedProtocols: ['openai-chat'],
     chatCompletion: {
       buildChatCompletionParams: buildStepFunChatCompletionParams,
@@ -76,4 +76,4 @@ export const stepFunAdapters = {
       },
     },
   },
-} satisfies Pick<Record<TModelFamily, ModelAdapterDefinition>, 'stepfun'>;
+} satisfies Pick<Record<TModelFamily, ModelAdapterDefinition>, 'step'>;
