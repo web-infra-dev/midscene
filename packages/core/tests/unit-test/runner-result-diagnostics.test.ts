@@ -151,6 +151,54 @@ describe('structured execution diagnostics', () => {
     );
     expect(normalizeNodeExecutionError(foreign, 'aiAssert')).toBe(foreign);
   });
+  test.each([true, false])(
+    'only extracts validated output from branded foreign errors (brand=%s)',
+    async (branded) => {
+      const foreign = Object.assign(new Error('action failed'), {
+        code: 'NODE_EXECUTION_ERROR',
+        node: 'javascript',
+        [Symbol.for('@midscene/core/workflow-error')]: branded,
+        output: {
+          summary: 'captured window',
+          data: { frameCount: 4, durationMs: 800 },
+        },
+      });
+      const result = await runWorkflowDocument(document(), {
+        resolveNode: () =>
+          defineNode({
+            name: 'javascript',
+            execute() {
+              throw foreign;
+            },
+          }),
+      });
+      expect(result.cases[0].run?.steps[0].output).toEqual(
+        branded ? foreign.output : undefined,
+      );
+    },
+  );
+
+  test('validates malformed foreign Node error output', async () => {
+    const foreign = Object.assign(new Error('action failed'), {
+      code: 'NODE_EXECUTION_ERROR',
+      node: 'javascript',
+      [Symbol.for('@midscene/core/workflow-error')]: true,
+      output: { summary: 123 },
+    });
+    const result = await runWorkflowDocument(document(), {
+      resolveNode: () =>
+        defineNode({
+          name: 'javascript',
+          execute() {
+            throw foreign;
+          },
+        }),
+    });
+    const step = result.cases[0].run?.steps[0];
+    expect(step?.output).toBeUndefined();
+    expect(step?.error?.message).toContain('summary must be a string');
+  });
+
   test('records retry and budget exhaustion at each actual attempt', async () => {
     const result = await runWorkflowDocument(document(), {
       retry: 1,

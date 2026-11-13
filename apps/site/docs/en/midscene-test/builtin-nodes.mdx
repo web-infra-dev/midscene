@@ -53,6 +53,30 @@ cases:
       - aiAssert: The results list displays at least one mug
 ```
 
+### Observe an action over time
+
+`observe` records a screenshot window around one `aiAct` call and asserts against the sequence. It is included automatically by `createMidsceneNodes()` for official Agents on Web, Android, iOS, HarmonyOS, and Desktop.
+
+```yaml
+cases:
+  - name: Submission shows progress before success
+    steps:
+      - observe:
+          act: Click Submit
+          settleMs: 6000
+          assert: Blue LOADING text appeared during submission, followed by green SUCCESS text.
+          $:
+            timeout: 120000
+```
+
+- `act` and `assert` are required SDK prompts: strings or structured prompts with reference images. The window contains one `aiAct`, not a block of arbitrary Nodes.
+- `settleMs` is a nonnegative integer, defaults to `0`, and keeps sampling after the action finishes. Sampling otherwise uses SDK defaults; it does not guarantee that every brief UI state is captured.
+- `$.timeout` covers startup, the action, settling and assertion. Cancellation stops sampling and prevents subsequent business operations. Cleanup remains tracked until its actual completion; a Step already settled by the Runner's timeout is not rewritten with later statistics.
+- Output `data` contains `frameCount` and `durationMs` after a valid window is stopped. A returned assertion result also includes `pass` and any `thought`/`message`; `pass: false` fails the Step. Action or assertion errors retain available window facts, without inventing an assertion verdict.
+- A baseline frame is required before the action. Report images are flushed before temporary frames are disposed. Failed cleanup fails the operation; `generateReport: false` does not force a report to be generated.
+
+This Node is a Midscene Test capability. It does not add an `observe` syntax to legacy YAML flows or an `agent.observe()` method. For programmatic composition, use the existing `agent.startObserving()` API.
+
 ### Other atomic actions and advanced Nodes
 
 Other atomic interaction methods available on the GUI Agent SDK (such as `aiTap`, `aiHover`, `aiInput`, `aiKeyboardPress`, `aiScroll`, `aiDragAndDrop`, etc.) can also be called directly as Nodes in YAML.

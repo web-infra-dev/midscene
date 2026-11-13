@@ -4,6 +4,7 @@ import {
   NodeInputValidationError,
   StepTimeoutError,
   WorkflowError,
+  isNodeExecutionError,
   normalizeNodeExecutionError,
 } from '../errors';
 import type {
@@ -193,7 +194,7 @@ async function executeNode<TOutputData>(
     }
     let output: NodeResult<TOutputData> | undefined;
     let failure = error;
-    if (error instanceof NodeExecutionError && error.output !== undefined) {
+    if (isNodeExecutionError(error) && error.output !== undefined) {
       try {
         output = validateNodeOutput<TOutputData>(error.output, step.node);
       } catch (validationError) {

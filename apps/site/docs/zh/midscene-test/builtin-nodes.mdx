@@ -53,6 +53,30 @@ cases:
       - aiAssert: 结果列表中至少展示一款马克杯商品
 ```
 
+### 观察动作过程并断言
+
+`observe` 在一次 `aiAct` 调用前后采集截图窗口，并对截图序列断言。通过 `createMidsceneNodes()` 注册 Web、Android、iOS、HarmonyOS 和 Desktop 的官方 Agent 时，会自动获得该节点。
+
+```yaml
+cases:
+  - name: 提交过程中先出现加载状态，再成功
+    steps:
+      - observe:
+          act: 点击 Submit 按钮
+          settleMs: 6000
+          assert: 提交过程中出现过蓝色 LOADING 文字，之后显示绿色 SUCCESS 文字。
+          $:
+            timeout: 120000
+```
+
+- `act` 和 `assert` 必填，支持 SDK 的字符串 prompt 或带参考图片的结构化 prompt。窗口内执行一次 `aiAct`，不接受任意 Node 组成的步骤块。
+- `settleMs` 为非负整数，默认 `0`，表示动作完成后继续采样的毫秒数。其余采样参数使用 SDK 默认值，不保证捕获每个短暂 UI 状态。
+- `$.timeout` 覆盖启动、动作、等待和断言。取消后停止采样，不再执行后续业务操作；清理持续被追踪到实际完成。Runner 已因超时结算的 Step 不会被之后取得的统计改写。
+- 有效窗口停止后，输出 `data` 包含 `frameCount` 和 `durationMs`。模型返回断言结果时还包含 `pass` 及可选的 `thought`/`message`；`pass: false` 会使 Step 失败。动作或断言报错仍保留已取得的窗口事实，不伪造断言结果。
+- 动作前必须取得首帧。报告图片持久化完成后才释放临时帧；清理失败使操作失败。`generateReport: false` 时不会强制生成报告。
+
+该节点属于 Midscene Test，不为旧 YAML flow 新增 `observe` 语法，也不新增 `agent.observe()` 方法。编程式组合继续使用已有的 `agent.startObserving()` API。
+
 ### 其他原子操作与进阶节点
 
 GUI Agent SDK 上的其他原子操作方法（如 `aiTap`、`aiHover`、`aiInput`、`aiKeyboardPress`、`aiScroll`、`aiDragAndDrop` 等）同样可以在 YAML 中直接作为 Node 调用。
