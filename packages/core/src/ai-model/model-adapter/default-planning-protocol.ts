@@ -1,4 +1,5 @@
 import { findAllMidsceneLocatorField } from '@/common';
+import { findDistanceFields } from '@/distance-schema';
 import {
   getZodDescription,
   getZodTypeName,
@@ -112,12 +113,22 @@ export const buildActionDescription = ({
       const param: Record<string, ActionParamDescription> = {};
       const locateFields = findAllMidsceneLocatorField(action.paramSchema);
 
+      const distanceFields = findDistanceFields(action.paramSchema);
+
       for (const [key, field] of Object.entries(schema.shape)) {
         if (field && typeof field === 'object') {
           param[key] = buildActionParamDescription(
             field as z.ZodTypeAny,
             locateFields.includes(key) ? locateFieldDescription : undefined,
           );
+          if (distanceFields.includes(key)) {
+            const description = param[key].description;
+            const unit =
+              'Use pixels of the input image for this distance, even when position coordinates are normalized.';
+            param[key].description = description
+              ? `${unit} ${description}`
+              : unit;
+          }
         }
       }
 

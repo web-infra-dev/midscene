@@ -1,4 +1,5 @@
 import { z } from 'zod';
+export { getMidsceneDistanceSchema } from './distance-schema';
 import Service from './service/index';
 import { TaskRunner } from './task-runner';
 import { getVersion } from './utils';

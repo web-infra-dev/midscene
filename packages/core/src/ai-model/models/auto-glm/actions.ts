@@ -5,14 +5,10 @@ import type {
   LocatePlanningAction,
   ScrollPlanningAction,
 } from '../../model-adapter/custom-planning-action';
+
 import type { CoordinateDistanceAxis } from '../../shared/model-locate-result';
 
 const debug = getDebug('auto-glm-actions');
-
-type CoordinateDistanceToPixels = (
-  delta: number,
-  axis: CoordinateDistanceAxis,
-) => number;
 
 export interface BaseAction {
   _metadata: string;
@@ -140,7 +136,10 @@ export function transformAutoGLMAction(
     coordinateDistanceToPixels,
   }: {
     actionSpace?: DeviceAction[];
-    coordinateDistanceToPixels: CoordinateDistanceToPixels;
+    coordinateDistanceToPixels: (
+      delta: number,
+      axis: CoordinateDistanceAxis,
+    ) => number;
   },
 ): PlanningAction[] {
   try {

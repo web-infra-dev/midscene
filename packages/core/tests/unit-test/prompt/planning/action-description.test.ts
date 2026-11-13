@@ -701,7 +701,7 @@ describe('buildActionDescription and serializeActionDescriptions', () => {
           distance:
             type: number
             optional: true
-            description: Positive length of the finger movement in pixels. Required together with direction for a relative swipe. Omit when using end.
+            description: Use pixels of the input image for this distance, even when position coordinates are normalized. Positive length of the finger movement in pixels. Required together with direction for a relative swipe. Omit when using end.
           end:
             type: '{ prompt: string /* description of the target element */ }'
             optional: true
