@@ -1,6 +1,7 @@
 import type { ScrollState } from '@midscene/core';
 
 /** Runs in the browser realm. Never sends DOM content to the planner. */
+/* istanbul ignore next -- serialized to the browser realm, where Node-side coverage counters do not exist */
 export function inspectScrollTarget(
   x: number,
   y: number,
