@@ -38,6 +38,21 @@ Device CLIs also accept serializable Agent options per invocation (function-valu
 - `waitAfterAction?: number` — Fixed delay in milliseconds after each action. Default: `300`. See [Default waiting strategy](#default-waiting-strategy).
 - `useDeviceTime?: boolean` — Whether task timestamps use the target device's local time. Requires the underlying Device to implement `getDeviceLocalTimeString`; if unimplemented, Midscene logs a warning and falls back to the host system time. Default: `false`.
 
+### AI-planned conditional waiting
+
+Enable `planningWaitFor: true` to let `aiAct` choose a visual `WaitFor(condition)` action when its next step is blocked by asynchronous UI state. It is off by default and requires a planning model that supports the supplied action space.
+
+```ts
+const agent = new PlaywrightAgent(page, { planningWaitFor: true });
+await agent.aiAct('Enter hello and send the message');
+```
+
+The model should act immediately on a ready control, wait for an unmet prerequisite that can resolve without another interaction, and report explicit business errors. No extra planning call is inserted just to decide whether to wait. After a planned wait succeeds, planning resumes from a fresh screenshot rather than executing the old batch’s remaining coordinates. Choosing `WaitFor` does add visual assertion calls, with a 2-second minimum interval and a 30-second deadline. These decisions remain model-dependent.
+
+The deadline cancels active model requests and rejects late results. A platform capture that does not support cancellation may still delay the return. Timeout or cancellation stops the current `aiAct`, including cache replay; earlier business actions are not automatically replayed. Cached conditions are checked again. The action name `WaitFor` is reserved while this option is enabled.
+
+This supplements explicit `aiWaitFor`; keep explicit waits for known long-running operations or application-specific guarantees. It does not change the default post-action delay or make screenshots a reliable application readiness signal.
+
 <a id="action-ready"></a>
 
 **Readiness after each action**

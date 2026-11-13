@@ -1,3 +1,4 @@
+import { definePlannedWait } from '@/agent/planned-wait';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 const serviceCallerMock = rs.hoisted(() => {
@@ -34,6 +35,7 @@ rs.mock('../../src/ai-model/service-caller/index', () => {
   return serviceCallerMock;
 });
 
+import * as freshness from '@/agent/plan-freshness';
 import { TaskExecutor } from '@/agent/tasks';
 import { getMidsceneLocationSchema } from '@/ai-model';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
@@ -57,7 +59,10 @@ const defaultModel = () =>
     slot: 'default',
   });
 
-function createCustomPlanningModel(plannedActions: any[] = []): ModelRuntime {
+function createCustomPlanningModel(
+  plannedActions: any[] = [],
+  shouldContinuePlanning = () => false,
+): ModelRuntime {
   return {
     config: {
       modelName: 'custom-planning-model',
@@ -76,8 +81,8 @@ function createCustomPlanningModel(plannedActions: any[] = []): ModelRuntime {
             },
             coordinates: { shape: 'point', order: 'xy', normalizedBy: 1000 },
             parseResponse: () => null,
-            transformActions: () => plannedActions,
-            shouldContinuePlanning: () => false,
+            transformActions: () => structuredClone(plannedActions),
+            shouldContinuePlanning,
             buildResponseLog: () => '',
           },
         },
@@ -114,6 +119,97 @@ describe('TaskExecutor custom planning adapters', () => {
 
   afterEach(() => {
     rs.restoreAllMocks();
+  });
+
+  it('stops the action batch and does not replan after a conditional wait fails', async () => {
+    const nextAction = rs.fn(async () => {});
+    const actionSpace = [
+      definePlannedWait(async () => {
+        throw new Error('deadline');
+      }),
+      {
+        name: 'Submit',
+        description: 'submit',
+        paramSchema: z.object({}),
+        call: nextAction,
+      },
+    ];
+    const executor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
+      actionSpace,
+      replanningCycleLimit: 3,
+    });
+    const planning = createCustomPlanningModel([
+      { type: 'WaitFor', param: { condition: 'ready' } },
+      { type: 'Submit', param: {} },
+    ]);
+    rs.mocked(callAIWithStringResponse).mockResolvedValue({ content: '' });
+    await expect(
+      executor.action('send once', planning, defaultModel()),
+    ).rejects.toThrow('Planned WaitFor failed');
+    expect(nextAction).not.toHaveBeenCalled();
+    expect(callAIWithStringResponse).toHaveBeenCalledTimes(1);
+  });
+  it('replans from a fresh observation after waiting and completes only the replacement action', async () => {
+    const oldAction = rs.fn(async () => {});
+    const newAction = rs.fn(async () => {});
+    const plannedActions = [
+      { type: 'WaitFor', param: { condition: 'ready' } },
+      { type: 'OldSubmit', param: {} },
+    ];
+    const initialContext = await mockService.contextRetrieverFn();
+    const freshScreenshot = ScreenshotItem.create(validBase64Image, Date.now());
+    let waited = false;
+    rs.mocked(mockService.contextRetrieverFn).mockImplementation(async () => ({
+      ...initialContext,
+      screenshot: waited ? freshScreenshot : initialContext.screenshot,
+    }));
+    const wait = rs.fn(async () => {
+      waited = true;
+      plannedActions.splice(0, plannedActions.length, {
+        type: 'Submit',
+        param: {},
+      });
+    });
+    const actionSpace = [
+      definePlannedWait(wait),
+      {
+        name: 'OldSubmit',
+        description: 'old submit',
+        paramSchema: z.object({}),
+        call: oldAction,
+      },
+      {
+        name: 'Submit',
+        description: 'submit',
+        paramSchema: z.object({}),
+        call: newAction,
+      },
+    ];
+    const executor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
+      actionSpace,
+      planningWaitFor: true,
+      replanningCycleLimit: 2,
+    });
+    rs.mocked(callAIWithStringResponse).mockResolvedValue({ content: '' });
+    const result = await executor.action(
+      'send once',
+      createCustomPlanningModel(plannedActions),
+      defaultModel(),
+    );
+    expect(wait).toHaveBeenCalledTimes(1);
+    expect(oldAction).not.toHaveBeenCalled();
+    expect(newAction).toHaveBeenCalledTimes(1);
+    expect(callAIWithStringResponse).toHaveBeenCalledTimes(2);
+    expect(
+      JSON.stringify(rs.mocked(callAIWithStringResponse).mock.calls[1][0]),
+    ).toContain('WaitFor succeeded: ready');
+    const plans = result.runner.tasks.filter(
+      (task) => task.type === 'Planning',
+    );
+    expect(plans.at(-1)?.uiContext?.screenshot).toBe(freshScreenshot);
+    expect(JSON.stringify(result.output)).not.toContain('OldSubmit');
   });
 
   it('requests prompt-only planning when a separate Locate model is configured', async () => {
@@ -220,5 +316,226 @@ describe('TaskExecutor custom planning adapters', () => {
     expect(
       convertSpy.mock.calls[0][0][0].param.locate.locatedPixelResult.center,
     ).toHaveLength(2);
+  });
+  it('discards a stale plan and executes only the fresh replacement', async () => {
+    const actionSpace: DeviceAction[] = [
+      {
+        name: 'Tap',
+        description: 'tap',
+        paramSchema: z.object({ locate: getMidsceneLocationSchema() }),
+        call: async () => undefined,
+      },
+    ];
+    const executor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
+      replanningCycleLimit: 2,
+      actionSpace,
+    });
+    const convert = rs
+      .spyOn(executor, 'convertPlanToExecutable')
+      .mockResolvedValue({ tasks: [] });
+    const guard = rs
+      .spyOn(freshness, 'evaluatePlanFreshness')
+      .mockResolvedValueOnce({
+        changed: true,
+        changedPixels: 100,
+        dimensionsChanged: false,
+      })
+      .mockResolvedValueOnce({
+        changed: false,
+        changedPixels: 0,
+        dimensionsChanged: false,
+      });
+    rs.mocked(callAIWithStringResponse).mockResolvedValue({ content: '' });
+    await executor.action(
+      'open the target',
+      createCustomPlanningModel([
+        {
+          type: 'Tap',
+          param: { locate: { prompt: 'target', point: [500, 500] } },
+        },
+      ]),
+      defaultModel(),
+      undefined,
+      false,
+      undefined,
+      'balance',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      true,
+    );
+    expect(guard).toHaveBeenCalledTimes(2);
+    expect(convert).toHaveBeenCalledTimes(1);
+    const calls = rs.mocked(callAIWithStringResponse).mock.calls;
+    expect(JSON.stringify(calls[1][0])).toContain(
+      'The planned action was NOT executed',
+    );
+    expect(JSON.stringify(calls[1][0])).not.toContain(
+      'The previous action has been executed',
+    );
+  });
+
+  it('stops at the planning limit without ever executing a continuously stale plan', async () => {
+    const actionSpace: DeviceAction[] = [
+      {
+        name: 'Tap',
+        description: 'tap',
+        paramSchema: z.object({ locate: getMidsceneLocationSchema() }),
+        call: async () => undefined,
+      },
+    ];
+    const executor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
+      replanningCycleLimit: 1,
+      actionSpace,
+    });
+    const convert = rs
+      .spyOn(executor, 'convertPlanToExecutable')
+      .mockResolvedValue({ tasks: [] });
+    rs.spyOn(freshness, 'evaluatePlanFreshness').mockResolvedValue({
+      changed: true,
+      changedPixels: 100,
+      dimensionsChanged: false,
+    });
+    rs.mocked(callAIWithStringResponse).mockResolvedValue({ content: '' });
+    await expect(
+      executor.action(
+        'open the target',
+        createCustomPlanningModel([
+          {
+            type: 'Tap',
+            param: { locate: { prompt: 'target', point: [500, 500] } },
+          },
+        ]),
+        defaultModel(),
+        undefined,
+        false,
+        undefined,
+        'balance',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        true,
+      ),
+    ).rejects.toThrow('planning cycle limit');
+    expect(convert).not.toHaveBeenCalled();
+  });
+  it.each([
+    { changes: [true, true, true], executions: 0, fails: true },
+    { changes: [true, true, false], executions: 1, fails: false },
+    {
+      changes: [true, true, false, true, true, false],
+      executions: 2,
+      fails: false,
+    },
+    { changes: [false, false, false, false], executions: 4, fails: false },
+    {
+      changes: [true, true, false, true],
+      executions: 1,
+      fails: true,
+      actionFails: true,
+    },
+  ])(
+    'bounds consecutive screen-change replans: $changes',
+    async ({ changes, executions, fails, actionFails }) => {
+      const executor = new TaskExecutor(mockInterface, mockService, {
+        getDefaultModelRuntime: defaultModel,
+        replanningCycleLimit: 20,
+        actionSpace: [],
+      });
+      const execute = rs.fn(async () => {
+        if (actionFails) throw new Error('tap failed');
+      });
+      rs.spyOn(executor, 'convertPlanToExecutable').mockResolvedValue({
+        tasks: [{ type: 'Action Space', subType: 'Tap', executor: execute }],
+      });
+      let round = 0;
+      const guard = rs
+        .spyOn(freshness, 'evaluatePlanFreshness')
+        .mockImplementation(async () => {
+          const changed = changes[round++];
+          return {
+            changed,
+            changedPixels: changed ? 100 : 0,
+            dimensionsChanged: false,
+          };
+        });
+      rs.mocked(callAIWithStringResponse).mockResolvedValue({ content: '' });
+      const result = executor.action(
+        'open target',
+        createCustomPlanningModel([], () => round < changes.length - 1),
+        defaultModel(),
+        undefined,
+        false,
+        undefined,
+        'balance',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        true,
+      );
+      if (fails) {
+        await expect(result).rejects.toThrow(
+          'after 2 consecutive screen-change replans',
+        );
+      } else {
+        await result;
+      }
+      expect(guard).toHaveBeenCalledTimes(changes.length);
+      expect(execute).toHaveBeenCalledTimes(executions);
+    },
+  );
+
+  it('records a failed plan if screen comparison fails, without executing actions', async () => {
+    const executor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
+      replanningCycleLimit: 2,
+      actionSpace: [],
+    });
+    const convert = rs.spyOn(executor, 'convertPlanToExecutable');
+    rs.spyOn(freshness, 'evaluatePlanFreshness').mockRejectedValue(
+      new Error('invalid screenshot'),
+    );
+    rs.mocked(callAIWithStringResponse).mockResolvedValue({ content: '' });
+    await expect(
+      executor.action(
+        'open target',
+        createCustomPlanningModel(),
+        defaultModel(),
+        undefined,
+        false,
+        undefined,
+        'balance',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        true,
+      ),
+    ).rejects.toThrow('Failed to check screen freshness: invalid screenshot');
+    expect(convert).not.toHaveBeenCalled();
+  });
+
+  it('does not compare screens by default', async () => {
+    const executor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
+      replanningCycleLimit: 2,
+      actionSpace: [],
+    });
+    const guard = rs.spyOn(freshness, 'evaluatePlanFreshness');
+    rs.spyOn(executor, 'convertPlanToExecutable').mockResolvedValue({
+      tasks: [],
+    });
+    rs.mocked(callAIWithStringResponse).mockResolvedValue({ content: '' });
+    await executor.action(
+      'open target',
+      createCustomPlanningModel(),
+      defaultModel(),
+    );
+    expect(guard).not.toHaveBeenCalled();
   });
 });

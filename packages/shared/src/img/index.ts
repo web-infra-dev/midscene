@@ -39,3 +39,4 @@ export {
   compositePointMarkerImg,
   annotateRects,
 } from './box-select';
+export { imageDifference } from './image-diff';

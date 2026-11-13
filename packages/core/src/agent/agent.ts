@@ -58,6 +58,11 @@ import {
   hasActiveYamlExecution,
   runInYamlExecutionContext,
 } from '../yaml/execution-session';
+import {
+  definePlannedWait,
+  isPlannedWaitError,
+  plannedWaitContext,
+} from './planned-wait';
 
 import {
   ScriptPlayer,
@@ -152,6 +157,15 @@ class AgentScopedModelConfigManager extends ModelConfigManager {
 }
 
 export type AiActOptions = {
+  /**
+   * Replan when the full screen changes during planning before a Tap-first batch.
+   * Defaults to false. Clocks, carets and animations can cause extra model calls
+   * and stop the task after two consecutive screen-change replans.
+   * Successful action execution resets this counter.
+   * Does not wait for changes after a click.
+   * Enabling this disables cached-plan replay for this call.
+   */
+  checkScreenChanges?: boolean;
   cacheable?: boolean;
   fileChooserAccept?: string | string[];
   fileChooserAllowedDir?: string;
@@ -462,6 +476,14 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     }
 
     const baseActionSpace = this.interface.actionSpace();
+    if (
+      this.opts.planningWaitFor &&
+      baseActionSpace.some((action) => action.name === 'WaitFor')
+    ) {
+      throw new Error(
+        'planningWaitFor reserves the WaitFor action name; remove the custom WaitFor action or disable planningWaitFor',
+      );
+    }
     const fileChooserActions = this.interface.registerFileChooserListener
       ? [
           defineActionRegisterFileChooserAccept(async (files) => {
@@ -485,6 +507,17 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     this.fullActionSpace = [
       ...baseActionSpace,
       ...fileChooserActions,
+      ...(this.opts.planningWaitFor
+        ? [
+            definePlannedWait(async (condition, abortSignal) => {
+              await this.aiWaitFor(condition, {
+                timeoutMs: 30_000,
+                checkIntervalMs: 2_000,
+                abortSignal,
+              });
+            }),
+          ]
+        : []),
       defineActionSleep(),
     ];
 
@@ -494,6 +527,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
+      planningWaitFor: this.opts.planningWaitFor,
       waitAfterAction: this.opts.waitAfterAction,
       actionReadiness: this.actionReadiness,
       useDeviceTime: this.opts.useDeviceTime,
@@ -1293,7 +1327,10 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     const runAiAct = async () => {
       const planningModel = this.resolveModelRuntime('planning', 'planning');
       const locateModel = this.resolveModelRuntime('locate', 'locate');
-      const aiActContext = this.resolveUserContext('aiAct', opt?.context);
+      const userContext = this.resolveUserContext('aiAct', opt?.context);
+      const aiActContext = this.opts.planningWaitFor
+        ? [plannedWaitContext, userContext].filter(Boolean).join('\n\n')
+        : userContext;
       const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
       // Resolve the public planning controls at the API boundary. Internal
       // aiAct plumbing only uses effort from this point onward. The explicit
@@ -1341,7 +1378,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         deepLocate = false;
       }
 
-      const cacheable = opt?.cacheable;
+      const cacheable = opt?.checkScreenChanges ? false : opt?.cacheable;
       const replanningCycleLimit =
         this.resolveReplanningCycleLimit(planningModel);
       const planCacheEnabled = planningModel.adapter.planning.cacheEnabled;
@@ -1381,7 +1418,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         } catch (error) {
           if (
             error instanceof YamlExecutionOwnershipError ||
-            isActionReadinessError(error)
+            isActionReadinessError(error) ||
+            isPlannedWaitError(error)
           )
             throw error;
           abortSignal?.throwIfAborted();
@@ -1407,6 +1445,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         deepLocate,
         abortSignal,
         internalReportDisplay,
+        opt?.checkScreenChanges,
       );
 
       // update cache
@@ -1648,10 +1687,11 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     await player.run();
 
     if (player.status === 'error') {
-      const readinessFailure = player.taskStatusList.find((task) =>
-        isActionReadinessError(task.error),
+      const terminalFailure = player.taskStatusList.find(
+        (task) =>
+          isActionReadinessError(task.error) || isPlannedWaitError(task.error),
       );
-      if (readinessFailure) throw readinessFailure.error;
+      if (terminalFailure) throw terminalFailure.error;
       const errors = player.taskStatusList
         .filter((task) => task.status === 'error')
         .map((task) => {

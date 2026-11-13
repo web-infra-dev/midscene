@@ -62,6 +62,52 @@ describe('aiAct plan cache fallback', () => {
     rs.restoreAllMocks();
   });
 
+  it('rechecks a cached WaitFor on each replay and stops on a later failure', async () => {
+    const agent = new Agent(
+      {
+        interfaceType: 'puppeteer',
+        actionSpace: () => [],
+        size: async () => ({ width: 1, height: 1 }),
+        screenshotBase64: async () =>
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      } as any,
+      {
+        planningWaitFor: true,
+        generateReport: false,
+        autoPrintReportMsg: false,
+        cache: { id: uuid() },
+        modelConfig,
+      },
+    );
+    const yamlWorkflow = `tasks:
+  - name: wait for readiness
+    flow:
+      - WaitFor: ''
+        condition: ready
+`;
+    rs.spyOn(agent.taskCache!, 'matchPlanCache').mockReturnValue({
+      cacheUsable: true,
+      cacheContent: { type: 'plan', prompt: 'wait', yamlWorkflow },
+    } as any);
+    const wait = rs
+      .spyOn(agent, 'aiWaitFor')
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('condition is no longer ready'));
+    const planning = rs
+      .spyOn(agent.taskExecutor, 'action')
+      .mockRejectedValue(new Error('unexpected replanning'));
+    await agent.aiAct('wait');
+    await expect(agent.aiAct('wait')).rejects.toThrow(
+      'condition is no longer ready',
+    );
+    expect(wait).toHaveBeenCalledTimes(2);
+    expect(wait).toHaveBeenCalledWith(
+      'ready',
+      expect.objectContaining({ timeoutMs: 30000, checkIntervalMs: 2000 }),
+    );
+    expect(planning).not.toHaveBeenCalled();
+  });
+
   it('disables the stale plan cache instead of caching fallback flow when cached YAML fails', async () => {
     const prompt = 'complete checkout with optional popup';
     const partialPlanYaml = `tasks:

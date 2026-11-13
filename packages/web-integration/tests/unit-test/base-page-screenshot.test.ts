@@ -1,4 +1,5 @@
-import { Page } from '@/puppeteer/base-page';
+import { createHash } from 'node:crypto';
+import { Page, debugPage } from '@/puppeteer/base-page';
 import * as coreUtilsActual from '@midscene/core/utils' with {
   rstest: 'importActual',
 };
@@ -178,5 +179,141 @@ describe('Page screenshotBase64', () => {
     expect(detach).toHaveBeenCalledTimes(1);
 
     rs.useRealTimers();
+  });
+});
+
+describe('Page operation diagnostics', () => {
+  const events = () =>
+    rs.mocked(debugPage).mock.calls.flatMap(([message, details]) => {
+      if (
+        typeof message !== 'string' ||
+        !details ||
+        typeof details !== 'object'
+      )
+        return [];
+      const match =
+        /^(screenshotBase64|mouse click|defaultActionWait) (\w+) %o$/.exec(
+          message,
+        );
+      return match
+        ? [
+            {
+              ...(details as {
+                pageId: string;
+                operationId: number;
+                screenshotHash?: string;
+              }),
+              phase: match[2],
+            },
+          ]
+        : [];
+    });
+
+  it('correlates overlapping captures without logging screenshot content or URLs', async () => {
+    rs.mocked(debugPage).mockClear();
+    let finishFirst!: (value: Buffer) => void;
+    const first = new Page(
+      {
+        screenshot: () =>
+          new Promise<Buffer>((resolve) => {
+            finishFirst = resolve;
+          }),
+      } as any,
+      'playwright',
+    );
+    const second = new Page(
+      {
+        screenshot: async () => Buffer.from('second'),
+        url: () => 'https://example.com?token=secret',
+      } as any,
+      'playwright',
+    );
+    const pending = first.screenshotBase64();
+    const secondResult = await second.screenshotBase64();
+    finishFirst(Buffer.from('first'));
+    await pending;
+    const records = events();
+    expect(records.map((event) => event.phase)).toEqual([
+      'begin',
+      'begin',
+      'end',
+      'end',
+    ]);
+    expect(records[0].pageId).not.toEqual(records[1].pageId);
+    expect(records[0].pageId).toEqual(records[3].pageId);
+    expect(records[1].pageId).toEqual(records[2].pageId);
+    expect(records[2].screenshotHash).toEqual(
+      createHash('sha256').update(secondResult).digest('hex').slice(0, 16),
+    );
+    expect(JSON.stringify(records)).not.toContain(secondResult);
+    expect(JSON.stringify(records)).not.toContain('secret');
+  });
+
+  it('distinguishes click dispatch from return and associates subsequent captures with the same page', async () => {
+    rs.mocked(debugPage).mockClear();
+    let finishClick!: () => void;
+    let markDispatched!: () => void;
+    const dispatched = new Promise<void>((resolve) => {
+      markDispatched = resolve;
+    });
+    const page = new Page(
+      {
+        mouse: {
+          move: async () => {},
+          click: () =>
+            new Promise<void>((resolve) => {
+              finishClick = resolve;
+              markDispatched();
+            }),
+        },
+        screenshot: async () => Buffer.from('after-click'),
+      } as any,
+      'playwright',
+    );
+    const pending = page.mouse.click(20, 30);
+    await dispatched;
+    expect(events().map((event) => event.phase)).toEqual(['begin', 'dispatch']);
+    finishClick();
+    await pending;
+    await page.screenshotBase64();
+    const records = events();
+    expect(records.map((event) => event.phase)).toEqual([
+      'begin',
+      'dispatch',
+      'returned',
+      'begin',
+      'end',
+    ]);
+    expect(new Set(records.map((event) => event.pageId)).size).toBe(1);
+    expect(records[3].operationId).toBe(records[0].operationId + 1);
+  });
+
+  it('closes failed operations and preserves the original errors', async () => {
+    rs.mocked(debugPage).mockClear();
+    const error = new Error('private page content');
+    const page = new Page(
+      {
+        mouse: {
+          move: async () => {},
+          click: async () => {
+            throw error;
+          },
+        },
+        screenshot: async () => {
+          throw error;
+        },
+        isClosed: () => true,
+      } as any,
+      'playwright',
+    );
+    await expect(page.mouse.click(20, 30)).rejects.toBe(error);
+    await expect(page.screenshotBase64()).rejects.toBe(error);
+    expect(events().filter((event) => event.phase === 'error')).toHaveLength(2);
+    expect(
+      events().filter(
+        (event) => event.phase === 'returned' || event.phase === 'end',
+      ),
+    ).toHaveLength(0);
+    expect(JSON.stringify(events())).not.toContain(error.message);
   });
 });
