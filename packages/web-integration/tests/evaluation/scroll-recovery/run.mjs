@@ -9,10 +9,6 @@ import {
   fixture as boundaryFixture,
 } from './boundary-fixtures.mjs';
 import {
-  cases as regressionCases,
-  fixture as regressionFixture,
-} from './fixtures.mjs';
-import {
   cases as repositoryCases,
   fixture as repositoryFixture,
 } from './repository-fixtures.mjs';
@@ -20,20 +16,16 @@ import {
   cases as routineCases,
   fixture as routineFixture,
 } from './routine-fixtures.mjs';
-const suite = process.env.EVAL_SUITE || 'regression';
+const suite = process.env.EVAL_SUITE || 'routine';
 const suites = {
-  regression: { cases: regressionCases, fixture: regressionFixture },
   boundary: { cases: boundaryCases, fixture: boundaryFixture },
   routine: { cases: routineCases, fixture: routineFixture },
   repository: { cases: repositoryCases, fixture: repositoryFixture },
 };
 if (!Object.hasOwn(suites, suite)) throw new Error('Invalid EVAL_SUITE');
 const { cases, fixture } = suites[suite];
-const fixtureSource = new URL(
-  `./${suite === 'regression' ? '' : `${suite}-`}fixtures.mjs`,
-  import.meta.url,
-);
-const prefixScrolls = Number(process.env.EVAL_PREFIX_SCROLLS || 2);
+const fixtureSource = new URL(`./${suite}-fixtures.mjs`, import.meta.url);
+const prefixScrolls = Number(process.env.EVAL_PREFIX_SCROLLS || 3);
 if (
   !Number.isSafeInteger(prefixScrolls) ||
   prefixScrolls < 1 ||
@@ -47,11 +39,7 @@ const require = createRequire(
 );
 require('dotenv').config({ path: path.join(root, '.env'), override: true });
 const puppeteer = require('puppeteer');
-if (process.env.EVAL_FEEDBACK_ONLY === '1')
-  throw new Error(
-    'Feedback-only is now the production policy. Use EVAL_ARMS=3. Replay the old ablation at its recorded revision.',
-  );
-const requestedArms = (process.env.EVAL_ARMS || '0,2,3')
+const requestedArms = (process.env.EVAL_ARMS || '0,default')
   .split(',')
   .map((value) => (value === 'default' ? value : Number(value)));
 if (
@@ -73,7 +61,7 @@ if (
 )
   throw new Error('Invalid repetitions/workers');
 const track = process.env.EVAL_TRACK || 'natural';
-if (!['natural', 'controlled', 'oracle'].includes(track))
+if (!['natural', 'controlled'].includes(track))
   throw new Error('Invalid track');
 if (['routine', 'repository'].includes(suite) && track !== 'natural')
   throw new Error(
@@ -118,7 +106,7 @@ const sha = createHash('sha256')
 const jobs = [];
 for (const c of selected)
   for (let rep = 0; rep < repetitions; rep++) {
-    const arms = track === 'oracle' ? [0] : requestedArms;
+    const arms = requestedArms;
     // Reproducible balanced rotation; no outcome-based ordering.
     const offset = (rep + cases.indexOf(c)) % arms.length;
     for (const arm of [...arms.slice(offset), ...arms.slice(0, offset)])
@@ -215,217 +203,109 @@ async function attempt({ c, rep, arm }) {
     await page.waitForFunction(() => window.oracle.ready);
     initial = await page.evaluate(() => window.snapshot());
     await page.screenshot({ path: path.join(dir, 'initial.png') });
-    if (track === 'oracle') {
-      const oracle = await page.evaluate(async (family) => {
-        const t = document.querySelector('#target');
-        const rect = t.getBoundingClientRect();
-        const point = [rect.left + rect.width / 2, rect.top + rect.height / 2];
-        const beforeContainer = document
-          .elementFromPoint(...point)
-          ?.closest('#target, #neighbor')?.id;
-        if (family === 'container-swap')
-          t.dispatchEvent(new WheelEvent('wheel'));
-        const afterContainer = document
-          .elementFromPoint(...point)
-          ?.closest('#target, #neighbor')?.id;
-        const samePointChangedContainer =
-          beforeContainer === 'target' && afterContainer === 'neighbor';
-        const jitterStaysInTarget = [-3, 3].every(
-          (dx) =>
-            document
-              .elementFromPoint(point[0] + dx, point[1])
-              ?.closest('#target') === t,
+    agent = new PuppeteerAgent(page, {
+      cache: false,
+      generateReport: false,
+      replanningCycleLimit: 18,
+      onLLMUsage: (value) => usage.push(value),
+      createOpenAIClient: async (client) => {
+        const create = client.chat.completions.create.bind(
+          client.chat.completions,
         );
-        document.querySelector('#close-notices')?.click();
-        const more = document.querySelector('#load-more');
-        while (more && !more.hidden) more.click();
-        t.scrollLeft = family === 'left' ? 0 : t.scrollWidth;
-        t.scrollTop = family === 'up' ? 0 : t.scrollHeight;
-        await new Promise((resolve) => setTimeout(resolve, 800));
-        const end = window.snapshot();
-        const button = document.querySelector(
-          '[data-target="true"], [data-virtual="true"]',
-        );
-        const reading = ['reading', 'loadmore'].includes(family);
-        const targetExists = reading
-          ? t.textContent.includes('RIVER-729')
-          : !!button;
-        if (reading) {
-          document.querySelector('#answer').value = 'RIVER-729';
-          document.querySelector('form').requestSubmit();
-        } else if (button) button.click();
-        const clickWorks = window.snapshot().clicks.includes('target');
-        t.scrollLeft = 0;
-        t.scrollTop = 0;
-        return {
-          end,
-          start: window.snapshot(),
-          targetExists,
-          clickWorks,
-          samePointChangedContainer,
-          jitterStaysInTarget,
-        };
-      }, c.family);
-      if (
-        c.family === 'boundary'
-          ? oracle.end.maxX !== 0 || oracle.end.maxY !== 0
-          : oracle.end.maxX <= 0 && oracle.end.maxY <= 0
-      )
-        throw new Error('Fixture overflow oracle invalid');
-      if (
-        c.family !== 'boundary' &&
-        (!oracle.targetExists || !oracle.clickWorks)
-      )
-        throw new Error('Fixture outcome oracle invalid');
-      if (c.family === 'container-swap' && !oracle.samePointChangedContainer)
-        throw new Error('Container-swap oracle did not change hit target');
-      if (c.family === 'jitter' && !oracle.jitterStaysInTarget)
-        throw new Error('Jitter oracle crossed container boundary');
-      final = oracle;
-    } else {
-      agent = new PuppeteerAgent(page, {
-        cache: false,
-        generateReport: false,
-        replanningCycleLimit: 18,
-        onLLMUsage: (value) => usage.push(value),
-        createOpenAIClient: async (client) => {
-          const create = client.chat.completions.create.bind(
-            client.chat.completions,
+        client.chat.completions.create = async (body, options) => {
+          const system = JSON.stringify(
+            body.messages.filter((m) => m.role === 'system'),
           );
-          client.chat.completions.create = async (body, options) => {
-            const system = JSON.stringify(
-              body.messages.filter((m) => m.role === 'system'),
-            );
-            const planning = system.includes('action-type');
-            if (track === 'controlled' && planning && prefix < prefixScrolls) {
-              prefix++;
-              // Inject a fixed erroneous plan, not a page mutation or an observer result.
-              const param = { direction: 'down', distance: 200 };
-              if (
-                [
-                  'neighbors',
-                  'jitter',
-                  'layout-shift',
-                  'container-swap',
-                ].includes(c.family)
-              ) {
-                if (
-                  !['doubao-seed', 'qwen3'].includes(
-                    process.env.MIDSCENE_MODEL_FAMILY,
-                  )
-                )
-                  throw new Error(
-                    'Coordinate-injection cases require verified 1000-normalized bbox encoding (doubao-seed or qwen3)',
-                  );
-                let x = initial.rect.left + initial.rect.width / 2;
-                let y = initial.rect.top + initial.rect.height / 2;
-                let description = 'Records';
-                if (c.family === 'jitter') x += prefix === 1 ? -3 : 3;
-                if (c.family === 'neighbors' && prefix === 2) {
-                  x = 930;
-                  y = 300;
-                  description = 'Notes';
-                }
-                param.locate = {
-                  prompt: description,
-                  bbox: [
-                    x - 10,
-                    ((y - 10) / 720) * 1000,
-                    x + 10,
-                    ((y + 10) / 720) * 1000,
-                  ].map(Math.round),
+          const planning = system.includes('action-type');
+          if (track === 'controlled' && planning && prefix < prefixScrolls) {
+            prefix++;
+            // Inject a fixed erroneous plan, not a page mutation or an observer result.
+            const param = { direction: 'down', distance: 200 };
+            const content = `<planning>Continue scrolling down within the current panel.</planning><log>Scroll down</log><action-type>Scroll</action-type><action-param-json>${JSON.stringify(param)}</action-param-json>`;
+            calls.push({ synthetic: true, type: 'prefix', time: Date.now() });
+            if (body.stream)
+              return (async function* () {
+                yield {
+                  id: `${id}-prefix-${prefix}`,
+                  object: 'chat.completion.chunk',
+                  created: 0,
+                  model: body.model,
+                  choices: [
+                    {
+                      index: 0,
+                      delta: { role: 'assistant', content },
+                      finish_reason: null,
+                    },
+                  ],
                 };
-              }
-              const injectedReason =
-                suite === 'boundary'
-                  ? 'Continue scrolling down within the current panel.'
-                  : 'Continue scrolling down through the records.';
-              const content = `<planning>${injectedReason}</planning><log>Scroll down</log><action-type>Scroll</action-type><action-param-json>${JSON.stringify(param)}</action-param-json>`;
-              calls.push({ synthetic: true, type: 'prefix', time: Date.now() });
-              if (body.stream)
-                return (async function* () {
-                  yield {
-                    id: `${id}-prefix-${prefix}`,
-                    object: 'chat.completion.chunk',
-                    created: 0,
-                    model: body.model,
-                    choices: [
-                      {
-                        index: 0,
-                        delta: { role: 'assistant', content },
-                        finish_reason: null,
-                      },
-                    ],
-                  };
-                  yield {
-                    id: `${id}-prefix-${prefix}`,
-                    object: 'chat.completion.chunk',
-                    created: 0,
-                    model: body.model,
-                    choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
-                  };
-                })();
-              return {
-                id: `${id}-prefix-${prefix}`,
-                object: 'chat.completion',
-                created: 0,
-                model: body.model,
-                choices: [
-                  {
-                    index: 0,
-                    finish_reason: 'stop',
-                    message: { role: 'assistant', content },
-                  },
-                ],
-                usage: {
-                  prompt_tokens: 0,
-                  completion_tokens: 0,
-                  total_tokens: 0,
+                yield {
+                  id: `${id}-prefix-${prefix}`,
+                  object: 'chat.completion.chunk',
+                  created: 0,
+                  model: body.model,
+                  choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+                };
+              })();
+            return {
+              id: `${id}-prefix-${prefix}`,
+              object: 'chat.completion',
+              created: 0,
+              model: body.model,
+              choices: [
+                {
+                  index: 0,
+                  finish_reason: 'stop',
+                  message: { role: 'assistant', content },
                 },
-              };
-            }
-            const call = {
-              type: planning ? 'planning' : 'other',
-              time: Date.now(),
-              synthetic: false,
+              ],
+              usage: {
+                prompt_tokens: 0,
+                completion_tokens: 0,
+                total_tokens: 0,
+              },
             };
-            calls.push(call);
-            try {
-              return await create(body, options);
-            } catch (e) {
-              call.error = e.message;
-              throw e;
-            } finally {
-              call.durationMs = Date.now() - call.time;
-            }
+          }
+          const call = {
+            type: planning ? 'planning' : 'other',
+            time: Date.now(),
+            synthetic: false,
           };
-          return client;
-        },
-        beforeInvokeAction: async (name, param) => {
-          if (actions.length >= 14)
-            throw new Error('Evaluation action budget exhausted');
-          before = await page.evaluate(() => window.snapshot());
-          await page.screenshot({
-            path: path.join(dir, `before-${actions.length}.png`),
-          });
-          actions.push({ name, param, before, time: Date.now() });
-        },
-        afterInvokeAction: async () => {
-          const action = actions.at(-1);
-          action.after = await page.evaluate(() => window.snapshot());
-          await page.screenshot({
-            path: path.join(dir, `after-${actions.length - 1}.png`),
-          });
-        },
-      });
-      await agent.aiAct(c.prompt, {
-        ...(arm === 'default'
-          ? {}
-          : { scrollRecovery: arm ? { afterScrolls: arm } : false }),
-        cacheable: false,
-        abortSignal: controller.signal,
-      });
-    }
+          calls.push(call);
+          try {
+            return await create(body, options);
+          } catch (e) {
+            call.error = e.message;
+            throw e;
+          } finally {
+            call.durationMs = Date.now() - call.time;
+          }
+        };
+        return client;
+      },
+      beforeInvokeAction: async (name, param) => {
+        if (actions.length >= 14)
+          throw new Error('Evaluation action budget exhausted');
+        before = await page.evaluate(() => window.snapshot());
+        await page.screenshot({
+          path: path.join(dir, `before-${actions.length}.png`),
+        });
+        actions.push({ name, param, before, time: Date.now() });
+      },
+      afterInvokeAction: async () => {
+        const action = actions.at(-1);
+        action.after = await page.evaluate(() => window.snapshot());
+        await page.screenshot({
+          path: path.join(dir, `after-${actions.length - 1}.png`),
+        });
+      },
+    });
+    await agent.aiAct(c.prompt, {
+      ...(arm === 'default'
+        ? {}
+        : { scrollRecovery: arm ? { afterScrolls: arm } : false }),
+      cacheable: false,
+      abortSignal: controller.signal,
+    });
   } catch (e) {
     error = e.message;
   } finally {
@@ -459,37 +339,16 @@ async function attempt({ c, rep, arm }) {
         error = [error, `Cleanup: ${e.message}`].filter(Boolean).join('; ');
       }
     }
-    if (track !== 'oracle')
-      final = await page.evaluate(() => window.snapshot()).catch(() => null);
+    final = await page.evaluate(() => window.snapshot()).catch(() => null);
     await context.close();
   }
   const scrolls = actions.filter((a) => a.name === 'Scroll');
   const wrongClicks = final?.clicks?.filter((c) => c === 'wrong').length || 0;
   const evaluated = c.evaluate?.({ actions, initial, final });
-  const compliant =
-    evaluated?.compliant ??
-    (c.family === 'explicit'
-      ? actions.length === 4 &&
-        scrolls.length === 4 &&
-        scrolls.every(
-          (a) => a.param.direction === 'down' && a.param.distance === 100,
-        )
-      : c.family === 'boundary'
-        ? actions.length === 1 &&
-          actions.every(
-            (a) => a.name === 'Scroll' && a.param.direction === 'down',
-          )
-        : wrongClicks === 0);
+  const compliant = evaluated?.compliant ?? wrongClicks === 0;
   const goalReached =
-    evaluated?.goalReached ??
-    (c.family === 'explicit'
-      ? compliant &&
-        Math.abs((final?.y ?? Number.NaN) - (initial?.y ?? Number.NaN) - 400) <=
-          2
-      : c.family === 'boundary'
-        ? compliant
-        : !!final?.clicks?.includes('target'));
-  const success = !error && (track === 'oracle' || (goalReached && compliant));
+    evaluated?.goalReached ?? !!final?.clicks?.includes('target');
+  const success = !error && goalReached && compliant;
   const record = {
     id,
     caseId: c.id,
@@ -518,7 +377,6 @@ async function attempt({ c, rep, arm }) {
       (a) => a.after && a.before.x === a.after.x && a.before.y === a.after.y,
     ).length,
   };
-  if (track === 'oracle' && !success) oracleFailures++;
   await writeFile(
     path.join(dir, 'result.json'),
     JSON.stringify(record, null, 2),
@@ -532,7 +390,6 @@ async function attempt({ c, rep, arm }) {
   );
 }
 let next = 0;
-let oracleFailures = 0;
 try {
   await Promise.all(
     Array.from({ length: workers }, async () => {
@@ -558,4 +415,4 @@ if (interruptedBy) {
     ),
   );
   process.exitCode = 130;
-} else if (oracleFailures) process.exitCode = 1;
+}

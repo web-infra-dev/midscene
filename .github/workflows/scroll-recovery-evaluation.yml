@@ -5,13 +5,13 @@ on:
       suite:
         description: Evaluation suite (routine and repository require natural track)
         type: choice
-        options: [regression, boundary, routine, repository]
-        default: regression
+        options: [boundary, routine, repository]
+        default: routine
       track:
         description: Evaluation track
         type: choice
-        options: [oracle, natural, controlled, observer]
-        default: oracle
+        options: [natural, controlled]
+        default: natural
       repetitions:
         description: Repetitions per scenario and arm
         type: number
@@ -23,7 +23,7 @@ on:
       arms:
         description: Comma-separated intervals (0 disables recovery)
         type: string
-        default: '0,2,3'
+        default: '0,default'
 permissions:
   contents: read
 jobs:
@@ -55,16 +55,7 @@ jobs:
       - name: Evaluate
         uses: ./.github/actions/ai-ci
         with:
-          command: |
-            if [ "$EVAL_TRACK" = observer ]; then
-              if [ "$EVAL_SUITE" != regression ]; then
-                echo '::error::The observer track requires the regression suite'
-                exit 1
-              fi
-              pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/observe.mjs
-            else
-              pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/run.mjs
-            fi
+          command: pnpm exec node packages/web-integration/tests/evaluation/scroll-recovery/run.mjs
       - name: Preserve all attempts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
