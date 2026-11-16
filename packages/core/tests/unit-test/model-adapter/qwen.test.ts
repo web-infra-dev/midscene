@@ -21,6 +21,129 @@ const qwen36Adapter = new ResolvedModelAdapter(
 );
 
 describe('qwen model adapter', () => {
+  describe('qwen4', () => {
+    const adapter = new ResolvedModelAdapter(qwenAdapters.qwen4, 'qwen4');
+
+    it.each([
+      { enabled: undefined, expected: { enable_thinking: false } },
+      { enabled: false, expected: { enable_thinking: false } },
+      {
+        enabled: true,
+        expected: {
+          enable_thinking: true,
+          reasoning_effort: 'low',
+          thinking_budget: 512,
+        },
+      },
+      { enabled: 'default', expected: {} },
+    ] as const)(
+      'maps native reasoning when enabled=$enabled',
+      ({ enabled, expected }) => {
+        expect(
+          adapter.chatCompletion.buildChatCompletionParams({
+            baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+            userConfig: {
+              reasoningEnabled: enabled,
+              reasoningEffort: 'low',
+              reasoningBudget: 512,
+            },
+          }).config,
+        ).toEqual({ temperature: 0, ...expected });
+      },
+    );
+
+    it.each([undefined, 'https://openrouter.ai/api/v1'])(
+      'requests JSON mode only when an object is expected and the user permits it (%s)',
+      (baseURL) => {
+        const build = adapter.chatCompletion.buildChatCompletionParams;
+        expect(
+          build({ baseURL, expectedJsonObjectResponse: true }).config,
+        ).toHaveProperty('response_format', { type: 'json_object' });
+        expect(build({ baseURL }).config).not.toHaveProperty('response_format');
+        expect(
+          build({
+            baseURL,
+            expectedJsonObjectResponse: true,
+            userConfig: { responseFormat: 'none' },
+          }).config,
+        ).not.toHaveProperty('response_format');
+      },
+    );
+
+    it.each([
+      ['{"point":[934,785]}', [2802, 1570]],
+      ['[{"point_2d":[568,661],"label":"Approve 前面的勾选框"}]', [1704, 1322]],
+      ['{"point":[144,88],"point_2d":[500,500]}', [432, 176]],
+    ])('parses and scales the locate response %s', (response, center) => {
+      const locate = adapter.locate;
+      if (locate.kind !== 'standard') {
+        throw new Error('qwen4 should use a standard locate protocol');
+      }
+      const { protocol, resultCodec } = locate.element;
+      expect(resultCodec.promptSpec.resultKey).toBe('point');
+      expect(resultCodec.promptSpec.resultValueSchema).toBe('[number, number]');
+      const parsed = protocol.parseRawResponse(
+        response,
+        resultCodec.promptSpec,
+      );
+      if (parsed.kind !== 'located') {
+        throw new Error('expected a located element');
+      }
+      expect(
+        resultCodec.toPixelResult(parsed.target, {
+          preparedSize: { width: 3000, height: 2000 },
+        }),
+      ).toEqual({ center });
+    });
+
+    it('uses normalized points for the DeepLocate search area', () => {
+      const locate = adapter.locate;
+      if (locate.kind !== 'standard' || !locate.searchArea) {
+        throw new Error('qwen4 should use a standard search area protocol');
+      }
+      const { protocol, resultCodec } = locate.searchArea;
+      expect(resultCodec.promptSpec).toEqual(
+        locate.element.resultCodec.promptSpec,
+      );
+      const parsed = protocol.parseRawResponse(
+        '[{"point_2d":[568,661],"references_point_2d":[[934,785]]}]',
+        resultCodec.promptSpec,
+      );
+      expect(parsed).toEqual({
+        kind: 'located',
+        target: [568, 661],
+        references: [[934, 785]],
+      });
+    });
+
+    it.each([
+      '[]',
+      '[null]',
+      '[[562,653,574,671]]',
+      '[{"bbox_2d":[562,653,574,671]},{"bbox_2d":[136,80,169,96]}]',
+    ])('rejects invalid locate arrays %s', (response) => {
+      const locate = adapter.locate;
+      if (locate.kind !== 'standard') {
+        throw new Error('qwen4 should use a standard locate protocol');
+      }
+      const { protocol, resultCodec } = locate.element;
+      expect(() =>
+        protocol.parseRawResponse(response, resultCodec.promptSpec),
+      ).toThrow(/Expected to be a JSON object, got array/);
+    });
+
+    it('preserves arrays outside Qwen4 locate parsing', () => {
+      const response = '[{"bbox_2d":[562,653,574,671]}]';
+      const expected = [{ bbox_2d: [562, 653, 574, 671] }];
+      expect(
+        adapter.jsonParser(response, { source: 'generic-object' }),
+      ).toEqual(expected);
+      expect(qwen3Adapter.jsonParser(response, { source: 'locate' })).toEqual(
+        expected,
+      );
+    });
+  });
+
   describe.each(['qwen3', 'qwen3.5', 'qwen3.6'] as const)(
     '%s reasoning parameters',
     (family) => {
