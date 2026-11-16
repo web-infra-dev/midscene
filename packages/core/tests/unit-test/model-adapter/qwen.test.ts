@@ -71,18 +71,17 @@ describe('qwen model adapter', () => {
     );
 
     it.each([
-      ['{"bbox_2d":[901,771,968,800]}', [2804, 1572]],
-      [
-        '[{"bbox_2d":[562,653,574,671],"label":"点击 Approve 前面的勾选框"}]',
-        [1705, 1325],
-      ],
-      ['[{"bbox_2d":[136,80,169,96],"label":"点击 Actions tab"}]', [458, 177]],
+      ['{"point":[934,785]}', [2802, 1570]],
+      ['[{"point_2d":[568,661],"label":"Approve 前面的勾选框"}]', [1704, 1322]],
+      ['{"point":[144,88],"point_2d":[500,500]}', [432, 176]],
     ])('parses and scales the locate response %s', (response, center) => {
       const locate = adapter.locate;
       if (locate.kind !== 'standard') {
         throw new Error('qwen4 should use a standard locate protocol');
       }
       const { protocol, resultCodec } = locate.element;
+      expect(resultCodec.promptSpec.resultKey).toBe('point');
+      expect(resultCodec.promptSpec.resultValueSchema).toBe('[number, number]');
       const parsed = protocol.parseRawResponse(
         response,
         resultCodec.promptSpec,
@@ -93,8 +92,28 @@ describe('qwen model adapter', () => {
       expect(
         resultCodec.toPixelResult(parsed.target, {
           preparedSize: { width: 3000, height: 2000 },
-        }).center,
-      ).toEqual(center);
+        }),
+      ).toEqual({ center });
+    });
+
+    it('uses normalized points for the DeepLocate search area', () => {
+      const locate = adapter.locate;
+      if (locate.kind !== 'standard' || !locate.searchArea) {
+        throw new Error('qwen4 should use a standard search area protocol');
+      }
+      const { protocol, resultCodec } = locate.searchArea;
+      expect(resultCodec.promptSpec).toEqual(
+        locate.element.resultCodec.promptSpec,
+      );
+      const parsed = protocol.parseRawResponse(
+        '[{"point_2d":[568,661],"references_point_2d":[[934,785]]}]',
+        resultCodec.promptSpec,
+      );
+      expect(parsed).toEqual({
+        kind: 'located',
+        target: [568, 661],
+        references: [[934, 785]],
+      });
     });
 
     it.each([

@@ -242,8 +242,8 @@ const qwen3Adapter: ModelAdapterDefinition = {
 const qwen4Adapter: ModelAdapterDefinition = {
   jsonParser: (raw, context) => {
     const parsed = parseModelResponseJson(raw, context);
-    // Even in JSON object mode, Qwen4-Max can return a single-item array:
-    // [{"bbox_2d":[562,653,574,671],"label":"点击 Approve 前面的勾选框"}]
+    // Qwen4-Max can wrap a locate result in a single-item array:
+    // [{"point_2d":[568,661],"label":"Approve 前面的勾选框"}]
     // Unwrap the object and let the locate protocol validate the coordinate field.
     if (
       (context?.source === 'locate' || context?.source === 'section-locator') &&
@@ -266,7 +266,20 @@ const qwen4Adapter: ModelAdapterDefinition = {
     messageExtraction: qwenMessageExtraction,
     useReasoningAsContentFallback: true,
   },
-  locate: qwenNormalizedBboxLocate,
+  locate: {
+    element: {
+      resultFormat: {
+        resultKey: 'point',
+        resultKeyAliases: ['point_2d'],
+        coordinates: {
+          shape: 'point',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round',
+        },
+      },
+    },
+  },
 };
 
 export const qwenAdapters = {
