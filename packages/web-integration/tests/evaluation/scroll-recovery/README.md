@@ -6,9 +6,9 @@ Compare recovery disabled (`0`) with the native-only default candidate (`default
 | --- | --- | --- | --- |
 | `routine` | Sign-in, preferences, cancel dialog, search, receipts, load more, exact-count moving/boundary scrolls | natural | Correct page outcome, no wrong selection; exact-scroll tasks also enforce count, distance and stop behavior |
 | `repository` | Existing narrow input, disabled/read-only form, native select, popup-interrupted login | natural | Exact values and login state; prohibited button clicks fail |
-| `boundary` | Invoice matrix, shipment board, expense ledger, release timeline | controlled or natural | Correct target clicked with no wrong selections |
+| `boundary` | Invoice matrix, shipment board, expense ledger, release timeline, calendar, permissions, specifications, media strip, warehouse, timetable, configuration panes, cohorts | controlled or natural | Correct target clicked with no wrong selections |
 
-These are 16 local layouts, not independent production workloads. Controlled runs inject the same three downward 200-pixel plans into both arms through the real Agent loop, then resume real model planning. This measures recovery after an induced stall, not natural failure frequency. Routine and repository suites reject controlled injection. Model-free fixture tests separately verify the outcome checkers.
+These are 24 local layouts (12 horizontal boundary cases), not independent production workloads. Controlled runs inject the same three downward 200-pixel plans into both arms through the real Agent loop, then resume real model planning. This measures recovery after an induced stall, not natural failure frequency. Routine and repository suites reject controlled injection. Model-free fixture tests separately verify the outcome checkers.
 
 ## Run
 
@@ -42,3 +42,5 @@ Each attempt gets a fresh browser context and Agent, cache disabled, 14-action /
 Results live under `midscene_run/test-results/scroll-recovery-evaluation/`. Manifests capture HEAD, tracked patch/hash, rendered fixture hashes, model, viewport and budgets. Attempts retain fixture HTML, action screenshots, report HTML, model usage and native review evidence. SIGINT/SIGTERM retain interruption records; the summarizer rejects incomplete runs and duplicate IDs. Freeze source and build before a run; repeated layouts measure variability, not new independent cases.
 
 Historical observer-only, private screenshot replay and exploratory regression tools are available at commit `89ec2335f`. Existing archived results retain their original source version. Current fixture checks and the Agent runner are the maintained reproduction path. Neither these synthetic results nor fixed-output replay establish a one-percentage-point non-inferiority margin or original Chrome-extension/site acceptance.
+
+The expanded controlled round runs all 12 boundary layouts, 3 repetitions per arm (72 attempts), with `EVAL_ARMS=0,default EVAL_PREFIX_SCROLLS=3`. Six targets are left of the initial viewport, six are right. New cases share the measurement shell but use different content structures; they remain synthetic layouts. Report old and new cases separately, and do not pool this round with earlier-version results.
