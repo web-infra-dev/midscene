@@ -21,6 +21,110 @@ const qwen36Adapter = new ResolvedModelAdapter(
 );
 
 describe('qwen model adapter', () => {
+  describe('qwen4', () => {
+    const adapter = new ResolvedModelAdapter(qwenAdapters.qwen4, 'qwen4');
+
+    it.each([
+      { enabled: undefined, expected: { enable_thinking: false } },
+      { enabled: false, expected: { enable_thinking: false } },
+      {
+        enabled: true,
+        expected: {
+          enable_thinking: true,
+          reasoning_effort: 'low',
+          thinking_budget: 512,
+        },
+      },
+      { enabled: 'default', expected: {} },
+    ] as const)(
+      'maps native reasoning when enabled=$enabled',
+      ({ enabled, expected }) => {
+        expect(
+          adapter.chatCompletion.buildChatCompletionParams({
+            baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+            userConfig: {
+              reasoningEnabled: enabled,
+              reasoningEffort: 'low',
+              reasoningBudget: 512,
+            },
+          }).config,
+        ).toEqual({ temperature: 0, ...expected });
+      },
+    );
+
+    it.each([undefined, 'https://openrouter.ai/api/v1'])(
+      'requests JSON mode only when an object is expected and the user permits it (%s)',
+      (baseURL) => {
+        const build = adapter.chatCompletion.buildChatCompletionParams;
+        expect(
+          build({ baseURL, expectedJsonObjectResponse: true }).config,
+        ).toHaveProperty('response_format', { type: 'json_object' });
+        expect(build({ baseURL }).config).not.toHaveProperty('response_format');
+        expect(
+          build({
+            baseURL,
+            expectedJsonObjectResponse: true,
+            userConfig: { responseFormat: 'none' },
+          }).config,
+        ).not.toHaveProperty('response_format');
+      },
+    );
+
+    it.each([
+      ['{"bbox_2d":[901,771,968,800]}', [2804, 1572]],
+      [
+        '[{"bbox_2d":[562,653,574,671],"label":"点击 Approve 前面的勾选框"}]',
+        [1705, 1325],
+      ],
+      ['[{"bbox_2d":[136,80,169,96],"label":"点击 Actions tab"}]', [458, 177]],
+    ])('parses and scales the locate response %s', (response, center) => {
+      const locate = adapter.locate;
+      if (locate.kind !== 'standard') {
+        throw new Error('qwen4 should use a standard locate protocol');
+      }
+      const { protocol, resultCodec } = locate.element;
+      const parsed = protocol.parseRawResponse(
+        response,
+        resultCodec.promptSpec,
+      );
+      if (parsed.kind !== 'located') {
+        throw new Error('expected a located element');
+      }
+      expect(
+        resultCodec.toPixelResult(parsed.target, {
+          preparedSize: { width: 3000, height: 2000 },
+        }).center,
+      ).toEqual(center);
+    });
+
+    it.each([
+      '[]',
+      '[null]',
+      '[[562,653,574,671]]',
+      '[{"bbox_2d":[562,653,574,671]},{"bbox_2d":[136,80,169,96]}]',
+    ])('rejects invalid locate arrays %s', (response) => {
+      const locate = adapter.locate;
+      if (locate.kind !== 'standard') {
+        throw new Error('qwen4 should use a standard locate protocol');
+      }
+      const { protocol, resultCodec } = locate.element;
+      expect(() =>
+        protocol.parseRawResponse(response, resultCodec.promptSpec),
+      ).toThrow(/Expected to be a JSON object, got array/);
+    });
+
+    it('preserves arrays outside Qwen4 locate parsing', () => {
+      const response = '[{"bbox_2d":[562,653,574,671]}]';
+      const expected = [{ bbox_2d: [562, 653, 574, 671] }];
+      expect(
+        adapter.jsonParser(response, { source: 'generic-object' }),
+      ).toEqual(expected);
+      expect(qwen3Adapter.jsonParser(response, { source: 'locate' })).toEqual(
+        expected,
+      );
+    });
+  });
+
   describe.each(['qwen3', 'qwen3.5', 'qwen3.6'] as const)(
     '%s reasoning parameters',
     (family) => {
