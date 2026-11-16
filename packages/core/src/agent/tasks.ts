@@ -1315,6 +1315,10 @@ export function recordAndReleaseScreenshotSequence(
   uiContext: UIContext | undefined,
 ): void {
   const frames = uiContext?.screenshotSequence;
+  // The execution dump outlives the observation's temporary directory, even
+  // without automatic reports. Retain every frame, including the representative
+  // already referenced by the task. Report persistence can later release memory.
+  for (const frame of frames ?? []) frame.retainForRecording();
   if (frames && frames.length > 1) {
     const recorderItems: ExecutionRecorderItem[] = [];
     for (let i = 0; i < frames.length - 1; i++) {

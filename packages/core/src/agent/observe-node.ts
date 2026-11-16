@@ -127,7 +127,8 @@ export async function executeObserve(
     } catch (error) {
       if (!errors.includes(error)) errors.push(error);
     }
-    // Persist report images before releasing the observation's temporary files.
+    // Flush automatic reports before cleanup. Recorded frames independently own
+    // their data even when automatic reporting is disabled.
     try {
       await agent.flushReport();
     } catch (error) {
