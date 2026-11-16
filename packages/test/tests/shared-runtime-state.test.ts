@@ -14,6 +14,42 @@ const cjsYaml =
 const { ScriptPlayer } = require('@midscene/core/yaml') as typeof CoreYaml;
 
 describe('CJS frontend with an ESM platform host', () => {
+  it.each(['esm-to-cjs', 'cjs-to-esm'] as const)(
+    'retains failed Node output across actual module entry points: %s',
+    async (direction) => {
+      const producer = direction === 'esm-to-cjs' ? esmRunner : cjsRunner;
+      const consumer = direction === 'esm-to-cjs' ? cjsRunner : esmRunner;
+      const output = {
+        summary: 'Observation failed',
+        data: { frameCount: 4, durationMs: 800 },
+      };
+      const error = new producer.NodeExecutionError(
+        'javascript',
+        new Error('action failed'),
+        output,
+      );
+      expect(error).not.toBeInstanceOf(consumer.NodeExecutionError);
+      const result = await consumer.runWorkflowDocument(
+        esmYaml.collectLegacyYamlDocument({
+          tasks: [{ name: 'case', flow: [{ javascript: 'work()' }] }],
+        }),
+        {
+          resolveNode: () =>
+            consumer.defineNode({
+              name: 'javascript',
+              execute() {
+                throw error;
+              },
+            }),
+        },
+      );
+      const step = result.cases[0].run?.steps[0];
+      expect(step?.status).toBe('failed');
+      expect(step?.output).toEqual(output);
+      expect(step?.error).toBe(error);
+    },
+  );
+
   it('keeps player host state internal and shares it across CJS and ESM', async () => {
     const failure = new Error('setup failed');
     const player = new ScriptPlayer(

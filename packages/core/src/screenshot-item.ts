@@ -155,6 +155,18 @@ export class ScreenshotItem {
     );
   }
 
+  /**
+   * Retain a borrowed file-backed image before its temporary owner is released.
+   * Report-persisted images already have an independent recovery location and
+   * remain lazy. Keeping this instance preserves IDs and existing dump references.
+   * @internal
+   */
+  retainForRecording(): void {
+    if (this._base64 !== null || this._serializedRef !== null) return;
+    this._base64 = this.base64;
+    this._persistedPath = null;
+  }
+
   /** Check if base64 data is still available in memory (not yet released) */
   hasBase64(): boolean {
     return this._base64 !== null;

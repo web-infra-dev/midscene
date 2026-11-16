@@ -51,6 +51,55 @@ const testAgentClass = {
 };
 
 describe('createMidsceneNodes', () => {
+  it.each([true, false])(
+    'registers and executes observe from the standard Agent catalog (pass=%s)',
+    async (pass) => {
+      const observation = {
+        frameCount: 4,
+        startedAt: 100,
+        endedAt: 900,
+        aiAssert: rs.fn(async () => ({ pass, thought: 'recorded sequence' })),
+      };
+      const observer = {
+        bufferedFrameCount: 1,
+        stop: rs.fn(async () => observation),
+        dispose: rs.fn(async () => {}),
+      };
+      const agent = {
+        ...commonAgent(),
+        startObserving: rs.fn(async () => observer),
+        flushReport: rs.fn(async () => undefined),
+      };
+      const registry = new NodeRegistry(
+        createMidsceneNodes({
+          agentClass: testAgentClass,
+          getAgent: () => agent,
+        }),
+      );
+      expect(renderNodeSpec(registry.definitions()).markdown).toContain(
+        '### `observe`',
+      );
+      const result = await runCollectedCase(
+        collected(
+          normalizeSteps(
+            [{ observe: { act: 'submit', assert: 'loading then success' } }],
+            registry.require.bind(registry),
+          ),
+        ),
+        { resolveNode: registry.require.bind(registry) },
+      );
+      expect(result.status).toBe(pass ? 'success' : 'failed');
+      expect(result.steps[0].output?.data).toEqual({
+        pass,
+        thought: 'recorded sequence',
+        frameCount: 4,
+        durationMs: 800,
+      });
+      expect(agent.startObserving).toHaveBeenCalledOnce();
+      expect(observer.dispose).toHaveBeenCalledOnce();
+    },
+  );
+
   it('routes namespaced YAML Nodes to separate Agents without changing their definitions', async () => {
     const originalNames = commonAgentTestRunnerNodeDefinitions.map(
       (node) => node.name,
@@ -269,6 +318,75 @@ describe('createMidsceneNodes', () => {
         expect(result.steps[0].error?.message).toContain('mobile.aiAct');
     },
   );
+
+  it('keeps a timed out observe Step settled while waiting for disposal before Agent reuse', async () => {
+    rs.useFakeTimers();
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const observation = {
+      frameCount: 4,
+      startedAt: 100,
+      endedAt: 900,
+      aiAssert: rs.fn(),
+    };
+    const observer = {
+      bufferedFrameCount: 1,
+      stop: rs.fn(async () => observation),
+      dispose: rs.fn(async () => {
+        await pending;
+      }),
+    };
+    const agent = {
+      ...commonAgent(),
+      startObserving: rs.fn(async () => observer),
+      flushReport: rs.fn(async () => undefined),
+    };
+    const registry = new NodeRegistry(
+      createMidsceneNodes({
+        agentClass: testAgentClass,
+        getAgent: () => agent,
+      }),
+    );
+    const running = runCollectedCase(
+      collected([
+        {
+          node: 'observe',
+          input: { act: 'submit', assert: 'success', settleMs: 1000 },
+          meta: { timeoutMs: 20, continueOnError: true },
+        },
+        {
+          node: 'aiAssert',
+          input: { prompt: 'next assertion' },
+          meta: { continueOnError: false },
+        },
+      ]),
+      { resolveNode: registry.require.bind(registry) },
+    );
+    try {
+      await rs.advanceTimersByTimeAsync(120);
+      expect(observer.stop).toHaveBeenCalledOnce();
+      expect(observer.dispose).toHaveBeenCalledOnce();
+      expect(observation.aiAssert).not.toHaveBeenCalled();
+      expect(agent.aiAssert).not.toHaveBeenCalled();
+      release();
+      const result = await running;
+      expect(result.steps.map((step) => step.status)).toEqual([
+        'failed',
+        'success',
+      ]);
+      expect(result.steps[0].error?.code).toBe('STEP_TIMEOUT');
+      expect(result.steps[0].output).toBeUndefined();
+      expect(result.steps[0].durationMs).toBe(20);
+      expect(agent.aiAssert).toHaveBeenCalledOnce();
+    } finally {
+      release();
+      await rs.advanceTimersByTimeAsync(1000);
+      await running;
+      rs.useRealTimers();
+    }
+  });
 
   it('continues with the same Agent only after a timed out call has actually finished', async () => {
     rs.useFakeTimers();

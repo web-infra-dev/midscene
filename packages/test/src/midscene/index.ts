@@ -62,6 +62,7 @@ export {
   aiQueryInputSchema,
   aiScrollInputSchema,
   javascriptInputSchema,
+  observeInputSchema,
   runGherkinScenarioInputSchema,
   setAIContextInputSchema,
 } from '@midscene/core/agent/test';
@@ -75,6 +76,7 @@ export type {
   AiQueryNodeInput,
   AiScrollNodeInput,
   JavascriptNodeInput,
+  ObserveNodeInput,
   RunGherkinScenarioNodeInput,
   SetAIContextNodeInput,
 } from '@midscene/core/agent/test';
