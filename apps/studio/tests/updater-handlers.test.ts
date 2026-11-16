@@ -1,23 +1,23 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import type { UpdateStatus } from '../src/shared/updater-contract';
 
-const mocks = vi.hoisted(() => ({
+const mocks = rs.hoisted(() => ({
   homeDir: '/tmp',
 }));
 
-vi.mock('electron', () => ({
+rs.mock('electron', () => ({
   app: {
     getName: () => 'Midscene Studio Beta',
     getPath: (name: string) =>
       name === 'home' ? mocks.homeDir : path.join(mocks.homeDir, name),
     isPackaged: true,
-    quit: vi.fn(),
+    quit: rs.fn(),
   },
   ipcMain: {
-    handle: vi.fn(),
+    handle: rs.fn(),
   },
 }));
 
@@ -25,19 +25,19 @@ afterEach(() => {
   mocks.homeDir = '/tmp';
 });
 
-vi.mock('electron-updater', () => ({
+rs.mock('electron-updater', () => ({
   autoUpdater: {
     autoDownload: false,
     autoInstallOnAppQuit: false,
     channel: 'latest',
     allowPrerelease: false,
     allowDowngrade: false,
-    on: vi.fn(),
-    removeAllListeners: vi.fn(),
-    checkForUpdates: vi.fn(),
-    downloadUpdate: vi.fn(),
-    quitAndInstall: vi.fn(),
-    getFeedURL: vi.fn(() => 'https://example.com'),
+    on: rs.fn(),
+    removeAllListeners: rs.fn(),
+    checkForUpdates: rs.fn(),
+    downloadUpdate: rs.fn(),
+    quitAndInstall: rs.fn(),
+    getFeedURL: rs.fn(() => 'https://example.com'),
   },
 }));
 

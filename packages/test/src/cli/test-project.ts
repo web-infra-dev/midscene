@@ -643,7 +643,7 @@ const validateTestProjectDefinition = <TContext, TProjectContext = TContext>(
   }
   if ('root' in definition) {
     throw new TypeError(
-      'Midscene config root is not supported. Pass the Test Project directory to midscene-test instead.',
+      'Midscene config root is not supported. Run midscene-test from the project directory or select its config with --config instead.',
     );
   }
   if ('files' in definition) {

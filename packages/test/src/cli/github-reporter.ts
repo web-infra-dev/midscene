@@ -1,6 +1,7 @@
 import { appendFileSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
-import { renderTestBadge } from '../report/badge';
+import { renderTestBadgeLines } from '../report/badge';
+import { markdownText } from '../report/markdown-text';
 import { formatDuration } from './terminal-reporter';
 import type { TestProjectRunResult } from './types';
 
@@ -8,19 +9,6 @@ const escapeData = (text: string) =>
   text.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
 const escapeProperty = (text: string) =>
   escapeData(text).replace(/:/g, '%3A').replace(/,/g, '%2C');
-const markdown = (text: string) =>
-  text.replace(
-    /[&<>`\r\n]/g,
-    (char) =>
-      ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '`': '&#96;',
-        '\r': ' ',
-        '\n': ' ',
-      })[char]!,
-  );
 
 // Entity references are not decoded inside code spans, so paths are kept
 // as is, fenced with more backticks than the longest run they contain.
@@ -58,8 +46,7 @@ export function writeGitHubSummary(result: TestProjectRunResult): void {
   const summary = [
     '## Midscene Test',
     '',
-    renderTestBadge(result.summary),
-    '',
+    ...renderTestBadgeLines(result),
     '| Passed | Failed | Not run | Passed after retry | Duration |',
     '| ---: | ---: | ---: | ---: | ---: |',
     `| ${result.summary.passed} | ${result.summary.failed} | ${result.summary.notRun} | ${result.summary.passedAfterRetry} | ${formatDuration(result.durationMs)} |`,
@@ -68,7 +55,7 @@ export function writeGitHubSummary(result: TestProjectRunResult): void {
     '',
     ...failedCases.map(
       (item) =>
-        `- Failed: **${markdown(item.name)}** — ${markdown(item.projectName)}/${code(item.sourcePath)}`,
+        `- Failed: **${markdownText(item.name)}** — ${markdownText(item.projectName)}/${code(item.sourcePath)}`,
     ),
     ...(result.summary.collectionErrors
       ? [`- Collection errors: ${result.summary.collectionErrors}`]

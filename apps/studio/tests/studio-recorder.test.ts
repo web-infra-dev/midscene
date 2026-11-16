@@ -1,5 +1,5 @@
 import { DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS } from '@midscene/shared/recorder';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { resolveSelectedDeviceId } from '../src/renderer/playground/selectors';
 import { toStudioRecorderCodegenInput } from '../src/renderer/recorder/codegen-adapter';
 import { mapPreviewRecorderEventToStudioRecordedEvent } from '../src/renderer/recorder/event-mapper';

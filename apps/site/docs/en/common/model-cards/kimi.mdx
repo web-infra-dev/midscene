@@ -1,0 +1,15 @@
+import { ModelConfigCard } from '@theme';
+
+<ModelConfigCard
+  purposes={props.purposes}
+  providers={[
+    {
+      name: "Moonshot AI",
+      href: "https://platform.kimi.com/",
+      baseUrl: "https://api.moonshot.cn/v1",
+      modelName: "kimi-k3",
+    },
+  ]}
+  openRouterModel="moonshotai/kimi-k3"
+  modelFamily={{ value: "kimi3", comment: "For kimi-k2.6, use \"kimi\"" }}
+/>

@@ -156,10 +156,10 @@ export const createWebTestRunnerNodeDefinitions = <
       throwIfAborted(executionContext.signal, 'setCookies');
       try {
         await driver.setCookies(cookies);
-      } catch {
-        throw new Error(
-          `Failed to set ${cookies.length} browser cookie(s); the browser error was redacted because it may contain cookie values.`,
-        );
+      } catch (cause) {
+        throw new Error(`Failed to set ${cookies.length} browser cookie(s).`, {
+          cause,
+        });
       }
       return {
         summary: `Set ${result.count} browser cookie(s) from ${result.source} ${result.sourceName}`,

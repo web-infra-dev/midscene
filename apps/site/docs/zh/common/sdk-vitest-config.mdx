@@ -1,0 +1,18 @@
+新建 `vitest.config.ts`。如果项目已在使用 Vitest，可以将设备测试配置单独保存为 `vitest.device.config.ts`，运行时通过 `--config vitest.device.config.ts` 指定，以免影响现有的单元测试配置。
+
+```typescript title="vitest.config.ts"
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    include: ['e2e/**/*.test.ts'],
+    environment: 'node',
+    testTimeout: 90_000,
+    hookTimeout: 90_000,
+    fileParallelism: false,
+    sequence: { concurrent: false },
+  },
+});
+```
+
+由于模型调用和设备连接耗时较长，请根据实际用例适当调大 `testTimeout` 与 `hookTimeout`。在共享同一台设备时，需关闭文件级并行（`fileParallelism: false`）并保持用例串行执行（`sequence.concurrent: false`），同时避免在代码中调用 `test.concurrent` 或 `describe.concurrent`。相关配置项详见 Vitest 的 [fileParallelism](https://vitest.dev/config/fileparallelism)、[testTimeout](https://vitest.dev/config/testtimeout) 和 [hookTimeout](https://vitest.dev/config/hooktimeout) 文档。

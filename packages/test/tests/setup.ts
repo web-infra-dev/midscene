@@ -1,8 +1,7 @@
-import { vi } from 'vitest';
+import { rs } from '@rstest/core';
 
-// Run the real Node platform host without Vite traversing optional browser WASM.
+// Run the real Node platform host without bundling optional browser WASM.
 // Individual factory unit tests can override this boundary with their own spies.
-vi.mock('../src/runtime/create-yaml-player', async () => {
-  const { createRequire } = await import('node:module');
-  return createRequire(import.meta.url)('../dist/lib/runtime/index.js');
-});
+rs.mock('../src/runtime/create-yaml-player', () =>
+  rs.requireActual('../dist/lib/runtime/index.js'),
+);

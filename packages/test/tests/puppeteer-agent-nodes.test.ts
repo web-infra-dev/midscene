@@ -6,7 +6,7 @@ import {
   setCookiesInputSchema,
   setViewportSizeInputSchema,
 } from '@midscene/web/puppeteer/test';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { NodeRegistry } from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';
 import { createMidsceneNodes } from '../src/midscene';

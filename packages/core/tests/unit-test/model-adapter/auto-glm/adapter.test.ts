@@ -41,11 +41,6 @@ describe('auto-glm model adapter', () => {
     const result = autoGlmAdapter.chatCompletion.buildChatCompletionParams({
       userConfig: {},
     });
-    expect(autoGlmAdapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningEnabled',
-      'reasoningEffort',
-      'reasoningBudget',
-    ]);
     expect(result.config).toEqual({
       temperature: 0,
       top_p: 0.85,

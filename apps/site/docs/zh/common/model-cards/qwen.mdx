@@ -1,0 +1,15 @@
+import { ModelConfigCard } from '@theme';
+
+<ModelConfigCard
+  purposes={props.purposes}
+  providers={[
+    {
+      name: "阿里云",
+      href: "https://bailian.console.aliyun.com/",
+      baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      modelName: "qwen3.7-plus",
+    },
+  ]}
+  openRouterModel="qwen/qwen3.7-plus"
+  modelFamily={{ value: "qwen3", comment: "如果你使用了其他版本的 Qwen，需要替换为对应的 model family" }}
+/>

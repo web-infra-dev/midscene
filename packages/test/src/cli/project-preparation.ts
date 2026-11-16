@@ -1,4 +1,4 @@
-import { readdirSync } from 'node:fs';
+import { readdirSync, realpathSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { CollectedWorkflowDocument } from '@midscene/core/internal/test-runner';
 import { buildTestRunReportPlan } from '@midscene/core/internal/test-runner';
@@ -194,13 +194,27 @@ export async function prepareProject(
   const prerequisiteFile = options.prerequisiteFile
     ? resolve(options.prerequisiteFile)
     : undefined;
-  const mainFiles =
+  const discoveredFiles =
     options.files ??
     discoverResolvedTestFiles(
-      projectRoot,
+      options.discoveryRoot ?? projectRoot,
       fileSelection,
       options.excludedDirectories,
     );
+  const selectedPath = options.testPath
+    ? realpathSync(options.testPath)
+    : undefined;
+  const mainFiles = selectedPath
+    ? discoveredFiles.filter((file) => {
+        const within = relative(selectedPath, realpathSync(file));
+        return (
+          within === '' ||
+          (!isAbsolute(within) &&
+            within !== '..' &&
+            !within.startsWith(`..${sep}`))
+        );
+      })
+    : discoveredFiles;
   const files = [
     ...(prerequisiteFile ? [prerequisiteFile] : []),
     ...mainFiles.filter((file) => file !== prerequisiteFile),
@@ -222,7 +236,7 @@ export async function prepareProject(
   const plans: import('@midscene/core').TestRunReportDocumentPlan[] = [];
   let filteredCaseCount = 0;
 
-  if (sources.length === 0) {
+  if (sources.length === 0 && !options.testPath) {
     const error = asCollectionError(
       project.projectId,
       project.name,

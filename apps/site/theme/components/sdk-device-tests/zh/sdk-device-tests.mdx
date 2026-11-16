@@ -1,0 +1,39 @@
+import { SdkDeviceTestExample, SdkPlatformContent } from '@theme';
+
+新建 `e2e/settings.test.ts`，在 `beforeEach` 中为每个用例创建新的 Agent，并在 `afterEach` 中销毁：
+
+<SdkPlatformContent platform="android">
+
+<SdkDeviceTestExample runner={props.runner} platform="android" />
+
+连接多台设备时，通过 `agentFromAdbDevice(deviceId)` 指定设备 ID。连接参数详见 [Android SDK 文档](/zh/sdk/android)。
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="ios">
+
+<SdkDeviceTestExample runner={props.runner} platform="ios" />
+
+将 `wdaHost` 和 `wdaPort` 替换为已验证可用的 WebDriverAgent 服务地址。连接参数详见 [iOS SDK 文档](/zh/sdk/ios)。
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="harmonyos">
+
+<SdkDeviceTestExample runner={props.runner} platform="harmonyos" />
+
+连接多台设备时，通过 `agentFromHdcDevice(deviceId)` 指定设备 ID。连接参数详见 [HarmonyOS SDK 文档](/zh/sdk/harmonyos)。
+
+</SdkPlatformContent>
+
+<SdkPlatformContent platform="desktop">
+
+<SdkDeviceTestExample runner={props.runner} platform="desktop" />
+
+运行前，打开系统设置应用，将可滚动的设置页面置于前台，并在测试期间保持可见。权限和连接参数详见[桌面端 SDK 文档](/zh/sdk/desktop)。
+
+</SdkPlatformContent>
+
+`dotenv/config` 用于从项目的 `.env` 文件加载模型配置（Playground 中的配置不会自动同步到测试进程）。
+
+当 `aiAssert` 的断言未通过时，会直接抛出错误，测试框架 随即将其所在用例标记为失败，并继续执行 `afterEach` 销毁 Agent。你也可以用 `aiQuery` 等方法提取界面数据，再交给 测试框架 的 `expect` 进行校验。更多交互与提取方法见 [Agent API 参考](/zh/reference/#interaction-methods)。

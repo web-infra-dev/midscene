@@ -1,38 +1,41 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as actualEnv from '@midscene/shared/env' with {
+  rstest: 'importActual',
+};
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { runTestCli } from '../src/cli/test-command';
 
-const mocks = vi.hoisted(() => ({
-  verify: vi.fn(),
-  config: vi.fn(),
-  dotenv: vi.fn(),
+const mocks = rs.hoisted(() => ({
+  verify: rs.fn(),
+  config: rs.fn(),
+  dotenv: rs.fn(),
 }));
 
-vi.mock('@midscene/core', () => ({ runConnectivityTest: mocks.verify }));
-vi.mock('../src/cli/test-project', () => ({ loadTestProject: vi.fn() }));
-vi.mock('../src/cli/test-project-runner', () => ({
+rs.mock('@midscene/core', () => ({ runConnectivityTest: mocks.verify }));
+rs.mock('../src/cli/test-project', () => ({ loadTestProject: rs.fn() }));
+rs.mock('../src/cli/test-project-runner', () => ({
   DEFAULT_TEST_FILE_SELECTION: [],
-  discoverTestConfig: vi.fn(),
-  runTestProject: vi.fn(),
+  discoverTestConfig: rs.fn(),
+  runTestProject: rs.fn(),
 }));
-vi.mock('../src/cli/node-spec', () => ({
-  renderNodeSpec: vi.fn(),
-  sortNodesForSpec: vi.fn(),
+rs.mock('../src/cli/node-spec', () => ({
+  renderNodeSpec: rs.fn(),
+  sortNodesForSpec: rs.fn(),
 }));
-vi.mock('@midscene/shared/env', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@midscene/shared/env')>()),
+rs.mock('@midscene/shared/env', () => ({
+  ...actualEnv,
   globalModelConfigManager: { getModelConfig: mocks.config },
 }));
-vi.mock('../src/cli/dotenv-loader', () => ({
+rs.mock('../src/cli/dotenv-loader', () => ({
   loadDotenvConfig: mocks.dotenv,
 }));
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  rs.clearAllMocks();
   mocks.config.mockImplementation((intent) => ({ modelName: intent }));
   mocks.verify.mockResolvedValue({ checks: [], requestCount: 0, passed: true });
 });
 
-const createIO = () => ({ log: vi.fn(), error: vi.fn() });
+const createIO = () => ({ log: rs.fn(), error: rs.fn() });
 
 describe('midscene-test model CLI', () => {
   it.each([['--help'], ['-h']])(

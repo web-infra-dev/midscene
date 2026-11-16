@@ -10,7 +10,7 @@ import {
 import { siteResponse } from './site';
 
 // Bump when the rendered output changes so edge caches pick up the new design.
-export const BADGE_VERSION = '1';
+export const BADGE_VERSION = '2';
 
 // The design rarely changes, so cache aggressively: 24h in browsers and
 // proxies (GitHub camo), 24h at the Cloudflare edge.
@@ -24,9 +24,10 @@ export const BY_PATH = '/by-midscene';
 
 const USAGE = `Midscene Test badge
 
-GET /e2e?pass=<n>&fail=<n>[&style=flat|large|card][&theme=light|dark]
+GET /e2e?pass=<n>&fail=<n>[&skipped=<n>][&style=flat|large|card][&theme=light|dark]
 
   pass, fail  required, non-negative integers
+  skipped     optional, non-negative integer (default: 0)
   style       flat (default, 20px), large (28px) or card (two lines)
   theme       light (default) or dark, only used by style=card
 
@@ -70,13 +71,20 @@ export function parseBadgeOptions(params: URLSearchParams): BadgeOptions {
   return {
     pass: parseCount(params, 'pass'),
     fail: parseCount(params, 'fail'),
+    skipped: params.has('skipped') ? parseCount(params, 'skipped') : 0,
     style: parseEnum(params, 'style', STYLES),
     theme: parseEnum(params, 'theme', THEMES),
   };
 }
 
-export function badgeETag({ pass, fail, style, theme }: BadgeOptions) {
-  return `"v${BADGE_VERSION}-${style}-${theme}-${pass}-${fail}"`;
+export function badgeETag({
+  pass,
+  fail,
+  skipped = 0,
+  style,
+  theme,
+}: BadgeOptions) {
+  return `"v${BADGE_VERSION}-${style}-${theme}-${pass}-${fail}-${skipped}"`;
 }
 
 function textResponse(body: string, status: number, cacheControl: string) {
@@ -197,5 +205,6 @@ export function edgeCacheKey(request: Request): Request | null {
   key.searchParams.set('theme', options.theme);
   key.searchParams.set('pass', String(options.pass));
   key.searchParams.set('fail', String(options.fail));
+  key.searchParams.set('skipped', String(options.skipped));
   return new Request(key.toString());
 }

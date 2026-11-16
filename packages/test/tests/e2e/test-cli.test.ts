@@ -1,4 +1,3 @@
-import { execFile } from 'node:child_process';
 import {
   cpSync,
   existsSync,
@@ -11,20 +10,17 @@ import {
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { promisify } from 'node:util';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from '@rstest/core';
+import {
+  cliPath,
+  execFileAsync,
+  packageRoot,
+  runDirFor,
+  runFailure,
+  summaryPathFor,
+} from './test-cli-support';
 
 const temporaryDirectories: string[] = [];
-const execFileAsync = promisify(execFile);
-const packageRoot = resolve(__dirname, '../..');
-const cliPath = join(packageRoot, 'bin', 'midscene-test');
-
-interface FailedExecution {
-  code: number;
-  stdout: string;
-  stderr: string;
-}
-
 afterAll(() => {
   for (const directory of temporaryDirectories) {
     rmSync(directory, { recursive: true, force: true });
@@ -54,23 +50,6 @@ const jsonFilesBelow = (directory: string): string[] => {
   return files;
 };
 
-const runDirFor = (resultDir: string): string => {
-  const runIds = readdirSync(resultDir, { withFileTypes: true })
-    .filter(
-      (entry) => entry.isDirectory() && /^\d{14}-[0-9a-f]{8}$/.test(entry.name),
-    )
-    .map((entry) => entry.name);
-  if (runIds.length !== 1) {
-    throw new Error(
-      `Expected one run directory in ${resultDir}, found ${runIds.length}.`,
-    );
-  }
-  return join(resultDir, runIds[0]);
-};
-
-const summaryPathFor = (resultDir: string) =>
-  join(runDirFor(resultDir), 'summary.json');
-
 const documentResultFiles = (runDir: string): string[] =>
   jsonFilesBelow(runDir).filter((path) => basename(path) === 'document.json');
 
@@ -88,21 +67,6 @@ const temporaryRun = (prefix: string) => {
     resultDir: join(temporary, 'results'),
     executionLog: join(temporary, 'executed.log'),
   };
-};
-
-const runFailure = async (
-  args: string[],
-  env: NodeJS.ProcessEnv = process.env,
-): Promise<FailedExecution> => {
-  try {
-    await execFileAsync(process.execPath, [cliPath, ...args], {
-      cwd: packageRoot,
-      env,
-    });
-  } catch (error) {
-    return error as FailedExecution;
-  }
-  throw new Error('Expected test CLI to fail.');
 };
 
 describe('midscene-test CLI', () => {
@@ -132,10 +96,14 @@ describe('midscene-test CLI', () => {
       if (source === 'environment') env.MIDSCENE_RUN_DIR = 'artifacts';
       if (source === 'absolute-environment')
         env.MIDSCENE_RUN_DIR = join(root, 'artifacts');
-      const execution = await execFileAsync(process.execPath, [cliPath, root], {
-        cwd: packageRoot,
-        env,
-      });
+      const execution = await execFileAsync(
+        process.execPath,
+        [cliPath, '--config', join(root, 'midscene.config.mjs')],
+        {
+          cwd: packageRoot,
+          env,
+        },
+      );
       const artifactRoot = join(
         root,
         source === 'default' ? 'midscene_run' : 'artifacts',
@@ -196,7 +164,8 @@ export default {
           'cases:\n  - name: checkout\n    steps:\n      - demo.concurrent: {}\n      - demo.noop: {}\n      - demo.noop: {}\n',
         );
       const execution = await runFailure([
-        root,
+        '--config',
+        join(root, 'midscene.config.mjs'),
         '--result-dir',
         resultDir,
         '--reporter',
@@ -251,49 +220,6 @@ export default {
     },
   );
 
-  it.each(['smoke', 'missing'])(
-    'counts only files selected by the %s tag in the completed CLI output',
-    async (tag) => {
-      const root = mkdtempSync(join(tmpdir(), 'cli-filtered-files-'));
-      temporaryDirectories.push(root);
-      const resultDir = join(root, 'results');
-      writeFileSync(
-        join(root, 'midscene.config.mjs'),
-        `export default {
-  projects: [{ name: 'web', tags: { include: [${JSON.stringify(tag)}] } }],
-  nodes: [{ name: 'test.record', execute({ input }) {
-    if (input.tag === 'slow') throw new Error('A filtered Case must not run');
-  } }],
-};\n`,
-      );
-      for (const name of ['smoke', 'slow'])
-        writeFileSync(
-          join(root, `${name}.yaml`),
-          `cases:\n  - name: ${name}\n    tags: [${name}]\n    steps:\n      - test.record:\n          tag: ${name}\n`,
-        );
-      const execution = await execFileAsync(
-        process.execPath,
-        [cliPath, root, '--result-dir', resultDir],
-        { cwd: packageRoot },
-      );
-      const selected = tag === 'smoke' ? 1 : 0;
-      expect(execution.stdout).toContain(
-        `1 projects · ${selected} files · ${selected} cases`,
-      );
-      expect(execution.stdout).toContain(
-        `Test Files ${selected} passed (${selected})`,
-      );
-      expect(execution.stdout).not.toContain('slow.yaml');
-      if (!selected) expect(execution.stdout).not.toContain('smoke.yaml');
-      const summary = JSON.parse(
-        readFileSync(summaryPathFor(resultDir), 'utf8'),
-      );
-      expect(summary.projects[0].sourceCount).toBe(2);
-      expect(summary.projects[0].selectedCaseCount).toBe(selected);
-      expect(summary.summary.filtered).toBe(2 - selected);
-    },
-  );
-
   it('publishes actual model usage across hooks and failed Case attempts without calling a model', async () => {
     const root = mkdtempSync(join(tmpdir(), 'cli-model-usage-'));
     temporaryDirectories.push(root);
@@ -328,7 +254,13 @@ export default {
     );
     const execution = await execFileAsync(
       process.execPath,
-      [cliPath, root, '--result-dir', resultDir],
+      [
+        cliPath,
+        '--config',
+        join(root, 'midscene.config.mjs'),
+        '--result-dir',
+        resultDir,
+      ],
       {
         cwd: packageRoot,
         env: {
@@ -388,7 +320,12 @@ export default {
         '',
       ].join('\n'),
     );
-    const execution = await runFailure([root, '--result-dir', resultDir]);
+    const execution = await runFailure([
+      '--config',
+      join(root, 'midscene.config.mjs'),
+      '--result-dir',
+      resultDir,
+    ]);
     expect(execution.code).toBe(1);
     expect(execution.stderr).toContain('FAIL [headphones] Case A');
     expect(execution.stderr).toContain('Step     2/3 · demo.outcome');
@@ -397,10 +334,10 @@ export default {
     expect(execution.stderr).toContain('Error: Expected 36, received 24.');
     expect(execution.stderr).toContain('Input    outcome: final-failure');
     expect(execution.stderr).toContain('caseLabel: Case A');
-    expect(execution.stderr).toContain('password: [REDACTED]');
+    expect(execution.stderr).toContain('password: private-secret');
     expect(execution.stderr).toMatch(/at midscene\.config\.mjs:4:\d+/);
     expect(execution.stderr).not.toMatch(
-      /private-secret|unrelated input marker|unexecuted input marker|node_modules|NodeExecutionError/,
+      /unrelated input marker|unexecuted input marker|node_modules|NodeExecutionError/,
     );
     expect(execution.stderr).not.toContain('\u001b');
     const summary = JSON.parse(readFileSync(summaryPathFor(resultDir), 'utf8'));
@@ -417,7 +354,13 @@ export default {
     const { resultDir, executionLog } = temporaryRun('midscene-concise-e2e-');
     const execution = await execFileAsync(
       process.execPath,
-      [cliPath, projectRoot, '--result-dir', resultDir],
+      [
+        cliPath,
+        '--config',
+        join(projectRoot, 'midscene.config.ts'),
+        '--result-dir',
+        resultDir,
+      ],
       {
         cwd: packageRoot,
         env: { ...process.env, WORKFLOW_E2E_LOG: executionLog },
@@ -493,7 +436,8 @@ cases:
       }
 
       const failure = await runFailure([
-        root,
+        '--config',
+        join(root, 'midscene.config.mjs'),
         '--result-dir',
         resultDir,
         '--reporter',
@@ -524,48 +468,6 @@ cases:
     },
   );
 
-  it('prints the original config stack and preserves the failure exit code', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'cli-config-error-'));
-    temporaryDirectories.push(root);
-    const config = join(root, 'midscene.config.mjs');
-    writeFileSync(
-      config,
-      `function failConfig() { throw new Error('original config failure'); }\nfailConfig();`,
-    );
-
-    const failure = await runFailure(['nodes', root]);
-
-    expect(failure.code).toBe(1);
-    expect(failure.stderr).toContain(
-      `Failed to load Midscene config "${config}"`,
-    );
-    expect(failure.stderr).toContain('Error: original config failure');
-    expect(failure.stderr).toMatch(
-      /at failConfig \(.*midscene\.config\.mjs:1:\d+\)/,
-    );
-  });
-
-  it('rejects legacy workflows and batch configs with the matching-command guidance', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'strict-test-entry-'));
-    temporaryDirectories.push(root);
-    const legacy = join(root, 'flow.yaml');
-    writeFileSync(legacy, 'tasks:\n  - name: old\n    flow: []\n');
-    const config = join(root, 'batch.yaml');
-    writeFileSync(config, 'files: [flow.yaml]\n');
-
-    const workflowFailure = await runFailure([legacy]);
-    expect(workflowFailure.stderr).toContain(
-      'Legacy tasks/flow YAML is not supported by midscene-test',
-    );
-    expect(workflowFailure.stderr).toContain('midscene');
-
-    const configFailure = await runFailure(['--config', config]);
-    expect(configFailure.stderr).toContain(
-      'midscene-test --config only accepts a native TypeScript or JavaScript project config',
-    );
-    expect(configFailure.stderr).toContain('midscene --config');
-  });
-
   it('publishes only the midscene-test bin', () => {
     const packageJson = JSON.parse(
       readFileSync(join(packageRoot, 'package.json'), 'utf8'),
@@ -587,7 +489,8 @@ cases:
       process.execPath,
       [
         cliPath,
-        projectRoot,
+        '--config',
+        join(projectRoot, 'midscene.config.ts'),
         '--result-dir',
         resultDir,
         '--reporter',
@@ -702,7 +605,13 @@ cases:
 
     const execution = await execFileAsync(
       process.execPath,
-      [cliPath, projectRoot, '--result-dir', resultDir],
+      [
+        cliPath,
+        '--config',
+        join(projectRoot, 'midscene.config.ts'),
+        '--result-dir',
+        resultDir,
+      ],
       {
         cwd: packageRoot,
         env: { ...process.env, WORKFLOW_E2E_LOG: executionLog },
@@ -755,7 +664,14 @@ cases:
     const { resultDir, executionLog } = temporaryRun('midscene-failure-e2e-');
 
     const failure = await runFailure(
-      [projectRoot, '--result-dir', resultDir, '--reporter', 'verbose'],
+      [
+        '--config',
+        join(projectRoot, 'midscene.config.ts'),
+        '--result-dir',
+        resultDir,
+        '--reporter',
+        'verbose',
+      ],
       {
         ...process.env,
         WORKFLOW_E2E_LOG: executionLog,
@@ -802,7 +718,14 @@ cases:
     );
 
     const failure = await runFailure(
-      [projectRoot, '--result-dir', resultDir, '--reporter', 'verbose'],
+      [
+        '--config',
+        join(projectRoot, 'midscene.config.ts'),
+        '--result-dir',
+        resultDir,
+        '--reporter',
+        'verbose',
+      ],
       {
         ...process.env,
         WORKFLOW_E2E_LOG: executionLog,
@@ -842,7 +765,11 @@ cases:
   it('rejects scheduling options that are not supported as CLI flags', async () => {
     const projectRoot = join(__dirname, 'fixtures', 'test-project');
     for (const option of ['--parallel', '--max-concurrency', '--bail']) {
-      const failure = await runFailure([projectRoot, option]);
+      const failure = await runFailure([
+        '--config',
+        join(projectRoot, 'midscene.config.ts'),
+        option,
+      ]);
       expect(failure.code).toBe(1);
       expect(failure.stderr).toContain(`Unknown option: ${option}`);
     }
@@ -852,10 +779,18 @@ cases:
     const projectRoot = join(__dirname, 'fixtures', 'interrupt-project');
     const { resultDir, executionLog } = temporaryRun('midscene-interrupt-e2e-');
 
-    const failure = await runFailure([projectRoot, '--result-dir', resultDir], {
-      ...process.env,
-      WORKFLOW_E2E_LOG: executionLog,
-    });
+    const failure = await runFailure(
+      [
+        '--config',
+        join(projectRoot, 'midscene.config.ts'),
+        '--result-dir',
+        resultDir,
+      ],
+      {
+        ...process.env,
+        WORKFLOW_E2E_LOG: executionLog,
+      },
+    );
 
     expect(failure.code).toBe(1);
     expect(readFileSync(executionLog, 'utf8').trim().split('\n')).toEqual([

@@ -3,6 +3,7 @@ import { version } from '../../../package.json';
 import {
   DEFAULT_MODEL_CONFIG_KEYS,
   INSIGHT_MODEL_CONFIG_KEYS,
+  LOCATE_MODEL_CONFIG_KEYS,
   PLANNING_MODEL_CONFIG_KEYS,
 } from '../../../src/env/constants';
 import {
@@ -81,6 +82,15 @@ describe('getUITarsModelVersion', () => {
 });
 
 describe('validateModelFamily', () => {
+  it('accepts tencent-hy through model config parsing', () => {
+    expect(
+      parseOpenaiSdkConfig({
+        keys: DEFAULT_MODEL_CONFIG_KEYS,
+        provider: { MIDSCENE_MODEL_FAMILY: 'tencent-hy' },
+      }).modelFamily,
+    ).toBe('tencent-hy');
+  });
+
   it('should not throw on valid model families', () => {
     expect(() => validateModelFamily('qwen3-vl')).not.toThrow();
     expect(() => validateModelFamily('qwen3')).not.toThrow();
@@ -152,6 +162,23 @@ describe('legacyConfigToModelFamily', () => {
 });
 
 describe('parseOpenaiSdkConfig', () => {
+  it.each([
+    DEFAULT_MODEL_CONFIG_KEYS,
+    INSIGHT_MODEL_CONFIG_KEYS,
+    PLANNING_MODEL_CONFIG_KEYS,
+    LOCATE_MODEL_CONFIG_KEYS,
+  ])('preserves explicit unset for $temperature', (keys) => {
+    const result = parseOpenaiSdkConfig({
+      keys,
+      provider: {
+        [keys.modelName]: 'gpt-5.6-sol',
+        [keys.temperature]: 'unset',
+      },
+    });
+
+    expect(result.temperature).toBe('unset');
+  });
+
   it('parses numeric temperature', () => {
     const result = parseOpenaiSdkConfig({
       keys: DEFAULT_MODEL_CONFIG_KEYS,

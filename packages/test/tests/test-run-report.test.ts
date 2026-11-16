@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { TestRunReportSourceIndex } from '@midscene/core';
 import { NodeExecutionError } from '@midscene/core/internal/test-runner';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import type { TestProjectRunResult } from '../src/cli/types';
 import type { StepRunResult } from '../src/engine/types';
 import { WorkflowError } from '../src/errors';
@@ -146,7 +146,7 @@ const index: TestRunReportSourceIndex = {
 };
 
 describe('Midscene Test report manifest', () => {
-  it('redacts and truncates arbitrary display data', () => {
+  it('preserves fields and bounds arbitrary display data', () => {
     const cyclic: Record<string, unknown> = {
       password: 'password',
       refresh_token: 'token',
@@ -158,17 +158,16 @@ describe('Midscene Test report manifest', () => {
 
     const sanitized = sanitizeReportValue(cyclic);
     expect(sanitized.value).toMatchObject({
-      password: '[REDACTED]',
-      refresh_token: '[REDACTED]',
+      password: 'password',
+      refresh_token: 'token',
       self: '[Unsupported circular value]',
     });
-    expect(sanitized.redactedPaths).toEqual(['$.password', '$.refresh_token']);
     expect(sanitized.truncatedPaths).toEqual(
       expect.arrayContaining(['$.long', '$.values', '$.fn', '$.self']),
     );
   });
 
-  it('preserves the original error stack while redacting diagnostic details', () => {
+  it('preserves the original error stack and diagnostic details', () => {
     const error = Object.assign(new Error('failed'), {
       code: 'FAILED',
       details: { authorization: 'Bearer secret' },
@@ -180,8 +179,7 @@ describe('Midscene Test report manifest', () => {
       stack: error.stack,
       code: 'FAILED',
       details: {
-        value: { authorization: '[REDACTED]' },
-        redactedPaths: ['$.authorization'],
+        value: { authorization: 'Bearer secret' },
       },
     });
   });
@@ -203,16 +201,16 @@ describe('Midscene Test report manifest', () => {
     expect(reported?.cause?.stack).toBe(cause.stack);
   });
 
-  it('maps a Step trace to exactly one Agent report and keeps safe values', () => {
+  it('maps a Step trace to exactly one Agent report and keeps input and output values', () => {
     const manifest = buildTestRunReportDump(result([step()]), index);
     const reportStep =
       manifest.projects[0].documents[0].cases[0].attempts[0].steps[0];
     expect(reportStep.agentDetails).toEqual([
       { reportId: 'report-1', executionId: 'execution-1' },
     ]);
-    expect(reportStep.input?.value).toMatchObject({ api_key: '[REDACTED]' });
+    expect(reportStep.input?.value).toMatchObject({ api_key: 'secret-key' });
     expect(reportStep.output?.data?.value).toEqual({
-      accessToken: '[REDACTED]',
+      accessToken: 'secret-token',
     });
     expect(manifest.metrics.modelTimeMs).toBe(500);
   });
@@ -301,6 +299,30 @@ describe('result.md', () => {
     expect(markdown).not.toMatch(/Infrastructure|Filtered|### Cases|<details>/);
   });
 
+  it.each([
+    { notRun: 3, documentFailures: 1, projectFailures: 0 },
+    { notRun: 0, documentFailures: 1, projectFailures: 0 },
+    { notRun: 0, documentFailures: 0, projectFailures: 1 },
+  ])('omits a zero-failure badge for a failed run: %j', (failures) => {
+    const run = result([step()]);
+    run.status = 'failed';
+    run.exitCode = 1;
+    run.summary = {
+      ...run.summary,
+      ...failures,
+      total: 5 + failures.notRun,
+      passed: 5,
+    };
+    const markdown = renderTestResultMarkdown(
+      buildTestRunReportDump(run, index),
+    );
+    expect(markdown).not.toContain('https://badge.midscenejs.com/');
+    expect(markdown).toContain(
+      `❌ **0 failed** · 5 passed · ${failures.notRun} not run`,
+    );
+    expect(markdown).toContain('**Infrastructure:**');
+  });
+
   it('writes result.md without an HTML report and records collection failures', async () => {
     const root = await mkdtemp(join(tmpdir(), 'midscene-result-md-'));
     try {
@@ -327,9 +349,7 @@ describe('result.md', () => {
       const markdown = await readFile(output, 'utf8');
       expect(markdown).toContain('Invalid document');
       expect(markdown).toContain('No cases were reported.');
-      expect(markdown).toContain(
-        'https://badge.midscenejs.com/e2e?pass=0&fail=0&style=large',
-      );
+      expect(markdown).not.toContain('https://badge.midscenejs.com/');
       expect(markdown).not.toContain('Open the Midscene');
     } finally {
       await rm(root, { recursive: true, force: true });

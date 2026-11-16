@@ -24,7 +24,7 @@ describe('report TypeScript build scope', () => {
 
     expect(files).toContain('src/index.tsx');
     expect(files).toContain('src/e2e-yaml.test.ts');
-    expect(files).toContain('e2e/midscene.config.ts');
+    expect(files).toContain('midscene.config.ts');
   });
 
   it('keeps unit tests and the e2e setup in the development type check', () => {
@@ -32,6 +32,6 @@ describe('report TypeScript build scope', () => {
 
     expect(files).toContain('src/e2e-yaml.test.ts');
     expect(files).toContain('tests/build-config.test.ts');
-    expect(files).toContain('e2e/midscene.config.ts');
+    expect(files).toContain('midscene.config.ts');
   });
 });

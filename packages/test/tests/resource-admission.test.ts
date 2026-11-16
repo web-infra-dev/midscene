@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod/v4';
 import { NodeRegistry, defineNode } from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';
@@ -39,21 +39,23 @@ const snapshot = async () => ({
   sourcePath: '/tmp/agent.html',
   dumpPath: '/tmp/agent.json',
 });
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  rs.useRealTimers();
+});
 
 describe('resource admission scheduling', () => {
   it('waits for the occupied Agent before continuing the authored steps', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const pending = gate();
     const first = {
-      action: vi.fn(async (prompt: string) => {
+      action: rs.fn(async (prompt: string) => {
         if (prompt === 'pending') await pending.promise;
         if (prompt === 'cleanup') pending.resolve();
       }),
       _createReportSource: snapshot,
     };
-    const independent = { action: vi.fn(), _createReportSource: snapshot };
-    const plain = vi.fn();
+    const independent = { action: rs.fn(), _createReportSource: snapshot };
+    const plain = rs.fn();
     const registry = new NodeRegistry([
       ...createMidsceneNodes({
         getAgent: (ctx) =>
@@ -77,7 +79,7 @@ describe('resource admission scheduling', () => {
         afterEach: [step('cleanup')],
       },
     );
-    await vi.advanceTimersByTimeAsync(110);
+    await rs.advanceTimersByTimeAsync(110);
     expect(first.action.mock.calls.map(([prompt]) => prompt)).toEqual([
       'pending',
     ]);
@@ -169,10 +171,10 @@ describe('resource admission scheduling', () => {
   });
 
   it('does not overlap cleanup with a timed-out Agent action', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const pending = gate();
     const agent = {
-      action: vi.fn(async (prompt: string) => {
+      action: rs.fn(async (prompt: string) => {
         if (prompt === 'pending') await pending.promise;
         if (prompt === 'cleanup') pending.resolve();
       }),
@@ -190,7 +192,7 @@ describe('resource admission scheduling', () => {
         afterEach: [step('cleanup')],
       },
     );
-    await vi.advanceTimersByTimeAsync(1100);
+    await rs.advanceTimersByTimeAsync(1100);
     const result = await running;
     expect(result.steps.map((item) => item.status)).toEqual(['failed']);
     expect(agent.action.mock.calls.map(([prompt]) => prompt)).toEqual([
@@ -203,6 +205,6 @@ describe('resource admission scheduling', () => {
     });
     expect(result.cleanup?.status).toBe('pending');
     pending.resolve();
-    await vi.advanceTimersByTimeAsync(0);
+    await rs.advanceTimersByTimeAsync(0);
   });
 });

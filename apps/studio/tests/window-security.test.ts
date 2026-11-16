@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import {
   isStudioRendererUrl,
   restrictStudioNavigation,
@@ -37,7 +37,7 @@ describe('Studio navigation restrictions', () => {
   });
   it('blocks new windows, untrusted navigation and redirects', () => {
     const contents = Object.assign(new EventEmitter(), {
-      setWindowOpenHandler: vi.fn(),
+      setWindowOpenHandler: rs.fn(),
     });
     restrictStudioNavigation(
       contents as any,
@@ -47,7 +47,7 @@ describe('Studio navigation restrictions', () => {
       action: 'deny',
     });
     for (const name of ['will-navigate', 'will-redirect']) {
-      const event = { preventDefault: vi.fn(), url: 'https://evil.test' };
+      const event = { preventDefault: rs.fn(), url: 'https://evil.test' };
       contents.emit(name, event);
       expect(event.preventDefault).toHaveBeenCalledOnce();
       event.preventDefault.mockClear();

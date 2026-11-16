@@ -1,14 +1,14 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { IPC_CHANNELS } from '../src/shared/electron-contract';
 
-const mocks = vi.hoisted(() => ({
-  exposeInMainWorld: vi.fn(),
-  invoke: vi.fn(),
-  on: vi.fn(),
-  removeListener: vi.fn(),
+const mocks = rs.hoisted(() => ({
+  exposeInMainWorld: rs.fn(),
+  invoke: rs.fn(),
+  on: rs.fn(),
+  removeListener: rs.fn(),
 }));
 
-vi.mock('electron', () => ({
+rs.mock('electron', () => ({
   contextBridge: {
     exposeInMainWorld: mocks.exposeInMainWorld,
   },
@@ -20,15 +20,15 @@ vi.mock('electron', () => ({
 }));
 
 async function loadModule() {
-  vi.resetModules();
+  rs.resetModules();
   await import('../src/preload/index');
 }
 
 describe('preload bridge', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     mocks.invoke.mockResolvedValue(undefined);
-    vi.unstubAllEnvs();
+    rs.unstubAllEnvs();
   });
 
   it('exposes shell, studio runtime, and updater APIs that proxy over IPC', async () => {

@@ -1,7 +1,7 @@
-// @vitest-environment jsdom
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
+// @rstest-environment jsdom
 import { type ComponentProps, act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ModelEnvConfigModal } from '../src/renderer/components/ShellLayout/ModelEnvConfigModal';
 import type { ConnectivityTestResult } from '../src/shared/electron-contract';
 
@@ -75,7 +75,7 @@ function setTextarea(value: string) {
 
 describe('ModelEnvConfigModal', () => {
   afterEach(() => {
-    vi.unstubAllGlobals();
+    rs.unstubAllGlobals();
     document.body.replaceChildren();
   });
 
@@ -111,11 +111,11 @@ describe('ModelEnvConfigModal', () => {
   });
 
   it('verifies without saving, then saves only after the Save button is clicked', async () => {
-    const onSave = vi.fn();
-    const runConnectivityTest = vi
+    const onSave = rs.fn();
+    const runConnectivityTest = rs
       .fn()
       .mockResolvedValue(PASSED_CONNECTIVITY_RESULT);
-    vi.stubGlobal('studioRuntime', { runConnectivityTest });
+    rs.stubGlobal('studioRuntime', { runConnectivityTest });
     const { root } = await renderModal({ onSave });
 
     await act(async () => {
@@ -153,7 +153,7 @@ describe('ModelEnvConfigModal', () => {
   });
 
   it('closes when the footer Cancel button is clicked', async () => {
-    const onClose = vi.fn();
+    const onClose = rs.fn();
     const { root } = await renderModal({ onClose });
 
     await act(async () => {
@@ -165,9 +165,9 @@ describe('ModelEnvConfigModal', () => {
   });
 
   it('keeps successful verification feedback until the config changes', async () => {
-    const onSave = vi.fn();
-    vi.stubGlobal('studioRuntime', {
-      runConnectivityTest: vi
+    const onSave = rs.fn();
+    rs.stubGlobal('studioRuntime', {
+      runConnectivityTest: rs
         .fn()
         .mockResolvedValue(PASSED_CONNECTIVITY_RESULT),
     });
@@ -194,8 +194,8 @@ describe('ModelEnvConfigModal', () => {
   });
 
   it('rejects invalid model configuration before verification', async () => {
-    const runConnectivityTest = vi.fn();
-    vi.stubGlobal('studioRuntime', { runConnectivityTest });
+    const runConnectivityTest = rs.fn();
+    rs.stubGlobal('studioRuntime', { runConnectivityTest });
     const { root } = await renderModal({
       textValue: 'MIDSCENE_MODEL_FAMILY=invalid',
     });
@@ -216,8 +216,8 @@ describe('ModelEnvConfigModal', () => {
     let resolveVerification:
       | ((result: ConnectivityTestResult) => void)
       | undefined;
-    vi.stubGlobal('studioRuntime', {
-      runConnectivityTest: vi.fn(
+    rs.stubGlobal('studioRuntime', {
+      runConnectivityTest: rs.fn(
         () =>
           new Promise<ConnectivityTestResult>((resolve) => {
             resolveVerification = resolve;
@@ -244,8 +244,8 @@ describe('ModelEnvConfigModal', () => {
   });
 
   it('shows the connectivity failure returned by Studio', async () => {
-    vi.stubGlobal('studioRuntime', {
-      runConnectivityTest: vi.fn().mockResolvedValue({
+    rs.stubGlobal('studioRuntime', {
+      runConnectivityTest: rs.fn().mockResolvedValue({
         passed: false,
         message: 'Network down',
         checks: [],
@@ -269,8 +269,8 @@ describe('ModelEnvConfigModal', () => {
   });
 
   it('shows connectivity errors thrown by Studio', async () => {
-    vi.stubGlobal('studioRuntime', {
-      runConnectivityTest: vi
+    rs.stubGlobal('studioRuntime', {
+      runConnectivityTest: rs
         .fn()
         .mockRejectedValue(new Error('Request failed')),
     });
@@ -318,7 +318,7 @@ describe('ModelEnvConfigModal', () => {
   });
 
   it('saves the configured Agent options', async () => {
-    const onSave = vi.fn();
+    const onSave = rs.fn();
     const { root } = await renderModal({ onSave });
 
     await act(async () => {
@@ -344,7 +344,7 @@ describe('ModelEnvConfigModal', () => {
   });
 
   it('keeps the dialog open and shows save errors', async () => {
-    const onSave = vi.fn().mockRejectedValue(new Error('Runtime sync failed'));
+    const onSave = rs.fn().mockRejectedValue(new Error('Runtime sync failed'));
     const { root } = await renderModal({ onSave });
 
     await act(async () => {

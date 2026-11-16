@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 import type * as PlaywrightAgents from '@midscene/web/playwright/agent';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { NodeRegistry } from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';
 import { createMidsceneNodes } from '../src/midscene';

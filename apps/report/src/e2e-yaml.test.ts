@@ -13,9 +13,9 @@ import {
   readReportRunnerDump,
 } from '@midscene/core/report';
 import { collectWorkflowDocument } from '@midscene/test';
-import { runTestProject } from '@midscene/test/config';
+import { discoverTestFiles, runTestProject } from '@midscene/test/config';
 import { describe, expect, it } from '@rstest/core';
-import reportE2e from '../e2e/midscene.config';
+import reportE2e from '../midscene.config';
 
 const e2eDirectory = fileURLToPath(new URL('../e2e/', import.meta.url));
 const e2eFiles = readdirSync(e2eDirectory)
@@ -24,6 +24,21 @@ const e2eFiles = readdirSync(e2eDirectory)
 const nodes = new Map(reportE2e.nodes!.map((node) => [node.name, node]));
 
 describe('report e2e YAML', () => {
+  it('discovers all report suites from the configured root used by the CLI', () => {
+    const reportRoot = resolve(e2eDirectory, '..');
+    const scripts = JSON.parse(
+      readFileSync(join(reportRoot, 'package.json'), 'utf8'),
+    ).scripts;
+    const configArgument = scripts.e2e.match(/--config (\S+)/)?.[1];
+    expect(configArgument).toBeTruthy();
+    const configRoot = dirname(resolve(reportRoot, configArgument));
+    expect(discoverTestFiles(configRoot, reportE2e.projects![0].files)).toEqual(
+      e2eFiles.map((file) => join(e2eDirectory, file)),
+    );
+    // Keep default result/report artifacts under the app root used by CI publishing.
+    expect(configRoot).toBe(reportRoot);
+  });
+
   it('generates an index.html directory accepted by the report publisher', async () => {
     const root = mkdtempSync(join(tmpdir(), 'report-e2e-publishing-'));
     try {

@@ -1,0 +1,15 @@
+Create `e2e/fixture.ts` to extend Playwright's `test` with `PlaywrightAiFixture`:
+
+```typescript title="e2e/fixture.ts"
+import { test as base } from '@playwright/test';
+import {
+  PlaywrightAiFixture,
+  type PlayWrightAiFixtureType,
+} from '@midscene/web/playwright';
+
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture(),
+);
+```
+
+In tests that use Midscene, import `test` from `./fixture` while continuing to import `expect` from `@playwright/test`.

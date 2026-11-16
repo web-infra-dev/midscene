@@ -10,21 +10,93 @@ pnpm exec midscene-test
 
 ### 指定用例目录或文件
 
-脚手架生成的项目默认通过 `files.include` 匹配 `cases/` 目录下的 `.yaml` 和 `.yml` 文件。如果配置文件中未声明 `files`，Midscene Test 会递归查找测试根目录下的所有 YAML 文件（自动忽略 `node_modules` 和 `.git`）。
+有配置时，文件或目录参数用于筛选用例。运行全部用例、单个文件或子目录时，命令使用同一份项目配置。
 
-在命令行中传入目录或文件路径时，请留意**测试根目录（Test Root）**的变化及其对路径解析的影响：
-
-- **测试根目录的确定**：未传路径参数时，测试根目录为当前工作目录；传入目录参数时，测试根目录变为该目录；传入单个文件时，测试根目录变为该文件所在的目录。
-- **相对于测试根目录解析**：默认配置文件查找（仅在测试根目录下查找，不会向上级目录回溯）、`--config` 参数路径，以及配置中的 `files.include` / `files.exclude`。
-- **相对于当前工作目录解析**：`--result-dir` 参数路径。
-
-因此，当 `midscene.config.ts` 位于项目根目录、而你只想运行 `cases/` 子目录下的单个文件时，需要显式传入 `--config`（注意它相对于目标文件所在的 `cases/` 目录解析）：
+从项目根目录运行以下命令：
 
 ```bash
-pnpm exec midscene-test ./cases/order.yaml --config ../midscene.config.ts
+pnpm exec midscene-test
+pnpm exec midscene-test ./cases/order.yaml
+pnpm exec midscene-test ./cases/smoke
 ```
 
-直接指定单个文件时，该文件不受 `files.include` / `files.exclude` 规则限制，但 `tags` 筛选依然生效。如果你想只运行某个子目录（如 `cases/smoke`），建议仍在项目根目录下运行命令，并通过在配置中将 `files.include` 设置为 `cases/smoke/**/*.{yaml,yml}` 来限定范围，避免因指定子目录而改变测试根目录。
+这些命令共用配置中的 Node（节点）和 Project（执行项目），默认输出位置也相同。
+
+**配置与路径规则**
+
+| 项目 | 解析规则 |
+| --- | --- |
+| 默认配置 | 仅查找当前工作目录。支持 `midscene.config.ts` 和 `midscene.config.mjs`。 |
+| `--config` | 相对路径以当前工作目录为基准，也支持绝对路径。 |
+| 测试根目录 | 使用配置所在目录。无配置时，使用当前工作目录。 |
+| 文件或目录参数 | 以当前工作目录为基准。有配置时筛选项目用例；无配置时查找、收集指定文件或目录中的用例。 |
+| 配置中的路径 | `files.include`、`files.exclude` 和 `output.reportDir` 均以测试根目录为基准。 |
+| `--result-dir` | 相对路径以当前工作目录为基准。 |
+
+默认配置查找只检查当前工作目录。从子目录运行时，请显式指定项目配置：
+
+```bash
+cd cases
+pnpm exec midscene-test ./order.yaml --config ../midscene.config.ts
+```
+
+此时，测试根目录是配置所在的父目录。默认输出仍位于父目录的 `midscene_run`。
+
+没有配置时，文件参数用于收集指定 YAML，目录参数用于查找该目录下的 YAML。也支持当前工作目录之外的路径。省略参数时，从当前工作目录查找用例。不会加载目标文件或目录旁的配置。默认产物保存在当前工作目录的 `midscene_run` 中。
+
+无配置时，不会注册任何 Node。YAML 如果引用了 Node，仍需通过配置注册。旧版 `tasks/flow` YAML 请使用 `midscene` 命令运行。
+
+**文件与标签筛选**
+
+脚手架生成的项目通过 `files.include` 选择用例。默认范围是 `cases/` 下的 `.yaml` 和 `.yml` 文件。省略 `files` 时，框架递归查找测试根目录下的 YAML 文件，并忽略 `node_modules`、`.git` 和运行产物目录。
+
+有配置时，路径参数会进一步缩小用例范围。`--project`、文件包含与排除规则，以及 tags（标签）筛选仍然生效。显式指定文件也需要满足这些规则。
+
+传入路径参数后，如果所有 Project 都没有匹配的用例，命令会报筛选错误。部分 Project 没有匹配用例时，其他 Project 仍可运行。
+
+未传路径参数时，沿用原有行为：如果文件存在，但 tags 排除了全部用例，命令可以成功退出。文件查找失败等其他错误仍会导致运行失败。
+
+**切换项目与 SDK 调用**
+
+运行另一个项目时，请进入该项目目录，或用 `--config` 指定配置。目录参数不会改变配置查找位置。
+
+SDK 使用以下参数：
+
+- `projectRoot`：指定默认配置查找目录。省略时使用 `cwd`。
+- `testPath`：指定文件或目录筛选路径。相对路径以 `cwd` 为基准。
+- `configPath`：显式选择配置。相对路径以 `cwd` 为基准，测试根目录为配置所在目录。
+
+以上规则适用于测试运行。`nodes` 子命令保留原有的目录和配置解析规则。
+
+### 配置查找行为迁移
+
+默认配置只从当前工作目录（cwd）加载。框架不会向上查找父目录，也不会因指定用例目录而切换配置。
+
+如果旧命令依靠目录参数加载另一个项目的配置：
+
+```bash
+pnpm exec midscene-test ./other-project
+```
+
+请改为显式指定配置：
+
+```bash
+pnpm exec midscene-test --config ./other-project/midscene.config.ts
+```
+
+也可以先进入 `other-project`，再运行 `pnpm exec midscene-test`。仅运行其中一个文件时，在原工作目录执行：
+
+```bash
+pnpm exec midscene-test ./other-project/cases/order.yaml --config ./other-project/midscene.config.ts
+```
+
+升级时，请检查以下路径：
+
+- `files.include`、`files.exclude` 和 `output.reportDir` 以配置所在目录为基准。如果配置位于 `config/`，用例位于同级的 `cases/`，请将配置移到两者的共同父目录，并将 `files.include` 设为 `['cases/**/*.yaml']`。
+- 默认产物写入配置目录下的 `midscene_run`。请同步调整 CI 的产物收集路径，或将配置移到项目根目录。
+- 同时指定用例路径和 `--config` 时，`--config` 的相对路径现在以 cwd 为基准。用例路径和 `--result-dir` 的相对路径也以 cwd 为基准。
+
+无配置时仍可查找、收集 YAML，但引用的 Node 必须通过配置注册。这不等于可以零配置执行任意 YAML。
 
 ### 过滤执行项目与指定配置文件
 
@@ -162,3 +234,21 @@ Midscene 提供了官方的 [midscene-action](https://github.com/marketplace/act
 - 支持按需将测试报告发布到 **Cloudflare Workers**，生成在线预览链接。
 
 关于完整的配置参数与进阶用法，请参阅 [GitHub Marketplace 上的 midscene-action 文档](https://github.com/marketplace/actions/midscene-action)。
+
+### 用徽章(badge)展示测试结果
+
+Midscene 提供了官方的 [Midscene Test 徽章服务](https://badge.midscenejs.com)，可以把测试通过数和失败数渲染为 SVG 徽章，并嵌入任意 Markdown 文件，例如仓库的 README：
+
+```md
+![Midscene Test: 42 passed, 3 failed](https://badge.midscenejs.com/e2e?pass=42&fail=3)
+```
+
+![Midscene Test: 42 passed, 3 failed](https://badge.midscenejs.com/e2e?pass=42&fail=3)
+
+同时提供双行卡片样式，并支持浅色与深色主题：
+
+![Midscene Test: 42 passed, 3 failed](https://badge.midscenejs.com/e2e?pass=42&fail=3&style=card&theme=light)
+
+徽章上的数字完全来自 URL 中的 `pass` 和 `fail` 查询参数，服务本身不会读取 CI 数据或测试报告，需要在每次运行后更新 URL，或在工作流中自动生成。在 GitHub Actions 中运行时，任务的 Summary 页面已经会附带一个根据本次运行结果生成的徽章，同一行内容也会写入 `result.md`，可以直接复制使用。
+
+完整的参数与样式说明——包括 `flat`、`large`、`card` 三种样式、深色主题，以及无需填写数字的静态 “E2E by Midscene.js” 归属徽章——请参阅[徽章服务首页](https://badge.midscenejs.com)，页面提供实时预览和可直接复制的 Markdown。

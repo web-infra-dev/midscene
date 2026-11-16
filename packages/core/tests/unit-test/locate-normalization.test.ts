@@ -246,9 +246,7 @@ it.each(['bbox', 'point'] as const)(
       locateResultContext,
     });
     expect(parseRawLocateValue).toHaveBeenCalledTimes(1);
-    expect(actions[0].param.locate.locatedPixelResult.center).toEqual([
-      20.5, 30.5,
-    ]);
+    expect(actions[0].param.locate.locatedPixelResult.center).toEqual([21, 31]);
     if (shape === 'bbox') {
       expect(actions[0].param.locate.locatedPixelResult.rect).toEqual({
         left: 10,

@@ -103,6 +103,8 @@ jobs:
         id: build
         continue-on-error: true
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/computer" --skip-nx-cache 2>&1 |

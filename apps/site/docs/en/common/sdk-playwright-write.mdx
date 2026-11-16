@@ -1,0 +1,14 @@
+```typescript title="e2e/todo.spec.ts"
+import { expect } from '@playwright/test';
+import { test } from './fixture';
+
+test('add a todo', async ({ page, aiAct, aiAssert }) => {
+  await page.goto('https://todomvc.com/examples/react/dist/');
+  await expect(page).toHaveTitle(/TodoMVC/);
+
+  await aiAct('Add a todo named Try Midscene');
+  await aiAssert('The todo list contains Try Midscene');
+});
+```
+
+You can combine Playwright's `page` and `expect` with Midscene's AI methods in the same test. In this example, Playwright opens the page and checks its title, while Midscene adds a todo item and asserts the result on the page. Beyond `aiAct` and `aiAssert`, the fixture also provides `aiTap`, `aiInput`, `aiQuery`, `aiWaitFor`, and more; see the [Agent API reference](../reference/index.mdx#interaction-methods).

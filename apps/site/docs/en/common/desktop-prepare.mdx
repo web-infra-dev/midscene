@@ -1,0 +1,13 @@
+- **macOS**: Grant two separate system permissions to the terminal or IDE that launches Playground or runs your scripts (such as Terminal, iTerm2, VS Code, Cursor, or WebStorm):
+  1. **Accessibility** (for mouse and keyboard control): Enable your terminal or IDE in **System Settings > Privacy & Security > Accessibility** (see [nut.js macOS setup](https://github.com/nut-tree/nut.js#macos)).
+  2. **Screen Recording** (for desktop screenshots): Enable your terminal or IDE in **System Settings > Privacy & Security > Screen Recording**. **After granting access, completely quit and relaunch the terminal or IDE** before starting Playground.
+- **Windows**: No extra setup is required for standard applications. However, Windows User Interface Privilege Isolation (UIPI) blocks non-elevated processes from injecting mouse clicks or keystrokes into windows running **as Administrator** (the cursor still moves to the target coordinates, but clicks and key presses are silently dropped). Prefer running the target app without Administrator privileges; if it must run elevated, launch the terminal or Node.js process running Midscene **as Administrator** as well (see [Windows: clicks have no effect on some apps](../platforms/desktop#windows-clicks-have-no-effect-on-some-apps)).
+- **Linux (desktop GUI)**: Install [ImageMagick](https://imagemagick.org/script/download.php) for screen capture support.
+- **Linux (headless server / CI)**: To run desktop automation on a headless Linux host (such as GitHub Actions), install Xvfb and ImageMagick, then enable headless mode to start a virtual display automatically:
+
+```bash
+# Install dependencies
+sudo apt-get install -y xvfb x11-xserver-utils imagemagick
+```
+
+When using Xvfb, make sure the target application is started inside the same virtual display environment (not needed on machines with a physical display).

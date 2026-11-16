@@ -9,7 +9,7 @@ type IOSRunnerAgent = MidsceneUIAgent &
 import { createRequire } from 'node:module';
 import { createMidsceneNodes } from '../src/midscene';
 const { IOSAgent } = createRequire(import.meta.url)('@midscene/ios');
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { NodeRegistry } from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';
 
@@ -27,17 +27,17 @@ const collected = (
 
 const iosAgent = (overrides: Partial<IOSRunnerAgent> = {}): IOSRunnerAgent => ({
   ...createMockMidsceneAgent(),
-  launch: vi.fn(async () => undefined),
-  terminate: vi.fn(async () => undefined),
-  runWdaRequest: vi.fn(async () => undefined),
-  home: vi.fn(async () => undefined),
-  appSwitcher: vi.fn(async () => undefined),
+  launch: rs.fn(async () => undefined),
+  terminate: rs.fn(async () => undefined),
+  runWdaRequest: rs.fn(async () => undefined),
+  home: rs.fn(async () => undefined),
+  appSwitcher: rs.fn(async () => undefined),
   ...overrides,
 });
 
 describe('IOSAgent Nodes', () => {
   it('runs WDA requests and returns their structured response', async () => {
-    const runWdaRequest = vi.fn(async () => ({ value: { scale: 3 } }));
+    const runWdaRequest = rs.fn(async () => ({ value: { scale: 3 } }));
     const registry = new NodeRegistry(
       createMidsceneNodes({
         agentClass: IOSAgent,
@@ -82,8 +82,8 @@ describe('IOSAgent Nodes', () => {
   });
 
   it('owns and delegates iOS lifecycle nodes', async () => {
-    const launch = vi.fn(async () => undefined);
-    const terminate = vi.fn(async () => undefined);
+    const launch = rs.fn(async () => undefined);
+    const terminate = rs.fn(async () => undefined);
     const registry = new NodeRegistry(
       createMidsceneNodes({
         agentClass: IOSAgent,

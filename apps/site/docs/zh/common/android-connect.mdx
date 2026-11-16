@@ -1,0 +1,65 @@
+运行 Midscene 的电脑需要通过 `adb` 连接目标 Android 设备，支持 USB 和无线 `adb` 两种连接方式。如果已安装 `adb` 并连接好设备，可直接跳至[确认设备连接](#verify-device-connection)。
+
+### 安装 adb
+
+- 通过 [Android Studio](https://developer.android.com/studio) 或独立的 [Android 命令行工具](https://developer.android.com/studio#command-line-tools-only)安装 `adb`。
+- 在终端运行以下命令，验证 `adb` 是否安装成功：
+
+```bash
+adb --version
+```
+
+输出类似以下内容即表示安装成功：
+
+```log
+Android Debug Bridge version 1.0.41
+Version 34.0.4-10411341
+Installed as /usr/local/bin/adb
+Running on Darwin 24.3.0 (arm64)
+```
+
+- 参考 [Android 环境变量文档](https://developer.android.com/tools/variables)配置 `ANDROID_HOME` 环境变量，并检查是否生效：
+
+```bash
+echo $ANDROID_HOME
+```
+
+输出应指向本机安装的 Android SDK 目录，例如：
+
+```log
+/Users/your_username/Library/Android/sdk
+```
+
+### 开启调试并连接设备
+
+以下以 USB 连接为例；如果设备已通过无线 `adb` 连接，可继续使用现有连接。
+
+1. 在手机系统设置的「开发者选项」中开启 **USB 调试**（若同时存在 **USB 调试（安全设置）**，请一并开启，以确保支持触控事件注入）。
+2. 使用支持数据传输的 USB 数据线将手机连接到电脑。
+3. 保持手机解锁亮屏，在手机弹出的授权窗口中勾选并允许 USB 调试。
+
+<p align="center">
+  <img src="/images/android-usb-debug-en.png" alt="android usb debug" width="400"/>
+</p>
+
+### 确认设备连接 {#verify-device-connection}
+
+在终端运行以下命令检查连接状态：
+
+```bash
+adb devices -l
+```
+
+输出中设备状态显示为 `device` 即表示连接就绪：
+
+```log
+List of devices attached
+s4ey59	device usb:34603008X product:cezanne model:M2006J device:cezan transport_id:3
+```
+
+如果同时连接了多台设备，请记录目标设备所在行第一列的设备 ID（如上例中的 `s4ey59`），以便后续在 Playground 或项目配置中指定该设备。
+
+若未显示目标设备或状态不是 `device`，请按以下情况排查：
+- **列表为空**：USB 连接请检查数据线（需支持数据传输）、USB 连接模式和 **USB 调试**开关；无线连接请检查网络及 `adb connect` 连接状态。
+- **`unauthorized`**：请解锁手机屏幕，在手机弹出的授权窗口中勾选并允许 USB 调试。
+- **`offline`**：请重新建立 USB 或无线 `adb` 连接，必要时重启 `adb` 服务。请确认设备状态变为 `device` 后再继续后续步骤。

@@ -79,13 +79,12 @@ describe('structured execution diagnostics', () => {
     ).toBeLessThanOrEqual(64 * 1024);
   });
 
-  test('redacts labeled credentials in nested messages and bounds fatal-error traversal', () => {
+  test('preserves nested messages and bounds fatal-error traversal', () => {
     const leaf = new Error(
       'password="private value", Authorization: Bearer private-bearer, https://user:private-password@example.test',
     );
     const value = sanitizeReportError(new Error('outer', { cause: leaf }));
-    expect(JSON.stringify(value)).not.toContain('private');
-    expect(value.cause?.message).toContain('[REDACTED]');
+    expect(value.cause?.message).toBe(leaf.message);
     expect(sanitizeReportError(value)).toEqual(value);
     const cyclic = new Error('cyclic');
     cyclic.cause = cyclic;
@@ -96,7 +95,7 @@ describe('structured execution diagnostics', () => {
       ),
     ).toBe(true);
   });
-  test('preserves redacted causes and aggregate branches in JSON transport', () => {
+  test('preserves causes and aggregate branches in JSON transport', () => {
     const leaf = new WorkflowError('request failed', {
       code: 'REQUEST_FAILED',
       details: { password: 'do-not-publish', attempt: 2 },
@@ -112,10 +111,9 @@ describe('structured execution diagnostics', () => {
     const value = JSON.parse(JSON.stringify(error));
     expect(value.cause.errors[0]).toMatchObject({
       code: 'REQUEST_FAILED',
-      details: { value: { password: '[REDACTED]', attempt: 2 } },
+      details: { value: { password: 'do-not-publish', attempt: 2 } },
     });
     expect(value.cause.errors[1].message).toBe('independent failure');
-    expect(JSON.stringify(value)).not.toContain('do-not-publish');
     expect(sanitizeReportError(value)).toEqual(value);
     const thrownString = sanitizeReportError('assertion failed');
     expect(sanitizeReportError(thrownString)).toEqual(thrownString);

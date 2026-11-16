@@ -1,4 +1,7 @@
 import { ModelConfigCard } from '@theme';
+import SiwcExtension from './common/siwc-extension.mdx';
+import SiwcCliLogin from './common/siwc-cli-login.mdx';
+import SiwcEnv from './common/siwc-env.mdx';
 
 # 使用 ChatGPT 订阅
 
@@ -14,36 +17,15 @@ import { ModelConfigCard } from '@theme';
 
 ### 浏览器插件
 
-1. 在插件的模型配置界面中点击 **Use your ChatGPT plan**，按照页面提示登录并授权使用订阅额度。
-2. 将以下配置填入同一界面：
-
-```bash
-MIDSCENE_MODEL_AUTH_MODE="siwc"
-MIDSCENE_MODEL_NAME="gpt-6-sol"
-MIDSCENE_MODEL_FAMILY="gpt-6"
-```
-
-3. 点击 **Verify** 验证连接。如果验证失败，请参考[模型高级配置与调试](./model-config#verify-model-connectivity)。
+<SiwcExtension />
 
 ### CLI / SDK
 
-首先，在终端运行：
-
-```bash
-pnpm dlx @midscene/cli model siwc login
-```
-
-按照终端提示，在浏览器中登录 ChatGPT 并授权使用订阅额度。授权时可以自行设置 Agent 名称；完成后，可在 ChatGPT 的使用情况页面查看已授权的 Agent。
-
-命令会将凭据保存到 `~/.midscene/siwc.json`。首次使用前需要手动完成这一步登录。
+<SiwcCliLogin />
 
 接着，将以下配置添加到 `.env` 文件中。如何加载到运行环境，请参考[模型配置文档](./model-api-setup)。
 
-```bash
-MIDSCENE_MODEL_AUTH_MODE="siwc"
-MIDSCENE_MODEL_NAME="gpt-6-sol"
-MIDSCENE_MODEL_FAMILY="gpt-6"
-```
+<SiwcEnv />
 
 最后，在保存 `.env` 的目录中运行：
 

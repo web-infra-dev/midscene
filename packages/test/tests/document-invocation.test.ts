@@ -6,7 +6,7 @@ import type {
   CollectedWorkflowDocument,
   WorkflowDocumentRunResult,
 } from '@midscene/core/internal/test-runner';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import {
   executeDocumentInvocation,
   isSharedResourceFailure,
@@ -17,7 +17,9 @@ import * as resultStore from '../src/cli/result-store';
 import type { TestProjectCaseRunResult } from '../src/cli/types';
 import { NodeRegistry } from '../src/engine/registry';
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  rs.restoreAllMocks();
+});
 
 const collectedDocument = (name: string): CollectedWorkflowDocument => ({
   projectId: 'project',
@@ -77,8 +79,8 @@ describe('resource failure policy', () => {
     async ({ policy, notification }) => {
       const runDir = mkdtempSync(join(tmpdir(), 'midscene-failure-policy-'));
       try {
-        const markProjectFatal = vi.fn();
-        const onUnresolvedResources = vi.fn();
+        const markProjectFatal = rs.fn();
+        const onUnresolvedResources = rs.fn();
         await executeDocumentInvocation({
           ...invocationOptions(runDir, 0),
           isolatedContext: true,
@@ -290,7 +292,7 @@ describe('persisted retry decisions', () => {
     try {
       const document = collectedDocument('successful case');
       const options = invocationOptions(runDir);
-      const markProjectFatal = vi.fn();
+      const markProjectFatal = rs.fn();
       const { sinks } = options;
       let calls = 0;
       await expect(
@@ -350,7 +352,7 @@ describe('persisted retry decisions', () => {
         if (scope === 'document')
           document.lifecycle.beforeAll = document.cases[0].definition.steps;
         const options = invocationOptions(runDir);
-        const markProjectFatal = vi.fn();
+        const markProjectFatal = rs.fn();
         let calls = 0;
         await executeDocumentInvocation({
           ...options,
@@ -396,7 +398,7 @@ describe('persisted retry decisions', () => {
   it('retains successful actions and stops retries when final publication fails', async () => {
     const runDir = mkdtempSync(join(tmpdir(), 'midscene-retry-publication-'));
     const publicationError = new Error('result disk unavailable');
-    vi.spyOn(resultStore, 'writeWorkflowDocumentResult').mockRejectedValue(
+    rs.spyOn(resultStore, 'writeWorkflowDocumentResult').mockRejectedValue(
       publicationError,
     );
     try {
@@ -521,7 +523,7 @@ describe('persisted retry decisions', () => {
       const document = collectedDocument('pending case');
       const options = invocationOptions(runDir);
       const { sinks } = options;
-      const markProjectFatal = vi.fn();
+      const markProjectFatal = rs.fn();
       let calls = 0;
       await executeDocumentInvocation({
         invocation: {

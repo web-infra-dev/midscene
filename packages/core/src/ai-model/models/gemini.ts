@@ -104,7 +104,6 @@ export const extractGeminiContentAndReasoning = (
 export const geminiAdapters = {
   gemini: {
     chatCompletion: {
-      unsupportedUserConfig: ['reasoningBudget'],
       buildChatCompletionParams: buildGeminiChatCompletionParams,
       messageExtraction: {
         kind: 'custom',

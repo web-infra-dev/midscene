@@ -4,7 +4,7 @@ const nodeVersion = '^20.19.0 || ^22.12.0 || >=24.0.0';
 
 type SdkPrerequisitesProps = {
   lang: 'en' | 'zh';
-  mode: 'playwright' | 'vitest' | 'standalone';
+  mode: 'playwright' | 'vitest' | 'rstest' | 'standalone';
 };
 
 // Keep section headings in MDX so Rspress includes them in the table of contents.
@@ -53,7 +53,7 @@ export function SdkPrerequisites({ lang, mode }: SdkPrerequisitesProps) {
                 ': Install Chromium and make sure the browser can access the target page.'
               }
             </>
-          ) : mode === 'vitest' ? (
+          ) : mode === 'vitest' || mode === 'rstest' ? (
             <>
               <strong>Platform environment</strong>
               {': Complete the environment setup for '}
@@ -80,7 +80,7 @@ export function SdkPrerequisites({ lang, mode }: SdkPrerequisitesProps) {
               {', or '}
               <a href="/platforms/desktop">desktop</a>
               {'; for Chrome Bridge, install the '}
-              <a href="/quick-start#chrome-extension">Chrome extension</a>
+              <a href="/platforms/web#chrome-extension">Chrome extension</a>
               {
                 '. The browser installation command for Web / Playwright is included in the example below.'
               }
@@ -94,13 +94,15 @@ export function SdkPrerequisites({ lang, mode }: SdkPrerequisitesProps) {
           }
           {mode === 'playwright' ? (
             <>
-              <a href="/quick-start#chrome-extension">
+              <a href="/get-started?platform=web&scene=playground">
                 Chrome extension Playground
               </a>
             </>
           ) : (
             <>
-              <a href="/quick-start">Playground for your platform</a>
+              <a href="/get-started?scene=playground">
+                Playground for your platform
+              </a>
             </>
           )}
           {' to verify screenshots, interactions, and model behavior.'}
@@ -144,7 +146,7 @@ export function SdkPrerequisites({ lang, mode }: SdkPrerequisitesProps) {
               <strong>平台环境</strong>
               {'：已安装 Chromium，且浏览器能够访问待测页面。'}
             </>
-          ) : mode === 'vitest' ? (
+          ) : mode === 'vitest' || mode === 'rstest' ? (
             <>
               <strong>平台环境</strong>
               {'：已完成目标平台的环境准备：'}
@@ -171,7 +173,7 @@ export function SdkPrerequisites({ lang, mode }: SdkPrerequisitesProps) {
               {' 或'}
               <a href="/zh/platforms/desktop">桌面端</a>
               {'的环境准备；Chrome Bridge 需安装 '}
-              <a href="/zh/quick-start#chrome-extension">Chrome 插件</a>
+              <a href="/zh/platforms/web#chrome-extension">Chrome 插件</a>
               {'；Web / Playwright 的浏览器安装命令包含在下方示例中。'}
             </>
           )}
@@ -181,13 +183,15 @@ export function SdkPrerequisites({ lang, mode }: SdkPrerequisitesProps) {
           {'：建议先在'}
           {mode === 'playwright' ? (
             <>
-              <a href="/zh/quick-start#chrome-extension">
+              <a href="/zh/get-started?platform=web&scene=playground">
                 Chrome 插件 Playground
               </a>
             </>
           ) : (
             <>
-              <a href="/zh/quick-start">对应平台的 Playground</a>
+              <a href="/zh/get-started?scene=playground">
+                对应平台的 Playground
+              </a>
             </>
           )}
           {'中对目标界面试跑一次操作和断言，确认截图、交互与模型表现正常。'}

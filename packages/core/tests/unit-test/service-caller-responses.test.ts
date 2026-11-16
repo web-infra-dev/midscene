@@ -1,6 +1,7 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
 import { callGenerativeAI } from '@/ai-model/service-caller';
+import { prepareResponses } from '@/ai-model/service-caller/openai/responses/responses';
 import { toResponsesInput } from '@/ai-model/service-caller/openai/responses/utils';
 import type { ConversationMessage } from '@/ai-model/service-caller/types';
 import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
@@ -35,6 +36,34 @@ const messages: ConversationMessage[] = [
     ],
   },
 ];
+
+it.each([
+  { label: 'default', overrides: {}, expected: 0 },
+  { label: 'user config', overrides: { temperature: 0.5 }, expected: 0.5 },
+  {
+    label: 'extra body',
+    overrides: { temperature: 0.5, extraBody: { temperature: 1 } },
+    expected: 1,
+  },
+])(
+  'omits $label temperature only for SIWC',
+  async ({ overrides, expected }) => {
+    for (const authMode of ['siwc', 'api-key'] as const) {
+      const { requestParams } = await prepareResponses({
+        messages,
+        modelRuntime: getModelRuntime({ ...config, ...overrides, authMode }),
+      });
+      if (authMode === 'siwc') {
+        expect(JSON.parse(JSON.stringify(requestParams))).not.toHaveProperty(
+          'temperature',
+        );
+      } else {
+        expect(requestParams.temperature).toBe(expected);
+      }
+    }
+  },
+);
+
 const usage = {
   input_tokens: 10,
   output_tokens: 5,

@@ -1,0 +1,12 @@
+Make sure Node.js (`^20.19.0 || ^22.12.0 || >=24.0.0`) is installed and `node -v` works in your terminal. The command below uses pnpm. If it is not installed yet, run `npm install -g pnpm`.
+
+1. Start the iOS Playground CLI:
+
+```bash
+pnpm dlx @midscene/ios-playground
+```
+
+2. In the Playground window that opens, click the gear icon in the top-right corner, paste your model configuration, and save.
+3. If your browser does not open automatically, visit the local Playground URL printed in the terminal, and keep the terminal process running.
+4. If the connection panel appears, enter your WDA host and port (`localhost` and `8100` by default) and create the Agent (if WDA is already running on the default local port, Playground may connect automatically; when connecting through a gateway, enter the full **WebDriverAgent base URL** instead of host / port).
+5. Confirm that the preview area displays your device or simulator screen. If no screen appears, check your WDA service and port forwarding first.

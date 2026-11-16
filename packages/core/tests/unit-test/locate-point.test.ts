@@ -59,9 +59,12 @@ describe('point-based grounding', () => {
     [99, 79],
     [0.25, 78.75],
     [12.25, 23.75],
-  ])('preserves pixel points at (%s, %s), including image edges', (x, y) => {
+  ])('rounds pixel points at (%s, %s), including image edges', (x, y) => {
     const codec = createLocateResultCodec({ coordinates: { shape: 'point' } });
-    expect(codec.toPixelResult([x, y], context).center).toEqual([x, y]);
+    expect(codec.toPixelResult([x, y], context).center).toEqual([
+      Math.round(x),
+      Math.round(y),
+    ]);
   });
 
   it('maps normalized yx points without expanding and rounds the mapped point', () => {
@@ -72,28 +75,28 @@ describe('point-based grounding', () => {
     expect(codec.toPixelResult([0, 1000], context).center).toEqual([99, 0]);
   });
 
-  it('takes the bbox midpoint before normalization and content clipping', () => {
+  it('calculates the bounds-aware bbox center before content clipping', () => {
     const codec = createLocateResultCodec({
       coordinates: { shape: 'bbox', normalizedBy: 1000 },
     });
     expect(codec.toPixelResult([100, 200, 300, 400], context).center).toEqual([
-      20, 24,
+      21, 25,
     ]);
     expect(
       codec.toPixelResult([0, 0, 1000, 1000], {
         ...context,
         contentSize: { width: 70, height: 60 },
       }).center,
-    ).toEqual([50, 40]);
+    ).toEqual([51, 41]);
   });
 
-  it('rounds the mapped raw midpoint instead of deriving it from rounded bbox corners', () => {
+  it('rounds the bounds-aware center instead of deriving it from rounded bbox corners', () => {
     const codec = createLocateResultCodec({
       coordinates: { shape: 'bbox', normalizedBy: 1000 },
     });
-    expect(codec.toPixelResult([0, 0, 9, 0], context)).toEqual({
-      center: [0, 0],
-      rect: { left: 0, top: 0, width: 2, height: 1 },
+    expect(codec.toPixelResult([1, 0, 16, 0], context)).toEqual({
+      center: [1, 0],
+      rect: { left: 0, top: 0, width: 3, height: 1 },
     });
   });
 
@@ -110,7 +113,7 @@ describe('point-based grounding', () => {
       }),
     });
     expect(codec.toPixelResult('fallback point', context).center).toEqual([
-      0.25, 0.5,
+      0, 1,
     ]);
   });
 
@@ -163,7 +166,7 @@ describe('original bbox metadata', () => {
       coordinates: { shape: 'bbox', normalizedBy: 1000 },
     });
     expect(codec.toPixelResult([100, 200, 300, 400], context)).toEqual({
-      center: [20, 24],
+      center: [21, 25],
       rect: { left: 10, top: 16, width: 21, height: 17 },
     });
     const clippedContext = {
@@ -171,7 +174,7 @@ describe('original bbox metadata', () => {
       contentSize: { width: 70, height: 60 },
     };
     expect(codec.toPixelResult([0, 0, 1000, 1000], clippedContext)).toEqual({
-      center: [50, 40],
+      center: [51, 41],
       rect: { left: 0, top: 0, width: 70, height: 60 },
     });
   });

@@ -2758,6 +2758,17 @@ Stdout:
     });
 
     describe('calculateScrollEndPoint', () => {
+      it.each([
+        [{ x: 0, y: 200 }, -100, 0],
+        [{ x: 1080, y: 200 }, 100, 0],
+        [{ x: 200, y: 0 }, 0, -100],
+        [{ x: 200, y: 1920 }, 0, 100],
+      ])('rejects a scroll with no space from %j', (start, dx, dy) => {
+        expect(() =>
+          (device as any).calculateScrollEndPoint(start, dx, dy, 1080, 1920),
+        ).toThrow('No space');
+      });
+
       it('should calculate end point for horizontal scroll within bounds', () => {
         const start = { x: 100, y: 200 };
         const deltaX = 50;
@@ -2942,58 +2953,31 @@ Stdout:
         expect(result).toEqual({ x: 400, y: 450 });
       });
 
-      it('should not modify coordinates when delta is zero', () => {
-        const start = { x: 500, y: 600 };
-        const deltaX = 0;
-        const deltaY = 0;
-        const maxWidth = 1080;
-        const maxHeight = 1920;
-
-        const result = (device as any).calculateScrollEndPoint(
-          start,
-          deltaX,
-          deltaY,
-          maxWidth,
-          maxHeight,
-        );
-
-        expect(result).toEqual({ x: 500, y: 600 });
+      it('rejects a stationary endpoint when both deltas are zero', () => {
+        expect(() =>
+          (device as any).calculateScrollEndPoint(
+            { x: 500, y: 600 },
+            0,
+            0,
+            1080,
+            1920,
+          ),
+        ).toThrow('Scroll distance is too small');
       });
 
-      it('should handle edge case when start point is at boundary', () => {
-        const start = { x: 0, y: 0 };
-        const deltaX = -50; // Trying to scroll left from left edge
-        const deltaY = -50; // Trying to scroll up from top edge
-        const maxWidth = 1080;
-        const maxHeight = 1920;
-
-        const result = (device as any).calculateScrollEndPoint(
-          start,
-          deltaX,
-          deltaY,
-          maxWidth,
-          maxHeight,
-        );
-
-        expect(result).toEqual({ x: 0, y: 0 }); // Should stay at boundary
-      });
-
-      it('should handle edge case when start point is at max boundary', () => {
-        const start = { x: 1080, y: 1920 };
-        const deltaX = 50; // Trying to scroll right from right edge
-        const deltaY = 50; // Trying to scroll down from bottom edge
-        const maxWidth = 1080;
-        const maxHeight = 1920;
-
-        const result = (device as any).calculateScrollEndPoint(
-          start,
-          deltaX,
-          deltaY,
-          maxWidth,
-          maxHeight,
-        );
-
-        expect(result).toEqual({ x: 1080, y: 1920 }); // Should stay at boundary
+      it.each([
+        [{ x: 0, y: 0 }, -50],
+        [{ x: 1080, y: 1920 }, 50],
+      ])('rejects a diagonal scroll out of corner %j', (start, delta) => {
+        expect(() =>
+          (device as any).calculateScrollEndPoint(
+            start,
+            delta,
+            delta,
+            1080,
+            1920,
+          ),
+        ).toThrow('No space');
       });
     });
 
@@ -3002,6 +2986,51 @@ Stdout:
         rs.spyOn(device as any, 'dragPoint').mockResolvedValue(undefined);
         rs.spyOn(console, 'warn').mockImplementation(() => {});
       });
+
+      it.each([Number.NaN, Number.POSITIVE_INFINITY, -1, 100000])(
+        'rejects invalid horizontal origin %s before a vertical drag',
+        async (left) => {
+          await expect(
+            device.scrollDown(100, { left, top: 100 }),
+          ).rejects.toThrow('origin');
+          expect((device as any).dragPoint).not.toHaveBeenCalled();
+        },
+      );
+
+      it('does not send a stationary drag when the origin is at the top edge', async () => {
+        await expect(
+          device.scrollDown(100, { left: 200, top: 0 }),
+        ).rejects.toThrow('No space');
+        expect((device as any).dragPoint).not.toHaveBeenCalled();
+      });
+
+      it.each(['scrollUp', 'scrollDown', 'scrollLeft', 'scrollRight'] as const)(
+        'rejects a positive distance that rounds to zero in %s',
+        async (method) => {
+          for (const distance of [0.1, 0.49]) {
+            await expect(
+              device[method](distance, { left: 200, top: 200 }),
+            ).rejects.toThrow('Scroll distance is too small');
+          }
+          expect((device as any).dragPoint).not.toHaveBeenCalled();
+        },
+      );
+
+      it.each([
+        ['scrollUp', 200, 201],
+        ['scrollDown', 200, 199],
+        ['scrollLeft', 201, 200],
+        ['scrollRight', 199, 200],
+      ] as const)(
+        'preserves the smallest rounded movement in %s',
+        async (method, x, y) => {
+          await device[method](0.5, { left: 200, top: 200 });
+          expect((device as any).dragPoint).toHaveBeenCalledWith(
+            { x: 200, y: 200 },
+            { x, y },
+          );
+        },
+      );
 
       it('scrollDown with startPoint should use calculateScrollEndPoint', async () => {
         const startPoint = { left: 100, top: 200 };
@@ -3018,7 +3047,7 @@ Stdout:
           { x: 100, y: 200 },
           0,
           -scrollDistance,
-          0,
+          1080,
           1920, // height from mocked size()
         );
       });
@@ -3038,7 +3067,7 @@ Stdout:
           { x: 100, y: 200 },
           0,
           scrollDistance,
-          0,
+          1080,
           1920, // height from mocked size()
         );
       });
@@ -3059,7 +3088,7 @@ Stdout:
           scrollDistance,
           0,
           1080, // width from mocked size()
-          0,
+          1920,
         );
       });
 
@@ -3079,7 +3108,7 @@ Stdout:
           -scrollDistance,
           0,
           1080, // width from mocked size()
-          0,
+          1920,
         );
       });
 
@@ -3166,7 +3195,7 @@ Stdout:
           { x: 100, y: 200 },
           0,
           -1920, // negative screen height for scrollDown
-          0,
+          1080,
           1920,
         );
       });

@@ -14,7 +14,7 @@
   },
   "include": [
     "scripts/**/*.ts",
-    "packages/*/rstest.config.ts",
-    "apps/*/rstest.config.ts"
+    "packages/*/rstest*.config.ts",
+    "apps/*/rstest*.config.ts"
   ]
 }

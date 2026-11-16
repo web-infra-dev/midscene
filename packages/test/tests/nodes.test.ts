@@ -8,7 +8,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { runTestCli } from '../src/cli/test-command';
 
 const directories: string[] = [];
@@ -23,7 +23,7 @@ const createProject = (nodes = '[]') => {
 };
 
 afterEach(() => {
-  vi.restoreAllMocks();
+  rs.restoreAllMocks();
   for (const directory of directories.splice(0)) {
     rmSync(directory, { recursive: true, force: true });
   }
@@ -40,7 +40,7 @@ describe('nodes', () => {
     ]`);
     const specPath = join(root, 'midscene-node-spec.md');
     writeFileSync(specPath, 'outdated spec');
-    const io = { log: vi.fn(), error: vi.fn(), write: vi.fn() };
+    const io = { log: rs.fn(), error: rs.fn(), write: rs.fn() };
 
     expect(await runTestCli(['nodes', root], io)).toBe(0);
 
@@ -78,8 +78,8 @@ describe('nodes', () => {
 
   it('uses the current directory by default and reports an empty registry', async () => {
     const root = createProject();
-    vi.spyOn(process, 'cwd').mockReturnValue(root);
-    const io = { log: vi.fn(), error: vi.fn() };
+    rs.spyOn(process, 'cwd').mockReturnValue(root);
+    const io = { log: rs.fn(), error: rs.fn() };
 
     expect(await runTestCli(['nodes'], io)).toBe(0);
 
@@ -116,7 +116,7 @@ describe('nodes', () => {
         ],
       };`,
     );
-    const io = { log: vi.fn(), error: vi.fn() };
+    const io = { log: rs.fn(), error: rs.fn() };
 
     expect(
       await runTestCli(['nodes', root, '--config', 'config/custom.ts'], io),
@@ -148,7 +148,7 @@ describe('nodes', () => {
     const root = createProject();
     const caseRoot = join(root, 'test-cases');
     mkdirSync(caseRoot);
-    const io = { log: vi.fn(), error: vi.fn() };
+    const io = { log: rs.fn(), error: rs.fn() };
 
     expect(
       await runTestCli(
@@ -169,7 +169,7 @@ describe('nodes', () => {
   it('states when no config file was loaded', async () => {
     const root = createProject();
     rmSync(join(root, 'midscene.config.ts'));
-    const io = { log: vi.fn(), error: vi.fn() };
+    const io = { log: rs.fn(), error: rs.fn() };
 
     expect(await runTestCli(['nodes', root], io)).toBe(0);
 
@@ -182,7 +182,7 @@ describe('nodes', () => {
   it('does not announce success when writing the file fails', async () => {
     const root = createProject();
     mkdirSync(join(root, 'midscene-node-spec.md'));
-    const io = { log: vi.fn(), error: vi.fn() };
+    const io = { log: rs.fn(), error: rs.fn() };
 
     expect(await runTestCli(['nodes', root], io)).toBe(1);
 
@@ -196,7 +196,7 @@ describe('nodes', () => {
     const root = createProject('[{ name: "invalid" }]');
     const specPath = join(root, 'midscene-node-spec.md');
     writeFileSync(specPath, 'previous spec');
-    const io = { log: vi.fn(), error: vi.fn() };
+    const io = { log: rs.fn(), error: rs.fn() };
 
     expect(await runTestCli(['nodes', root], io)).toBe(1);
 

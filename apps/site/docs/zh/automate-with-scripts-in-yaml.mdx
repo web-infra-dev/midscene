@@ -700,7 +700,10 @@ tasks:
       - aiScroll: <prompt> # 可选，执行滚动的元素
         scrollType: 'singleAction' # 或 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'，默认值为 'singleAction'
         direction: 'down' # 或 'up' | 'left' | 'right'，默认值为 'down'。仅在 scrollType 为 singleAction 时生效
-        distance: <number> # 可选，滚动距离，单位为像素。设置为 null 表示由 Midscene 自动决定。
+        distance: <number> # 可选，滚动距离，单位为设备的逻辑像素，
+        # 也就是自定义设备接入时 size() 返回的宽高所使用的坐标单位。设置为 null 表示由 Midscene 自动决定。
+        # 执行时，该距离在触摸设备上会转换为滑动手势的移动距离，在 Web／桌面端会转换为滚轮滚动增量。
+        # 页面内容最终的移动距离不保证与该值相同。
         deepLocate: <boolean> # 可选，是否为该元素开启深度定位。默认值为 False
         xpath: <xpath> # 可选，目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
 

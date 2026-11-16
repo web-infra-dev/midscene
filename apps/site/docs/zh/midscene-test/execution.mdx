@@ -200,7 +200,7 @@ Midscene Test 提供三个维度的超时控制：
 
 ### 取消与清理
 
-当单个步骤超时，或 CLI 收到 `SIGINT`（如 Ctrl+C）/ `SIGTERM` 信号时，框架会触发当前步骤的 `signal`（`AbortSignal`）。由于 JavaScript 中的异步操作不会自动强行终止，自定义 Node 需要将 `signal` 透传给支持取消的底层 API，或在循环中主动检查取消状态，详见[异步操作、错误与取消](./extend#异步操作、错误与取消)。
+当单个步骤超时，或 CLI 收到 `SIGINT`（如 Ctrl+C）/ `SIGTERM` 信号时，框架会触发当前步骤的 `signal`（`AbortSignal`）。由于 JavaScript 中的异步操作不会自动强行终止，自定义 Node 需要将 `signal` 透传给支持取消的底层 API，或在循环中主动检查取消状态，详见[异步操作、错误与取消](./extend#异步操作错误与取消)。
 
 测试运行被中断后，框架仍会尽力完成资源清理：
 

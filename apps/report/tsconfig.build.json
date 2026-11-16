@@ -1,4 +1,4 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["src", "e2e/midscene.config.ts"]
+  "include": ["src", "midscene.config.ts"]
 }

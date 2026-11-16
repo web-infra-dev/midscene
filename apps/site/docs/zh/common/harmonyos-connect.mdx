@@ -1,0 +1,48 @@
+运行 Midscene 的电脑需要通过 `hdc` 连接目标 HarmonyOS NEXT 设备。如果已安装 `hdc` 并连接好设备，可直接跳至[确认设备连接](#verify-device-connection)。
+
+### 安装 HDC
+
+HDC（HarmonyOS Device Connector）是 HarmonyOS 官方提供的设备连接命令行工具，可通过以下任一方式安装：
+
+- 通过 [DevEco Studio](https://developer.huawei.com/consumer/cn/deveco-studio/) 安装（推荐）
+- 下载 [HarmonyOS 命令行工具（Command Line Tools）](https://developer.huawei.com/consumer/cn/download/)独立安装
+
+在终端运行以下命令，验证 `hdc` 是否安装成功：
+
+```bash
+hdc version
+```
+
+终端输出版本号即表示安装成功。
+
+:::info 配置 HDC 路径
+
+如果 `hdc` 未加入系统 `PATH`，可以通过设置 `HDC_HOME` 环境变量指向 `hdc` 所在的目录：
+
+```bash
+export HDC_HOME=/path/to/hdc/directory
+```
+
+:::
+
+### 开启调试并连接设备
+
+1. 在 HarmonyOS 设备的系统设置中进入「系统 > 开发者选项」，开启 **USB 调试**。
+2. 使用支持数据传输的 USB 数据线将设备连接到电脑。
+3. 保持设备解锁亮屏，并在设备弹窗中允许 USB 调试授权。
+
+### 确认设备连接 {#verify-device-connection}
+
+在终端运行以下命令检查连接状态：
+
+```bash
+hdc list targets
+```
+
+终端输出设备序列号（Device ID）即表示连接就绪：
+
+```log
+0123456789ABCDEF
+```
+
+如果同时连接了多台设备，请记录目标设备的序列号，以便后续在 Playground 或项目配置中指定该设备。若输出为空或显示 `[Empty]`，请检查 USB 数据线、连接模式、**USB 调试**开关及手机端的调试授权弹窗。

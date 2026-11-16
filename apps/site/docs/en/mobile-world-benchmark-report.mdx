@@ -86,7 +86,7 @@
 }
 `}</style>
 
-This report presents Midscene results on the MobileWorld benchmark. The evaluation covers 117 tasks, with a **Pass@1 score of 78.63% (92/117)**.
+This is Midscene's test report for the MobileWorld benchmark. In this run, Midscene evaluated only 117 `GUI-ONLY` tasks and achieved **Pass@1 78.63% (92/117)**.
 
 :::info About MobileWorld
 
@@ -102,6 +102,7 @@ This report presents Midscene results on the MobileWorld benchmark. The evaluati
 | Model Name | `Gemini-3.6-Flash` |
 | Midscene version | `1.10.3` |
 | Device | `DockerEmulator` |
+| Task scope | `GUI-ONLY` tasks only |
 | Number of tasks | 117 |
 | `MIDSCENE_REPLANNING_CYCLE_LIMIT` | 50 |
 | MobileWorld setup | MobileWorld used a Midscene benchmark adapter that delegates Agent execution through Midscene RPC while retaining MobileWorld task setup and validation. |
@@ -117,7 +118,7 @@ The following MobileWorld validation check was adjusted for this benchmark:
 
 ## Report files
 
-The detailed reports for all 117 tasks are listed below. Each report is a compressed, self-contained HTML file. Select “report” to open the corresponding execution trace in a new page.
+The detailed reports for all 117 `GUI-ONLY` tasks are listed below. Each report is a compressed, self-contained HTML file. Select “report” to open the corresponding execution trace in a new page.
 
 <details open className="benchmark-round">
 <summary>Round 1 (117 reports · 92 PASS · 25 FAIL)</summary>

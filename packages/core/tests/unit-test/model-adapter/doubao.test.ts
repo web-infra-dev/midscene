@@ -15,11 +15,74 @@ const doubaoSeedAdapter = new ResolvedModelAdapter(
 );
 
 describe('doubao model adapter', () => {
+  describe.each(['doubao-seed', 'doubao-vision'] as const)(
+    '%s reasoning parameters',
+    (family) => {
+      const adapter = new ResolvedModelAdapter(doubaoAdapters[family], family);
+
+      it.each([
+        {
+          reasoningEnabled: undefined,
+          native: { thinking: { type: 'disabled' } },
+          openRouter: { reasoning: { enabled: false } },
+        },
+        {
+          reasoningEnabled: false,
+          native: { thinking: { type: 'disabled' } },
+          openRouter: { reasoning: { enabled: false } },
+        },
+        {
+          reasoningEnabled: true,
+          native: { thinking: { type: 'enabled' }, reasoning_effort: 'high' },
+          openRouter: {
+            reasoning: { enabled: true, effort: 'high', max_tokens: 1024 },
+          },
+        },
+        {
+          reasoningEnabled: 'default',
+          native: {},
+          openRouter: {},
+        },
+      ] as const)(
+        'maps enabled=$reasoningEnabled for both endpoints',
+        ({ reasoningEnabled, native, openRouter }) => {
+          for (const [baseURL, expected] of [
+            ['https://ark.cn-beijing.volces.com/api/v3', native],
+            ['https://openrouter.ai/api/v1', openRouter],
+          ] as const) {
+            const result = adapter.chatCompletion.buildChatCompletionParams({
+              baseURL,
+              expectedJsonObjectResponse: true,
+              userConfig: {
+                reasoningEnabled,
+                reasoningEffort: 'high',
+                reasoningBudget: 1024,
+                temperature: 0.7,
+              },
+            });
+            expect(result.config).toEqual({
+              temperature: 0.7,
+              response_format: { type: 'json_object' },
+              ...expected,
+            });
+          }
+        },
+      );
+
+      it('omits reasoning configuration when using default without effort', () => {
+        for (const baseURL of [undefined, 'https://openrouter.ai/api/v1']) {
+          const result = adapter.chatCompletion.buildChatCompletionParams({
+            baseURL,
+            userConfig: { reasoningEnabled: 'default' },
+          });
+          expect(result.config).toEqual({ temperature: 0 });
+        }
+      });
+    },
+  );
+
   it('keeps doubao-seed and doubao-vision json parsing behavior aligned', () => {
     expect(doubaoSeedAdapter.jsonParser).toBe(doubaoVisionAdapter.jsonParser);
-    expect(doubaoSeedAdapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningBudget',
-    ]);
   });
 
   it('defaults doubao thinking to disabled when reasoning config is unset', () => {
@@ -270,6 +333,8 @@ describe('doubao model adapter', () => {
     expect(parseDoubaoRawLocateValue([100, 200, 300, 400])).toEqual({
       coordinates: [100, 200, 300, 400],
       coordinatesMeta: {
+        normalizationBasis: 'image-size',
+        boundsType: 'closed',
         shape: 'bbox',
         order: 'xy',
         normalizedBy: 1000,
@@ -285,6 +350,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [100, 200, 300, 400],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -298,6 +365,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [100, 200, 300, 400],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -311,6 +380,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [100, 200, 300, 400],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -324,6 +395,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [336, 163, 717, 200],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -337,6 +410,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [336, 163, 717, 200],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -350,6 +425,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [653, 277, 664, 291],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -363,6 +440,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [653, 277, 664, 291],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -376,6 +455,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [782, 541, 815, 559],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -389,6 +470,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [782, 541, 815, 559],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -402,6 +485,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [410, 295, 885, 345],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -415,6 +500,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [859, 773, 923, 808],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -428,6 +515,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [859, 773, 923, 808],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -441,6 +530,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [650, 700, 710, 730],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -454,6 +545,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [100, 200, 300, 400],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -467,6 +560,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [100, 5, 200, 300],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -480,6 +575,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [100, 200, 300, 400],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -496,6 +593,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [100, 200, 300, 400],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,
@@ -509,6 +608,7 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [100, 200],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
           shape: 'point',
           order: 'xy',
           normalizedBy: 1000,
@@ -522,6 +622,8 @@ describe('doubao model adapter', () => {
       result: {
         coordinates: [1, 2, 5, 6],
         coordinatesMeta: {
+          normalizationBasis: 'image-size',
+          boundsType: 'closed',
           shape: 'bbox',
           order: 'xy',
           normalizedBy: 1000,

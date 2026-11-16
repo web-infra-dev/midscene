@@ -19,7 +19,7 @@ const jevBoxCodec = createLocateResultCodec({
     shape: 'bbox',
     normalizedBy: 1,
     rounding: 'none',
-    boundsType: 'edges',
+    boundsType: 'left-closed-right-open',
   },
 });
 

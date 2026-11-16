@@ -2,7 +2,7 @@ import {
   type DocumentSetupContext,
   runWorkflowDocument,
 } from '@midscene/core/internal/test-runner';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import {
   type CollectedWorkflowDocument,
   NodeRegistry,
@@ -298,7 +298,7 @@ describe('workflow document runtime', () => {
       },
     });
     const registry = new NodeRegistry([resource, after]);
-    const onResult = vi.fn(() => calls.push('result'));
+    const onResult = rs.fn(() => calls.push('result'));
     const runtime = createDocumentRuntime(
       collectedDocument({
         beforeAll: [step(resource.name)],
@@ -457,8 +457,8 @@ describe('document resource ownership', () => {
   });
 
   it('releases partially acquired resources when setup fails, skips authored hooks, and rejects late registrations', async () => {
-    const release = vi.fn();
-    const execute = vi.fn();
+    const release = rs.fn();
+    const execute = rs.fn();
     let register: ((callback: () => void) => void) | undefined;
     const document = collectedDocument({ afterAll: [step('use')] });
     const result = await runWorkflowDocument(document, {

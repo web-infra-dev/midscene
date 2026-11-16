@@ -1,8 +1,8 @@
 import { resolve } from 'node:path';
 import type { Agent } from '@midscene/core/agent';
 import { commonAgentTestRunnerNodeDefinitions } from '@midscene/core/agent/test';
+import { describe, expect, it, rs } from '@rstest/core';
 import { load } from 'js-yaml';
-import { describe, expect, it, vi } from 'vitest';
 import {
   NodeRegistry,
   createDocumentRuntime,
@@ -34,15 +34,15 @@ const collected = (
 type TestAgent = MidsceneUIAgent & Pick<Agent, 'aiWaitFor'>;
 
 const commonAgent = (overrides: Partial<TestAgent> = {}): TestAgent => ({
-  aiAct: vi.fn(async () => undefined),
-  aiTap: vi.fn(async () => undefined),
-  aiAssert: vi.fn(async () => undefined),
-  aiWaitFor: vi.fn(async () => undefined),
-  aiBoolean: vi.fn(async () => false),
-  aiNumber: vi.fn(async () => 0),
-  aiString: vi.fn(async () => ''),
-  aiAsk: vi.fn(async () => ''),
-  recordToReport: vi.fn(async () => undefined),
+  aiAct: rs.fn(async () => undefined),
+  aiTap: rs.fn(async () => undefined),
+  aiAssert: rs.fn(async () => undefined),
+  aiWaitFor: rs.fn(async () => undefined),
+  aiBoolean: rs.fn(async () => false),
+  aiNumber: rs.fn(async () => 0),
+  aiString: rs.fn(async () => ''),
+  aiAsk: rs.fn(async () => ''),
+  recordToReport: rs.fn(async () => undefined),
   ...overrides,
 });
 
@@ -57,8 +57,8 @@ describe('createMidsceneNodes', () => {
     );
     const mobile = commonAgent();
     const web = commonAgent();
-    const getMobile = vi.fn(() => mobile);
-    const getWeb = vi.fn(() => web);
+    const getMobile = rs.fn(() => mobile);
+    const getWeb = rs.fn(() => web);
     const registry = new NodeRegistry([
       ...createMidsceneNodes({
         namespace: 'mobile',
@@ -122,8 +122,8 @@ describe('createMidsceneNodes', () => {
 
   it('supports a dot-separated namespace with an AgentProvider', async () => {
     const agent = commonAgent();
-    const getAgent = vi.fn((_runId: string) => agent);
-    const releaseAgent = vi.fn(async (_runId: string) => undefined);
+    const getAgent = rs.fn((_runId: string) => agent);
+    const releaseAgent = rs.fn(async (_runId: string) => undefined);
     const registry = new NodeRegistry(
       createMidsceneNodes({
         namespace: 'checkout.mobile',
@@ -167,7 +167,7 @@ describe('createMidsceneNodes', () => {
   ])(
     'rejects an invalid namespace %j before acquiring an Agent',
     (namespace) => {
-      const getAgent = vi.fn(() => commonAgent());
+      const getAgent = rs.fn(() => commonAgent());
       expect(() =>
         createMidsceneNodes({
           namespace: namespace as string,
@@ -189,11 +189,11 @@ describe('createMidsceneNodes', () => {
       >[0];
       const mobileListeners = new Set<DumpListener>();
       const webListeners = new Set<DumpListener>();
-      const mobileSnapshot = vi.fn(async () => ({
+      const mobileSnapshot = rs.fn(async () => ({
         sourcePath: resolve('/tmp/mobile-report.html'),
         dumpPath: resolve('/tmp/mobile-report.json'),
       }));
-      const webSnapshot = vi.fn(async () => ({
+      const webSnapshot = rs.fn(async () => ({
         sourcePath: resolve('/tmp/web-report.html'),
         dumpPath: resolve('/tmp/web-report.json'),
       }));
@@ -271,13 +271,13 @@ describe('createMidsceneNodes', () => {
   );
 
   it('continues with the same Agent only after a timed out call has actually finished', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     let release!: () => void;
     const pending = new Promise<void>((resolve) => {
       release = resolve;
     });
     const events: string[] = [];
-    const aiAct = vi.fn(
+    const aiAct = rs.fn(
       async (_prompt: unknown, options?: { abortSignal?: AbortSignal }) => {
         await pending;
         events.push('old finished');
@@ -285,7 +285,7 @@ describe('createMidsceneNodes', () => {
         return undefined;
       },
     );
-    const aiAssert = vi.fn(async () => {
+    const aiAssert = rs.fn(async () => {
       events.push('next started');
       return undefined;
     });
@@ -312,7 +312,7 @@ describe('createMidsceneNodes', () => {
       { resolveNode: registry.require.bind(registry) },
     );
     try {
-      await vi.advanceTimersByTimeAsync(120);
+      await rs.advanceTimersByTimeAsync(120);
       expect(aiAssert).not.toHaveBeenCalled();
       release();
       const result = await running;
@@ -326,14 +326,14 @@ describe('createMidsceneNodes', () => {
       expect(result.teardownErrors).toBeUndefined();
     } finally {
       release();
-      await vi.advanceTimersByTimeAsync(1000);
+      await rs.advanceTimersByTimeAsync(1000);
       await running;
-      vi.useRealTimers();
+      rs.useRealTimers();
     }
   });
 
   it('runs setAIContext from YAML with text, empty text, and omitted context', async () => {
-    const setAIContext = vi.fn();
+    const setAIContext = rs.fn();
     const agent = { ...commonAgent(), setAIContext };
     const registry = new NodeRegistry(
       createMidsceneNodes({
@@ -379,7 +379,7 @@ describe('createMidsceneNodes', () => {
   });
 
   it('documents approved effort, without YAML metadata or planning markers in the native Spec', async () => {
-    const aiAct = vi.fn(async () => undefined);
+    const aiAct = rs.fn(async () => undefined);
     const registry = new NodeRegistry(
       createMidsceneNodes({
         getAgent: () => commonAgent({ aiAct }),
@@ -432,12 +432,12 @@ describe('createMidsceneNodes', () => {
       ).toBe(false);
   });
   it('maps case inputs to one Agent from setup context', async () => {
-    const aiAct = vi.fn(async () => 'action completed');
-    const aiAssert = vi.fn(async () => undefined);
-    const aiWaitFor = vi.fn(async () => undefined);
-    const recordToReport = vi.fn(async () => undefined);
+    const aiAct = rs.fn(async () => 'action completed');
+    const aiAssert = rs.fn(async () => undefined);
+    const aiWaitFor = rs.fn(async () => undefined);
+    const recordToReport = rs.fn(async () => undefined);
     const agent = commonAgent({ aiAct, aiAssert, aiWaitFor, recordToReport });
-    const getAgent = vi.fn(
+    const getAgent = rs.fn(
       ({ context }: { context: { uiAgent: MidsceneUIAgent } }) =>
         context.uiAgent,
     );
@@ -521,7 +521,7 @@ describe('createMidsceneNodes', () => {
   });
 
   it('does not inject beforeEach results into aiAct context', async () => {
-    const aiAct = vi.fn(async () => 'page reset');
+    const aiAct = rs.fn(async () => 'page reset');
     const agent = commonAgent({ aiAct });
     const registry = new NodeRegistry(
       createMidsceneNodes<{ agent: MidsceneUIAgent }>({
@@ -562,7 +562,7 @@ describe('createMidsceneNodes', () => {
   });
 
   it('uses the canonical recordToReport input without an AI call', async () => {
-    const recordToReport = vi.fn(async () => undefined);
+    const recordToReport = rs.fn(async () => undefined);
     const agent = { recordToReport } as unknown as MidsceneUIAgent;
     const nodes = createMidsceneNodes<{ agent: MidsceneUIAgent }>({
       getAgent: ({ context }) => context.agent,
@@ -589,8 +589,8 @@ describe('createMidsceneNodes', () => {
   });
 
   it('forwards reference images to aiAct and aiAssert as multimodal prompts', async () => {
-    const aiAct = vi.fn(async () => 'opened editor');
-    const aiAssert = vi.fn(async () => undefined);
+    const aiAct = rs.fn(async () => 'opened editor');
+    const aiAssert = rs.fn(async () => undefined);
     const agent = { aiAct, aiAssert } as unknown as MidsceneUIAgent;
     const registry = new NodeRegistry(
       createMidsceneNodes<{ agent: MidsceneUIAgent }>({
@@ -663,12 +663,12 @@ describe('createMidsceneNodes', () => {
   });
 
   it('forwards common Agent method options and preserves insight values', async () => {
-    const aiTap = vi.fn(async () => undefined);
-    const aiBoolean = vi.fn(async () => true);
-    const aiNumber = vi.fn(async () => 42);
-    const aiString = vi.fn(async () => 'ready');
-    const aiAsk = vi.fn(async () => 'details');
-    const aiAssert = vi.fn(async () => ({ pass: true }));
+    const aiTap = rs.fn(async () => undefined);
+    const aiBoolean = rs.fn(async () => true);
+    const aiNumber = rs.fn(async () => 42);
+    const aiString = rs.fn(async () => 'ready');
+    const aiAsk = rs.fn(async () => 'details');
+    const aiAssert = rs.fn(async () => ({ pass: true }));
     const registry = new NodeRegistry(
       createMidsceneNodes({
         getAgent: () =>
@@ -734,7 +734,7 @@ describe('createMidsceneNodes', () => {
   it.each(['The result is visible', '', undefined])(
     'accepts successful raw assertions with undefined message and thought %s',
     async (thought) => {
-      const aiAssert = vi.fn(async () => ({
+      const aiAssert = rs.fn(async () => ({
         pass: true,
         thought,
         message: undefined,
@@ -774,7 +774,7 @@ describe('createMidsceneNodes', () => {
 
   it('does not inject an earlier Node result into aiAssert options', async () => {
     const stdout = 'x'.repeat(100_000);
-    const aiAssert = vi.fn(async () => undefined);
+    const aiAssert = rs.fn(async () => undefined);
     const registry = new NodeRegistry([
       defineNode({
         name: 'large-output',
@@ -876,12 +876,12 @@ describe('createMidsceneNodes', () => {
 
   it('releases an AgentProvider scope exactly once after each case attempt', async () => {
     const agent = commonAgent({
-      aiAct: vi.fn(async () => 'acted'),
-      aiAssert: vi.fn(async () => undefined),
-      recordToReport: vi.fn(async () => undefined),
+      aiAct: rs.fn(async () => 'acted'),
+      aiAssert: rs.fn(async () => undefined),
+      recordToReport: rs.fn(async () => undefined),
     });
-    const getAgent = vi.fn(async (_runId: string) => agent);
-    const releaseAgent = vi.fn(async (runId: string) => ({
+    const getAgent = rs.fn(async (_runId: string) => agent);
+    const releaseAgent = rs.fn(async (runId: string) => ({
       reportPath: resolve(`/tmp/${runId}.html`),
     }));
     const registry = new NodeRegistry(
@@ -971,7 +971,7 @@ describe('createMidsceneNodes', () => {
   });
 
   it('runs the same Midscene nodes in document scope', async () => {
-    const recordToReport = vi.fn(async () => undefined);
+    const recordToReport = rs.fn(async () => undefined);
     const agent = { recordToReport } as unknown as MidsceneUIAgent;
     const nodes = createMidsceneNodes<{
       agent: MidsceneUIAgent;

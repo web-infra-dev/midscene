@@ -250,10 +250,9 @@ describe('ScrcpyScreenshotManager video reset', () => {
     await rs.waitFor(() => expect(resetVideo).toHaveBeenCalledTimes(1));
     finishReset?.();
 
-    await expect(Promise.all([first, second])).resolves.toEqual([
-      undefined,
-      undefined,
-    ]);
+    // Both callers share one reset, so both get its state.
+    const [firstReset, secondReset] = await Promise.all([first, second]);
+    expect(secondReset).toBe(firstReset);
     expect(resetVideo).toHaveBeenCalledTimes(1);
   });
 
@@ -284,10 +283,9 @@ describe('ScrcpyScreenshotManager video reset', () => {
     expect(resetVideo).toHaveBeenCalledTimes(1);
     finishReset?.();
 
-    await expect(Promise.all([first, second])).resolves.toEqual([
-      undefined,
-      undefined,
-    ]);
+    // Both callers share one reset, so both get its state.
+    const [firstReset, secondReset] = await Promise.all([first, second]);
+    expect(secondReset).toBe(firstReset);
     expect(resetVideo).toHaveBeenCalledTimes(1);
     expect((manager as any).videoResetState).toBeNull();
   });
@@ -390,6 +388,46 @@ describe('ScrcpyScreenshotManager video reset', () => {
     await capture;
     expect(disconnect).toHaveBeenCalledTimes(1);
   });
+
+  it.each(['before', 'after'])(
+    'retains packet diagnostics when a rejected keyframe arrives %s reset write completion',
+    async (arrival) => {
+      rs.useFakeTimers();
+      let finishReset!: () => void;
+      const resetVideo = rs.fn().mockImplementation(
+        () =>
+          new Promise<void>((resolve) => {
+            finishReset = resolve;
+          }),
+      );
+      const manager = createManager({} as any);
+      prepareEstablishedStaleManager(manager, resetVideo);
+      const internals = manager as any;
+      rs.spyOn(manager, 'disconnect').mockResolvedValue();
+      const capture = expect(manager.getScreenshotJpeg()).rejects.toMatchObject(
+        {
+          timeoutMs: 800,
+          message: expect.stringContaining(
+            '1 data packet was observed while reset recovery was active',
+          ),
+        },
+      );
+      await rs.advanceTimersByTimeAsync(10);
+      expect(resetVideo).toHaveBeenCalledOnce();
+      if (arrival === 'after') {
+        finishReset();
+        await rs.advanceTimersByTimeAsync(0);
+      }
+      internals.monotonicTimeUs.mockReturnValue(11_000_000n);
+      internals.processFrame(spsPacket());
+      internals.processFrame(dataPacket(0x01, 2_006_000n));
+      if (arrival === 'before') finishReset();
+      await rs.advanceTimersByTimeAsync(0);
+      expect(internals.videoResetState).toBeNull();
+      await rs.advanceTimersByTimeAsync(800);
+      await capture;
+    },
+  );
 
   it('reports unusable data packets observed while reset recovery is active', async () => {
     rs.useFakeTimers();

@@ -1,4 +1,6 @@
 import type { TModelFamily } from '@midscene/shared/env';
+import { isOpenRouter } from '../model-adapter/is-openrouter';
+import { buildOpenRouterReasoningParams } from '../model-adapter/openrouter-reasoning';
 import type {
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
@@ -108,8 +110,8 @@ export function parseDoubaoRawLocateValue(input: unknown): LocateResultValue {
 const buildDoubaoChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
-  const { midsceneDefaults, userConfig } = input;
-  const { reasoningEnabled, reasoningEffort } = userConfig;
+  const { baseURL, midsceneDefaults, userConfig } = input;
+  const { reasoningEnabled = false, reasoningEffort } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
 
   if (userConfig.temperature !== undefined) {
@@ -127,12 +129,21 @@ const buildDoubaoChatCompletionParams = (
 
   const modelSpecificConfig: Record<string, unknown> = {};
 
-  if (reasoningEnabled !== 'default') {
-    modelSpecificConfig.thinking = {
-      type: (reasoningEnabled ?? false) ? 'enabled' : 'disabled',
-    };
-    if (reasoningEffort) {
-      modelSpecificConfig.reasoning_effort = reasoningEffort;
+  if (isOpenRouter(baseURL)) {
+    Object.assign(
+      modelSpecificConfig,
+      buildOpenRouterReasoningParams(userConfig),
+    );
+  } else {
+    if (reasoningEnabled !== 'default') {
+      modelSpecificConfig.thinking = {
+        type: reasoningEnabled ? 'enabled' : 'disabled',
+      };
+    }
+    if (reasoningEnabled === true) {
+      if (reasoningEffort !== undefined) {
+        modelSpecificConfig.reasoning_effort = reasoningEffort;
+      }
     }
   }
 
@@ -148,7 +159,6 @@ const buildDoubaoChatCompletionParams = (
 const doubaoVisionAdapter: ModelAdapterDefinition = {
   jsonParser: parseModelResponseJson,
   chatCompletion: {
-    unsupportedUserConfig: ['reasoningBudget'],
     buildChatCompletionParams: buildDoubaoChatCompletionParams,
     useReasoningAsContentFallback: true,
   },

@@ -1,6 +1,6 @@
+import { describe, expect, it } from '@rstest/core';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
 import ConnectionFailedPreview from '../src/renderer/components/ConnectionFailedPreview';
 import DisconnectedPreview from '../src/renderer/components/DisconnectedPreview';
 

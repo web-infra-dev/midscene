@@ -1,5 +1,4 @@
-const CHROME_WEB_STORE_URL =
-  'https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief';
+import { CHROME_WEB_STORE_URL } from './chrome-web-store';
 
 interface ChromeExtensionButtonProps {
   linkLabel: string;

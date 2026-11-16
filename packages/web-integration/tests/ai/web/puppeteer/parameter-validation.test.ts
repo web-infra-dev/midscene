@@ -1,5 +1,3 @@
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { PuppeteerAgent } from '@/puppeteer';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import type { Page } from 'puppeteer';
@@ -15,12 +13,20 @@ describe('parameter validation', () => {
   let agent: PuppeteerAgent;
 
   beforeEach(async () => {
-    const launched = await launchPage(
-      pathToFileURL(path.join(__dirname, '../../fixtures/local-search.html'))
-        .href,
-    );
+    const launched = await launchPage('about:blank');
     resetFn = launched.reset;
     originPage = launched.originPage;
+    // Parameter validation needs a real input, but no external website.
+    await originPage.setContent(`
+      <!doctype html>
+      <html lang="en">
+        <head><title>Parameter validation fixture</title></head>
+        <body style="min-height: 2000px">
+          <label for="sb_form_q">Search</label>
+          <input id="sb_form_q" type="text" />
+        </body>
+      </html>
+    `);
     agent = new PuppeteerAgent(originPage);
   });
 

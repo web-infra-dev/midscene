@@ -1,10 +1,10 @@
+import { resolveLocateResultCoordinates } from './coordinates';
 import type {
-  BboxLocateResultCoordinates,
   BboxLocateResultValue,
   LocateResultBbox,
+  LocateResultCoordinates,
   LocateResultPoint,
   LocateResultValue,
-  PointLocateResultCoordinates,
   PointLocateResultValue,
   ResolvedLocateResultCoordinates,
 } from './types';
@@ -64,17 +64,22 @@ export function parseCoordinateList(input: unknown, label: string): number[] {
 }
 
 export function createLocateResultValue(
-  coordinatesMeta: PointLocateResultCoordinates,
+  coordinatesMeta: LocateResultCoordinates & { shape: 'point' },
   coordinates: number[],
 ): PointLocateResultValue;
 export function createLocateResultValue(
-  coordinatesMeta: BboxLocateResultCoordinates,
+  coordinatesMeta: LocateResultCoordinates & { shape: 'bbox' },
   coordinates: number[],
 ): BboxLocateResultValue;
 export function createLocateResultValue(
-  coordinatesMeta: ResolvedLocateResultCoordinates,
+  coordinatesMeta: LocateResultCoordinates,
+  coordinates: number[],
+): LocateResultValue;
+export function createLocateResultValue(
+  inputCoordinatesMeta: LocateResultCoordinates,
   coordinates: number[],
 ): LocateResultValue {
+  const coordinatesMeta = resolveLocateResultCoordinates(inputCoordinatesMeta);
   if (coordinatesMeta.shape === 'point') {
     return {
       coordinates: [coordinates[0], coordinates[1]] as LocateResultPoint,

@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @rstest-environment jsdom */
 import { PREVIEW_TEXT_INPUT_BATCH_DELAY_MS } from '@midscene/shared/constants';
 import { afterEach, beforeAll, describe, expect, it, rs } from '@rstest/core';
 import { act, createElement } from 'react';

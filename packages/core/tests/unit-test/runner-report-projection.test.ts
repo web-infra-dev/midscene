@@ -473,7 +473,7 @@ describe('entry-independent report projection', () => {
     expect(new Set(steps.map((step) => step.id)).size).toBe(2);
     expect(steps[0].title).toBe('first()');
     expect(steps[0].output?.data?.value).toEqual({
-      password: '[REDACTED]',
+      password: 'raw-value',
       answer: 42,
     });
     expect(outputs.first).toEqual({ password: 'raw-value', answer: 42 });

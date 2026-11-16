@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { defineNode, z } from '../src';
 import { renderNodeSpec } from '../src/cli/node-spec';
 

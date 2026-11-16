@@ -1,9 +1,9 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('@midscene/playground-app', () => ({
+rs.mock('@midscene/playground-app', () => ({
   PlaygroundConversationPanel: () => null,
 }));
-vi.mock('../src/renderer/components/Recorder/StudioRecorderPanel', () => ({
+rs.mock('../src/renderer/components/Recorder/StudioRecorderPanel', () => ({
   StudioRecorderPanel: () => null,
 }));
 

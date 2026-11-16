@@ -48,3 +48,34 @@ describe('homepage language and navigation', () => {
     },
   );
 });
+
+describe('homepage skipped examples', () => {
+  it.each(['zh', 'en'])(
+    'pairs each default example with its skipped version in %s',
+    async (language) => {
+      const html = await handleRequest(
+        new Request(`https://badge.example/?lang=${language}`),
+      ).text();
+      expect(html).toContain(language === 'zh' ? '默认版' : 'Default');
+      expect(html).toContain(language === 'zh' ? '带 skipped' : 'With skipped');
+      const paths = [...html.matchAll(/<img src="(\/e2e\?[^"]+)"/g)].map(
+        ([, path]) =>
+          new URL(path.replaceAll('&amp;', '&'), 'https://badge.example'),
+      );
+      expect(paths).toHaveLength(12);
+      for (let index = 0; index < paths.length; index += 2) {
+        const defaultUrl = paths[index];
+        const skippedUrl = paths[index + 1];
+        expect(defaultUrl.searchParams.has('skipped')).toBe(false);
+        expect(skippedUrl.searchParams.get('skipped')).toBe('5');
+        expect(await handleRequest(new Request(skippedUrl)).text()).toContain(
+          '>5 skipped</text>',
+        );
+        skippedUrl.searchParams.delete('skipped');
+        expect([...skippedUrl.searchParams].sort()).toEqual(
+          [...defaultUrl.searchParams].sort(),
+        );
+      }
+    },
+  );
+});

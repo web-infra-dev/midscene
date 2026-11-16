@@ -1,0 +1,15 @@
+新建 `e2e/fixture.ts`，通过 `PlaywrightAiFixture` 扩展 Playwright 的 `test`：
+
+```typescript title="e2e/fixture.ts"
+import { test as base } from '@playwright/test';
+import {
+  PlaywrightAiFixture,
+  type PlayWrightAiFixtureType,
+} from '@midscene/web/playwright';
+
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture(),
+);
+```
+
+在需要使用 Midscene 的测试文件中，从 `./fixture` 导入 `test`；`expect` 仍从 `@playwright/test` 导入。

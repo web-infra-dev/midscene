@@ -2,78 +2,71 @@ import { ChromeExtensionButton } from '@theme';
 
 # Web environment setup
 
-For Web automation, you can either launch a controlled browser with Playwright / Puppeteer or connect to an existing desktop Chrome instance via [Chrome Bridge](../bridge-mode) to reuse active login sessions. Start by verifying your model settings and page interactions in the Chrome extension Playground, then prepare the browser environment for your chosen integration method.
+Midscene controls web pages in one of three browsers: the Midscene Chrome extension, a browser launched by Playwright or Puppeteer, or your desktop Chrome through [Chrome Bridge](../bridge-mode). This guide prepares each of them. Prepare only the one you plan to use.
 
-## Prerequisites
+## Chrome extension {#chrome-extension}
 
-- Desktop Chrome installed (for running the extension Playground).
-- [Model credentials configured](../model-api-setup), or obtained via [Use a ChatGPT subscription](../chatgpt-subscription).
-- Node.js installed (`^20.19.0 || ^22.12.0 || >=24.0.0`, required for running tests or scripts later), with `node -v` and `npx --version` working in your terminal.
+The extension runs Playground in desktop Chrome and needs no project or Node.js.
 
-## Launch Playground
+1. Install Midscene from the Chrome Web Store:
 
-1. Install the Midscene Chrome extension:
+   <ChromeExtensionButton linkLabel="Install the Midscene extension from the Chrome Web Store" />
 
-   <ChromeExtensionButton linkLabel="Install Midscene Chrome Extension from the Chrome Web Store" />
+2. Open **Midscene** from the Chrome extensions list. The Midscene sidebar appears on the right side of the browser.
 
-2. Open the Midscene side panel from Chrome's extensions menu, click the gear icon to open settings, paste your model configuration, and save.
-3. Open [TodoMVC](https://todomvc.com/examples/react/dist/#/) in the active tab and keep the page visible.
+Model settings saved in the extension stay in the browser. Tests and scripts read their own model configuration.
 
-## Run an action and verify the result
+## Playwright {#playwright}
 
-1. Select `aiAct` in the side panel, enter the following instruction, and run it:
-
-```text
-Add a todo named "Try Midscene", then mark it as completed.
-```
-
-2. Once the completed todo item appears on the page, switch to `aiAssert`, enter the following assertion, and run it:
-
-```text
-The list contains a todo named "Try Midscene", and it is marked as completed.
-```
-
-3. Confirm that the assertion passes and inspect the step-by-step screenshots in the results panel.
-
-This step verifies model calls and page interactions inside the Chrome extension. Note that the extension does not install browser binaries for Playwright or Puppeteer, nor does it share its model configuration or login sessions with external test processes.
-
-## Prepare the browser for project integration
-
-### Playwright
-
-Install pnpm and run `pnpm init` in your project directory (skip if `package.json` already exists), then install the dependencies and Chromium browser:
+Install Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` and pnpm. In your project directory, run `pnpm init` if there is no `package.json` yet, then install the dependencies and Chromium:
 
 ```bash
 pnpm add -D @midscene/web playwright
 pnpm exec playwright install chromium
 ```
 
-If you generated a Web project using Midscene Test, follow the generated `README` to install the browser. Then run the first example in [Midscene Test](../midscene-test/use) or [Integrate with Playwright Test](../integrate-with-playwright) to verify your runtime setup.
+A Midscene Test Web project already depends on Playwright. Run only `pnpm exec playwright install chromium` in that project.
 
-### Puppeteer
+## Puppeteer {#puppeteer}
 
 ```bash
 pnpm add -D @midscene/web puppeteer
 ```
 
-Allow Puppeteer to download its bundled browser during installation (if using a custom browser binary or remote connection, make sure the executable path or CDP debugging endpoint is accessible). Then run the Web / Puppeteer example in [Write standalone automation scripts](../sdk/standalone); see the [Puppeteer integration guide](../integrate-with-puppeteer) for connection options.
+Allow Puppeteer to download its bundled browser during installation. If you use a custom browser binary or a remote browser, make sure the executable path or CDP endpoint is reachable. For connection options, see [Integrate with Puppeteer](../integrate-with-puppeteer).
 
-### Reuse existing Chrome (Chrome Bridge)
+## Chrome Bridge {#chrome-bridge}
 
-To reuse existing tabs, login sessions, or extensions in desktop Chrome, complete the [Chrome Bridge connection check](../bridge-mode#verify-connection) (a successful run in the extension Playground does not verify Bridge communication).
+To reuse the tabs, login sessions, or extensions of your desktop Chrome, install the [Chrome extension](#chrome-extension), then follow [Chrome Bridge environment setup](../bridge-mode) to verify that a script can control Chrome through it.
 
-## Next steps
+## Verify {#verify}
 
-Once your environment and Playground are verified, choose how to integrate Midscene:
+Verify the Chrome extension in Playground. Open [Get started](../get-started?platform=web&scene=playground), where Web and Playground are already selected, choose how to connect a model, and follow the steps to run one `aiAct` action and one `aiAssert` assertion. A passing assertion confirms that the extension and model calls work.
 
-- **Write YAML tests**: Initialize a project, run test cases, and inspect reports with [Midscene Test](../midscene-test/use).
-- **Integrate with existing JavaScript tests**: [Integrate with Playwright Test](../integrate-with-playwright).
-- **Write standalone automation scripts**: Follow [Write standalone automation scripts](../sdk/standalone) and pick the example for your platform.
+Playground runs in the extension and does not use the Playwright or Puppeteer browser. To verify that browser, choose **Create a Midscene Test project** or **Add to a JavaScript test project** on the same page; the first test run uses it. For Chrome Bridge, run the [connection check](../bridge-mode#verify-connection).
 
-Note: Model credentials entered in the Playground UI are stored locally in the browser and are not automatically shared with test or script processes. Copy your verified settings into your project's `.env` file and load them as shown in the integration guides.
+## FAQ {#faq}
 
-## Troubleshooting
+<span id="chrome-extension-faq" />
 
-- **Extension installation, restricted pages, or local model CORS issues**: See the [Quick start FAQ](../quick-start#chrome-extension-faq).
-- **Model request failures**: Double-check your configuration settings and [verify model connectivity](../model-config#verify-model-connectivity).
-- **Playground works, but tests or scripts fail**: Confirm that your Node.js process loads the `.env` file, the Playwright / Puppeteer browser is installed, and the target URL is reachable (note that login sessions in your regular Chrome profile are not automatically shared with newly launched browser instances).
+### Can I install the Chrome extension manually?
+
+If you cannot access the Chrome Web Store, download the installation package from the [GitHub Releases page](https://github.com/web-infra-dev/midscene/releases) and install it manually. Manual installations do not receive automatic updates.
+
+### It fails with `Cannot access a chrome-extension:// URL of different extension`
+
+This error usually indicates a conflict between Midscene and another Chrome extension. For example, another Chrome extension may have injected an `<iframe />` or `<script />` into the page.
+
+Follow these steps to find the conflicting Chrome extension:
+
+1. Open the page's developer tools, find an `<iframe />` or `<script />` whose URL starts with `chrome-extension://`, and copy the extension ID from the URL.
+2. Open `chrome://extensions/`, find the Chrome extension by its ID, and disable it.
+3. Refresh the page and try again.
+
+### I get a 403 error when using an Ollama model in the extension
+
+Set the `OLLAMA_ORIGINS="*"` environment variable to allow the Chrome extension to access the Ollama model.
+
+### A test or script cannot open the page
+
+Check that the Playwright or Puppeteer browser is installed and that the target URL is reachable from the machine running the test. A browser launched by Playwright or Puppeteer uses a new profile, so login sessions from your desktop Chrome are not available. Use [Chrome Bridge](#chrome-bridge) to reuse them.

@@ -1,0 +1,7 @@
+在项目目录下运行测试：
+
+```bash
+pnpm exec playwright test e2e/todo.spec.ts
+```
+
+测试结束后，Midscene reporter 会在终端输出报告路径（默认保存在 `midscene_run/report/` 下）。在浏览器中打开生成的 HTML 报告，即可查看各步骤的截图、AI 执行过程和断言结果，方便回溯执行细节或排查失败原因。

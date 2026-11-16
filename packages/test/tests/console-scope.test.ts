@@ -1,7 +1,7 @@
 import type { NodeDefinition } from '@midscene/core/internal/test-runner';
 import { getDebug, runWithConsoleLogHandler } from '@midscene/shared/logger';
 import type { ConsoleLogEntry } from '@midscene/shared/logger';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { scopeNodeConsole } from '../src/cli/console-scope';
 
 describe('Node console scope', () => {

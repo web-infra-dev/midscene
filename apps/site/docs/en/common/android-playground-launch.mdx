@@ -1,0 +1,15 @@
+Make sure Node.js (`^20.19.0 || ^22.12.0 || >=24.0.0`) is installed and `node -v` works in your terminal. The command below uses pnpm. If it is not installed yet, run `npm install -g pnpm`.
+
+1. Start the Android Playground CLI:
+
+```bash
+pnpm dlx @midscene/android-playground
+```
+
+2. In the Playground window that opens, click the gear icon in the top-right corner, paste your model configuration, and save.
+
+![](/images/android-set-env.png)
+
+3. If your browser does not open automatically, visit the local Playground URL printed in the terminal, and keep the terminal process running.
+4. In the connection panel on the left, select your target **ADB device** and create the Agent (if multiple devices are connected, match the device ID against `adb devices -l`).
+5. Confirm that the preview area displays your phone's current screen. If no screen appears, check the `adb` connection and screenshot permissions first.

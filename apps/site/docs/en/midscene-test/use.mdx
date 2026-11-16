@@ -1,6 +1,8 @@
 # Create a Midscene Test E2E project
 
-Create a project, run the TodoMVC example, then change a case. This guide follows the Web starter; mobile and desktop users can select their platform template. Trying the Chrome Extension first is optional.
+Create a project, run the TodoMVC example, then change a case. This guide follows the Web starter; mobile and desktop users can select their platform template.
+
+For a first run on a specific platform, [Get started](../get-started?scene=test) walks you through device, model, and project setup for your combination and ends with a passing example.
 
 ## Create a project
 
@@ -14,6 +16,8 @@ cd my-tests
 ```
 
 Follow the installation prompt. To choose a platform interactively, run `pnpm dlx @midscene/test create`, then enter the selected directory. See the [create command reference](#create-command-reference) for other options.
+
+<span id="project-structure" />
 
 The main files are:
 
@@ -34,7 +38,7 @@ This step only generates project files and the spec file without running any tes
 
 ### 2. Configure the model and runtime environment
 
-Copy `.env.example` to `.env` and follow [Model configuration](../model-api-setup) to set your model name, service URL, and API Key.
+Copy `.env.example` to `.env` and follow [Use a model API key](../model-api-setup) to set your model name, service URL, and API Key. To use a ChatGPT subscription instead, follow [Use a ChatGPT subscription](../chatgpt-subscription#cli--sdk): sign in once, then set `MIDSCENE_MODEL_AUTH_MODE`, `MIDSCENE_MODEL_NAME`, and `MIDSCENE_MODEL_FAMILY` and leave the base URL and API Key empty.
 
 Verify model connectivity and Midscene compatibility before running tests:
 

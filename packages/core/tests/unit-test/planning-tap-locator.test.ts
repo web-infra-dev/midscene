@@ -17,6 +17,7 @@ function createPlanner(): ResolvedCustomPlanningDefinition<null> {
       buildSystemPrompt: () => 'planning system prompt',
     },
     coordinateSystem: {
+      normalizationBasis: 'image-size',
       shape: 'point',
       order: 'xy',
       normalizedBy: 1000,

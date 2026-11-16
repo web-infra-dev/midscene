@@ -1,0 +1,14 @@
+```typescript title="e2e/todo.spec.ts"
+import { expect } from '@playwright/test';
+import { test } from './fixture';
+
+test('add a todo', async ({ page, aiAct, aiAssert }) => {
+  await page.goto('https://todomvc.com/examples/react/dist/');
+  await expect(page).toHaveTitle(/TodoMVC/);
+
+  await aiAct('Add a todo named Try Midscene');
+  await aiAssert('The todo list contains Try Midscene');
+});
+```
+
+Playwright 的 `page`、`expect` 可以与 Midscene 的 AI 方法在同一测试中配合使用。在这个示例中，Playwright 负责打开页面并校验标题，Midscene 负责添加待办事项并断言页面结果。除 `aiAct` 和 `aiAssert` 外，fixture 还提供 `aiTap`、`aiInput`、`aiQuery`、`aiWaitFor` 等方法，详见 [Agent API 参考](../reference/index.mdx#interaction-methods)。

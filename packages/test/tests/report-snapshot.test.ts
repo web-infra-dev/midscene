@@ -2,7 +2,7 @@ import {
   createDocumentRuntime,
   runCollectedCase,
 } from '@midscene/core/internal/test-runner';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod/v4';
 import { NodeRegistry } from '../src';
 import { createMidsceneNodes } from '../src/midscene';
@@ -95,8 +95,8 @@ describe('independent Agent report snapshots', () => {
 
   it('preserves external HTML-only providers at the collection boundary and marks them partial', async () => {
     const agent = {
-      action: vi.fn(),
-      flushReport: vi.fn(async () => '/tmp/external.html'),
+      action: rs.fn(),
+      flushReport: rs.fn(async () => '/tmp/external.html'),
     };
     const registry = new NodeRegistry(
       createMidsceneNodes({ getAgent: () => agent as any, agentClass }),
@@ -127,7 +127,7 @@ describe('independent Agent report snapshots', () => {
       const executionIds: string[] = [];
       let snapshotIndex = 0;
       const agent = {
-        action: vi.fn(async (prompt: string) => {
+        action: rs.fn(async (prompt: string) => {
           executionIds.push(prompt);
           for (const listener of listeners) listener('{}', { id: prompt });
           if (prompt === 'pending') await pending.promise;
@@ -138,7 +138,7 @@ describe('independent Agent report snapshots', () => {
           listeners.add(listener);
           return () => listeners.delete(listener);
         },
-        _createReportSource: vi.fn(async () => ({
+        _createReportSource: rs.fn(async () => ({
           sourcePath: '/tmp/agent.html',
           dumpPath: `/tmp/snapshot-${++snapshotIndex}.json`,
           collection: {
@@ -147,7 +147,7 @@ describe('independent Agent report snapshots', () => {
           },
         })),
       };
-      const releaseAgent = vi.fn(async () => {
+      const releaseAgent = rs.fn(async () => {
         released.resolve();
       });
       const registry = new NodeRegistry(
@@ -224,8 +224,8 @@ describe('independent Agent report snapshots', () => {
 
   it('preserves the snapshot when release fails', async () => {
     const agent = {
-      action: vi.fn(),
-      _createReportSource: vi.fn(async () => ({
+      action: rs.fn(),
+      _createReportSource: rs.fn(async () => ({
         sourcePath: '/tmp/agent.html',
         dumpPath: '/tmp/source.json',
       })),
@@ -251,8 +251,8 @@ describe('independent Agent report snapshots', () => {
 
   it('does not turn collection failure into an action failure and retains the last good snapshot', async () => {
     const agent = {
-      action: vi.fn(),
-      _createReportSource: vi
+      action: rs.fn(),
+      _createReportSource: rs
         .fn()
         .mockResolvedValueOnce({
           sourcePath: '/tmp/agent.html',
@@ -260,7 +260,7 @@ describe('independent Agent report snapshots', () => {
         })
         .mockRejectedValueOnce(new Error('disk full')),
     };
-    const releaseAgent = vi.fn(async () => {});
+    const releaseAgent = rs.fn(async () => {});
     const registry = new NodeRegistry(
       createMidsceneNodes({
         agentProvider: { getAgent: () => agent as any, releaseAgent },

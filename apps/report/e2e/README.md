@@ -2,6 +2,8 @@
 
 Report e2e tests exercise core user workflows against generated reports with real Agent recordings. Run `pnpm --filter @midscene/report e2e` with model credentials configured. The command builds the report and CLI, generates fixtures, and runs all YAML suites through Midscene Test before summarizing failures. The project sets `test.bail: 0` so a failed Case does not prevent later files from running. Any failed suite still makes the command fail.
 
+The config is `apps/report/midscene.config.ts`. Its directory is the test root, so `e2e/*.yaml` selects the suites and default artifacts stay under `apps/report/midscene_run/`.
+
 ## Development principle
 
 Report development, review and testing prioritize core workflows and data correctness. Keep routine iterations focused on whether users can read results, navigate Cases and inspect failures and evidence. Spacing, colors, borders, shadows, corner radii, icon appearance and exact dimensions should not become default acceptance criteria or trigger repeated validation unless an explicit design requirement calls for them.

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { IPC_CHANNELS } from '../src/shared/electron-contract';
 
 describe('IPC_CHANNELS', () => {

@@ -100,11 +100,6 @@ function createUiTarsAdapter(
 ): ModelAdapterDefinition {
   return {
     chatCompletion: {
-      unsupportedUserConfig: [
-        'reasoningEnabled',
-        'reasoningEffort',
-        'reasoningBudget',
-      ],
       buildChatCompletionParams: ({ midsceneDefaults, userConfig }) => {
         const commonOverrideConfig: Record<string, unknown> = {};
 

@@ -1,5 +1,5 @@
 import type { PlaygroundRuntimeInfo } from '@midscene/playground';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import {
   fitMobilePreviewViewport,
   resolveStudioPreviewPlatform,

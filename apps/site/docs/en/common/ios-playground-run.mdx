@@ -1,0 +1,33 @@
+On your iOS device or simulator, open Safari and complete any first-run prompts. Enter the following TodoMVC URL in the address bar:
+
+```text
+https://todomvc.com/examples/react/dist/#/
+```
+
+Keep the device unlocked with Safari in the foreground.
+
+1. In Playground, select `aiAct`, enter the following instruction, and run it:
+
+```text
+Add a todo named "Try Midscene", then mark it as completed.
+```
+
+2. Once the completed todo item appears on the page, switch to `aiAssert`, enter the following assertion, and run it:
+
+```text
+The list contains a todo named "Try Midscene", and it is marked as completed.
+```
+
+3. Confirm that the assertion passes and inspect the step-by-step screenshots in the results panel. At this point, WDA connectivity, screen capture, touch input, and model calls have all been verified together.
+
+4. (Optional) Switch to `aiQuery`, enter the following query, and run it:
+
+```text
+Return the visible todo items as {name: string, completed: boolean}[].
+```
+
+The result contains each todo item's name and completion status. `aiQuery` extracts data from the current UI without changing the page.
+
+If execution fails, check the failed step and error message: for missing screenshots or unresponsive touch input, see the [FAQ](../platforms/ios#faq); for model request errors, see [Verify model connectivity](../model-config#verify-model-connectivity).
+
+After verification, delete the "Try Midscene" item in TodoMVC. If you plan to run the Midscene Test iOS example next, switch to the **All** filter and make sure the list is completely empty (including completed items), as the example template checks for an empty list before running and does not overwrite existing items.

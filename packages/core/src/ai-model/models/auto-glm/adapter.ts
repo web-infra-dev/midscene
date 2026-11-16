@@ -6,11 +6,6 @@ import { createAutoGlmPlanner } from './planning';
 function createAutoGlmAdapter(isMultilingual: boolean): ModelAdapterDefinition {
   return {
     chatCompletion: {
-      unsupportedUserConfig: [
-        'reasoningEnabled',
-        'reasoningEffort',
-        'reasoningBudget',
-      ],
       buildChatCompletionParams: ({ midsceneDefaults, userConfig }) => {
         const commonOverrideConfig: Record<string, unknown> = {};
 

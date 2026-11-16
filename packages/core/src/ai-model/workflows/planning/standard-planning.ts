@@ -222,8 +222,6 @@ export async function standardPlan(
     ...referenceImageMessages,
   ];
 
-  let latestFeedbackMessage: ConversationMessage;
-
   // Build sub-goal status text to include in the message
   // In planning deep-think mode: show full sub-goals with logs
   // Otherwise: show historical execution logs
@@ -243,43 +241,49 @@ export async function standardPlan(
   const executionFeedback = opts.executionFeedback
     ? `\n\nCurrent measured execution state: ${opts.executionFeedback}`
     : '';
-  if (conversationHistory.pendingFeedbackMessage) {
-    latestFeedbackMessage = {
-      role: 'user',
-      content: [
-        {
-          type: 'text',
-          text: `${memoriesSection}${executionProgressSection}${executionFeedback}\n\nLatest execution feedback: ${conversationHistory.pendingFeedbackMessage}. Here is the latest screenshot. Use the observed result, not the intent of previous actions, to choose the next action.`,
-        },
-        {
-          type: 'image',
-          url: imagePayload,
-        },
-      ],
-    };
+  const observationText = conversationHistory.pendingFeedbackMessage
+    ? `Latest execution feedback: ${conversationHistory.pendingFeedbackMessage}. Here is the latest screenshot. Use the observed result, not the intent of previous actions, to choose the next action.`
+    : 'This is the current screenshot. Use the observed result, not the intent of previous actions, to choose the next action.';
+  const latestObservation: ConversationMessage = {
+    role: 'user',
+    content: [
+      { type: 'text', text: observationText },
+      {
+        type: 'image',
+        url: imagePayload,
+      },
+    ],
+  };
+  conversationHistory.resetPendingFeedbackMessageIfExists();
+  // Persist observations without cumulative state, which would otherwise repeat
+  // increasingly large summaries in every subsequent planning request.
+  conversationHistory.appendMessage(latestObservation);
 
-    conversationHistory.resetPendingFeedbackMessageIfExists();
-  } else {
-    latestFeedbackMessage = {
-      role: 'user',
-      content: [
-        {
-          type: 'text',
-          text: `${memoriesSection}${executionProgressSection}${executionFeedback}\n\nThis is the current screenshot. Use the observed result, not the intent of previous actions, to choose the next action.`,
-        },
-        {
-          type: 'image',
-          url: imagePayload,
-        },
-      ],
-    };
-  }
-  conversationHistory.appendMessage(latestFeedbackMessage);
-
-  // Compress history if it exceeds the threshold to avoid context overflow
   conversationHistory.compressHistory(50, 20);
 
   const historyLog = conversationHistory.snapshot(opts.imagesIncludeCount);
+  const outgoingObservation = historyLog[historyLog.length - 1];
+  assert(
+    outgoingObservation.type === 'input-message' &&
+      outgoingObservation.message.role === 'user' &&
+      Array.isArray(outgoingObservation.message.content),
+    'Expected the latest planning observation to contain multipart content',
+  );
+  // Replace the outgoing message without mutating stored history, retaining the
+  // screenshot or its placeholder selected by snapshot's image limit.
+  historyLog[historyLog.length - 1] = {
+    ...outgoingObservation,
+    message: {
+      ...outgoingObservation.message,
+      content: [
+        {
+          type: 'text',
+          text: `${observationText}${memoriesSection}${executionProgressSection}${executionFeedback}`,
+        },
+        ...outgoingObservation.message.content.slice(1),
+      ],
+    },
+  };
 
   const msgs: ModelCallMessages = [
     { role: 'system', content: systemPrompt },

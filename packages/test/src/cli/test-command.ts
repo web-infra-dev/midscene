@@ -1,5 +1,5 @@
 import { existsSync, realpathSync, statSync, writeFileSync } from 'node:fs';
-import { dirname, relative, resolve, sep } from 'node:path';
+import { relative, resolve, sep } from 'node:path';
 import { WorkflowExecutionFailure } from '@midscene/core/internal/test-runner';
 import { runWithConsoleLogHandler } from '@midscene/shared/logger';
 import { version } from '../../package.json';
@@ -7,6 +7,8 @@ import { formatCliError, formatConciseError } from './error-format';
 import type { CliFailureContext } from './failure-format';
 import { githubFailureAnnotation } from './github-reporter';
 import { renderNodeSpec, sortNodesForSpec } from './node-spec';
+import { prepareTestRun } from './prepare-test-run';
+import { runPreparedTestProject } from './run-prepared-project';
 import { captureTerminalOutput } from './terminal-output';
 import {
   TerminalReporter,
@@ -16,7 +18,6 @@ import { loadTestProject } from './test-project';
 import {
   DEFAULT_TEST_FILE_SELECTION,
   discoverTestConfig,
-  runTestProject,
 } from './test-project-runner';
 import type { TestProjectRunResult } from './types';
 
@@ -34,6 +35,7 @@ interface ParsedTestArgs {
   command?: 'nodes';
   cwd: string;
   projectRoot?: string;
+  testPath?: string;
   configPath?: string;
   resultDir?: string;
   projectNames?: string[];
@@ -46,7 +48,7 @@ export const parseTestCliArgs = (
 ): ParsedTestArgs => {
   const command = args[0] === 'nodes' ? args[0] : undefined;
   const commandOffset = command ? 1 : 0;
-  let projectRoot: string | undefined;
+  let inputPath: string | undefined;
   let configPath: string | undefined;
   let resultDir: string | undefined;
   const projectNames: string[] = [];
@@ -58,9 +60,9 @@ export const parseTestCliArgs = (
     const arg = equal < 0 ? token : token.slice(0, equal);
     const inlineValue = equal < 0 ? undefined : token.slice(equal + 1);
     if (!arg.startsWith('-')) {
-      if (projectRoot)
-        throw new Error('Only one test project directory is allowed.');
-      projectRoot = resolve(cwd, arg);
+      if (inputPath)
+        throw new Error('Only one test file or directory is allowed.');
+      inputPath = resolve(cwd, arg);
       continue;
     }
     if (
@@ -99,7 +101,7 @@ export const parseTestCliArgs = (
   return {
     ...(command ? { command } : {}),
     cwd,
-    projectRoot,
+    ...(command ? { projectRoot: inputPath } : { testPath: inputPath }),
     configPath,
     resultDir,
     ...(projectNames.length > 0 ? { projectNames } : {}),
@@ -140,6 +142,12 @@ Options:
   --reporter <default|verbose> Concise Case results or full step diagnostics
   --help, -h                  Show this help
   --version                   Show the package version
+
+With a config, run paths filter project files. Without one, they select standalone inputs.
+Run paths never change config discovery or the artifact root.
+For test runs, config discovery checks cwd only; --config is relative to cwd.
+The selected config directory becomes the test root.
+File include/exclude and tag rules still apply to explicit paths.
 
 Legacy tasks/flow YAML and its CLI options belong to the midscene command.
 `;
@@ -479,24 +487,19 @@ export async function runTestCli(
             reporter.output(message, write),
           )
         : undefined;
-    const projectRoot = realpathSync(
-      options.projectRoot &&
-        existsSync(options.projectRoot) &&
-        statSync(options.projectRoot).isFile()
-        ? dirname(options.projectRoot)
-        : (options.projectRoot ?? options.cwd),
-    );
     try {
       return await runWithConsoleLogHandler(
         (entry) => reporter.console(entry),
         async () => {
+          const plan = await prepareTestRun({
+            ...options,
+            onProgress: (message) => reporter.progress(message),
+            onEvent: (event) => reporter.event(event),
+          });
+          const projectRoot = realpathSync(plan.projectRoot);
           let result: TestProjectRunResult;
           try {
-            result = await runTestProject({
-              ...options,
-              onProgress: (message) => reporter.progress(message),
-              onEvent: (event) => reporter.event(event),
-            });
+            result = await runPreparedTestProject(plan);
           } catch (error) {
             if (!(error instanceof WorkflowExecutionFailure)) throw error;
             reportTestProjectResult(

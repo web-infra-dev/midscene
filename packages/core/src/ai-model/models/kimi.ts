@@ -1,4 +1,6 @@
 import type { TModelFamily } from '@midscene/shared/env';
+import { isOpenRouter } from '../model-adapter/is-openrouter';
+import { buildOpenRouterReasoningParams } from '../model-adapter/openrouter-reasoning';
 import type {
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
@@ -40,9 +42,8 @@ function parseKimiRawLocateValue(input: unknown): LocateResultValue {
 const buildKimiChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
-  const { midsceneDefaults, userConfig } = input;
-  const { reasoningEnabled } = userConfig;
-  const effectiveReasoningEnabled = reasoningEnabled ?? false;
+  const { baseURL, midsceneDefaults, userConfig } = input;
+  const { reasoningEnabled = false } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
 
   // kimi disallow custom temperature
@@ -57,11 +58,19 @@ const buildKimiChatCompletionParams = (
     commonOverrideConfig.response_format = { type: 'json_object' };
   }
 
-  const modelSpecificConfig: Record<string, unknown> = {
-    thinking: {
-      type: effectiveReasoningEnabled ? 'enabled' : 'disabled',
-    },
-  };
+  const modelSpecificConfig: Record<string, unknown> = {};
+  if (isOpenRouter(baseURL)) {
+    Object.assign(
+      modelSpecificConfig,
+      buildOpenRouterReasoningParams(userConfig),
+    );
+  } else {
+    if (reasoningEnabled !== 'default') {
+      modelSpecificConfig.thinking = {
+        type: reasoningEnabled ? 'enabled' : 'disabled',
+      };
+    }
+  }
 
   return {
     config: {
@@ -75,7 +84,7 @@ const buildKimiChatCompletionParams = (
 const buildKimi3ChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
-  const { midsceneDefaults, userConfig } = input;
+  const { baseURL, midsceneDefaults, userConfig } = input;
   const commonOverrideConfig: Record<string, unknown> = {};
 
   // Kimi disallows custom temperature.
@@ -88,15 +97,33 @@ const buildKimi3ChatCompletionParams = (
     commonOverrideConfig.response_format = { type: 'json_object' };
   }
 
-  // Kimi K3 currently only supports reasoning_effort="max"; its docs say
-  // additional effort levels will be available later.
-  const reasoningEffort = userConfig.reasoningEffort;
+  const { reasoningEnabled = false, reasoningEffort } = userConfig;
+  const reasoningConfig: Record<string, unknown> = {};
+  if (isOpenRouter(baseURL)) {
+    // OpenRouter supports disabling K3 reasoning and configuring effort.
+    Object.assign(reasoningConfig, buildOpenRouterReasoningParams(userConfig));
+  } else {
+    // Native K3 testing accepted thinking.type="disabled" and returned no
+    // reasoning content, despite the documented mandatory reasoning behavior.
+    // Follow the observed API behavior and allow the switch here.
+    // https://platform.kimi.com/docs/guide/use-thinking-effort
+    if (reasoningEnabled !== 'default') {
+      reasoningConfig.thinking = {
+        type: reasoningEnabled ? 'enabled' : 'disabled',
+      };
+    }
+    if (reasoningEnabled === true) {
+      if (reasoningEffort !== undefined) {
+        reasoningConfig.reasoning_effort = reasoningEffort;
+      }
+    }
+  }
 
   return {
     config: {
       ...midsceneDefaults,
       ...commonOverrideConfig,
-      ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
+      ...reasoningConfig,
     },
   };
 };
@@ -104,7 +131,6 @@ const buildKimi3ChatCompletionParams = (
 export const kimiAdapters = {
   kimi: {
     chatCompletion: {
-      unsupportedUserConfig: ['reasoningEffort', 'reasoningBudget'],
       buildChatCompletionParams: buildKimiChatCompletionParams,
       useReasoningAsContentFallback: true,
     },
@@ -119,7 +145,6 @@ export const kimiAdapters = {
   },
   kimi3: {
     chatCompletion: {
-      unsupportedUserConfig: ['reasoningEnabled', 'reasoningBudget'],
       buildChatCompletionParams: buildKimi3ChatCompletionParams,
       useReasoningAsContentFallback: true,
       // Kimi K3 multi-turn and tool calls must replay the complete assistant

@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runTestProject } from '@midscene/test/config';
+import { expect, it } from '@rstest/core';
 import {
   type Browser,
   type BrowserContext,
@@ -9,7 +10,6 @@ import {
   chromium,
 } from 'playwright';
 import { executablePath } from 'puppeteer';
-import { expect, it } from 'vitest';
 
 it('isolates real browser sessions per file and closes them before the shared Browser', async () => {
   const root = mkdtempSync(join(tmpdir(), 'midscene-file-browser-'));

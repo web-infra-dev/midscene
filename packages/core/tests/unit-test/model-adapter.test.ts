@@ -4,7 +4,6 @@ import { createDefaultMidscenePlanningProtocol } from '@/ai-model/model-adapter/
 import type { StandardPlanningProtocol } from '@/ai-model/model-adapter/planning-protocol';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelAdapter } from '@/ai-model/models';
-import { MODEL_ADAPTER_CONFIGS } from '@/ai-model/models/registry';
 import { parseModelResponseJson } from '@/ai-model/shared/json';
 import { MODEL_FAMILY_VALUES, type TModelFamily } from '@midscene/shared/env';
 import { describe, expect, it, rs } from '@rstest/core';
@@ -28,25 +27,6 @@ function createTestPlannerDefinition(): CustomPlanningDefinition<null> {
 }
 
 describe('model adapter registry', () => {
-  it('keeps unsupported user config independent for each protocol', () => {
-    const adapter = new ResolvedModelAdapter(
-      {
-        chatCompletion: { unsupportedUserConfig: ['temperature'] },
-        responses: { unsupportedUserConfig: ['reasoningBudget'] },
-      },
-      'test',
-    );
-    expect(adapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'temperature',
-    ]);
-    expect(adapter.responses.unsupportedUserConfig).toEqual([
-      'reasoningBudget',
-    ]);
-    expect(
-      new ResolvedModelAdapter({}, 'test').responses.unsupportedUserConfig,
-    ).toEqual([]);
-  });
-
   it('defaults to Chat Completions while keeping the Responses implementation', () => {
     const adapter = new ResolvedModelAdapter({}, 'test');
     expect(adapter.supportedProtocols).toEqual(['openai-chat']);
@@ -72,11 +52,6 @@ describe('model adapter registry', () => {
     expect(adapter.planning.cacheEnabled).toBe(true);
     expect(adapter.planning.defaultReplanningCycleLimit).toBe(20);
     expect(adapter.planning.supportsActionDeepLocate).toBe(true);
-    expect(adapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningEnabled',
-      'reasoningEffort',
-      'reasoningBudget',
-    ]);
     expect(adapter.chatCompletion.useReasoningAsContentFallback).toBe(true);
   });
 
@@ -146,23 +121,6 @@ describe('model adapter registry', () => {
     expect(() => getModelAdapter('missing-family' as any)).toThrow(
       /No model adapter registered for modelFamily: missing-family/,
     );
-  });
-
-  it('resolves adapters without unsupported user config debug output', () => {
-    const testModelFamily = 'test-empty-unsupported';
-    const previousConfig = (MODEL_ADAPTER_CONFIGS as any)[testModelFamily];
-    (MODEL_ADAPTER_CONFIGS as any)[testModelFamily] = {
-      chatCompletion: {
-        unsupportedUserConfig: [],
-      },
-    };
-    try {
-      const adapter = getModelAdapter(testModelFamily as any);
-
-      expect(adapter.chatCompletion.unsupportedUserConfig).toEqual([]);
-    } finally {
-      (MODEL_ADAPTER_CONFIGS as any)[testModelFamily] = previousConfig;
-    }
   });
 });
 

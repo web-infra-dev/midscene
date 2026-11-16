@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { notarizeMacArtifact } from '../scripts/mac-notarization.mjs';
 import { runMacStapler } from '../scripts/mac-stapler.mjs';
 
@@ -16,7 +16,7 @@ const networkError = (output = 'stdout', code = -1005) =>
   });
 
 afterEach(() => {
-  vi.restoreAllMocks();
+  rs.restoreAllMocks();
 });
 
 const runStaplerSubprocess = async (responses, action) => {
@@ -82,8 +82,8 @@ describe('macOS stapler retries', () => {
   it.each(['staple', 'validate'])(
     'runs %s once when it succeeds',
     async (action) => {
-      const execute = vi.fn().mockResolvedValue({ stdout: '', stderr: '' });
-      const wait = vi.fn();
+      const execute = rs.fn().mockResolvedValue({ stdout: '', stderr: '' });
+      const wait = rs.fn();
       const targetPath = '/tmp/Midscene Studio Beta.app';
 
       await runMacStapler(action, targetPath, { execute, wait });
@@ -101,13 +101,13 @@ describe('macOS stapler retries', () => {
     'retries the release network failure reported in %s and preserves diagnostics',
     async (stream) => {
       const error = networkError(stream);
-      const write = vi.spyOn(process[stream], 'write').mockReturnValue(true);
-      const log = vi.spyOn(console, 'log').mockImplementation(() => {});
-      const execute = vi
+      const write = rs.spyOn(process[stream], 'write').mockReturnValue(true);
+      const log = rs.spyOn(console, 'log').mockImplementation(() => {});
+      const execute = rs
         .fn()
         .mockRejectedValueOnce(error)
         .mockResolvedValue({ stdout: '', stderr: '' });
-      const wait = vi.fn().mockResolvedValue(undefined);
+      const wait = rs.fn().mockResolvedValue(undefined);
 
       await runMacStapler('validate', '/tmp/Studio.app', { execute, wait });
 
@@ -119,15 +119,15 @@ describe('macOS stapler retries', () => {
   );
 
   it('fails after three network failures with increasing delays and the final error', async () => {
-    vi.spyOn(process.stdout, 'write').mockReturnValue(true);
-    vi.spyOn(console, 'log').mockImplementation(() => {});
+    rs.spyOn(process.stdout, 'write').mockReturnValue(true);
+    rs.spyOn(console, 'log').mockImplementation(() => {});
     const finalError = networkError('stdout', -1001);
-    const execute = vi
+    const execute = rs
       .fn()
       .mockRejectedValueOnce(networkError())
       .mockRejectedValueOnce(networkError())
       .mockRejectedValue(finalError);
-    const wait = vi.fn().mockResolvedValue(undefined);
+    const wait = rs.fn().mockResolvedValue(undefined);
 
     await expect(
       runMacStapler('staple', '/tmp/Studio.dmg', { execute, wait }),
@@ -138,13 +138,13 @@ describe('macOS stapler retries', () => {
   });
 
   it('retries a request timeout', async () => {
-    vi.spyOn(process.stderr, 'write').mockReturnValue(true);
-    vi.spyOn(console, 'log').mockImplementation(() => {});
-    const execute = vi
+    rs.spyOn(process.stderr, 'write').mockReturnValue(true);
+    rs.spyOn(console, 'log').mockImplementation(() => {});
+    const execute = rs
       .fn()
       .mockRejectedValueOnce(networkError('stderr', -1001))
       .mockResolvedValue({ stdout: '', stderr: '' });
-    const wait = vi.fn().mockResolvedValue(undefined);
+    const wait = rs.fn().mockResolvedValue(undefined);
 
     await runMacStapler('validate', '/tmp/Studio.app', { execute, wait });
 
@@ -158,11 +158,11 @@ describe('macOS stapler retries', () => {
     { code: 68, stderr: 'Error Domain=NSURLErrorDomain Code=-1200' },
     { code: 'ENOENT' },
   ])('does not retry a non-network failure: %j', async (details) => {
-    vi.spyOn(process.stdout, 'write').mockReturnValue(true);
-    vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+    rs.spyOn(process.stdout, 'write').mockReturnValue(true);
+    rs.spyOn(process.stderr, 'write').mockReturnValue(true);
     const error = Object.assign(new Error('stapler failed'), details);
-    const execute = vi.fn().mockRejectedValue(error);
-    const wait = vi.fn();
+    const execute = rs.fn().mockRejectedValue(error);
+    const wait = rs.fn();
 
     await expect(
       runMacStapler('validate', '/tmp/Studio.app', { execute, wait }),
@@ -182,8 +182,8 @@ describe('macOS notarization recovery', () => {
         appleApiKey: '/tmp/fixture.p8',
         appleApiKeyId: 'fixture',
       };
-      const submit = vi.fn().mockResolvedValue(undefined);
-      const staple = vi.fn().mockResolvedValue(undefined);
+      const submit = rs.fn().mockResolvedValue(undefined);
+      const staple = rs.fn().mockResolvedValue(undefined);
 
       await notarizeMacArtifact(options, { submit, staple });
 
@@ -195,13 +195,13 @@ describe('macOS notarization recovery', () => {
   it.each(['Studio.app', 'Studio.dmg'])(
     'recovers the library-internal network failure for %s without submitting again',
     async (appPath) => {
-      vi.spyOn(console, 'error').mockImplementation(() => {});
-      vi.spyOn(console, 'log').mockImplementation(() => {});
+      rs.spyOn(console, 'error').mockImplementation(() => {});
+      rs.spyOn(console, 'log').mockImplementation(() => {});
       const error = new Error(
         'Failed to staple your application with code: 68\n\nError Domain=NSURLErrorDomain Code=-1005 "The network connection was lost."',
       );
-      const submit = vi.fn().mockRejectedValue(error);
-      const staple = vi.fn().mockResolvedValue(undefined);
+      const submit = rs.fn().mockRejectedValue(error);
+      const staple = rs.fn().mockResolvedValue(undefined);
 
       await notarizeMacArtifact({ appPath }, { submit, staple });
 
@@ -223,8 +223,8 @@ describe('macOS notarization recovery', () => {
     'propagates failures outside the recoverable staple phase: %s',
     async (message) => {
       const error = new Error(message);
-      const submit = vi.fn().mockRejectedValue(error);
-      const staple = vi.fn();
+      const submit = rs.fn().mockRejectedValue(error);
+      const staple = rs.fn();
 
       await expect(
         notarizeMacArtifact({ appPath: 'Studio.app' }, { submit, staple }),
@@ -236,9 +236,9 @@ describe('macOS notarization recovery', () => {
   );
 
   it('propagates exhausted staple recovery without validating or resubmitting', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.spyOn(console, 'log').mockImplementation(() => {});
-    const submit = vi
+    rs.spyOn(console, 'error').mockImplementation(() => {});
+    rs.spyOn(console, 'log').mockImplementation(() => {});
+    const submit = rs
       .fn()
       .mockRejectedValue(
         new Error(
@@ -246,7 +246,7 @@ describe('macOS notarization recovery', () => {
         ),
       );
     const finalError = new Error('stapler recovery exhausted');
-    const staple = vi.fn().mockRejectedValue(finalError);
+    const staple = rs.fn().mockRejectedValue(finalError);
 
     await expect(
       notarizeMacArtifact({ appPath: 'Studio.dmg' }, { submit, staple }),
@@ -258,8 +258,8 @@ describe('macOS notarization recovery', () => {
 
   it('propagates validation failures without repeating submission', async () => {
     const error = new Error('validation failed');
-    const submit = vi.fn().mockResolvedValue(undefined);
-    const staple = vi.fn().mockRejectedValue(error);
+    const submit = rs.fn().mockResolvedValue(undefined);
+    const staple = rs.fn().mockRejectedValue(error);
 
     await expect(
       notarizeMacArtifact({ appPath: 'Studio.app' }, { submit, staple }),

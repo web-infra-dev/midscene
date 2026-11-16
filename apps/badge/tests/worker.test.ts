@@ -13,13 +13,25 @@ const get = (path: string, headers?: HeadersInit) =>
   new Request(`${ORIGIN}${path}`, { headers });
 
 describe('parseBadgeOptions', () => {
-  it('applies defaults for style and theme', () => {
+  it('applies defaults for skipped, style and theme', () => {
     expect(parseBadgeOptions(new URLSearchParams('pass=42&fail=3'))).toEqual({
       pass: 42,
       fail: 3,
+      skipped: 0,
       style: 'flat',
       theme: 'light',
     });
+  });
+
+  it('parses and normalizes skipped counts', () => {
+    expect(
+      parseBadgeOptions(new URLSearchParams('pass=42&fail=3&skipped=0005'))
+        .skipped,
+    ).toBe(5);
+    expect(
+      parseBadgeOptions(new URLSearchParams('pass=0&fail=0&skipped=9999999'))
+        .skipped,
+    ).toBe(9999999);
   });
 
   it.each([
@@ -52,6 +64,47 @@ describe('renderBadge', () => {
       expect(svg).toContain('href="data:image/png;base64,');
     },
   );
+
+  it.each(['flat', 'large', 'card'] as const)(
+    'renders skipped counts in %s',
+    (style) => {
+      for (const theme of ['light', 'dark'] as const) {
+        const svg = renderBadge({
+          pass: 42,
+          fail: 3,
+          skipped: 5,
+          style,
+          theme,
+        });
+        expect(svg).toContain(
+          'aria-label="Midscene Test: 42 passed, 3 failed, 5 skipped"',
+        );
+        expect(svg).toContain('>5 skipped</text>');
+        if (style === 'card') {
+          expect(svg).toContain('>50 tests</text>');
+          expect(svg).toContain('>93.3%</text>');
+        }
+        const defaults = { pass: 42, fail: 3, style, theme };
+        expect(renderBadge({ ...defaults, skipped: 0 })).toBe(
+          renderBadge(defaults),
+        );
+        expect(renderBadge(defaults)).not.toContain('skipped');
+      }
+    },
+  );
+
+  it('shows skipped-only runs without counting them as executed tests', () => {
+    const svg = renderBadge({
+      pass: 0,
+      fail: 0,
+      skipped: 5,
+      style: 'card',
+      theme: 'light',
+    });
+    expect(svg).toContain('>5 tests</text>');
+    expect(svg).toContain('>5 skipped</text>');
+    expect(svg).toContain('>0%</text>');
+  });
 
   it('labels single-line badges as E2E and the card as Midscene Test', () => {
     const flat = renderBadge({
@@ -123,7 +176,9 @@ describe('handleRequest', () => {
     );
     expect(res.headers.get('Cache-Control')).toBe(CACHE_CONTROL);
     expect(CACHE_CONTROL).toContain('max-age=86400');
-    expect(res.headers.get('ETag')).toBe(`"v${BADGE_VERSION}-card-light-42-3"`);
+    expect(res.headers.get('ETag')).toBe(
+      `"v${BADGE_VERSION}-card-light-42-3-0"`,
+    );
     expect(await res.text()).toContain('93.3%');
   });
 
@@ -143,7 +198,7 @@ describe('handleRequest', () => {
     expect(html).toContain(`${ORIGIN}/e2e?pass=42&amp;fail=3`);
     expect(html).toContain('![Midscene Test](');
     const previews = [...html.matchAll(/<img src="(\/e2e\?[^"]+)"/g)];
-    expect(previews).toHaveLength(6);
+    expect(previews).toHaveLength(12);
     for (const [, src] of previews) {
       const badge = handleRequest(get(src.replaceAll('&amp;', '&')));
       expect(badge.status).toBe(200);
@@ -237,10 +292,30 @@ describe('worker fetch with edge cache', () => {
 
   it('shares one cache entry regardless of param order or defaults', async () => {
     await fetchBadge(get('/e2e?fail=3&pass=42'));
-    await fetchBadge(get('/e2e?pass=42&fail=3&style=flat&theme=light'));
+    await fetchBadge(
+      get('/e2e?pass=42&fail=3&skipped=0&style=flat&theme=light'),
+    );
     expect([...store.keys()]).toEqual([
-      `${ORIGIN}/e2e?v=${BADGE_VERSION}&style=flat&theme=light&pass=42&fail=3`,
+      `${ORIGIN}/e2e?v=${BADGE_VERSION}&style=flat&theme=light&pass=42&fail=3&skipped=0`,
     ]);
+  });
+
+  it('isolates skipped counts in cached responses and revalidation', async () => {
+    const first = await fetchBadge(get('/e2e?pass=42&fail=3'));
+    const skipped = await fetchBadge(
+      get('/e2e?pass=42&fail=3&skipped=5', {
+        'If-None-Match': first.headers.get('ETag')!,
+      }),
+    );
+    expect(skipped.status).toBe(200);
+    expect(skipped.headers.get('ETag')).not.toBe(first.headers.get('ETag'));
+    expect(await skipped.text()).toContain('>5 skipped</text>');
+    const again = await fetchBadge(get('/e2e?skipped=0005&fail=3&pass=42'));
+    expect(await again.text()).toContain('>5 skipped</text>');
+    expect(store.size).toBe(2);
+    const invalid = await fetchBadge(get('/e2e?pass=42&fail=3&skipped=-1'));
+    expect(invalid.status).toBe(400);
+    expect(store.size).toBe(2);
   });
 
   it('caches the by-midscene badge per style', async () => {

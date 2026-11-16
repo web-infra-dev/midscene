@@ -223,7 +223,7 @@ export function AgentBenchmarks({
           href={tUrl(t('featureMobileWorldBenchmarkLink'))}
           score="78.6%"
           title="MobileWorld Benchmark"
-          details={`${t('benchmark')} 78.6% · 92/117`}
+          details="78.6% · GUI-ONLY"
         />
         <BenchmarkLinkCard
           href={tUrl(t('featureAppControlBenchLink'))}

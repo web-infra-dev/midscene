@@ -1,0 +1,21 @@
+import { ModelConfigCard } from '@theme';
+
+<ModelConfigCard
+  purposes={props.purposes}
+  providers={[
+    {
+      name: "BigModel（国内）",
+      href: "https://bigmodel.cn/usercenter/proj-mgmt/apikeys",
+      baseUrl: "https://open.bigmodel.cn/api/paas/v4",
+      modelName: "glm-5v-turbo",
+    },
+    {
+      name: "Z.AI（国际）",
+      href: "https://z.ai/manage-apikey/apikey-list",
+      baseUrl: "https://api.z.ai/api/paas/v4",
+      modelName: "glm-5v-turbo",
+    },
+  ]}
+  openRouterModel="z-ai/glm-5v-turbo"
+  modelFamily="glm-v"
+/>

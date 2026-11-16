@@ -1,0 +1,16 @@
+import { ModelConfigCard } from '@theme';
+
+<ModelConfigCard
+  purposes={props.purposes}
+  providers={[
+    {
+      name: "OpenAI",
+      href: "https://platform.openai.com/api-keys",
+      baseUrl: { value: "https://api.openai.com/v1", comment: "Or your compatible endpoint" },
+      modelName: "gpt-6-sol",
+      responses: true,
+    },
+  ]}
+  openRouterModel="openai/gpt-6-sol"
+  modelFamily="gpt-6"
+/>
