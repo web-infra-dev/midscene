@@ -7,10 +7,20 @@ function searchDirection(task?: ExecutionTask): string | undefined {
   if (task?.subType === 'Scroll') return scrollDirection(task.param);
   if (
     task?.subType !== 'Swipe' ||
-    task.param?.end ||
     (task.param?.repeat !== undefined && task.param.repeat !== 1)
   )
     return undefined;
+  if (task.param?.end) {
+    const from = task.param.start?.center;
+    const to = task.param.end?.center;
+    if (!from || !to || ![...from, ...to].every(Number.isFinite))
+      return undefined;
+    const dx = to[0] - from[0];
+    const dy = to[1] - from[1];
+    if (dy === 0 && dx !== 0) return dx > 0 ? 'left' : 'right';
+    if (dx === 0 && dy !== 0) return dy > 0 ? 'up' : 'down';
+    return undefined;
+  }
   // Relative Swipe names finger motion; Scroll names the content search direction.
   return ({ up: 'down', down: 'up', left: 'right', right: 'left' } as const)[
     task.param?.direction as Direction
@@ -65,15 +75,26 @@ export class MobileScrollSearch {
       : -1;
     this.lastActionId = last?.taskId;
     const direction = searchDirection(last);
-    // Batched actions cannot attribute an unchanged frame to one scroll.
+    const freshSingleAction =
+      actions.length - previousIndex === 2 &&
+      last?.status === 'finished' &&
+      last.timing?.callActionEnd !== undefined &&
+      context.screenshot.capturedAt > last.timing.callActionEnd;
+    // An inert tap does not invalidate a direction that exposed new content.
     if (
-      !comparable ||
-      actions.length - previousIndex !== 2 ||
-      !direction ||
-      last?.status !== 'finished' ||
-      last.timing?.callActionEnd === undefined ||
-      context.screenshot.capturedAt <= last.timing.callActionEnd
+      freshSingleAction &&
+      sameFrame &&
+      last?.subType === 'Tap' &&
+      this.continuingDirection
     ) {
+      if (++this.probes < 3)
+        return `${this.continuationFeedback()} The latest tap left the screenshot unchanged; recheck its target before repeating it.`;
+      this.continuingDirection = undefined;
+      this.unchanged = 3;
+      return this.feedback();
+    }
+    // Batched actions cannot attribute an unchanged frame to one scroll.
+    if (!comparable || !freshSingleAction || !direction) {
       this.resetSearch();
       return undefined;
     }
@@ -113,7 +134,7 @@ export class MobileScrollSearch {
         ? ['down', 'up', 'right', 'left']
         : ['right', 'left', 'up', 'down'];
     const untested = order.filter((candidate) => !this.failed.has(candidate));
-    const evidence = `Successive planning screenshots are exactly identical after completed scroll commands. Directions tried without a visible screen change: ${[...this.failed].join(', ')}. This is whole-screen image evidence, not a measured container boundary or proof that content is absent.`;
+    const evidence = `Successive planning screenshots are exactly identical after completed search actions. Scroll directions tried without a visible screen change: ${[...this.failed].join(', ') || 'none on this view'}. This is whole-screen image evidence, not a measured container boundary or proof that content is absent.`;
     const advice =
       this.probes >= 3 || !untested.length
         ? 'The three-probe search budget is exhausted. Do not continue blind scroll probes on this unchanged screen; reassess the scroll target, loading state or navigation controls. Do not claim task completion without verifying the requested result.'

@@ -66,7 +66,7 @@ it('retires failed-direction advice when content changes', () => {
   );
 });
 
-it('keeps the observed search direction while new content appears and retires it on another action', () => {
+it('keeps a changing direction across an inert tap, and retires it when a tap changes the UI', () => {
   const { step, search, tasks } = setup();
   step();
   step();
@@ -74,7 +74,11 @@ it('keeps the observed search direction while new content appears and retires it
   expect(step('right', 'page-2')).toContain('consider continuing right');
   expect(step('right', 'page-3')).toContain('consider continuing right');
   tasks.push({ ...tasks[0], taskId: 'tap', subType: 'Tap' });
-  expect(search.planningFeedback(tasks, context('page-3'))).toBeUndefined();
+  expect(search.planningFeedback(tasks, context('page-3'))).toContain(
+    'consider continuing right',
+  );
+  tasks.push({ ...tasks[0], taskId: 'navigate', subType: 'Tap' });
+  expect(search.planningFeedback(tasks, context('new-screen'))).toBeUndefined();
 });
 
 it('preserves a changing direction across an ineffective detour, with a finite budget', () => {
@@ -105,6 +109,22 @@ it('tracks a single relative Swipe using content search direction instead of fin
     'consider continuing left',
   );
   expect(step('up', 'page-2')).toContain('consider continuing left');
+});
+
+it('tracks an axis-aligned endpoint Swipe with explicit start and end', () => {
+  const { step, tasks, search } = setup();
+  step();
+  step();
+  step();
+  tasks.push({
+    ...tasks[0],
+    taskId: 'endpoint',
+    subType: 'Swipe',
+    param: { start: { center: [20, 80] }, end: { center: [80, 80] } },
+  });
+  expect(search.planningFeedback(tasks, context('page-2'))).toContain(
+    'consider continuing left',
+  );
 });
 
 it.each([{ end: { center: [10, 20] } }, { repeat: 0 }, { repeat: 2 }])(
