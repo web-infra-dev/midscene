@@ -1,4 +1,4 @@
-/* Run from the repository root: pnpm exec node scripts/experiments/planning-wait-ab.cjs */
+/* Run from the repository root: pnpm exec node scripts/experiments/planning-guidance-benchmark.cjs */
 const fs = require('node:fs');
 const path = require('node:path');
 const { createRequire } = require('node:module');

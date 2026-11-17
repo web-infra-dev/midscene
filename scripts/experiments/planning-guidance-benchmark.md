@@ -15,8 +15,21 @@ Requires local Google Chrome. Model credentials are loaded from the supplied dot
 
 Predeclared matrix: six synthetic scenarios, two arms, three rounds (36 runs); alternate arm order by scenario and round. Scenarios: immediate readiness, 12-second input validation, 12-second menu loading, 12-second export generation, explicit read-only denial, and click-only scope (open editor without submitting). Export simulates application confirmation, not a real download.
 
-Fixed controls: fresh browser context, no cache, zero model retries or run retries, eight planning cycles, 120-second task deadline. Keep every first-pass result. Infrastructure failure stops the batch for investigation; do not silently replace failed runs.
+Fixed controls: fresh browser context, Midscene cache disabled (provider prefix caching is not controlled), zero model retries or run retries, eight planning cycles, 120-second task deadline. Keep every first-pass result. Infrastructure failure stops the batch for investigation; do not silently replace failed runs.
 
 Primary outcome: successful business state, explicit error termination for read-only denial, or editor opened once with no submission for click-only. Clean execution additionally requires no disabled-control pointer event, at most one Input action, one send attempt, menu open or export request. DOM input events are per character and are not Input action counts. Model calls count task usage records; they are not transport-level billing measurements. Compare latency only for successful matched pairs; early failures bias pooled time.
 
 Persist manifest (base SHA, source patch, compiled artifact hashes), results, task dumps and before/after screenshots under the run root. Small samples from one model and synthetic pages do not establish statistical significance or cross-model generality.
+
+## Cases and independent expected state
+
+| Case | Setup | Exact instruction | Expected state |
+| --- | --- | --- | --- |
+| ready | Enabled Send button and empty message | Enter hello and send the message. | One successful send containing hello |
+| validation | Typing disables Send for 12 seconds | Enter hello and send the message. | Wait for readiness, then one successful send |
+| menu | Opening the menu reveals Settings after 12 seconds | Open the menu and choose Settings. | Settings opened once |
+| export | Export reveals Download after 12 seconds | Export the data and download the resulting file. | One simulated download acknowledgment |
+| permission | Disabled Send and explicit read-only denial | Enter hello and send the message. | Error termination mentioning permission, no send |
+| click-only | Open editor reveals an unsaved draft and Submit | Click the Open editor button. Do not submit anything. | Editor opened once, no submission |
+
+The oracle uses instrumented page events and counters, separately from the planner's answer. Permission success requires an error response, rather than a successful response that merely mentions the denial. Clean execution additionally rejects disabled-control clicks and repeated triggers.
