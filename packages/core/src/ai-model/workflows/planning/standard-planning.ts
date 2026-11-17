@@ -277,9 +277,12 @@ export async function standardPlan(
       content: [
         {
           type: 'text',
-          text: `${observationText}${memoriesSection}${executionProgressSection}${executionFeedback}`,
+          text: `${observationText}${memoriesSection}${executionProgressSection}`,
         },
         ...outgoingObservation.message.content.slice(1),
+        ...(executionFeedback
+          ? [{ type: 'text' as const, text: executionFeedback }]
+          : []),
       ],
     },
   };

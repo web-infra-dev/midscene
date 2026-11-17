@@ -732,9 +732,10 @@ export class TaskExecutor {
             try {
               const preparedUserPrompt = await getPreparedUserPrompt();
               const executionFeedback = !delegation
-                ? mobileScrollSearch?.planningFeedback(
+                ? await mobileScrollSearch?.planningFeedbackWithGeometry(
                     session.getRunner().tasks,
                     planningUiContext,
+                    this.interface.captureScrollGeometry?.bind(this.interface),
                   )
                 : undefined;
               if (executionFeedback) {

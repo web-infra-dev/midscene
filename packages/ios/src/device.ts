@@ -562,6 +562,10 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     };
   }
 
+  async captureScrollGeometry() {
+    return this.wdaBackend.captureScrollGeometry();
+  }
+
   async screenshotBase64(): Promise<string> {
     debugDevice('Taking screenshot via WDA');
     try {

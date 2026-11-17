@@ -568,6 +568,20 @@ describe('plan XML parse retry', () => {
     );
     expect(serialized).not.toContain('No previous actions have been executed');
     expect(serialized).not.toContain('Remaining left: 100');
+    const latestEntry = request.at(-1);
+    const latestContent =
+      latestEntry &&
+      'type' in latestEntry &&
+      latestEntry.type === 'input-message'
+        ? latestEntry.message.content
+        : undefined;
+    expect(Array.isArray(latestContent) && latestContent.at(-1)).toEqual({
+      type: 'text',
+      text: expect.stringContaining(
+        'Current execution feedback: Remaining left: 70',
+      ),
+    });
+
     expect(JSON.stringify(history.snapshot())).not.toContain('Remaining left:');
   });
 

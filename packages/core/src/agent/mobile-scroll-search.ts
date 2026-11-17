@@ -1,6 +1,15 @@
+import type { AbstractInterface, ScrollGeometry } from '@/device';
 import type { ActionScrollParam, ExecutionTask, UIContext } from '@/types';
+import { getDebug } from '@midscene/shared/logger';
+import {
+  relativeScrollTravel,
+  scrollGeometryFeedback,
+} from './scroll-geometry';
 
 type Direction = 'up' | 'down' | 'left' | 'right';
+
+const exhaustedGeometryAdvice =
+  'Native layout did not establish progress during three further probes. Reassess the target instead of continuing blind probes; verify the original goal before finishing.';
 
 function scrollDirection(param: Partial<ActionScrollParam> = {}): string {
   const boundaryDirections: Record<string, string> = {
@@ -38,8 +47,13 @@ function searchDirection(task?: ExecutionTask): string | undefined {
   ];
 }
 
-/** Per-aiAct search advice based only on identical, already captured frames. */
+/** Per-aiAct recovery advice from captured frames and optional native geometry. */
 export class MobileScrollSearch {
+  private geometry?: ScrollGeometry;
+  private lastGeometry?: ScrollGeometry;
+  private idleGeometry = 0;
+  private geometryUnavailable = false;
+  private exhaustedFrame?: string;
   private frame?: string;
   private width?: number;
   private height?: number;
@@ -49,6 +63,91 @@ export class MobileScrollSearch {
   private failed = new Set<string>();
   private probes = 0;
   private continuingDirection?: string;
+
+  async planningFeedbackWithGeometry(
+    tasks: ExecutionTask[],
+    context: UIContext,
+    capture?: AbstractInterface['captureScrollGeometry'],
+  ): Promise<string | undefined> {
+    const previousAction = this.lastActionId;
+    const feedback = this.planningFeedback(tasks, context);
+    if (!capture || this.geometryUnavailable) return feedback;
+    const actions = tasks.filter((task) => task.type === 'Action Space');
+    const last = actions.at(-1);
+    const previousIndex = previousAction
+      ? actions.findIndex((task) => task.taskId === previousAction)
+      : -1;
+    const fresh =
+      actions.length - previousIndex === 2 &&
+      last?.status === 'finished' &&
+      last.timing?.callActionEnd !== undefined &&
+      context.screenshot.capturedAt > last.timing.callActionEnd;
+    if (!fresh) {
+      if (last?.taskId === previousAction) return feedback;
+      this.geometry = this.lastGeometry = undefined;
+      this.idleGeometry = 0;
+      return feedback;
+    }
+    if (!this.geometry && !searchDirection(last)) return feedback;
+    if (this.exhaustedFrame === context.screenshot.base64)
+      return exhaustedGeometryAdvice;
+    // Two repeated frames after at least three gestures tolerate the first touch
+    // changing system chrome, without changing the pixel-only search threshold.
+    if (
+      !this.geometry &&
+      (this.unchanged < 2 ||
+        actions.length < 3 ||
+        !actions
+          .slice(-3)
+          .every(
+            (task) => task.status === 'finished' && !!searchDirection(task),
+          ))
+    )
+      return feedback;
+    let geometry: ScrollGeometry | undefined;
+    try {
+      geometry = await capture();
+    } catch (error) {
+      this.geometryUnavailable = true;
+      getDebug('agent:mobile-scroll-search', { console: true })(
+        'Native geometry unavailable; retaining screenshot-only recovery',
+        error,
+      );
+      return feedback;
+    }
+    if (!geometry) {
+      this.geometry = this.lastGeometry = undefined;
+      this.idleGeometry = 0;
+      return feedback;
+    }
+    const travel =
+      this.lastGeometry && relativeScrollTravel(geometry, this.lastGeometry);
+    const newTarget =
+      !this.lastGeometry ||
+      geometry.targetId !== this.lastGeometry.targetId ||
+      JSON.stringify(geometry.viewport) !==
+        JSON.stringify(this.lastGeometry.viewport);
+    this.idleGeometry =
+      newTarget || (travel && (travel.x !== 0 || travel.y !== 0))
+        ? 0
+        : this.idleGeometry + 1;
+    // Reset the reference on target replacement, resize, or incompatible layout.
+    if (
+      !this.geometry ||
+      relativeScrollTravel(geometry, this.geometry) === undefined
+    )
+      this.geometry = geometry;
+    this.lastGeometry = geometry;
+    if (this.idleGeometry >= 3) {
+      this.exhaustedFrame = context.screenshot.base64;
+      this.geometry = this.lastGeometry = undefined;
+      this.idleGeometry = 0;
+      return exhaustedGeometryAdvice;
+    }
+    return [feedback, scrollGeometryFeedback(geometry, this.geometry)]
+      .filter(Boolean)
+      .join('\n');
+  }
 
   private resetSearch() {
     this.direction = undefined;

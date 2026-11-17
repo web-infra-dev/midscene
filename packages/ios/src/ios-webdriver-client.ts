@@ -13,6 +13,7 @@ import {
   keyboardAccessoryToolbarGap,
   selectKeyboardAccessoryDismissButton,
 } from './keyboard-dismiss';
+import { readScrollGeometry } from './scroll-geometry';
 
 const debugIOS = getDebug('webdriver:ios');
 
@@ -30,6 +31,17 @@ type FindElementIdsOptions = {
 };
 
 export class IOSWebDriverClient extends WebDriverClient {
+  async captureScrollGeometry() {
+    this.ensureSession();
+    const response = await this.makeRequest(
+      'GET',
+      `/session/${this.sessionId}/source?format=json`,
+      undefined,
+      { timeout: 3000 },
+    );
+    return readScrollGeometry(this.getResponseValue(response));
+  }
+
   async launchApp(bundleId: string): Promise<void> {
     this.ensureSession();
 
