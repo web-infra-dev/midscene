@@ -1,0 +1,148 @@
+# Universal Device protocol reference
+
+Device services expose discovery, exclusive sessions, screenshots, and input actions over HTTP. Authenticate requests with `Authorization: Bearer <token>`. `/healthz` requires no authentication.
+
+List devices, acquire a session, renew its lease before expiry, and release the session after use. Leases default to 30 seconds and support 5–300 seconds. Replace `:id` below with the returned session ID.
+
+Running services expose Swagger UI at `/api/docs/` and the full schema at `/api/openapi.json`.
+
+## `GET /healthz`
+
+Unauthenticated liveness probe.
+
+```json title="200 OK"
+{ "ok": true }
+```
+
+## `GET /api/v1/devices`
+
+List configured devices, readiness status, screen source, and supported actions.
+
+- `status: available | busy | offline`
+- `screenSource: usb | camera | airplay`
+
+```json title="200 OK"
+{
+  "devices": [
+    {
+      "id": "mg400-1",
+      "name": "DOBOT MG400",
+      "status": "available",
+      "screenSource": "camera",
+      "actions": ["tap", "doubleTap", "longPress", "swipe", "dragAndDrop"],
+      "preview": "mjpeg"
+    }
+  ]
+}
+```
+
+## `POST /api/v1/sessions`
+
+Acquire exclusive lease on a ready device.
+
+- `deviceId: string`
+- `leaseMs?: 5000..300000`
+
+```json title="Request"
+{
+  "deviceId": "mg400-1",
+  "leaseMs": 30000
+}
+```
+
+```json title="Response · 201 Created"
+{
+  "id": "sess_01J9...",
+  "deviceId": "mg400-1",
+  "expiresInMs": 30000
+}
+```
+
+## `POST /api/v1/sessions/:id/heartbeat`
+
+Renew active lease before `expiresInMs` elapses.
+
+```json title="200 OK"
+{ "ok": true }
+```
+
+## `DELETE /api/v1/sessions/:id`
+
+Release lease and return device to available.
+
+```json title="200 OK"
+{ "ok": true }
+```
+
+## `GET /api/v1/sessions/:id/screenshot`
+
+Capture current frame as JSON base64 or raw JPEG when `Accept: image/jpeg` is sent.
+
+- `Accept: application/json | image/jpeg`
+
+```json title="200 OK"
+{
+  "jpeg": "/9j/4AAQSkZJRgABAQ...",
+  "width": 1179,
+  "height": 2556,
+  "sequence": 42,
+  "receivedAt": 1731740000123
+}
+```
+
+## `GET /api/v1/sessions/:id/preview`
+
+Stream live MJPEG frames for Playground or inspection.
+
+```text title="200 Stream"
+Content-Type: multipart/x-mixed-replace; boundary=frame
+```
+
+## `POST /api/v1/sessions/:id/actions`
+
+Execute one `InputAction`. Coordinates are in screenshot pixels.
+
+- `Point: { x: number, y: number }`
+- `durationMs?: 0..5000`
+
+```json title="Request"
+{
+  "type": "tap",
+  "point": { "x": 448, "y": 316 }
+}
+```
+
+```json title="Response · 200 OK"
+{ "ok": true }
+```
+
+## Input actions
+
+Choose actions supported by the device, as listed in its discovery response.
+
+| Type | Fields | Behavior |
+| --- | --- | --- |
+| `tap / doubleTap` | `point` | Tap or double-tap. |
+| `longPress` | `point, durationMs?` | Press & hold (0–5000 ms). |
+| `swipe / dragAndDrop` | `from, to, durationMs?` | Linear gesture between two points. |
+| `scroll` | `direction: 'up' \| 'down', steps?, point?` | Scroll (steps 1–24). |
+| `typeText` | `text, replace?` | Input text (max 8192 chars). |
+| `key` | `key` | Press key (1–128 chars). |
+| `home / back / clearInput` | `—` | System navigation or clear field. |
+
+## Error codes
+
+| Code | HTTP | Meaning |
+| --- | --- | --- |
+| `UNAUTHORIZED` | 401 | Missing or invalid Bearer token. |
+| `INVALID_REQUEST` | 400 | Malformed JSON or schema error. |
+| `NOT_FOUND` | 404 | Unknown route or preview disabled. |
+| `DEVICE_BUSY` | 409 | Device held by another session. |
+| `DEVICE_OFFLINE` | 409 | Hardware disconnected or uncalibrated. |
+| `ACTION_IN_PROGRESS` | 409 | Previous action still running. |
+| `ACTION_FAILED` | 409 | Hardware execution failed. |
+| `SESSION_EXPIRED` | 410 | Lease expired or released. |
+| `ACTION_UNSUPPORTED` | 422 | Action not in device.actions. |
+| `SERVICE_UNAVAILABLE` | 503 | Service stopping, updating, or backend down. |
+
+See the [quick start](./quick-start) for service setup, CLI, and SDK usage.

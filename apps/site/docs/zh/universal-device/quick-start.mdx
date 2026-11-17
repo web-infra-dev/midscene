@@ -1,0 +1,193 @@
+import { Tabs, Tab } from '@theme';
+import { PlaygroundScreenshots } from '../../../theme/components/universal-device/PlaygroundScreenshots';
+
+# 快速开始
+
+Universal Device 是一套开放的 HTTP API 协议，用于获取设备画面、执行点击和滑动等操作。我们将实现这套协议、对接具体硬件的服务称为「设备服务」。
+
+设备服务既可供 Midscene GUI Agent 使用，也可通过配套的 MCP 和 Skills 接入 Codex、Claude Code 等其他 Agent。
+
+我们在 [midscene-robotics 仓库](https://github.com/web-infra-dev/midscene-robotics) 中提供了两种设备服务实现：
+
+- **[DOBOT MG400 机械臂](#dobot-mg400)**：通过物理触控测试车机屏幕和嵌入式界面，无需改动设备软件。
+- **[iOS AirLink](#ios-airlink)**：无需越狱或开启开发者模式，就能在 iPhone 真机上自动化测试 App 和系统界面。
+
+## 连接设备服务 {#connect}
+
+设备服务启动后，可以选择以下任意方式连接并操作设备。
+
+:::info
+暂时没有设备服务？可以先体验 midscene-robotics 提供的 [DOBOT MG400 机械臂](#dobot-mg400) 或 [iOS AirLink](#ios-airlink) 服务。
+:::
+
+### Universal Device Playground {#verify}
+
+运行以下命令启动 Playground：
+
+```sh
+npx -y @midscene/universal-device-playground
+```
+
+打开终端输出的 Playground 地址，填入设备服务地址和 Token，选择设备，即可查看画面并尝试点击。
+
+<PlaygroundScreenshots locale="zh" />
+
+### JavaScript SDK {#sdk}
+
+```sh
+pnpm add @midscene/universal-device
+```
+
+配置[模型](../model-api-setup)后，填入服务地址、Token 和设备 ID：
+
+```ts
+import { agentFromUniversalDevice } from '@midscene/universal-device';
+
+const agent = await agentFromUniversalDevice({
+  host: '<your-device-service-url>',
+  token: process.env.DEVICE_TOKEN,
+  deviceId: '<your-device-id>',
+});
+
+try {
+  await agent.aiTap('Allow');
+} finally {
+  await agent.destroy();
+}
+```
+
+完整参数和方法见 [Universal Device JavaScript SDK](../sdk/universal-device)。
+
+### MCP {#mcp}
+
+将设备服务地址和 Token 填入对应客户端的 MCP 配置，即可通过 Codex、Claude Code 或 Cursor 操作设备：
+
+<Tabs defaultValue="codex">
+
+<Tab label="Codex" value="codex">
+
+```sh
+codex mcp add universal-device \
+  --env MIDSCENE_UNIVERSAL_DEVICE_SERVICE_URL='<your-device-service-url>' \
+  --env MIDSCENE_UNIVERSAL_DEVICE_SERVICE_TOKEN='<your-service-token>' \
+  -- npx -y @midscene/universal-device mcp
+```
+
+</Tab>
+
+<Tab label="Claude Code" value="claude-code">
+
+```sh
+claude mcp add universal-device \
+  -e MIDSCENE_UNIVERSAL_DEVICE_SERVICE_URL='<your-device-service-url>' \
+  -e MIDSCENE_UNIVERSAL_DEVICE_SERVICE_TOKEN='<your-service-token>' \
+  -- npx -y @midscene/universal-device mcp
+```
+
+</Tab>
+
+<Tab label="Cursor" value="cursor">
+
+```json
+{
+  "mcpServers": {
+    "universal-device": {
+      "command": "npx",
+      "args": ["-y", "@midscene/universal-device", "mcp"],
+      "env": {
+        "MIDSCENE_UNIVERSAL_DEVICE_SERVICE_URL": "<your-device-service-url>",
+        "MIDSCENE_UNIVERSAL_DEVICE_SERVICE_TOKEN": "<your-service-token>"
+      }
+    }
+  }
+}
+```
+
+</Tab>
+
+</Tabs>
+
+### Skills {#skills}
+
+安装 Universal Device Skill，让 Agent 通过 CLI 查看设备画面并执行操作：
+
+```sh
+npx skills add web-infra-dev/midscene-robotics --skill universal-device
+```
+
+在 Agent 的工作目录中创建 `.env` 文件，填入设备服务地址和 Token。Skill 使用的 CLI 会自动读取这些配置：
+
+```dotenv
+MIDSCENE_UNIVERSAL_DEVICE_SERVICE_URL="<your-device-service-url>"
+MIDSCENE_UNIVERSAL_DEVICE_SERVICE_TOKEN="<your-service-token>"
+```
+
+也可以在启动 Agent 前设置同名环境变量。
+
+## 体验 DOBOT MG400 机械臂 {#dobot-mg400}
+
+准备好 MG400 机械臂和俯拍相机，运行以下命令启动服务：
+
+```sh
+npx -y @midscene/arm-service
+```
+
+打开终端输出的管理工作台地址，按页面指引连接 MG400、配置相机并完成标定。在 **机械臂配置 → Universal Device** 中获取 Token 后，即可[连接设备服务](#connect)。
+
+## 体验 iOS AirLink {#ios-airlink}
+
+在 Mac 上安装 Node.js，然后安装并启动 iOS AirLink：
+
+```sh
+npx -y @midscene/ios-airlink install
+```
+
+打开终端输出的管理工作台地址，按页面指引添加 iPhone，选择 USB、AirPlay 或独立摄像头作为画面来源，并完成设备连接。
+
+![iOS AirLink 添加设备页面：按步骤连接蓝牙、开启辅助触控并选择画面来源](/images/universal-device/ios-airlink-add-device.png)
+
+添加完成后，使用终端输出的服务地址[连接设备服务](#connect)。
+
+## 自定义设备服务 {#custom-device}
+
+使用 `@midscene/universal-device` 提供的 `createDeviceHandler()`，接入硬件的截图和输入能力，即可快速实现设备服务：
+
+```ts
+import { createServer } from 'node:http';
+import { createDeviceHandler } from '@midscene/universal-device/server';
+
+const token = process.env.DEVICE_TOKEN;
+if (!token) throw new Error('Set DEVICE_TOKEN.');
+
+let sequence = 0;
+export const handler = createDeviceHandler({
+  token,
+  listDevices: () => [
+    { id: 'rig-1', name: 'Custom Rig', status: 'available', actions: ['tap'] },
+  ],
+  readyDevice: (id) => id === 'rig-1' ? {
+    signal: new AbortController().signal,
+    actions: ['tap'],
+    screenshot: async () => ({
+      // 对接硬件截图，返回 { jpeg: Buffer, width, height }
+      ...await captureFrame(),
+      sequence: ++sequence,
+      receivedAt: Date.now(),
+    }),
+    // 对接硬件输入，并在 signal 中止时取消操作
+    execute: (action, signal) => sendToHardware(action, signal),
+  } : undefined,
+});
+
+createServer((req, res) => {
+  if (!handler.handle(req, res)) {
+    res.writeHead(404);
+    res.end();
+  }
+}).listen(5802, '127.0.0.1', () => {
+  console.log('Device service: http://127.0.0.1:5802');
+});
+
+```
+
+完整的 HTTP API 请参阅[协议参考](./protocol)。

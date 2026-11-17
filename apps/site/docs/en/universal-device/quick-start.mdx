@@ -1,0 +1,193 @@
+import { Tabs, Tab } from '@theme';
+import { PlaygroundScreenshots } from '../../../theme/components/universal-device/PlaygroundScreenshots';
+
+# Quick start
+
+Universal Device is an open HTTP API protocol for capturing device screens and performing actions such as taps and swipes. We call a service that implements this protocol and connects to hardware a **device service**.
+
+Device services work with Midscene GUI Agent and can also connect to other agents, such as Codex and Claude Code, through the provided MCP and Skills integrations.
+
+The [midscene-robotics repository](https://github.com/web-infra-dev/midscene-robotics) provides two device service implementations:
+
+- **[DOBOT MG400 robot arm](#dobot-mg400)**: Tests in-car screens and embedded interfaces through physical touch, without changing the device software.
+- **[iOS AirLink](#ios-airlink)**: Automates app and system UI tests on a physical iPhone without jailbreaking it or enabling Developer Mode.
+
+## Connect to a device service {#connect}
+
+Once your device service is running, you can choose any of the following methods to connect and control a device.
+
+:::info
+No device service yet? Try the [DOBOT MG400 robot arm](#dobot-mg400) or [iOS AirLink](#ios-airlink) service provided by midscene-robotics.
+:::
+
+### Universal Device Playground {#verify}
+
+Run the following command to start Playground:
+
+```sh
+npx -y @midscene/universal-device-playground
+```
+
+Open the Playground URL printed in the terminal, enter the device service URL and token, and select your device to view its screen and try a tap.
+
+<PlaygroundScreenshots locale="en" />
+
+### JavaScript SDK {#sdk}
+
+```sh
+pnpm add @midscene/universal-device
+```
+
+[Configure a model](../model-api-setup), then enter the service URL, token, and device ID:
+
+```ts
+import { agentFromUniversalDevice } from '@midscene/universal-device';
+
+const agent = await agentFromUniversalDevice({
+  host: '<your-device-service-url>',
+  token: process.env.DEVICE_TOKEN,
+  deviceId: '<your-device-id>',
+});
+
+try {
+  await agent.aiTap('Allow');
+} finally {
+  await agent.destroy();
+}
+```
+
+See [Universal Device JavaScript SDK](../sdk/universal-device) for the full parameter and method reference.
+
+### MCP {#mcp}
+
+Enter your device service URL and token in the MCP configuration for your client to control devices through Codex, Claude Code, or Cursor:
+
+<Tabs defaultValue="codex">
+
+<Tab label="Codex" value="codex">
+
+```sh
+codex mcp add universal-device \
+  --env MIDSCENE_UNIVERSAL_DEVICE_SERVICE_URL='<your-device-service-url>' \
+  --env MIDSCENE_UNIVERSAL_DEVICE_SERVICE_TOKEN='<your-service-token>' \
+  -- npx -y @midscene/universal-device mcp
+```
+
+</Tab>
+
+<Tab label="Claude Code" value="claude-code">
+
+```sh
+claude mcp add universal-device \
+  -e MIDSCENE_UNIVERSAL_DEVICE_SERVICE_URL='<your-device-service-url>' \
+  -e MIDSCENE_UNIVERSAL_DEVICE_SERVICE_TOKEN='<your-service-token>' \
+  -- npx -y @midscene/universal-device mcp
+```
+
+</Tab>
+
+<Tab label="Cursor" value="cursor">
+
+```json
+{
+  "mcpServers": {
+    "universal-device": {
+      "command": "npx",
+      "args": ["-y", "@midscene/universal-device", "mcp"],
+      "env": {
+        "MIDSCENE_UNIVERSAL_DEVICE_SERVICE_URL": "<your-device-service-url>",
+        "MIDSCENE_UNIVERSAL_DEVICE_SERVICE_TOKEN": "<your-service-token>"
+      }
+    }
+  }
+}
+```
+
+</Tab>
+
+</Tabs>
+
+### Skills {#skills}
+
+Install the Universal Device Skill so your agent can view device screens and perform actions through the CLI:
+
+```sh
+npx skills add web-infra-dev/midscene-robotics --skill universal-device
+```
+
+Create a `.env` file in your agent’s working directory with the device service URL and token. The CLI used by the Skill loads these settings automatically:
+
+```dotenv
+MIDSCENE_UNIVERSAL_DEVICE_SERVICE_URL="<your-device-service-url>"
+MIDSCENE_UNIVERSAL_DEVICE_SERVICE_TOKEN="<your-service-token>"
+```
+
+You can also set these environment variables before starting your agent.
+
+## Try the DOBOT MG400 robot arm {#dobot-mg400}
+
+Prepare an MG400 robot arm and an overhead camera, then run the following command to start the service:
+
+```sh
+npx -y @midscene/arm-service
+```
+
+Open the management console URL printed in the terminal and follow the on-screen instructions to connect the MG400, configure the camera, and complete calibration. Get the token under **Arm configuration → Universal Device**, then [connect to the service](#connect).
+
+## Try iOS AirLink {#ios-airlink}
+
+Install Node.js on a Mac, then install and start iOS AirLink:
+
+```sh
+npx -y @midscene/ios-airlink install
+```
+
+Open the management console URL printed in the terminal and follow the on-screen instructions to add an iPhone, choose USB, AirPlay, or a separate camera as the screen source, and connect the device.
+
+![iOS AirLink device setup: follow the steps to connect Bluetooth, enable AssistiveTouch, and choose a screen source](/images/universal-device/ios-airlink-add-device.png)
+
+Once added, use the service URL printed in the terminal to [connect to the service](#connect).
+
+## Create a custom device service {#custom-device}
+
+Use `createDeviceHandler()` from `@midscene/universal-device` to quickly turn your hardware’s screen capture and input functions into a device service:
+
+```ts
+import { createServer } from 'node:http';
+import { createDeviceHandler } from '@midscene/universal-device/server';
+
+const token = process.env.DEVICE_TOKEN;
+if (!token) throw new Error('Set DEVICE_TOKEN.');
+
+let sequence = 0;
+export const handler = createDeviceHandler({
+  token,
+  listDevices: () => [
+    { id: 'rig-1', name: 'Custom Rig', status: 'available', actions: ['tap'] },
+  ],
+  readyDevice: (id) => id === 'rig-1' ? {
+    signal: new AbortController().signal,
+    actions: ['tap'],
+    screenshot: async () => ({
+      // Capture from your hardware; return { jpeg: Buffer, width, height }.
+      ...await captureFrame(),
+      sequence: ++sequence,
+      receivedAt: Date.now(),
+    }),
+    // Send input to your hardware and cancel when signal is aborted.
+    execute: (action, signal) => sendToHardware(action, signal),
+  } : undefined,
+});
+
+createServer((req, res) => {
+  if (!handler.handle(req, res)) {
+    res.writeHead(404);
+    res.end();
+  }
+}).listen(5802, '127.0.0.1', () => {
+  console.log('Device service: http://127.0.0.1:5802');
+});
+
+```
+
+See the [protocol reference](./protocol) for the complete HTTP API.
