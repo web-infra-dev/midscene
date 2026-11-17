@@ -50,7 +50,6 @@ import {
 } from './action-readiness';
 import { ExecutionSession } from './execution-session';
 import { withFileChooser } from './file-chooser';
-import { MobileScrollSearch } from './mobile-scroll-search';
 import {
   type AgentProgressPublisher,
   createAiActActionReporter,
@@ -647,12 +646,6 @@ export class TaskExecutor {
       typeof this.interface.captureScrollState === 'function'
         ? new ScrollRecovery(session)
         : undefined;
-    const mobileScrollSearch =
-      planningModel.adapter.planning.kind === 'standard' &&
-      !scrollRecovery &&
-      ['ios', 'android', 'harmony'].includes(this.interface.interfaceType)
-        ? new MobileScrollSearch()
-        : undefined;
 
     if (abortSignal?.aborted) {
       return appendFailedPlan(
@@ -787,19 +780,6 @@ export class TaskExecutor {
             let planResult: Awaited<ReturnType<typeof planImpl>>;
             try {
               const preparedUserPrompt = await getPreparedUserPrompt();
-              const executionFeedback = !delegation
-                ? (scrollRecovery?.planningFeedback() ??
-                  mobileScrollSearch?.planningFeedback(
-                    session.getRunner().tasks,
-                    planningUiContext,
-                  ))
-                : undefined;
-              if (executionFeedback) {
-                executorContext.task.param = {
-                  ...executorContext.task.param,
-                  executionFeedback,
-                };
-              }
 
               setTimingFieldOnce(timing, 'callAiStart');
               planResult = await planImpl(preparedUserPrompt, {
@@ -808,7 +788,9 @@ export class TaskExecutor {
                 actionSpace,
                 modelRuntime,
                 planningAdvice,
-                executionFeedback,
+                executionFeedback: !delegation
+                  ? scrollRecovery?.planningFeedback()
+                  : undefined,
                 getDefaultModelRuntime: this.getDefaultModelRuntime,
                 conversationHistory,
                 includeLocateInPlanning: !delegation && includeLocateInPlanning,
