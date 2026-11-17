@@ -7,7 +7,7 @@ Universal Device is an open HTTP API protocol for capturing device screens and p
 
 Device services work with Midscene GUI Agent and can also connect to other agents, such as Codex and Claude Code, through the provided MCP and Skills integrations.
 
-The [midscene-robotics repository](https://github.com/web-infra-dev/midscene-robotics) provides two device service implementations:
+The [midscene-test-everything repository](https://github.com/web-infra-dev/midscene-test-everything) provides two device service implementations:
 
 - **[DOBOT MG400 robot arm](#dobot-mg400)**: Tests in-car screens and embedded interfaces through physical touch, without changing the device software.
 - **[iOS AirLink](#ios-airlink)**: Automates app and system UI tests on a physical iPhone without jailbreaking it or enabling Developer Mode.
@@ -17,7 +17,7 @@ The [midscene-robotics repository](https://github.com/web-infra-dev/midscene-rob
 Once your device service is running, you can choose any of the following methods to connect and control a device.
 
 :::info
-No device service yet? Try the [DOBOT MG400 robot arm](#dobot-mg400) or [iOS AirLink](#ios-airlink) service provided by midscene-robotics.
+No device service yet? Try the [DOBOT MG400 robot arm](#dobot-mg400) or [iOS AirLink](#ios-airlink) service provided by midscene-test-everything.
 :::
 
 ### Universal Device Playground {#verify}
@@ -112,7 +112,7 @@ claude mcp add universal-device \
 Install the Universal Device Skill so your agent can view device screens and perform actions through the CLI:
 
 ```sh
-npx skills add web-infra-dev/midscene-robotics --skill universal-device
+npx skills add web-infra-dev/midscene-test-everything --skill universal-device
 ```
 
 Create a `.env` file in your agent’s working directory with the device service URL and token. The CLI used by the Skill loads these settings automatically:

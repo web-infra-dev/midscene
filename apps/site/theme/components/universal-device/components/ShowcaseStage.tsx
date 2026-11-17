@@ -525,7 +525,7 @@ export function ShowcaseStage() {
                 <p>{t.stage.soonDesc}</p>
                 <a
                   className="btn btn-primary btn-sm"
-                  href="https://github.com/web-infra-dev/midscene-robotics/issues/new"
+                  href="https://github.com/web-infra-dev/midscene-test-everything/issues/new"
                 >
                   {t.stage.soonCta}
                 </a>

@@ -7,7 +7,7 @@ Universal Device 是一套开放的 HTTP API 协议，用于获取设备画面�
 
 设备服务既可供 Midscene GUI Agent 使用，也可通过配套的 MCP 和 Skills 接入 Codex、Claude Code 等其他 Agent。
 
-我们在 [midscene-robotics 仓库](https://github.com/web-infra-dev/midscene-robotics) 中提供了两种设备服务实现：
+我们在 [midscene-test-everything 仓库](https://github.com/web-infra-dev/midscene-test-everything) 中提供了两种设备服务实现：
 
 - **[DOBOT MG400 机械臂](#dobot-mg400)**：通过物理触控测试车机屏幕和嵌入式界面，无需改动设备软件。
 - **[iOS AirLink](#ios-airlink)**：无需越狱或开启开发者模式，就能在 iPhone 真机上自动化测试 App 和系统界面。
@@ -17,7 +17,7 @@ Universal Device 是一套开放的 HTTP API 协议，用于获取设备画面�
 设备服务启动后，可以选择以下任意方式连接并操作设备。
 
 :::info
-暂时没有设备服务？可以先体验 midscene-robotics 提供的 [DOBOT MG400 机械臂](#dobot-mg400) 或 [iOS AirLink](#ios-airlink) 服务。
+暂时没有设备服务？可以先体验 midscene-test-everything 提供的 [DOBOT MG400 机械臂](#dobot-mg400) 或 [iOS AirLink](#ios-airlink) 服务。
 :::
 
 ### Universal Device Playground {#verify}
@@ -112,7 +112,7 @@ claude mcp add universal-device \
 安装 Universal Device Skill，让 Agent 通过 CLI 查看设备画面并执行操作：
 
 ```sh
-npx skills add web-infra-dev/midscene-robotics --skill universal-device
+npx skills add web-infra-dev/midscene-test-everything --skill universal-device
 ```
 
 在 Agent 的工作目录中创建 `.env` 文件，填入设备服务地址和 Token。Skill 使用的 CLI 会自动读取这些配置：
