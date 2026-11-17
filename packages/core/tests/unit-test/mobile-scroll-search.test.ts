@@ -90,6 +90,39 @@ it('preserves a changing direction across an ineffective detour, with a finite b
   expect(step('up', 'page-3')).toContain('budget is exhausted');
 });
 
+it('tracks a single relative Swipe using content search direction instead of finger motion', () => {
+  const { step, tasks, search } = setup();
+  step();
+  step();
+  step();
+  tasks.push({
+    ...tasks[0],
+    taskId: 'swipe',
+    subType: 'Swipe',
+    param: { direction: 'right', distance: 200 },
+  });
+  expect(search.planningFeedback(tasks, context('page-2'))).toContain(
+    'consider continuing left',
+  );
+  expect(step('up', 'page-2')).toContain('consider continuing left');
+});
+
+it.each([{ end: { center: [10, 20] } }, { repeat: 0 }, { repeat: 2 }])(
+  'does not infer a search direction from an ambiguous or repeated Swipe: %j',
+  (param) => {
+    const { step, tasks, search } = setup();
+    step();
+    step();
+    tasks.push({
+      ...tasks[0],
+      taskId: 'swipe',
+      subType: 'Swipe',
+      param: { direction: 'left', ...param },
+    });
+    expect(search.planningFeedback(tasks, context())).toBeUndefined();
+  },
+);
+
 it('does not interpret moving scrolls as a stall', () => {
   const { step } = setup();
   for (let i = 0; i < 6; i++) expect(step('down', String(i))).toBeUndefined();

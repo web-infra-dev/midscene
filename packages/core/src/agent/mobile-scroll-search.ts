@@ -3,6 +3,20 @@ import type { ExecutionTask, UIContext } from '@/types';
 
 type Direction = 'up' | 'down' | 'left' | 'right';
 
+function searchDirection(task?: ExecutionTask): string | undefined {
+  if (task?.subType === 'Scroll') return scrollDirection(task.param);
+  if (
+    task?.subType !== 'Swipe' ||
+    task.param?.end ||
+    (task.param?.repeat !== undefined && task.param.repeat !== 1)
+  )
+    return undefined;
+  // Relative Swipe names finger motion; Scroll names the content search direction.
+  return ({ up: 'down', down: 'up', left: 'right', right: 'left' } as const)[
+    task.param?.direction as Direction
+  ];
+}
+
 /** Per-aiAct search advice based only on identical, already captured frames. */
 export class MobileScrollSearch {
   private frame?: string;
@@ -50,19 +64,19 @@ export class MobileScrollSearch {
       ? actions.findIndex((task) => task.taskId === this.lastActionId)
       : -1;
     this.lastActionId = last?.taskId;
+    const direction = searchDirection(last);
     // Batched actions cannot attribute an unchanged frame to one scroll.
     if (
       !comparable ||
       actions.length - previousIndex !== 2 ||
-      last?.subType !== 'Scroll' ||
-      last.status !== 'finished' ||
+      !direction ||
+      last?.status !== 'finished' ||
       last.timing?.callActionEnd === undefined ||
       context.screenshot.capturedAt <= last.timing.callActionEnd
     ) {
       this.resetSearch();
       return undefined;
     }
-    const direction = scrollDirection(last.param);
     if (!sameFrame) {
       const wasSearching = this.unchanged >= 3 || !!this.continuingDirection;
       this.resetSearch();
