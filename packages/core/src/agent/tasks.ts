@@ -56,7 +56,7 @@ import {
   errorMessageForAiAct,
 } from './progress';
 import { renderAIContext } from './prompt-context';
-import { type ResolvedScrollRecovery, ScrollRecovery } from './scroll-recovery';
+import { ScrollRecovery } from './scroll-recovery';
 import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
@@ -476,7 +476,6 @@ export class TaskExecutor {
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
     reportOptions?: ActionReportOptions,
-    scrollRecoveryConfig?: ResolvedScrollRecovery,
   ): Promise<
     ExecutionResult<
       | {
@@ -499,7 +498,6 @@ export class TaskExecutor {
         deepLocate,
         abortSignal,
         reportOptions,
-        scrollRecoveryConfig,
       );
     });
   }
@@ -549,7 +547,6 @@ export class TaskExecutor {
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
     reportOptions?: ActionReportOptions,
-    scrollRecoveryConfig?: ResolvedScrollRecovery,
   ): Promise<
     ExecutionResult<
       | {
@@ -645,14 +642,9 @@ export class TaskExecutor {
     let latestPlanResult: PlanningAIResponse | undefined;
     let latestPlanIndex = 0;
     const scrollRecovery =
-      scrollRecoveryConfig !== undefined
-        ? new ScrollRecovery(
-            session,
-            planningModel,
-            scrollRecoveryConfig.afterScrolls,
-            userPromptToString(userPrompt),
-            scrollRecoveryConfig.allowVisualFallback,
-          )
+      planningModel.adapter.planning.kind === 'standard' &&
+      typeof this.interface.captureScrollState === 'function'
+        ? new ScrollRecovery(session)
         : undefined;
 
     if (abortSignal?.aborted) {
@@ -932,7 +924,7 @@ export class TaskExecutor {
             locateModel,
             {
               cacheable,
-              observeScrollProgress: scrollRecoveryConfig !== undefined,
+              observeScrollProgress: scrollRecovery !== undefined,
               multimodalPrompt: userPromptToMultimodalPrompt(userPrompt),
               deepLocate,
               abortSignal,

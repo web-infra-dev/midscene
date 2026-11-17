@@ -1,15 +1,8 @@
 import type { ExecutionSession } from '@/agent/execution-session';
 import { ScrollRecovery } from '@/agent/scroll-recovery';
-import { getModelRuntime } from '@/ai-model/models';
 import type { ExecutionTask, ExecutorContext } from '@/types';
 import { expect, it } from '@rstest/core';
 
-const runtime = getModelRuntime({
-  modelName: 'test',
-  modelDescription: 'test',
-  slot: 'planning',
-  intent: 'planning',
-});
 const scroll = (id: string, left = 100): ExecutionTask => ({
   type: 'Action Space',
   subType: 'Scroll',
@@ -38,8 +31,12 @@ const scroll = (id: string, left = 100): ExecutionTask => ({
   },
   executor: async () => ({}),
 });
-function setup(allowVisualFallback = true) {
-  const tasks = [scroll('list'), { ...scroll('list'), taskId: 'second' }];
+function setup() {
+  const tasks = [
+    scroll('list'),
+    { ...scroll('list'), taskId: 'second' },
+    { ...scroll('list'), taskId: 'third' },
+  ];
   const session = {
     getRunner: () => ({ tasks }),
     appendAndRun: async (task: ExecutionTask) =>
@@ -47,13 +44,7 @@ function setup(allowVisualFallback = true) {
   } as unknown as ExecutionSession;
   return {
     tasks,
-    recovery: new ScrollRecovery(
-      session,
-      runtime,
-      2,
-      undefined,
-      allowVisualFallback,
-    ),
+    recovery: new ScrollRecovery(session),
   };
 }
 it('updates remaining distance on each plan only after recovery has engaged', async () => {
@@ -91,7 +82,7 @@ it.each(['action', 'target', 'unknown'] as const)(
 );
 
 it('default native mode skips incomplete measurements without invoking visual fallback', async () => {
-  const { tasks, recovery } = setup(false);
+  const { tasks, recovery } = setup();
   for (const task of tasks) {
     task.scrollProgress!.before!.maxScrollLeft = undefined;
     task.scrollProgress!.after!.maxScrollLeft = undefined;

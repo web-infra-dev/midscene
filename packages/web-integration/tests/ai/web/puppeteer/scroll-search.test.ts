@@ -40,14 +40,9 @@ describe('searching for off-screen controls', () => {
     }
   });
 
-  it.each([
-    { axis: 'horizontal', afterScrolls: 2 },
-    { axis: 'horizontal', afterScrolls: 3 },
-    { axis: 'vertical', afterScrolls: 2 },
-    { axis: 'vertical', afterScrolls: 3 },
-  ])(
-    'finds and clicks Next in a $axis scrollable form with interval $afterScrolls',
-    async ({ axis, afterScrolls }) => {
+  it.each(['horizontal', 'vertical'])(
+    'finds and clicks Next in a %s scrollable form',
+    async (axis) => {
       const url = pathToFileURL(getFixturePath('scroll-search.html'));
       url.searchParams.set('axis', axis);
       page = await browser.newPage();
@@ -61,7 +56,7 @@ describe('searching for off-screen controls', () => {
       const offsets: { x: number; y: number }[] = [];
       agent = new PuppeteerAgent(page, {
         generateReport: true,
-        reportFileName: `scroll-search-${axis}-${afterScrolls}`,
+        reportFileName: `scroll-search-${axis}`,
         replanningCycleLimit: 8,
         afterInvokeAction: async (name, param) => {
           const offset = await page.$eval('#content', (el) => ({
@@ -81,7 +76,6 @@ describe('searching for off-screen controls', () => {
 
       await agent.aiAct(
         'Continue configuring this evaluation task by clicking Next.',
-        { scrollRecovery: { afterScrolls } },
       );
 
       expect(await page.$eval('#result', (el) => el.textContent)).toBe(
@@ -122,7 +116,6 @@ describe('searching for off-screen controls', () => {
 
     await agent.aiAct(
       `Scroll down ${times === 1 ? 'once' : 'twice'} by 200 pixels each time in the main content area, then stop.`,
-      { scrollRecovery: true },
     );
 
     const offset = await page.$eval('#content', (el) => ({

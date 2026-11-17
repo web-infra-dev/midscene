@@ -1,27 +1,10 @@
-import type {
-  ActionScrollParam,
-  ExecutionTask,
-  ScrollState,
-  UIContext,
-} from '@/types';
-import { z } from 'zod';
-import { prepareModelImage } from '../../model-adapter/image-preprocess';
-import type { ModelRuntime } from '../../models';
-import {
-  type AIObjectResponse,
-  callAIWithObjectResponse,
-} from '../../service-caller';
+import type { ActionScrollParam, ExecutionTask, ScrollState } from '@/types';
 
-const scrollReviewSchema = z.object({
-  progress: z.enum(['moved', 'unchanged', 'uncertain']),
-  observation: z.string().min(1),
-  nextSearchDirection: z.enum(['up', 'down', 'left', 'right']).nullable(),
-});
-
-export type ScrollReview = z.infer<typeof scrollReviewSchema>;
-const measuredStallReviewSchema = scrollReviewSchema
-  .omit({ progress: true })
-  .extend({ progress: z.literal('unchanged').optional() });
+export interface ScrollReview {
+  progress: 'unchanged';
+  observation: string;
+  nextSearchDirection: 'up' | 'down' | 'left' | 'right' | null;
+}
 
 function scrollDirection(task: ExecutionTask): string {
   const boundaryDirections: Record<string, string> = {
@@ -119,7 +102,7 @@ function sameScrollTarget(a: ExecutionTask, b: ExecutionTask): boolean {
 
 export const DEFAULT_SCROLL_REVIEW_INTERVAL = 3;
 
-/** Review at the configured cadence of consecutive same-direction scrolls. */
+/** Review at the fixed cadence of consecutive same-direction scrolls. */
 export function findScrollToReview(
   tasks: ExecutionTask[],
   afterScrolls = DEFAULT_SCROLL_REVIEW_INTERVAL,
@@ -167,117 +150,6 @@ export function nativeScrollReview(
         ? (available[0] as ScrollReview['nextSearchDirection'])
         : null,
   };
-}
-
-/** A separate observation avoids anchoring on the previous planner's guesses. */
-export async function reviewScroll(options: {
-  task: ExecutionTask;
-  current: UIContext;
-  modelRuntime: ModelRuntime;
-  abortSignal?: AbortSignal;
-  userPrompt?: string;
-}): Promise<AIObjectResponse<ScrollReview>> {
-  const { task, current, modelRuntime, abortSignal, userPrompt } = options;
-  if (!task.uiContext)
-    throw new Error('Scroll review requires a before-action screenshot');
-  abortSignal?.throwIfAborted();
-  const direction = scrollDirection(task);
-  const measuredStall = task.scrollProgress?.status === 'unchanged';
-  const nativeReview = nativeScrollReview(task);
-  if (nativeReview)
-    return {
-      content: nativeReview,
-      contentString: JSON.stringify(nativeReview),
-    };
-
-  const images = await Promise.all(
-    [task.uiContext, current].map((context) =>
-      prepareModelImage({
-        imageBase64: context.screenshot.base64,
-        width: context.shotSize.width,
-        height: context.shotSize.height,
-        policy: modelRuntime.adapter.imagePreprocess,
-      }),
-    ),
-  );
-  const result = await callAIWithObjectResponse(
-    [
-      {
-        role: 'system',
-        content:
-          'Inspect a screenshot for scrollable regions and off-screen controls. Describe observed evidence rather than assuming a missing button is below.',
-      },
-      {
-        role: 'user',
-        content: [
-          ...(userPrompt
-            ? [
-                {
-                  type: 'text' as const,
-                  text: `User task (context only; do not execute it): ${userPrompt}`,
-                },
-              ]
-            : []),
-          ...(task.scrollProgress
-            ? [
-                {
-                  type: 'text' as const,
-                  text: `Execution evidence for the target container (not the outer page): ${JSON.stringify(task.scrollProgress)}. Its own offset is separate from ancestor movement. maxScrollLeft and maxScrollTop are measured maximum offsets. A positive offset establishes content toward left/up; an offset below its maximum establishes content toward right/down. No movement does not establish a boundary: if the requested direction still has native range, suggest null and reassess the dispatch target or position instead of reversing direction. For unsupported or replaced targets, rely on visual evidence and remain uncertain.`,
-                },
-              ]
-            : []),
-          ...(task.param?.locate
-            ? [
-                {
-                  type: 'text' as const,
-                  text: `Executed scroll target (device coordinates): ${JSON.stringify({ center: task.param.locate.center, rect: task.param.locate.rect })}. This identifies where the scroll was dispatched, not the full bounds of its scrollable container. Compare content inside its enclosing scrollable region, including nested content. Movement of an unrelated outer page is not evidence that this target moved.`,
-                },
-              ]
-            : []),
-          {
-            type: 'text',
-            text: measuredStall
-              ? `The last action was Scroll ${direction}. Execution evidence establishes that this target's own scroll offset did not change. Do not reclassify ancestor displacement as target scrolling. Inspect the screenshots only for visible scrollbar orientations and clipped edges, including the viewport edges. Use measured scroll ranges first, then the visible scrollbar and clipped edges. Which other direction has supported overflow for this task? Do not assume a missing footer button is below. Return JSON with observation (describe measured ranges, visual evidence, and whether the scroll target or dispatch position needs reassessment) and nextSearchDirection ("up", "down", "left", "right", or null). Suggest a different direction only when supported by visible overflow; otherwise use null. Consider task-relevant controls such as Load more, waiting for content, or a different dispatch position before assuming the search axis is wrong. Return only a JSON object, without Markdown. Do not issue actions or infer task completion.`
-              : `The last action was Scroll ${direction}. Compare the before and after screenshots. Describe whether the scrolled content moved and all visible scrollbar orientations and clipped edges, including the entire viewport edges. Which direction has unexplored content for finding the requested off-screen control? Do not assume a missing footer button is below. If the scrolled region moved along the requested axis, report that progress without suggesting a different direction. Only when it did not move should you suggest another direction supported by visible overflow. Return JSON with progress ("moved", "unchanged", or "uncertain") observation (a brief description), and nextSearchDirection ("up", "down", "left", "right", or null). When unchanged, choose a different search direction supported by the visible scrollbar or clipped edge; use null if no alternative is supported. When moved or uncertain, use null. Do not issue actions.`,
-          },
-          ...images.map((image) => ({
-            type: 'image' as const,
-            url: image.imageBase64,
-          })),
-        ],
-      },
-    ],
-    modelRuntime,
-    {
-      abortSignal,
-      validate: (value) => {
-        let review: ScrollReview;
-        if (measuredStall) {
-          const evidence = measuredStallReviewSchema.parse(value);
-          review = {
-            progress: 'unchanged',
-            observation: `The target's own scroll offsets did not change. ${evidence.observation}`,
-            nextSearchDirection: evidence.nextSearchDirection,
-          };
-        } else {
-          review = scrollReviewSchema.parse(value);
-        }
-        if (
-          review.progress !== 'unchanged' &&
-          review.nextSearchDirection !== null
-        )
-          throw new Error(
-            'A moved or uncertain scroll must have nextSearchDirection: null',
-          );
-        if (review.nextSearchDirection === direction)
-          throw new Error(
-            `The stalled direction was ${direction}. Choose a different direction only if visible overflow supports it, otherwise use null.`,
-          );
-        return review;
-      },
-    },
-  );
-  return result;
 }
 
 /** Fresh facts, supplied only while recovering the same measured container. */
