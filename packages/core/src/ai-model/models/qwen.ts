@@ -7,7 +7,7 @@ import type {
   ChatCompletionParamsResult,
   ModelAdapterDefinition,
 } from '../model-adapter/types';
-import { parseModelResponseJson } from '../shared/json';
+import { type JsonParser, parseModelResponseJson } from '../shared/json';
 import {
   type LocateResultValue,
   createLocateResultValue,
@@ -230,7 +230,27 @@ const qwen3VlAdapter: ModelAdapterDefinition = {
   locate: qwenNormalizedBboxLocate,
 };
 
+const parseQwenLocateJson: JsonParser = (raw, context) => {
+  const parsed = parseModelResponseJson(raw, context);
+  // Qwen3 and Qwen4 can wrap a locate result in a single-item array:
+  // [{"bbox_2d":[562,653,574,671],"label":"Approve checkbox"}]
+  // [{"point_2d":[568,661],"label":"Approve checkbox"}]
+  // Unwrap the object and let the locate protocol validate the coordinate field.
+  if (
+    (context?.source === 'locate' || context?.source === 'section-locator') &&
+    Array.isArray(parsed) &&
+    parsed.length === 1
+  ) {
+    const [entry] = parsed;
+    if (entry !== null && typeof entry === 'object' && !Array.isArray(entry)) {
+      return entry;
+    }
+  }
+  return parsed;
+};
+
 const qwen3Adapter: ModelAdapterDefinition = {
+  jsonParser: parseQwenLocateJson,
   chatCompletion: {
     buildChatCompletionParams: buildQwen3ChatCompletionParams,
     messageExtraction: qwenMessageExtraction,
@@ -240,27 +260,7 @@ const qwen3Adapter: ModelAdapterDefinition = {
 };
 
 const qwen4Adapter: ModelAdapterDefinition = {
-  jsonParser: (raw, context) => {
-    const parsed = parseModelResponseJson(raw, context);
-    // Qwen4-Max can wrap a locate result in a single-item array:
-    // [{"point_2d":[568,661],"label":"Approve 前面的勾选框"}]
-    // Unwrap the object and let the locate protocol validate the coordinate field.
-    if (
-      (context?.source === 'locate' || context?.source === 'section-locator') &&
-      Array.isArray(parsed) &&
-      parsed.length === 1
-    ) {
-      const [entry] = parsed;
-      if (
-        entry !== null &&
-        typeof entry === 'object' &&
-        !Array.isArray(entry)
-      ) {
-        return entry;
-      }
-    }
-    return parsed;
-  },
+  jsonParser: parseQwenLocateJson,
   chatCompletion: {
     buildChatCompletionParams: buildQwen4ChatCompletionParams,
     messageExtraction: qwenMessageExtraction,

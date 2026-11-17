@@ -131,18 +131,44 @@ describe('qwen model adapter', () => {
         protocol.parseRawResponse(response, resultCodec.promptSpec),
       ).toThrow(/Expected to be a JSON object, got array/);
     });
+  });
 
-    it('preserves arrays outside Qwen4 locate parsing', () => {
+  describe.each(['qwen3', 'qwen3.5', 'qwen3.6'] as const)(
+    '%s locate JSON parsing',
+    (family) => {
+      const adapter = new ResolvedModelAdapter(qwenAdapters[family], family);
+
+      it('unwraps a single bbox object for element and area location', () => {
+        const locate = adapter.locate;
+        if (locate.kind !== 'standard' || !locate.searchArea) {
+          throw new Error('qwen3 should use standard locate protocols');
+        }
+        const response = '[{"bbox_2d":[562,653,574,671]}]';
+        for (const { protocol, resultCodec } of [
+          locate.element,
+          locate.searchArea,
+        ]) {
+          expect(
+            protocol.parseRawResponse(response, resultCodec.promptSpec),
+          ).toEqual({
+            kind: 'located',
+            target: [562, 653, 574, 671],
+          });
+        }
+      });
+    },
+  );
+
+  it.each(['qwen3', 'qwen4'] as const)(
+    'preserves arrays outside %s locate parsing',
+    (family) => {
+      const adapter = new ResolvedModelAdapter(qwenAdapters[family], family);
       const response = '[{"bbox_2d":[562,653,574,671]}]';
-      const expected = [{ bbox_2d: [562, 653, 574, 671] }];
       expect(
         adapter.jsonParser(response, { source: 'generic-object' }),
-      ).toEqual(expected);
-      expect(qwen3Adapter.jsonParser(response, { source: 'locate' })).toEqual(
-        expected,
-      );
-    });
-  });
+      ).toEqual([{ bbox_2d: [562, 653, 574, 671] }]);
+    },
+  );
 
   describe.each(['qwen3', 'qwen3.5', 'qwen3.6'] as const)(
     '%s reasoning parameters',
