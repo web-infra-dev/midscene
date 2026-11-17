@@ -6,7 +6,9 @@ export interface ScrollReview {
   nextSearchDirection: 'up' | 'down' | 'left' | 'right' | null;
 }
 
-function scrollDirection(param: Partial<ActionScrollParam> = {}): string {
+export function scrollDirection(
+  param: Partial<ActionScrollParam> = {},
+): string {
   const boundaryDirections: Record<string, string> = {
     scrollToTop: 'up',
     scrollToBottom: 'down',
