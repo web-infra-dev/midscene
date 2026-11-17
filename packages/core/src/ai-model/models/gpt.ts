@@ -31,8 +31,13 @@ const resolveGptReasoningEffort = (
 };
 
 const buildGpt5ResponsesParams: BuildResponsesParams = (input) => {
-  const { baseURL, midsceneDefaults, userConfig, expectedJsonObjectResponse } =
-    input;
+  const {
+    baseURL,
+    provider,
+    midsceneDefaults,
+    userConfig,
+    expectedJsonObjectResponse,
+  } = input;
   const commonOverrideConfig: Record<string, unknown> = {};
 
   if (userConfig.temperature !== undefined) {
@@ -48,7 +53,7 @@ const buildGpt5ResponsesParams: BuildResponsesParams = (input) => {
     userConfig,
     'none',
   );
-  if (isOpenRouter(baseURL)) {
+  if (isOpenRouter(baseURL, provider)) {
     Object.assign(
       reasoningConfig,
       buildOpenRouterReasoningParams(userConfig, {
@@ -78,8 +83,13 @@ const buildGpt5ResponsesParams: BuildResponsesParams = (input) => {
 };
 
 const buildGpt6ResponsesParams: BuildResponsesParams = (input) => {
-  const { baseURL, midsceneDefaults, userConfig, expectedJsonObjectResponse } =
-    input;
+  const {
+    baseURL,
+    provider,
+    midsceneDefaults,
+    userConfig,
+    expectedJsonObjectResponse,
+  } = input;
   const { responseFormat } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
   // GPT-6 does not support temperature; omit it from the serialized request.
@@ -90,7 +100,7 @@ const buildGpt6ResponsesParams: BuildResponsesParams = (input) => {
 
   const reasoningConfig: Record<string, unknown> = {};
   const effectiveReasoningEffort = resolveGptReasoningEffort(userConfig, 'low');
-  if (isOpenRouter(baseURL)) {
+  if (isOpenRouter(baseURL, provider)) {
     Object.assign(
       reasoningConfig,
       buildOpenRouterReasoningParams(userConfig, {
@@ -122,7 +132,7 @@ const buildGpt6ResponsesParams: BuildResponsesParams = (input) => {
 const buildGpt5ChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
-  const { baseURL, midsceneDefaults, userConfig } = input;
+  const { baseURL, provider, midsceneDefaults, userConfig } = input;
   const commonOverrideConfig: Record<string, unknown> = {};
 
   if (userConfig.temperature !== undefined) {
@@ -143,7 +153,7 @@ const buildGpt5ChatCompletionParams = (
     userConfig,
     'none',
   );
-  if (isOpenRouter(baseURL)) {
+  if (isOpenRouter(baseURL, provider)) {
     Object.assign(
       reasoningConfig,
       buildOpenRouterReasoningParams(userConfig, {
@@ -168,8 +178,13 @@ const buildGpt5ChatCompletionParams = (
 const buildGpt6ChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
-  const { baseURL, midsceneDefaults, userConfig, expectedJsonObjectResponse } =
-    input;
+  const {
+    baseURL,
+    provider,
+    midsceneDefaults,
+    userConfig,
+    expectedJsonObjectResponse,
+  } = input;
   const { responseFormat } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
   // GPT-6 does not support temperature; omit it from the serialized request.
@@ -180,7 +195,7 @@ const buildGpt6ChatCompletionParams = (
 
   const reasoningConfig: Record<string, unknown> = {};
   const effectiveReasoningEffort = resolveGptReasoningEffort(userConfig, 'low');
-  if (isOpenRouter(baseURL)) {
+  if (isOpenRouter(baseURL, provider)) {
     Object.assign(
       reasoningConfig,
       buildOpenRouterReasoningParams(userConfig, {

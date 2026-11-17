@@ -265,6 +265,18 @@ export const parseOpenaiSdkConfig = ({
       );
     })(),
     openaiBaseURL,
+    provider: (() => {
+      const value = provider[keys.provider]?.trim();
+      if (!value) {
+        return undefined;
+      }
+      if (value === 'openrouter' || value === 'official') {
+        return value;
+      }
+      throw new Error(
+        `Invalid ${keys.provider}: "${value}". Expected "openrouter" or "official".`,
+      );
+    })(),
     endpoint,
     openaiApiKey,
     openaiExtraConfig: normalizeOpenaiExtraConfig(openaiExtraConfig),

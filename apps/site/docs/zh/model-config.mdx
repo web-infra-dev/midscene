@@ -144,6 +144,7 @@ export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
 
 | 名称 | 描述 |
 |------|-------------|
+| `MIDSCENE_MODEL_PROVIDER` | 模型供应方，可选值为 `openrouter` 和 `official`，分别使用 OpenRouter 和模型官方的参数适配规则。默认根据 Base URL 自动识别：Base URL 为 `https://openrouter.ai/api/v1` 时使用 OpenRouter 适配，其他地址使用模型官方接口适配。如果你使用了自建的代理或中转服务器，但背后依然是 OpenRouter，需要显式设置为 `openrouter`。 |
 | `MIDSCENE_MODEL_ENDPOINT` | System One API 的完整请求 URL，仅支持 System One 模型（目前为 Jev）。优先于对应模型的 `BASE_URL`，直接使用，不追加路径；设置后无需配置 `BASE_URL`。例如 `https://api.typesafe.ai/v1/systemone`。未设置时，沿用在 Base URL 后追加 `/systemone` 的行为。 |
 | `MIDSCENE_MODEL_TIMEOUT` | 单次模型请求的超时时间，单位毫秒，默认 `180000`（180 秒），包含响应体读取时间。设为 `0` 禁用此超时限制。 |
 | `MIDSCENE_MODEL_TEMPERATURE` | 模型采样温度。配置为 `unset` 时不传递温度参数。 |
@@ -204,17 +205,13 @@ Midscene 默认关闭模型原生思考，以获得更好的执行速度和稳�
 
 不同模型服务商对参数的支持情况不同，具体取值请参考对应服务商的官方文档。对于模型官方接口，如果当前适配不支持某项显式配置，Midscene 会忽略该配置。
 
-其中，OpenRouter 提供了[统一的思考参数](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens)。当 `MIDSCENE_MODEL_BASE_URL` 设置为 `https://openrouter.ai/api/v1` 时，Midscene 对已适配模型使用以下映射：
+其中，OpenRouter 提供了[统一的思考参数](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens)。当 `MIDSCENE_MODEL_PROVIDER=openrouter`，或 `MIDSCENE_MODEL_BASE_URL` 为 `https://openrouter.ai/api/v1` 时，Midscene 对已适配模型使用以下映射：
 
 - 思考开关 `MIDSCENE_MODEL_REASONING_ENABLED` → `reasoning.enabled`（GPT 系列通过 `reasoning.effort` 控制）。
 - 思考力度 `MIDSCENE_MODEL_REASONING_EFFORT` → `reasoning.effort`（具体模型是否支持以实际模型为准）。
 - 思考额度 `MIDSCENE_MODEL_REASONING_BUDGET` → `reasoning.max_tokens`（具体模型是否支持以实际模型为准）。
 
-如果你的模型供应商需要额外指定特殊参数，可以使用 `MIDSCENE_MODEL_EXTRA_BODY_JSON`。例如，通过自建中转调用 OpenRouter 时指定关闭思考：
-
-```bash
-MIDSCENE_MODEL_EXTRA_BODY_JSON='{"reasoning":{"enabled":false}}'
-```
+如果你的模型供应商需要额外指定特殊参数，可以使用 `MIDSCENE_MODEL_EXTRA_BODY_JSON`。
 
 extra JSON 在 Adapter 参数之后合并，同名顶层字段会整体覆盖，不会深度合并。参数是否生效取决于接入点和模型支持。
 

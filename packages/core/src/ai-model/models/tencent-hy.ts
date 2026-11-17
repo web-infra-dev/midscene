@@ -9,13 +9,14 @@ import type {
 
 const buildTencentHyChatCompletionParams = ({
   baseURL,
+  provider,
   midsceneDefaults,
   userConfig,
 }: ChatCompletionCallContext): ChatCompletionParamsResult => {
   const { reasoningEnabled = false, reasoningEffort } = userConfig;
   const reasoningConfig: Record<string, unknown> = {};
 
-  if (isOpenRouter(baseURL)) {
+  if (isOpenRouter(baseURL, provider)) {
     Object.assign(reasoningConfig, buildOpenRouterReasoningParams(userConfig));
   } else {
     if (reasoningEnabled !== 'default') {
