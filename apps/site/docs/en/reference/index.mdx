@@ -353,12 +353,6 @@ await agent.aiAct(
 );
 ```
 
-**Automatic scroll recovery**
-
-Puppeteer and Playwright automatically supply native scroll feedback to standard planners after three consecutive same-direction scrolls with confirmed unchanged offsets on the same container. There is no configuration option or auxiliary model call. Reliable container identity, offsets and ranges provide candidate directions; explicit user directions, distances, counts and stop conditions take priority. Unsupported interfaces and planners keep their existing behavior. Unknown ranges do not establish a direction or task completion. Reviews appear as `ScrollReview` in reports.
-
-The planner retains raw planning messages. Execution history records commands only after they return; this confirms command execution, not business success. After recovery engages, current measurements remain available until the action or measured target changes.
-
 <a id="aiact-deepthink"></a>
 
 **`deepThink` planning mode**
