@@ -6,7 +6,7 @@ export interface ScrollReview {
   nextSearchDirection: 'up' | 'down' | 'left' | 'right' | null;
 }
 
-function scrollDirection(task: ExecutionTask): string {
+function scrollDirection(param: Partial<ActionScrollParam> = {}): string {
   const boundaryDirections: Record<string, string> = {
     scrollToTop: 'up',
     scrollToBottom: 'down',
@@ -14,9 +14,7 @@ function scrollDirection(task: ExecutionTask): string {
     scrollToRight: 'right',
   };
   return (
-    boundaryDirections[task.param?.scrollType] ||
-    task.param?.direction ||
-    'down'
+    boundaryDirections[param.scrollType ?? ''] || param.direction || 'down'
   );
 }
 
@@ -28,7 +26,7 @@ export function compareScrollStates(
 ): 'moved' | 'unchanged' | 'uncertain' {
   if (!before || !after || before.targetId !== after.targetId)
     return 'uncertain';
-  const direction = scrollDirection({ param } as ExecutionTask);
+  const direction = scrollDirection(param);
   const delta =
     direction === 'left' || direction === 'right'
       ? after.scrollLeft - before.scrollLeft
@@ -74,48 +72,17 @@ function confirmedTarget(task: ExecutionTask): string | undefined {
     : undefined;
 }
 
-/** Compare dispatch targets conservatively; coordinates are not container identity. */
-function sameScrollTarget(a: ExecutionTask, b: ExecutionTask): boolean {
-  const aId = confirmedTarget(a);
-  const bId = confirmedTarget(b);
-  if (a.scrollProgress || b.scrollProgress) {
-    // Unknown or replaced containers cannot share a measured streak.
-    if (aId || bId) return !!aId && aId === bId;
-    if (
-      a.scrollProgress?.before ||
-      a.scrollProgress?.after ||
-      b.scrollProgress?.before ||
-      b.scrollProgress?.after
-    )
-      return a === b;
-  }
-  const left = a.param?.locate;
-  const right = b.param?.locate;
-  if (!left || !right) return !left && !right;
-  if (!left.center || !right.center) return a === b;
-  return (
-    left.description === right.description &&
-    left.center[0] === right.center[0] &&
-    left.center[1] === right.center[1]
-  );
-}
+const scrollReviewInterval = 3;
 
-export const DEFAULT_SCROLL_REVIEW_INTERVAL = 3;
-
-/** Review at the fixed cadence of consecutive same-direction scrolls. */
+/** Only confirmed native stalls count toward the fixed three-action review. */
 export function findScrollToReview(
   tasks: ExecutionTask[],
-  afterScrolls = DEFAULT_SCROLL_REVIEW_INTERVAL,
   reviewedTaskId?: string,
 ): ExecutionTask | undefined {
   const actions = tasks.filter((task) => task.type === 'Action Space');
   const last = actions.at(-1);
-  if (
-    !last?.uiContext ||
-    last.subType !== 'Scroll' ||
-    last.status !== 'finished'
-  )
-    return undefined;
+  const targetId = last && confirmedTarget(last);
+  if (!last || !targetId) return undefined;
   let count = 0;
   for (let i = actions.length - 1; i >= 0; i--) {
     const task = actions[i];
@@ -123,14 +90,14 @@ export function findScrollToReview(
       (reviewedTaskId !== undefined && task.taskId === reviewedTaskId) ||
       task.subType !== 'Scroll' ||
       task.status !== 'finished' ||
-      task.scrollProgress?.status === 'moved' ||
-      scrollDirection(task) !== scrollDirection(last) ||
-      !sameScrollTarget(task, last)
+      task.scrollProgress?.status !== 'unchanged' ||
+      scrollDirection(task.param) !== scrollDirection(last.param) ||
+      confirmedTarget(task) !== targetId
     )
       break;
     count++;
   }
-  return count >= afterScrolls ? last : undefined;
+  return count >= scrollReviewInterval ? last : undefined;
 }
 
 export function nativeScrollReview(
@@ -141,7 +108,7 @@ export function nativeScrollReview(
   const state = task.scrollProgress.after;
   const available = availableScrollDirections(state);
   if (!state || !available) return undefined;
-  const direction = scrollDirection(task);
+  const direction = scrollDirection(task.param);
   return {
     progress: 'unchanged',
     observation: `The target's own scroll offsets did not change. Native offsets are (${state.scrollLeft}, ${state.scrollTop}), with maximum offsets (${state.maxScrollLeft}, ${state.maxScrollTop}). Directions with remaining native range: ${available.join(', ') || 'none'}. ${available.includes(direction) ? 'The requested direction still has range; reassess the dispatch position or target instead of assuming a boundary.' : 'The requested direction has no remaining native range.'} Native range does not establish whether content has loaded or the task goal is present.`,
@@ -160,7 +127,7 @@ export function scrollPlanningFeedback(
   if (!state || !confirmedTarget(task)) return undefined;
   const available = availableScrollDirections(state);
   if (!available) return undefined;
-  return `For the same scroll container ${state.targetId}, the latest executed scroll was ${scrollDirection(task)}. Current offsets: (${state.scrollLeft}, ${state.scrollTop}); maximum offsets: (${state.maxScrollLeft}, ${state.maxScrollTop}). Remaining native distances: ${JSON.stringify({ left: state.scrollLeft, right: state.maxScrollLeft! - state.scrollLeft, up: state.scrollTop, down: state.maxScrollTop! - state.scrollTop })}. Directions with remaining range: ${available.join(', ') || 'none'}. These current measurements supersede earlier assumptions about this container. For a goal-driven search, do not repeat a direction with no remaining range on this target; choose a supported direction or reassess the target/loading controls. Choose a search distance or boundary scroll appropriate to the remaining range rather than copying the previous small step. Explicit user directions, distances, counts and stop conditions take priority. No remaining range does not establish task completion or that the requested item is absent.`;
+  return `For the same scroll container ${state.targetId}, the latest executed scroll was ${scrollDirection(task.param)}. Current offsets: (${state.scrollLeft}, ${state.scrollTop}); maximum offsets: (${state.maxScrollLeft}, ${state.maxScrollTop}). Remaining native distances: ${JSON.stringify({ left: state.scrollLeft, right: state.maxScrollLeft! - state.scrollLeft, up: state.scrollTop, down: state.maxScrollTop! - state.scrollTop })}. Directions with remaining range: ${available.join(', ') || 'none'}. These current measurements supersede earlier assumptions about this container. For a goal-driven search, do not repeat a direction with no remaining range on this target; choose a supported direction or reassess the target/loading controls. Choose a search distance or boundary scroll appropriate to the remaining range rather than copying the previous small step. Explicit user directions, distances, counts and stop conditions take priority. No remaining range does not establish task completion or that the requested item is absent.`;
 }
 
 export function scrollReviewFeedback(review: ScrollReview): string {

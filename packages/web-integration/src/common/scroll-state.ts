@@ -12,7 +12,7 @@ export function inspectScrollTarget(
     if (!inner || inner === hit) break;
     hit = inner;
   }
-  // Frame contents and canvas widgets need visual observation instead.
+  // Frame contents and canvas widgets do not expose reliable DOM scroll state.
   if (!hit || hit.closest('iframe,canvas')) return undefined;
   let target: Element | null = hit;
   while (target && target !== document.scrollingElement) {
@@ -52,18 +52,35 @@ export function inspectScrollTarget(
   const style = getComputedStyle(target);
   // RTL, vertical writing and reverse flow may scroll toward negative offsets
   // even when starting at zero. Keep identity/progress, but leave ranges unknown.
+  const maxX = Math.max(0, target.scrollWidth - target.clientWidth);
+  const maxY = Math.max(0, target.scrollHeight - target.clientHeight);
+  const viewport = target === document.scrollingElement;
+  // Visible root overflow propagates the body's overflow policy to the viewport.
+  const overflowStyle =
+    viewport &&
+    style.overflowX === 'visible' &&
+    style.overflowY === 'visible' &&
+    document.body
+      ? getComputedStyle(document.body)
+      : style;
+  const wheelScrollable = (overflow: string) =>
+    /^(auto|scroll)$/.test(overflow) || (viewport && overflow === 'visible');
+  // Hidden/clip overflow has geometric range but cannot be reached by a wheel.
+  // Keep identity and offsets, but do not advertise unreliable direction advice.
   const ordinaryRanges =
     style.direction === 'ltr' &&
     style.writingMode === 'horizontal-tb' &&
-    !style.flexDirection.endsWith('reverse');
+    !style.flexDirection.endsWith('reverse') &&
+    (maxX === 0 || wheelScrollable(overflowStyle.overflowX)) &&
+    (maxY === 0 || wheelScrollable(overflowStyle.overflowY));
   return {
     targetId: id,
     scrollLeft: target.scrollLeft,
     scrollTop: target.scrollTop,
     ...(ordinaryRanges
       ? {
-          maxScrollLeft: Math.max(0, target.scrollWidth - target.clientWidth),
-          maxScrollTop: Math.max(0, target.scrollHeight - target.clientHeight),
+          maxScrollLeft: maxX,
+          maxScrollTop: maxY,
         }
       : {}),
     rect: {

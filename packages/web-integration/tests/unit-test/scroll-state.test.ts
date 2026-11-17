@@ -124,3 +124,32 @@ it.each([
     }
   },
 );
+
+it.each(['hidden', 'clip'])(
+  'does not advertise geometric overflow blocked by overflow-x:%s',
+  async (overflow) => {
+    await page.setContent(
+      `<style>body{margin:0}#target{width:100px;height:100px;overflow-x:${overflow};overflow-y:auto}</style><div id="target"><div style="width:500px;height:300px">content</div></div>`,
+    );
+    const before = await page.evaluate(inspectScrollTarget, 30, 30);
+    expect(before).toBeDefined();
+    expect(before!.maxScrollLeft).toBeUndefined();
+    expect(before!.maxScrollTop).toBeUndefined();
+    await page.mouse.move(30, 30);
+    await page.mouse.wheel({ deltaX: 200 });
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    const after = await page.evaluate(inspectScrollTarget, 30, 30);
+    expect(after!.targetId).toBe(before!.targetId);
+    expect(after!.scrollLeft).toBe(0);
+  },
+);
+
+it('respects body overflow propagated to the viewport', async () => {
+  await page.setContent(
+    '<style>html{overflow:visible}body{margin:0;overflow:hidden}</style><div style="width:3000px;height:3000px">content</div>',
+  );
+  const measured = await page.evaluate(inspectScrollTarget, 30, 30);
+  expect(measured).toBeDefined();
+  expect(measured!.maxScrollLeft).toBeUndefined();
+  expect(measured!.maxScrollTop).toBeUndefined();
+});

@@ -1,5 +1,4 @@
 import {
-  DEFAULT_SCROLL_REVIEW_INTERVAL,
   type ScrollReview,
   findScrollToReview,
   nativeScrollReview,
@@ -40,7 +39,6 @@ export class ScrollRecovery {
     abortSignal?.throwIfAborted();
     const task = findScrollToReview(
       this.session.getRunner().tasks,
-      DEFAULT_SCROLL_REVIEW_INTERVAL,
       this.reviewedTaskId,
     );
     const observation = task && nativeScrollReview(task);
