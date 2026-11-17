@@ -230,7 +230,7 @@ export async function standardPlan(
     : conversationHistory.historicalLogsToText();
   const executionProgressSection = executionProgressText
     ? `\n\n${executionProgressText}`
-    : conversationHistory.pendingFeedbackMessage
+    : conversationHistory.pendingFeedbackMessage || opts.executionFeedback
       ? ''
       : `\n\n${noPreviousActionsText}`;
 
@@ -241,6 +241,9 @@ export async function standardPlan(
   const observationText = conversationHistory.pendingFeedbackMessage
     ? `${conversationHistory.pendingFeedbackMessage}. The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.`
     : 'This is the current screenshot.';
+  const executionFeedback = opts.executionFeedback
+    ? `\n\nCurrent execution feedback: ${opts.executionFeedback}`
+    : '';
   const latestObservation: ConversationMessage = {
     role: 'user',
     content: [
@@ -274,7 +277,7 @@ export async function standardPlan(
       content: [
         {
           type: 'text',
-          text: `${observationText}${memoriesSection}${executionProgressSection}`,
+          text: `${observationText}${memoriesSection}${executionProgressSection}${executionFeedback}`,
         },
         ...outgoingObservation.message.content.slice(1),
       ],

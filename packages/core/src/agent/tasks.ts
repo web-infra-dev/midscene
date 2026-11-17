@@ -49,6 +49,7 @@ import {
 } from './action-readiness';
 import { ExecutionSession } from './execution-session';
 import { withFileChooser } from './file-chooser';
+import { MobileScrollSearch } from './mobile-scroll-search';
 import {
   type AgentProgressPublisher,
   createAiActActionReporter,
@@ -609,6 +610,12 @@ export class TaskExecutor {
       return session.appendErrorPlan(errorMsg);
     };
 
+    const mobileScrollSearch =
+      planningModel.adapter.planning.kind === 'standard' &&
+      ['ios', 'android', 'harmony'].includes(this.interface.interfaceType)
+        ? new MobileScrollSearch()
+        : undefined;
+
     let errorCountInOnePlanningLoop = 0; // count the number of errors in one planning loop
     let outputString: string | undefined;
     let latestPlanResult: PlanningAIResponse | undefined;
@@ -724,6 +731,18 @@ export class TaskExecutor {
             let planResult: Awaited<ReturnType<typeof planImpl>>;
             try {
               const preparedUserPrompt = await getPreparedUserPrompt();
+              const executionFeedback = !delegation
+                ? mobileScrollSearch?.planningFeedback(
+                    session.getRunner().tasks,
+                    planningUiContext,
+                  )
+                : undefined;
+              if (executionFeedback) {
+                executorContext.task.param = {
+                  ...executorContext.task.param,
+                  executionFeedback,
+                };
+              }
 
               setTimingFieldOnce(timing, 'callAiStart');
               planResult = await planImpl(preparedUserPrompt, {
@@ -732,6 +751,7 @@ export class TaskExecutor {
                 actionSpace,
                 modelRuntime,
                 planningAdvice,
+                executionFeedback,
                 getDefaultModelRuntime: this.getDefaultModelRuntime,
                 conversationHistory,
                 includeLocateInPlanning: !delegation && includeLocateInPlanning,
