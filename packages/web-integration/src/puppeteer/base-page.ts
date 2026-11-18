@@ -1115,7 +1115,6 @@ export class Page<
     if (element) await this.mouse.click(element.center[0], element.center[1]);
 
     // A click handler may focus its editor asynchronously after mouseup.
-    // Select within that editor only; a browser-wide selectAll can select the page.
     const deadline = Date.now() + 1_000;
     do {
       let frame: FocusedInputFrame = this.underlyingPage.mainFrame();
@@ -1131,11 +1130,24 @@ export class Page<
         frame = child;
       }
       if (await frame.evaluate(selectAllInputScript)) return;
-      if (!element) break;
+      if (!element) {
+        throw new Error('Replacing text requires a focused editable field');
+      }
       await sleep(25);
     } while (Date.now() < deadline);
 
-    throw new Error('Replacing text requires a focused editable field');
+    // The clicked editor may own focus inside a closed shadow root.
+    // Let Chromium select there even when the page cannot inspect it.
+    const client = await this.createPageCdpSession('clearInput');
+    try {
+      await client.send('Input.dispatchKeyEvent', {
+        type: 'rawKeyDown',
+        commands: ['selectAll'],
+      });
+      await client.send('Input.dispatchKeyEvent', { type: 'keyUp' });
+    } finally {
+      await client.detach().catch(() => undefined);
+    }
   }
 
   async clearInput(element?: ElementInfo): Promise<void> {

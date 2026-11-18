@@ -135,20 +135,34 @@ describe('BasePage clearInput', () => {
       }
     });
 
-    test('rejects a non-editable target without selecting the document', async () => {
+    test('replaces text in a closed shadow editor using native selection', async () => {
       const page = await browser.newPage();
       try {
-        await page.setContent(
-          '<h1>Page title</h1><div id="target">Plain text</div>',
-        );
+        await page.setContent(`
+          <div id="target" style="width: 240px"></div>
+          <script>
+            const host = document.getElementById('target');
+            const field = document.createElement('textarea');
+            field.style.width = '100%';
+            field.value = 'old value';
+            field.oninput = () => host.dataset.value = field.value;
+            host.attachShadow({ mode: 'closed' }).append(field);
+          </script>
+        `);
         const webPage = new PlaywrightWebPage(page);
-        const element = { center: await playwrightInputCenter(page) } as any;
-        await expect(webPage.clearInput(element)).rejects.toThrow(
-          /focused editable/,
+        const input = webPage
+          .actionSpace()
+          .find((action) => action.name === 'Input')!;
+        await input.call(
+          {
+            value: 'new value',
+            locate: { center: await playwrightInputCenter(page) },
+          } as any,
+          {} as any,
         );
-        expect(
-          await page.evaluate(() => window.getSelection()?.toString()),
-        ).toBe('');
+        expect(await page.locator('#target').getAttribute('data-value')).toBe(
+          'new value',
+        );
       } finally {
         await page.close();
       }
