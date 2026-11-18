@@ -24,7 +24,10 @@ import {
 } from '@midscene/core/device';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import { createImgBase64ByFormat } from '@midscene/shared/img';
+import {
+  createImgBase64ByFormat,
+  imageInfoOfBase64,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import {
   mergeAndNormalizeAppNameMapping,
@@ -126,7 +129,7 @@ export class HarmonyDevice implements AbstractInterface {
   actionSpace(): DeviceAction<any>[] {
     const mobileActionContext = {
       input: this.inputPrimitives,
-      size: () => this.size(),
+      size: () => this.getScreenSize(),
       sleep: async (timeMs: number) => {
         await sleep(timeMs);
       },
@@ -207,6 +210,9 @@ export class HarmonyDevice implements AbstractInterface {
   }
 
   public async getHdc(): Promise<HdcClient> {
+    // A command between size() and screenshotBase64() makes the saved frame
+    // stale (including actions invoked directly through inputPrimitives).
+    this.pendingScreenshot = null;
     if (this.destroyed) {
       throw new Error(
         `HarmonyDevice ${this.deviceId} has been destroyed and cannot execute HDC commands`,
@@ -337,17 +343,29 @@ export class HarmonyDevice implements AbstractInterface {
   }
 
   async size(): Promise<Size> {
-    const screenInfo = await this.getScreenSize();
-    return {
-      width: screenInfo.width,
-      height: screenInfo.height,
-    };
+    // commonContextParser reads size before screenshotBase64. Derive both
+    // from one capture: RenderService can describe the physical panel rather
+    // than the active foldable viewport, and orientation can change at runtime.
+    this.pendingScreenshot = null;
+    this.pendingScreenshot = await this.captureScreenshot();
+    return { ...this.cachedScreenSize! };
   }
+
+  private pendingScreenshot: string | null = null;
 
   private remoteScreenshotPath = '/data/local/tmp/ms_screen.jpeg';
   private localScreenshotPath: string | null = null;
 
   async screenshotBase64(): Promise<string> {
+    if (this.pendingScreenshot) {
+      const screenshot = this.pendingScreenshot;
+      this.pendingScreenshot = null;
+      return screenshot;
+    }
+    return this.captureScreenshot();
+  }
+
+  private async captureScreenshot(): Promise<string> {
     debugDevice('screenshotBase64 begin');
     const hdc = await this.getHdc();
 
@@ -358,26 +376,7 @@ export class HarmonyDevice implements AbstractInterface {
     const maxAttempts = 2;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       // Take screenshot on device (reuse fixed path, no per-frame cleanup needed)
-      const snapshotOutput = await hdc.screenshot(this.remoteScreenshotPath);
-
-      // Update cached screen size from actual screenshot dimensions.
-      // Foldable screens may report different sizes in hidumper vs the actual
-      // active display, so snapshot_display output is the source of truth.
-      const dimMatch = snapshotOutput.match(/width\s+(\d+),\s*height\s+(\d+)/);
-      if (dimMatch) {
-        const w = Number.parseInt(dimMatch[1], 10);
-        const h = Number.parseInt(dimMatch[2], 10);
-        if (
-          this.cachedScreenSize &&
-          (this.cachedScreenSize.width !== w ||
-            this.cachedScreenSize.height !== h)
-        ) {
-          debugDevice(
-            `Screen size changed: ${this.cachedScreenSize.width}x${this.cachedScreenSize.height} -> ${w}x${h}`,
-          );
-          this.cachedScreenSize = { width: w, height: h };
-        }
-      }
+      await hdc.screenshot(this.remoteScreenshotPath);
 
       // Pull to local (overwrites the same local file each time)
       await hdc.fileRecv(this.remoteScreenshotPath, this.localScreenshotPath);
@@ -389,10 +388,21 @@ export class HarmonyDevice implements AbstractInterface {
 
       if (screenshotBuffer && screenshotBuffer.length > 0) {
         debugDevice(`Screenshot captured: ${screenshotBuffer.length} bytes`);
-        return createImgBase64ByFormat(
+        const screenshot = createImgBase64ByFormat(
           'jpeg',
           screenshotBuffer.toString('base64'),
         );
+        const { width, height } = await imageInfoOfBase64(screenshot);
+        if (
+          !Number.isSafeInteger(width) ||
+          !Number.isSafeInteger(height) ||
+          width <= 0 ||
+          height <= 0
+        ) {
+          throw new Error('Invalid screenshot dimensions');
+        }
+        this.cachedScreenSize = { width, height };
+        return screenshot;
       }
 
       debugDevice(
@@ -443,7 +453,7 @@ export class HarmonyDevice implements AbstractInterface {
       x = this.lastTapPosition.x;
       y = this.lastTapPosition.y;
     } else {
-      const { width, height } = await this.size();
+      const { width, height } = await this.getScreenSize();
       x = Math.round(width / 2);
       y = Math.round(height / 2);
     }
@@ -508,7 +518,7 @@ export class HarmonyDevice implements AbstractInterface {
       throw new Error('Scroll distance cannot be zero in both directions');
     }
 
-    const { width, height } = await this.size();
+    const { width, height } = await this.getScreenSize();
     const n = scrollQuadrantDivisions;
 
     // end = start - delta: start opposite the direction of finger travel.
@@ -581,7 +591,7 @@ export class HarmonyDevice implements AbstractInterface {
     distance?: number,
     startPoint?: Point,
   ): Promise<void> {
-    const { width, height } = await this.size();
+    const { width, height } = await this.getScreenSize();
     const isVertical = direction === 'up' || direction === 'down';
     if (distance === undefined && !startPoint) {
       const { from, to } = resolveDefaultMobileScroll(direction, {
@@ -661,7 +671,7 @@ export class HarmonyDevice implements AbstractInterface {
     startPoint?: Point,
   ): Promise<void> {
     if (startPoint) {
-      const { width, height } = await this.size();
+      const { width, height } = await this.getScreenSize();
       const hdc = await this.getHdc();
       const sx = Math.round(startPoint.left);
       const sy = Math.round(startPoint.top);
@@ -788,6 +798,7 @@ export class HarmonyDevice implements AbstractInterface {
 
     this.destroyed = true;
     this.cachedScreenSize = null;
+    this.pendingScreenshot = null;
     this.hdc = null;
     this.connecting = null;
   }

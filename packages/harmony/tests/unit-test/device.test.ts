@@ -1,6 +1,7 @@
 import * as fsActual from 'node:fs' with { rstest: 'importActual' };
 import type { ExecutorContext } from '@midscene/core';
 import * as CoreUtils from '@midscene/core/utils';
+import { imageInfoOfBase64 } from '@midscene/shared/img';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import type { HarmonyDeviceInputOpt } from '../../src/device';
 
@@ -49,6 +50,7 @@ rs.mock('@midscene/core/utils', () => ({
 }));
 
 rs.mock('@midscene/shared/img', () => ({
+  imageInfoOfBase64: rs.fn().mockResolvedValue({ width: 1216, height: 2688 }),
   createImgBase64ByFormat: rs
     .fn()
     .mockReturnValue('data:image/jpeg;base64,fake'),
@@ -62,6 +64,10 @@ describe('HarmonyDevice', () => {
 
   beforeEach(() => {
     rs.clearAllMocks();
+    rs.mocked(imageInfoOfBase64).mockResolvedValue({
+      width: 1216,
+      height: 2688,
+    } as Awaited<ReturnType<typeof imageInfoOfBase64>>);
     mockHdc.getScreenInfo.mockResolvedValue({ width: 1216, height: 2688 });
     device = new HarmonyDevice('test-device-id');
   });
@@ -193,6 +199,74 @@ describe('HarmonyDevice', () => {
       await device.connect();
       const size = await device.size();
       expect(size).toEqual({ width: 1216, height: 2688 });
+    });
+
+    it('uses the active screenshot viewport on the first observation', async () => {
+      rs.mocked(imageInfoOfBase64).mockResolvedValueOnce({
+        width: 1008,
+        height: 2232,
+      } as Awaited<ReturnType<typeof imageInfoOfBase64>>);
+      await device.connect();
+      expect(await device.size()).toEqual({ width: 1008, height: 2232 });
+      await device.screenshotBase64();
+      expect(mockHdc.screenshot).toHaveBeenCalledTimes(1);
+    });
+
+    it('refreshes folded, expanded and rotated sizes once per observation', async () => {
+      for (const viewport of [
+        { width: 1008, height: 2232 },
+        { width: 2232, height: 3184 },
+        { width: 3184, height: 2232 },
+      ]) {
+        rs.mocked(imageInfoOfBase64).mockResolvedValueOnce(
+          viewport as Awaited<ReturnType<typeof imageInfoOfBase64>>,
+        );
+        const calls = mockHdc.screenshot.mock.calls.length;
+        expect(await device.size()).toEqual(viewport);
+        await device.screenshotBase64();
+        expect(mockHdc.screenshot).toHaveBeenCalledTimes(calls + 1);
+      }
+    });
+
+    it('does not reuse a pending observation when size is requested again', async () => {
+      await device.size();
+      rs.mocked(imageInfoOfBase64).mockResolvedValueOnce({
+        width: 2232,
+        height: 1008,
+      } as Awaited<ReturnType<typeof imageInfoOfBase64>>);
+      expect(await device.size()).toEqual({ width: 2232, height: 1008 });
+      await device.screenshotBase64();
+      expect(mockHdc.screenshot).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not return a stale paired screenshot after a device action', async () => {
+      await device.size();
+      await device.inputPrimitives.pointer.tap({ x: 100, y: 200 });
+      await device.screenshotBase64();
+      expect(mockHdc.screenshot).toHaveBeenCalledTimes(2);
+    });
+
+    it('updates cached screen dimensions after a standalone screenshot', async () => {
+      await device.connect();
+      rs.mocked(imageInfoOfBase64).mockResolvedValueOnce({
+        width: 1008,
+        height: 2232,
+      } as Awaited<ReturnType<typeof imageInfoOfBase64>>);
+      await device.screenshotBase64();
+      expect(await device.getScreenSize()).toEqual({
+        width: 1008,
+        height: 2232,
+      });
+    });
+
+    it('rejects invalid screenshot dimensions instead of using panel dimensions', async () => {
+      rs.mocked(imageInfoOfBase64).mockResolvedValueOnce({
+        width: 0,
+        height: 2232,
+      } as Awaited<ReturnType<typeof imageInfoOfBase64>>);
+      await expect(device.size()).rejects.toThrow(
+        'Invalid screenshot dimensions',
+      );
     });
 
     it('should warn when deprecated screenshotResizeScale is used', () => {
