@@ -170,6 +170,7 @@ export async function runTestcase({
     throw new Error('timeoutMs must be positive and finite');
   const captured = cloneLoadedTestcases([supplied])[0];
   const model = modelCallConfigSchema.parse(structuredClone(suppliedModel));
+  const controller = new AbortController();
   const usages: AIUsageInfo[] = [];
   const calls: ObservedCall[] = [];
   let validated = false;
@@ -297,6 +298,7 @@ export async function runTestcase({
     try {
       const located = await agent.aiLocate(
         testcase.instruction[testcase.instructionLanguage],
+        { abortSignal: controller.signal },
       );
       const scaleX = width / Math.round(width / shrink);
       const scaleY = height / Math.round(height / shrink);
@@ -360,6 +362,7 @@ export async function runTestcase({
   clearTimeout(timer);
   const finalOutput: Output =
     !output || durationMs >= timeoutMs ? timeoutOutput : output;
+  if (finalOutput === timeoutOutput) controller.abort();
   return deepFreeze({
     output: finalOutput,
     profiling: usageProfile(

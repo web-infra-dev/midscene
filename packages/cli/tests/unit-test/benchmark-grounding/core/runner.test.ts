@@ -41,8 +41,8 @@ rs.mock('@midscene/core', () => ({
     ) {
       mocks.instances.push(this);
     }
-    aiLocate(prompt: string) {
-      return mocks.locate(prompt, this);
+    aiLocate(prompt: string, options?: { abortSignal?: AbortSignal }) {
+      return mocks.locate(prompt, this, options?.abortSignal);
     }
     destroy() {
       return mocks.destroy(this);
@@ -135,6 +135,7 @@ describe('runTestcase', () => {
       center: [0.5, 0.5],
     });
     expect(mocks.locate.mock.calls[0][0]).toBe('定位目标');
+    expect(mocks.locate.mock.calls[0][2]?.aborted).toBe(false);
     expect(await mocks.instances[0].device.screenshotBase64()).toBe(
       `data:image/png;base64,${expectedImage.toString('base64')}`,
     );
@@ -285,6 +286,7 @@ describe('runTestcase', () => {
       timeoutMs: 10,
     });
     expect(result.profiling.durationMs).toBe(10);
+    expect(mocks.locate.mock.calls[0][2]?.aborted).toBe(true);
     expect(result.output).toMatchObject({
       type: 'ERROR',
       error: { code: 'TIMEOUT' },
@@ -851,27 +853,51 @@ describe('runBenchmark', () => {
     ).toEqual(Array(6).fill(model.apiKey));
   });
 
-  it('releases queue slots at timeout without waiting for unresolved requests', async () => {
-    const started: number[] = [];
-    mocks.locate.mockImplementation(() => {
-      started.push(performance.now());
-      return new Promise(() => {});
-    });
+  it('aborts timed-out requests before starting another testcase or retry', async () => {
+    const events: string[] = [];
+    mocks.locate.mockImplementation(
+      (prompt: string, _agent, abortSignal: AbortSignal) => {
+        abortSignal.throwIfAborted();
+        events.push(`start ${prompt}`);
+        return new Promise((_resolve, reject) => {
+          abortSignal.addEventListener(
+            'abort',
+            () => {
+              events.push(`abort ${prompt}`);
+              reject(abortSignal.reason);
+            },
+            { once: true },
+          );
+        });
+      },
+    );
     const { directory } = await runBenchmark({
-      testcases: [fixture('a'), fixture('b')],
+      testcases: ['a', 'b'].map((name) =>
+        fixture(name, { instruction: { en: name, zh: name } }),
+      ),
       models: [model],
       outputDirectory: await outputRoot(),
       concurrency: 1,
-      retries: 0,
-      timeoutMs: 15,
+      retries: 1,
+      timeoutMs: 50,
     });
-    expect(started).toHaveLength(2);
-    expect((await readResult(directory, 'a')).output.error.code).toBe(
-      'TIMEOUT',
-    );
-    expect((await readResult(directory, 'b')).output.error.code).toBe(
-      'TIMEOUT',
-    );
+    expect(events).toEqual([
+      'start a',
+      'abort a',
+      'start b',
+      'abort b',
+      'start a',
+      'abort a',
+      'start b',
+      'abort b',
+    ]);
+    for (const name of ['a', 'b']) {
+      const { attempts } = await readResult(directory, name);
+      expect(attempts).toMatchObject([
+        { output: { error: { code: 'TIMEOUT' } } },
+        { output: { error: { code: 'TIMEOUT' } } },
+      ]);
+    }
   });
 
   it('rejects duplicate identities and output directory collisions', async () => {
