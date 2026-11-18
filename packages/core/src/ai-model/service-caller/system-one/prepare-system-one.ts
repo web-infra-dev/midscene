@@ -1,6 +1,7 @@
 import type { IModelConfig } from '@midscene/shared/env';
 import { assert } from '@midscene/shared/utils';
 import { getVersion } from '../../../utils';
+import { isOpenRouter } from '../../model-adapter/is-openrouter';
 import { createProxyAgentIfNeeded } from '../proxy';
 import { resolveSystemOneEndpoint } from './resolve-endpoint';
 import type { SystemOneRequest } from './schema';
@@ -16,17 +17,18 @@ export async function prepareSystemOne(
     'Jev uses System One, not the Responses API',
   );
   const url = resolveSystemOneEndpoint(config);
-  const isOpenRouter = new URL(url).hostname === 'openrouter.ai';
+  // Resolve ENDPOINT precedence before converting the System One URL to a base URL.
+  const useOpenRouter = isOpenRouter(url.replace(/\/systemone$/, ''));
   const { imageState, assets } = encodeSystemOneImages(
     request.images,
-    isOpenRouter,
+    useOpenRouter,
   );
   const body = {
     ...config.extraBody,
     model: config.modelName,
     state: { ...request.state, ...imageState },
     questions: request.questions,
-    ...(!isOpenRouter && Object.keys(assets).length ? { assets } : {}),
+    ...(!useOpenRouter && Object.keys(assets).length ? { assets } : {}),
   };
   const serializedBody = JSON.stringify(body);
   assert(

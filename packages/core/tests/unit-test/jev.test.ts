@@ -393,6 +393,32 @@ describe('Jev requests and coordinates', () => {
     },
   );
   it.each([
+    'https://official.example/v1/systemone',
+    'http://openrouter.ai/api/v1/systemone',
+    'https://openrouter.ai/api/v2/systemone',
+  ])('uses assets for a non-OpenRouter endpoint %s', async (endpoint) => {
+    const prepared = await prepareSystemOne(
+      {
+        ...jevConfig,
+        openaiBaseURL: 'https://openrouter.ai/api/v1',
+        endpoint,
+      },
+      {
+        state: {},
+        images: { screenshot: 'data:image/png;base64,aGVsbG8=' },
+        questions: {},
+      },
+    );
+    const body = JSON.parse(prepared.body);
+    expect(prepared.url).toBe(endpoint);
+    expect(typeof body.state.screenshot).toBe('string');
+    expect(body.assets[body.state.screenshot]).toEqual({
+      type: 'image',
+      format: 'png',
+      data_base64: 'aGVsbG8=',
+    });
+  });
+  it.each([
     [100, 50],
     [3000, 30],
   ])(
