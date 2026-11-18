@@ -1,3 +1,21 @@
+.rp-doc-layout__doc:has(.universal-device-overview) {
+  min-width: 0;
+}
+
+/* Reclaim the empty outline column on the Universal Device overview. */
+.rp-doc-layout__container:has(.universal-device-overview)
+  .rp-doc-layout__outline-placeholder {
+  display: none;
+}
+
+@media (width >= 1280px) {
+  .rp-doc-layout__container:has(.rp-doc-layout__outline-placeholder)
+    .rp-doc-layout__doc:has(.universal-device-overview) {
+    max-width: min(100%, var(--rp-content-max-width) + var(--rp-outline-width));
+    margin-right: var(--rp-outline-margin-right);
+  }
+}
+
 @keyframes universal-device-blink {
   50% {
     opacity: 0;
@@ -27,7 +45,11 @@
 }
 
 .universal-device-overview {
-  container: universal-device / inline-size;
+  container-name: universal-device;
+  container-type: inline-size;
+}
+
+.universal-device-overview {
   :root {
     --bg: #090909;
     --surface: #0f1012;
@@ -574,28 +596,6 @@
     color: var(--accent-soft);
   }
 
-  /* Sections */
-  @container universal-device (max-width: 960px) {
-    .instrument-body {
-      grid-template-columns: 1fr;
-    }
-    .viewport-col {
-      border-right: 0;
-      border-bottom: 1px solid var(--line);
-      min-height: 460px;
-    }
-    .viewport-stage {
-      height: 460px;
-    }
-    .pip-phone-wrap {
-      width: 126px;
-      padding: 6px;
-    }
-    .phone-frame-sm {
-      width: 112px;
-    }
-  }
-
   .ble-2d-stage {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -1095,5 +1095,26 @@
     font-size: 15px;
     color: var(--text);
     line-height: 1.6;
+  }
+}
+
+@container universal-device (width <= 800px) {
+  .universal-device-overview .instrument-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .universal-device-overview .viewport-col {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    min-height: 460px;
+  }
+  .universal-device-overview .viewport-stage {
+    height: 460px;
+  }
+  .universal-device-overview .pip-phone-wrap {
+    width: 126px;
+    padding: 6px;
+  }
+  .universal-device-overview .phone-frame-sm {
+    width: 112px;
   }
 }
