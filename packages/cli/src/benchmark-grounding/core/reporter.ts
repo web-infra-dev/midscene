@@ -303,12 +303,24 @@ export async function createReport({
 /** Merge standalone reports in input order; later results replace whole cells. */
 export async function mergeReports({
   reportFiles,
-}: { reportFiles: string[] }): Promise<string> {
-  const filenames = z
-    .array(z.string().min(1))
+}: { reportFiles: (string | URL)[] }): Promise<string> {
+  const sources = z
+    .array(
+      z.union([
+        z.string().min(1),
+        z
+          .instanceof(URL)
+          .refine(
+            (url) => url.protocol === 'http:' || url.protocol === 'https:',
+            { message: 'Expected an HTTP(S) report URL' },
+          ),
+      ]),
+    )
     .min(2)
     .parse(reportFiles)
-    .map((filename) => path.resolve(filename));
+    .map((source) =>
+      typeof source === 'string' ? path.resolve(source) : source,
+    );
   const testcases = new Map<string, LoadedTestcase>();
   const results = new Map<string, Result>();
   const models = new Map<string, NonNullable<ReportMeta['models']>[string]>();
@@ -317,9 +329,19 @@ export async function mergeReports({
     NonNullable<ReportMeta['families']>[string]
   >();
   // Reports contain large images. Read one at a time and keep one snapshot per name.
-  for (const filename of filenames) {
+  for (const source of sources) {
+    const label =
+      typeof source === 'string' ? source : source.origin + source.pathname;
     try {
-      const html = await readFile(filename, 'utf8');
+      const html = await (typeof source === 'string'
+        ? readFile(source, 'utf8')
+        : fetch(source).then(async (response) => {
+            if (!response.ok) {
+              await response.body?.cancel().catch(() => undefined);
+              throw new Error(`Download failed (HTTP ${response.status})`);
+            }
+            return response.text();
+          }));
       const scripts = html.matchAll(
         /<script\b(?=[^>]*\bid=["']benchmark-data["'])(?=[^>]*\btype=["']application\/json["'])[^>]*>([\s\S]*?)<\/script\s*>/gi,
       );
@@ -415,8 +437,9 @@ export async function mergeReports({
         results.set(key, result);
       }
     } catch (cause) {
+      const detail = cause instanceof Error ? cause.message : String(cause);
       throw new Error(
-        `Cannot merge report ${filename}: ${cause instanceof Error ? cause.message : String(cause)}`,
+        `Cannot merge report ${label}: ${typeof source === 'string' ? detail : detail.replaceAll(source.href, label)}`,
         { cause },
       );
     }

@@ -29,7 +29,7 @@ const columns = [
     key: 'estimatedElapsedTime',
     label: 'Estimated Model Duration',
     unit: 'seconds',
-    help: 'OpenRouter throughput includes time to first token (TTFT). For each attempt, use the larger of Model Calls × TTFT and Output Tokens ÷ Throughput, then sum all attempts. For throughput measured after the first token, use Model Calls × TTFT + max(Output Tokens − Model Calls, 0) ÷ Throughput per testcase. For a fixed response latency, multiply it by Model Calls. The reference average is capped at Measured Duration Avg. − 0.10 s, with a floor of zero. Each average uses its own valid samples.',
+    help: 'OpenRouter throughput includes time to first token (TTFT). For each attempt, use the larger of Model Calls × TTFT and Output Tokens ÷ Throughput, then sum all attempts. For throughput measured after the first token, use Model Calls × TTFT + max(Output Tokens − Model Calls, 0) ÷ Throughput per testcase. For a fixed response latency, multiply it by Model Calls. Reference estimates require complete usage for every attempt of a testcase. The reference average is capped at Measured Duration Avg., which includes failed attempts.',
   },
   {
     key: 'duration',

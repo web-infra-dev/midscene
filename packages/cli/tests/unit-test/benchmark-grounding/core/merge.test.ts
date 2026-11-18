@@ -32,6 +32,7 @@ rs.mock('node:fs/promises', () => ({
 
 const temporary: string[] = [];
 afterEach(async () => {
+  rs.restoreAllMocks();
   await Promise.all(
     temporary
       .splice(0)
@@ -243,7 +244,7 @@ describe('standalone report merging', () => {
     expect(again.summaries).toEqual(merged.summaries);
   });
 
-  it('uses input order rather than success or evaluation timestamp', async () => {
+  it('uses supplied input order for local files and HTTP or HTTPS URLs', async () => {
     const record = testcase('one');
     const incorrect = result(record);
     incorrect.output = { type: 'REFUSAL', correct: false };
@@ -256,16 +257,40 @@ describe('standalone report merging', () => {
     second.data.evaluationId = '1';
     await savePayload(first.filename, first.data);
     await savePayload(second.filename, second.data);
+    const http = new URL('http://cdn.example/reports/first.html?token=fixture');
+    const https = new URL(
+      'https://cdn.example/reports/first.html?token=fixture',
+    );
+    const remoteHtml = await readFile(first.filename, 'utf8');
+    const fetch = rs
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => new Response(remoteHtml));
     expect(
-      payload(
-        await mergeReports({ reportFiles: [first.filename, second.filename] }),
-      ).summaries.correct,
+      payload(await mergeReports({ reportFiles: [http, second.filename] }))
+        .summaries.correct,
     ).toBe(1);
     expect(
-      payload(
-        await mergeReports({ reportFiles: [second.filename, first.filename] }),
-      ).summaries.correct,
+      payload(await mergeReports({ reportFiles: [second.filename, https] }))
+        .summaries.correct,
     ).toBe(0);
+    expect(fetch.mock.calls.map(([input]) => String(input))).toEqual([
+      http.href,
+      https.href,
+    ]);
+  });
+
+  it('reports an HTTPS download failure without exposing the URL query', async () => {
+    const local = await report();
+    const remote = new URL('https://cdn.example/missing.html?token=fixture');
+    rs.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('Not Found', { status: 404 }),
+    );
+
+    await expect(
+      mergeReports({ reportFiles: [local.filename, remote] }),
+    ).rejects.toThrow(
+      'Cannot merge report https://cdn.example/missing.html: Download failed (HTTP 404)',
+    );
   });
 
   it('adds independently evaluated models without replacing existing models', async () => {

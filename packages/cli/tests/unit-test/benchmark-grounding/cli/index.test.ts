@@ -454,7 +454,26 @@ describe('CLI report merging', () => {
     expect(launch).not.toHaveBeenCalled();
   });
 
-  test('rejects overwriting an input report, including symbolic and hard links', async () => {
+  test('passes HTTP and HTTPS URLs with local files in the supplied order', async () => {
+    const first = 'https://cdn.example/reports/first.html?signature=fixture';
+    const last = 'http://cdn.example/reports/last.html';
+    const output = path.resolve('merged-report.html');
+    const local = path.resolve('local.html');
+    await Promise.all([
+      writeFile(local, 'original report'),
+      writeFile(output, 'previous merged report'),
+    ]);
+
+    expect(await main(['merge', first, 'local.html', last, '--no-open'])).toBe(
+      0,
+    );
+    expect(sdk.mergeReports).toHaveBeenCalledWith({
+      reportFiles: [new URL(first), local, new URL(last)],
+    });
+    expect(await readFile(output, 'utf8')).toContain('merged report');
+  });
+
+  test('rejects overwriting a local input in a mixed merge, including symbolic and hard links', async () => {
     const directory = await runDirectory();
     const source = path.join(directory, 'source.html');
     const other = path.join(directory, 'other.html');
@@ -468,7 +487,14 @@ describe('CLI report merging', () => {
     await link(source, hard);
     for (const output of [source, symbolic, hard]) {
       await expectFailure(
-        ['merge', source, other, '--output', output],
+        [
+          'merge',
+          source,
+          'https://cdn.example/reports/another.html',
+          other,
+          '--output',
+          output,
+        ],
         'must not overwrite an input report',
       );
     }

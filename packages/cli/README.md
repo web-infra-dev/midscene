@@ -106,11 +106,11 @@ pnpm dlx @midscene/cli model benchmark-grounding report ./output/RUN_ID --no-ope
 
 `report --output ./report.html` selects another path. Reports embed screenshots, results, JavaScript, and CSS and open directly through `file:///`; remote logos and the favicon still need network access. Overview is the first page and Testcases the second. In Testcases, up/down switches testcases and left/right switches models.
 
-Merge standalone reports without their original run directories:
+Merge standalone reports from local files or HTTP(S) URLs:
 
 ```sh
 pnpm dlx @midscene/cli model benchmark-grounding merge \
-  ./output/FULL_RUN/report.html ./output/RERUN/report.html \
+  ./output/FULL_RUN/report.html 'https://cdn.example.com/RERUN/report.html' \
   --output ./merged-report.html --no-open
 ```
 

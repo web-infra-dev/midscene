@@ -9,15 +9,21 @@ import { saveReport } from './report';
 export function mergeCommand() {
   return new Command('merge')
     .description(
-      'Merge standalone reports; later files replace overlapping results.',
+      'Merge standalone reports. Later inputs replace overlapping results.',
     )
-    .argument('<report-files...>', 'HTML reports in increasing priority order.')
+    .argument(
+      '<reports...>',
+      'Local HTML paths or HTTP(S) URLs in increasing priority order.',
+    )
     .option('--output <file>', 'HTML output file.', './merged-report.html')
     .option('--no-open', 'Do not open a browser.')
     .action(async (reportFiles: string[], options) => {
       printHeader('MERGE');
       const filename = path.resolve(options.output);
-      const sources = reportFiles.map((file) => path.resolve(file));
+      const sources = reportFiles.map((file) =>
+        /^https?:\/\//i.test(file) ? new URL(file) : path.resolve(file),
+      );
+      const localFiles = sources.filter((source) => typeof source === 'string');
       const target = await stat(filename).catch(
         (error: NodeJS.ErrnoException) => {
           if (error.code !== 'ENOENT') throw error;
@@ -25,9 +31,9 @@ export function mergeCommand() {
         },
       );
       if (
-        sources.includes(filename) ||
+        localFiles.includes(filename) ||
         (target &&
-          (await Promise.all(sources.map((file) => stat(file)))).some(
+          (await Promise.all(localFiles.map((file) => stat(file)))).some(
             (source) => source.dev === target.dev && source.ino === target.ino,
           ))
       )

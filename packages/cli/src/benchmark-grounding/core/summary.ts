@@ -147,7 +147,7 @@ export function calculateSummary({
     if (estimatedElapsedTime.average !== null && duration.average !== null) {
       estimatedElapsedTime.average = Math.min(
         estimatedElapsedTime.average,
-        Math.max(duration.average - 100, 0),
+        duration.average,
       );
       estimatedElapsedTime.total = Math.min(
         Number.MAX_VALUE,

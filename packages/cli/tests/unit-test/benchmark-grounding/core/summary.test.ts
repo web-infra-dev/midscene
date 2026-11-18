@@ -120,7 +120,7 @@ describe('grounding summary', () => {
     });
   });
 
-  it('applies the 100ms correction after independently averaging the two metrics', () => {
+  it('takes the lower mean after independently averaging the two metrics', () => {
     const items = [
       result('one', [attempt({ durationMs: 200, totalCompletionTokens: 10 })]),
       result('two', [attempt({ durationMs: 5000, totalCompletionTokens: 1 })]),
@@ -166,22 +166,54 @@ describe('grounding summary', () => {
   );
 
   it.each([
-    [100, 0],
-    [101, 1],
+    [0, 0],
+    [100, 100],
     [1000, 300],
-  ])('corrects measured %sms to estimated %sms', (durationMs, expected) => {
+  ])(
+    'caps the estimate at measured %sms, yielding %sms',
+    (durationMs, expected) => {
+      const model = calculateSummary({
+        models: ['model'],
+        testcaseCount: 2,
+        results: [result('one', [attempt({ durationMs })])],
+        meta,
+      }).models[0];
+      expect(model.estimatedElapsedTime).toEqual({
+        count: 1,
+        average: expected,
+        total: expected,
+      });
+      expect(model.speed).toBe(expected === 0 ? null : 60000 / expected);
+    },
+  );
+
+  it('includes fast failures in the measured cap but excludes missing usage from the reference estimate', () => {
+    const fastFailure: AttemptResult = {
+      output: {
+        type: 'ERROR',
+        correct: false,
+        error: { name: 'Error', message: 'request failed', retryable: false },
+      },
+      profiling: { durationMs: 10, usageStatus: 'missing' },
+    };
+    const results = [
+      result('success', [attempt({ durationMs: 10_000 })]),
+      ...Array.from({ length: 99 }, (_, index) =>
+        result(`failure-${index}`, [fastFailure]),
+      ),
+    ];
     const model = calculateSummary({
       models: ['model'],
-      testcaseCount: 2,
-      results: [result('one', [attempt({ durationMs })])],
+      testcaseCount: results.length,
+      results,
       meta,
     }).models[0];
-    expect(model.estimatedElapsedTime).toEqual({
-      count: 1,
-      average: expected,
-      total: expected,
-    });
-    expect(model.speed).toBe(expected === 0 ? null : 60000 / expected);
+
+    expect(model.duration.count).toBe(100);
+    expect(model.duration.average).toBeCloseTo(109.9);
+    expect(model.estimatedElapsedTime.count).toBe(1);
+    expect(model.estimatedElapsedTime.average).toBe(model.duration.average);
+    expect(model.outputTokens).toEqual({ count: 1, total: 3, average: 3 });
   });
 
   it('retains partial known usage but excludes incomplete attempts from complete cost and duration estimates', () => {
