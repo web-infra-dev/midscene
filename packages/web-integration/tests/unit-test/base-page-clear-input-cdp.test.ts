@@ -43,7 +43,7 @@ async function playwrightBrowserUserAgent(page: any): Promise<string> {
   }
 }
 
-describe('BasePage clearInput CDP selectAll', () => {
+describe('BasePage clearInput', () => {
   describe('Puppeteer', () => {
     let browser: PuppeteerBrowser;
 
@@ -117,6 +117,43 @@ describe('BasePage clearInput CDP selectAll', () => {
       TEST_TIMEOUT_MS,
     );
 
+    test('waits for click-triggered editor focus before replacing text', async () => {
+      const page = await browser.newPage();
+      try {
+        await page.setContent(`
+          <h1>Page title</h1>
+          <div id="target" onclick="setTimeout(() => editor.focus(), 150)">Edit</div>
+          <textarea id="editor">old value</textarea>
+        `);
+        const webPage = new PlaywrightWebPage(page);
+        await webPage.clearInput({
+          center: await playwrightInputCenter(page),
+        } as any);
+        expect(await page.locator('#editor').inputValue()).toBe('');
+      } finally {
+        await page.close();
+      }
+    });
+
+    test('rejects a non-editable target without selecting the document', async () => {
+      const page = await browser.newPage();
+      try {
+        await page.setContent(
+          '<h1>Page title</h1><div id="target">Plain text</div>',
+        );
+        const webPage = new PlaywrightWebPage(page);
+        const element = { center: await playwrightInputCenter(page) } as any;
+        await expect(webPage.clearInput(element)).rejects.toThrow(
+          /focused editable/,
+        );
+        expect(
+          await page.evaluate(() => window.getSelection()?.toString()),
+        ).toBe('');
+      } finally {
+        await page.close();
+      }
+    });
+
     describe('with spoofed browser-level user agent', () => {
       const linuxUserAgent =
         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.7680.31 Safari/537.36';
@@ -148,7 +185,7 @@ describe('BasePage clearInput CDP selectAll', () => {
       }, TEST_TIMEOUT_MS);
 
       test(
-        'clears input with CDP selectAll when browser platform is changed by UA',
+        'clears the input when browser platform is changed by UA',
         async () => {
           const page = await spoofedBrowser.newPage();
           await page.setContent(PAGE_HTML);

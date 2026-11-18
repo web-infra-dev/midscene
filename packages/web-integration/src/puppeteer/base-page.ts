@@ -1111,30 +1111,13 @@ export class Page<
     };
   }
 
-  private async selectAllByCdp(): Promise<void> {
-    const client = await this.createPageCdpSession('clearInput');
-    try {
-      // Use the browser editing command instead of Modifier+A. Playwright's
-      // Chromium input layer derives the browser platform from
-      // Browser.getVersion().userAgent, while Modifier+A shortcuts are often
-      // chosen from local process.platform. If a Linux browser is launched with
-      // a macOS browser-level UA, Chromium treats select-all as Cmd+A instead
-      // of Ctrl+A, so the local-platform shortcut can fail.
-      await client.send('Input.dispatchKeyEvent', {
-        type: 'rawKeyDown',
-
-        commands: ['selectAll'],
-      });
-      await client.send('Input.dispatchKeyEvent', {
-        type: 'keyUp',
-      });
-    } finally {
-      await client.detach().catch(() => undefined);
-    }
-  }
-
   async selectAllInput(element?: ElementInfo): Promise<void> {
-    if (!element) {
+    if (element) await this.mouse.click(element.center[0], element.center[1]);
+
+    // A click handler may focus its editor asynchronously after mouseup.
+    // Select within that editor only; a browser-wide selectAll can select the page.
+    const deadline = Date.now() + 1_000;
+    do {
       let frame: FocusedInputFrame = this.underlyingPage.mainFrame();
       while (true) {
         const handle = await frame.evaluateHandle(focusedInputFrameScript);
@@ -1147,37 +1130,17 @@ export class Page<
         if (!child) break;
         frame = child;
       }
-      if (!(await frame.evaluate(selectAllInputScript))) {
-        // Never issue a page-level selectAll when no editable field owns focus.
-        throw new Error('Replacing text requires a focused editable field');
-      }
-      return;
-    }
-    await this.mouse.click(element.center[0], element.center[1]);
-    const selected = await this.evaluate<boolean>(selectAllInputScript);
-    if (!selected) {
-      await this.selectAllByCdp();
-    }
+      if (await frame.evaluate(selectAllInputScript)) return;
+      if (!element) break;
+      await sleep(25);
+    } while (Date.now() < deadline);
+
+    throw new Error('Replacing text requires a focused editable field');
   }
 
   async clearInput(element?: ElementInfo): Promise<void> {
-    const backspace = async () => {
-      await sleep(100);
-      await this.keyboard.press([{ key: 'Backspace' }]);
-    };
-
-    debugPage('clearInput begin');
-
-    element && (await this.mouse.click(element.center[0], element.center[1]));
-    try {
-      await this.selectAllByCdp();
-      await backspace();
-    } catch (error) {
-      debugPage('clearInput cdp selectAll failed', error);
-      throw error;
-    } finally {
-      debugPage('clearInput end');
-    }
+    await this.selectAllInput(element);
+    await this.keyboard.press([{ key: 'Backspace' }]);
   }
 
   private everMoved = false;
