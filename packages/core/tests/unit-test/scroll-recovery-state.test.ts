@@ -47,17 +47,21 @@ function setup() {
     recovery: new ScrollRecovery(session),
   };
 }
-it('updates remaining distance on each plan only after recovery has engaged', async () => {
+it('updates available directions on each plan only after recovery has engaged', async () => {
   const { tasks, recovery } = setup();
   expect(recovery.planningFeedback()).toBeUndefined();
   await recovery.review(async () => {});
-  expect(recovery.planningFeedback()).toContain('"left":100');
+  expect(recovery.planningFeedback()).toContain(
+    'Directions with remaining range: left.',
+  );
   const advancing = scroll('list', 70);
   advancing.param.direction = 'left';
   advancing.scrollProgress!.status = 'moved';
   advancing.scrollProgress!.before!.scrollLeft = 100;
   tasks.push(advancing);
-  expect(recovery.planningFeedback()).toContain('"left":70');
+  expect(recovery.planningFeedback()).toContain(
+    'Directions with remaining range: left, right.',
+  );
   expect(recovery.planningFeedback()).toContain(
     'latest executed scroll was left',
   );

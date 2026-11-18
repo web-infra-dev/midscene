@@ -991,10 +991,16 @@ describe('TaskExecutor concurrency isolation', () => {
       let calls = 0;
       rs.mocked(standardPlan).mockImplementation(async (_prompt, opts) => {
         const done = calls++ === 3;
-        if (done)
+        if (done) {
           expect(
-            opts.executionFeedback?.includes('Remaining native distances'),
+            opts.executionFeedback?.includes(
+              'Directions with remaining range:',
+            ),
           ).toBe(supported ? true : undefined);
+          expect(opts.executionFeedback ?? '').not.toMatch(
+            /current offsets|maximum offsets|remaining native distances/i,
+          );
+        }
         return {
           actions: done
             ? []
