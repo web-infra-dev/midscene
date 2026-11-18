@@ -116,7 +116,7 @@ export const EN_US = {
   modelSupportedLink: 'View model configuration',
   modelSupportedName: 'Multiple model options',
   modelSupportedDesc:
-    'Choose from Doubao, DeepSeek, Qwen, GPT, Gemini, Kimi, and more to fit your tasks and budget.',
+    'Choose from Doubao, DeepSeek, Qwen, GPT, Gemini, Kimi, Drex, and more to fit your tasks and budget.',
   modelCostName: 'Low model API cost',
   modelCostDesc:
     'In this AppControlBench run, Doubao Seed 2.1 Turbo passed 58 of 60 tasks at a total model API cost of $0.59.',
