@@ -229,8 +229,8 @@ export async function standardPlan(
     ? conversationHistory.subGoalsToText()
     : conversationHistory.historicalLogsToText();
   const executionProgressSection = executionProgressText
-    ? `\n\n${executionProgressText}`
-    : conversationHistory.pendingFeedbackMessage
+    ? `\n\n<execution_history>${executionProgressText}</execution_history>`
+    : conversationHistory.pendingFeedbackMessage || opts.executionFeedback
       ? ''
       : `\n\n${noPreviousActionsText}`;
 
@@ -238,9 +238,12 @@ export async function standardPlan(
   const memoriesText = conversationHistory.memoriesToText();
   const memoriesSection = memoriesText ? `\n\n${memoriesText}` : '';
 
+  const executionFeedback = opts.executionFeedback
+    ? `\n\nCurrent measured execution state: ${opts.executionFeedback}`
+    : '';
   const observationText = conversationHistory.pendingFeedbackMessage
-    ? `${conversationHistory.pendingFeedbackMessage}. The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.`
-    : 'This is the current screenshot.';
+    ? `Latest execution feedback: ${conversationHistory.pendingFeedbackMessage}. Here is the latest screenshot. Use the observed result, not the intent of previous actions, to choose the next action.`
+    : 'This is the current screenshot. Use the observed result, not the intent of previous actions, to choose the next action.';
   const latestObservation: ConversationMessage = {
     role: 'user',
     content: [
@@ -255,6 +258,7 @@ export async function standardPlan(
   // Persist observations without cumulative state, which would otherwise repeat
   // increasingly large summaries in every subsequent planning request.
   conversationHistory.appendMessage(latestObservation);
+
   conversationHistory.compressHistory(50, 20);
 
   const historyLog = conversationHistory.snapshot(opts.imagesIncludeCount);
@@ -274,7 +278,7 @@ export async function standardPlan(
       content: [
         {
           type: 'text',
-          text: `${observationText}${memoriesSection}${executionProgressSection}`,
+          text: `${observationText}${memoriesSection}${executionProgressSection}${executionFeedback}`,
         },
         ...outgoingObservation.message.content.slice(1),
       ],
@@ -340,9 +344,6 @@ export async function standardPlan(
 
   assert(planFromAI, "can't get plans from AI");
 
-  // TODO: The plan log is recorded before its action has executed, so a failed
-  // action may still appear in the next round as an action already performed.
-  // Move this write to the successful action execution path in TaskExecutor.action.
   // Update sub-goals in conversation history only in planning deep-think mode.
   if (includeSubGoals) {
     if (planFromAI.updateSubGoals?.length) {
@@ -353,16 +354,9 @@ export async function standardPlan(
         conversationHistory.markSubGoalFinished(index);
       }
     }
-    // Append the planning log to the currently running sub-goal
-    if (planFromAI.log) {
-      conversationHistory.appendSubGoalLog(planFromAI.log);
-    }
-  } else {
-    // Without planning deep-think mode, accumulate logs as historical execution steps.
-    if (planFromAI.log) {
-      conversationHistory.appendHistoricalLog(planFromAI.log);
-    }
   }
+  // Execution history is recorded by TaskExecutor after commands actually return.
+  // The raw assistant plan remains in conversation history below.
 
   // Append memory to conversation history if present
   if (planFromAI.memory) {

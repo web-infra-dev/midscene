@@ -1,11 +1,13 @@
 import { Buffer } from 'node:buffer';
 import type { WebPageAgentOpt } from '@/web-element';
 import type {
+  ActionScrollParam,
   DeviceAction,
   ElementCacheFeature,
   ElementTreeNode,
   Point,
   Rect,
+  ScrollState,
   Size,
 } from '@midscene/core';
 import type {
@@ -46,6 +48,7 @@ import {
   focusedInputFrameScript,
   selectAllInputScript,
 } from '../common/input-scripts';
+import { inspectScrollTarget } from '../common/scroll-state';
 import {
   type KeyInput,
   type MouseButton,
@@ -1029,6 +1032,7 @@ export class Page<
       },
       move: async (x: number, y: number) => {
         this.everMoved = true;
+        this.lastMousePoint = { left: x, top: y };
         debugPage(`mouse move to ${x}, ${y}`);
         return this.underlyingPage.mouse.move(x, y);
       },
@@ -1036,6 +1040,7 @@ export class Page<
         from: { x: number; y: number },
         to: { x: number; y: number },
       ) => {
+        this.lastMousePoint = undefined;
         debugPage(
           `begin mouse drag from ${from.x}, ${from.y} to ${to.x}, ${to.y}`,
         );
@@ -1180,7 +1185,32 @@ export class Page<
     }
   }
 
+  private lastMousePoint?: Point;
   private everMoved = false;
+
+  async captureScrollState(
+    param: ActionScrollParam,
+  ): Promise<ScrollState | undefined> {
+    // Direct gesture primitives can leave the pointer at an untracked position.
+    if (!param.locate && this.everMoved && !this.lastMousePoint)
+      return undefined;
+    const point = param.locate?.center
+      ? { left: param.locate.center[0], top: param.locate.center[1] }
+      : this.lastMousePoint;
+    const size = point ? undefined : await this.size();
+    const x = point?.left ?? Math.floor(size!.width / 2);
+    const y = point?.top ?? Math.floor(size!.height / 2);
+    try {
+      return await this.evaluateJavaScript<ScrollState | undefined>(
+        `(${inspectScrollTarget.toString()})(${JSON.stringify(x)},${JSON.stringify(y)})`,
+      );
+    } catch (error) {
+      if (!BROWSER_NAVIGATION_ERROR_PATTERN.test(String(error))) throw error;
+      debugPage('Scroll target unavailable during navigation', error);
+      return undefined;
+    }
+  }
+
   private async moveToPointBeforeScroll(point?: Point): Promise<void> {
     if (point) {
       await this.mouse.move(point.left, point.top);
@@ -1345,6 +1375,7 @@ export class Page<
     to: { x: number; y: number },
     duration?: number,
   ) {
+    this.lastMousePoint = undefined;
     const MIN_PRESS_THRESHOLD = 150;
     duration = duration || 100;
     if (duration < MIN_PRESS_THRESHOLD) {
@@ -1378,6 +1409,7 @@ export class Page<
     }
   }
   async longPress(x: number, y: number, duration?: number) {
+    this.lastMousePoint = undefined;
     duration = duration || 500;
     // Keep a lower bound so the press is registered as a long press rather than
     // a click, but never cap the upper bound: the duration is the caller's

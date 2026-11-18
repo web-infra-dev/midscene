@@ -697,7 +697,7 @@ describe('PageAgent aiAct abortSignal', () => {
 
     // Verify the abortSignal argument is passed before report options.
     const callArgs = mockTaskExecutor.action.mock.calls[0];
-    expect(callArgs[callArgs.length - 2]).toBe(controller.signal);
+    expect(callArgs[9]).toBe(controller.signal);
   });
 
   it('should work normally without abortSignal', async () => {

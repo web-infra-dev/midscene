@@ -65,11 +65,11 @@ describe('parameter validation', () => {
   });
 
   it('should preserve locator fields without validation', async () => {
-    await originPage.waitForSelector('#sb_form_q', {
+    await originPage.waitForSelector('#searchInput', {
       visible: true,
       timeout: 30000,
     });
-    const inputXpath = '//*[@id="sb_form_q"]';
+    const inputXpath = '//*[@id="searchInput"]';
     const locate = {
       prompt: 'The search input box',
       xpath: inputXpath,
@@ -94,18 +94,18 @@ describe('parameter validation', () => {
     });
     expect(
       await originPage.$eval(
-        '#sb_form_q',
+        '#searchInput',
         (element) => (element as HTMLInputElement).value,
       ),
     ).toBe('test value');
   });
 
   it('should preserve xpath through aiInput', async () => {
-    await originPage.waitForSelector('#sb_form_q', {
+    await originPage.waitForSelector('#searchInput', {
       visible: true,
       timeout: 30000,
     });
-    const inputXpath = '//*[@id="sb_form_q"]';
+    const inputXpath = '//*[@id="searchInput"]';
     await agent.aiInput('The search input box', {
       value: 'test value',
       xpath: inputXpath,
@@ -122,7 +122,7 @@ describe('parameter validation', () => {
     });
     expect(
       await originPage.$eval(
-        '#sb_form_q',
+        '#searchInput',
         (element) => (element as HTMLInputElement).value,
       ),
     ).toBe('test value');

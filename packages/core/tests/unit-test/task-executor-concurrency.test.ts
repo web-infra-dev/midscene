@@ -949,6 +949,86 @@ describe('TaskExecutor concurrency isolation', () => {
     ]);
   });
 
+  it.each([true, false])(
+    'automatically reviews measured stalls only when supported: %s',
+    async (supported) => {
+      if (supported) mockInterface.captureScrollState = rs.fn();
+      const executor = new TaskExecutor(mockInterface, mockService, {
+        getDefaultModelRuntime: defaultModel,
+        replanningCycleLimit: 5,
+        actionSpace: emptyParamActionSpace,
+      });
+      const state = {
+        targetId: 'content',
+        scrollLeft: 0,
+        scrollTop: 0,
+        maxScrollLeft: 1000,
+        maxScrollTop: 0,
+        rect: { left: 0, top: 0, width: 100, height: 100 },
+      };
+      rs.spyOn(executor, 'convertPlanToExecutable').mockImplementation(
+        async (plan) => ({
+          tasks: plan.length
+            ? [
+                {
+                  type: 'Action Space',
+                  subType: 'Scroll',
+                  param: { direction: 'down' },
+                  executor: async (context: ExecutorContext) => {
+                    context.task.scrollProgress = {
+                      status: 'unchanged',
+                      before: state,
+                      after: state,
+                    };
+                    return {};
+                  },
+                },
+              ]
+            : [],
+          yamlFlow: [],
+        }),
+      );
+      let calls = 0;
+      rs.mocked(standardPlan).mockImplementation(async (_prompt, opts) => {
+        const done = calls++ === 3;
+        if (done) {
+          expect(
+            opts.executionFeedback?.includes(
+              'Directions with remaining range:',
+            ),
+          ).toBe(supported ? true : undefined);
+          expect(opts.executionFeedback ?? '').not.toMatch(
+            /current offsets|maximum offsets|remaining native distances/i,
+          );
+        }
+        return {
+          actions: done
+            ? []
+            : [{ type: 'Scroll', param: { direction: 'down' } }],
+          shouldContinuePlanning: !done,
+          log: '',
+          ...(done ? { finalizeSuccess: true } : {}),
+        };
+      });
+      const result = await executor.action(
+        'Find Next',
+        planningModel(),
+        defaultModel(),
+      );
+      const reviews = result.runner.tasks.filter(
+        (t) => t.subType === 'ScrollReview',
+      );
+      expect(reviews).toHaveLength(supported ? 1 : 0);
+      if (supported) {
+        expect(reviews[0].output).toMatchObject({
+          progress: 'unchanged',
+          nextSearchDirection: 'right',
+        });
+        expect(reviews[0].usage).toBeUndefined();
+      }
+    },
+  );
+
   it('should pass RunAdbShell planning feedback into the next planning request', async () => {
     const seenPendingFeedback: string[] = [];
     const planningFeedback = `RunAdbShell returned stdout. The stdout may indicate success or failure.
@@ -1256,7 +1336,9 @@ mCurrentFocus=Window{abc}`;
 
     expect(
       seenPendingFeedback[1],
-    ).toBe(`Time: 2023-10-15 08:30:00 (YYYY-MM-DD HH:mm:ss), ${firstPlanningFeedback}
+    ).toBe(`Time: 2023-10-15 08:30:00 (YYYY-MM-DD HH:mm:ss), Executed UI commands: RunAdbShell; RunAdbShell; RunAdbShell; Tap. The commands returned without an execution error; this alone does not verify the business outcome.
+
+${firstPlanningFeedback}
 
 ${secondPlanningFeedback}
 
@@ -1264,7 +1346,7 @@ ${thirdPlanningFeedback}`);
     expect(seenPendingFeedback[1]).not.toContain(finalActionOutput);
   });
 
-  it('should not pass empty planning feedback into the next planning request', async () => {
+  it('records a returned command even when its tool feedback is empty', async () => {
     const seenPendingFeedback: string[] = [];
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
       getDefaultModelRuntime: defaultModel,
@@ -1335,8 +1417,98 @@ ${thirdPlanningFeedback}`);
       defaultModel(),
     );
 
-    expect(seenPendingFeedback[1]).not.toContain('WriteState');
+    expect(seenPendingFeedback[1]).toContain(
+      'Executed UI commands: WriteState.',
+    );
+    expect(seenPendingFeedback[1]).toContain(
+      'does not verify the business outcome',
+    );
   });
+
+  it.each(['balance', 'deepThink'] as const)(
+    'records only the completed prefix of a failed batch with %s effort',
+    async (effort) => {
+      const seen: { feedback: string; history: string }[] = [];
+      rs.spyOn(taskExecutor, 'convertPlanToExecutable')
+        .mockResolvedValueOnce({
+          tasks: [
+            {
+              type: 'Action Space',
+              subType: 'Tap',
+              param: { locate: { prompt: 'Save' } },
+              executor: async () => ({}),
+            },
+            {
+              type: 'Action Space',
+              subType: 'Input',
+              executor: async () => {
+                throw new Error('input dispatch failed');
+              },
+            },
+            {
+              type: 'Action Space',
+              subType: 'Scroll',
+              executor: async () => ({}),
+            },
+          ],
+          yamlFlow: [],
+        } as any)
+        .mockResolvedValue({ tasks: [], yamlFlow: [] } as any);
+      rs.mocked(standardPlan)
+        .mockImplementationOnce(async (_instruction, opts: any) => {
+          opts.conversationHistory.setSubGoals([
+            { index: 1, description: 'Save', status: 'running' },
+          ]);
+          expect(opts.conversationHistory.historicalLogsToText()).toBe('');
+          return {
+            actions: [{ type: 'Tap' }],
+            yamlFlow: [],
+            shouldContinuePlanning: true,
+            log: 'I intend to save',
+            rawResponse: '',
+          } as any;
+        })
+        .mockImplementationOnce(async (_instruction, opts: any) => {
+          seen.push({
+            feedback: opts.conversationHistory.pendingFeedbackMessage,
+            history:
+              effort === 'deepThink'
+                ? opts.conversationHistory.subGoalsToText()
+                : opts.conversationHistory.historicalLogsToText(),
+          });
+          opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+          return {
+            actions: [],
+            yamlFlow: [],
+            shouldContinuePlanning: false,
+            log: '',
+            rawResponse: '',
+            finalizeSuccess: true,
+          } as any;
+        });
+      await taskExecutor.action(
+        'save',
+        planningModel(),
+        defaultModel(),
+        undefined,
+        false,
+        undefined,
+        effort,
+      );
+      expect(seen).toHaveLength(1);
+      expect(seen[0].feedback).toContain(
+        'Error executing running tasks: input dispatch failed',
+      );
+      for (const value of [seen[0].feedback, seen[0].history]) {
+        expect(value).toContain(
+          'Executed UI commands: Tap (planned target: "Save").',
+        );
+        expect(value).not.toContain('Executed UI commands: Input');
+        expect(value).not.toContain('; Scroll');
+        expect(value).not.toContain('I intend to save');
+      }
+    },
+  );
 
   it('should fall back to runtime time instead of device timestamp when device-local time is unavailable', async () => {
     rs.useFakeTimers();

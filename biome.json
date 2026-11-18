@@ -37,6 +37,7 @@
       "**/.rslib",
       "**/.wrangler/**",
       "**/.native-build/**",
+      "apps/android-assistant/**/build/**",
       "apps/chrome-extension/web-ext-profile/**"
     ]
   },
