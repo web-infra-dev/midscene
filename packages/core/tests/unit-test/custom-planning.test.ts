@@ -7,7 +7,7 @@ function createPlanOptions(
   conversationHistory = new ConversationHistory(),
 ): PlanOptions {
   return {
-    context: {
+    uiContext: {
       screenshot: {
         base64: 'data:image/png;base64,SCREENSHOT==',
       } as any,

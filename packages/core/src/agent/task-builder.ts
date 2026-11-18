@@ -607,7 +607,7 @@ export class TaskBuilder {
             locateResult = await this.service.locate(
               locateParam,
               {
-                context: uiContext,
+                uiContext,
                 planLocatedElement,
               },
               locateModel,

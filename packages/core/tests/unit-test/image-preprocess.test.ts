@@ -97,7 +97,7 @@ describe('buildSearchAreaConfig', () => {
     } as any);
 
     const searchArea = await buildSearchAreaConfig({
-      context: {
+      uiContext: {
         screenshot: {
           base64: 'full-screenshot',
         },

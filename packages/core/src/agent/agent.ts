@@ -1969,10 +1969,10 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
    */
   async freezePageContext(): Promise<void> {
     debug('Freezing page context');
-    const context = await this._snapshotContext();
+    const uiContext = await this._snapshotContext();
     // Mark the context as frozen
-    context._isFrozen = true;
-    this.frozenUIContext = context;
+    uiContext._isFrozen = true;
+    this.frozenUIContext = uiContext;
     debug('Page context frozen successfully');
   }
 

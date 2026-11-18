@@ -316,7 +316,7 @@ describe('Jev requests and coordinates', () => {
       onRequest: rs.fn(),
     };
     const result = await AiLocateElement({
-      context: await context(),
+      uiContext: await context(),
       targetElementDescription: 'button',
       modelRuntime: runtime,
     });
@@ -369,7 +369,7 @@ describe('Jev requests and coordinates', () => {
         .spyOn(globalThis, 'fetch')
         .mockResolvedValue(response());
       await AiLocateElement({
-        context: await context(500, 400),
+        uiContext: await context(500, 400),
         targetElementDescription: 'button',
         modelRuntime: getModelRuntime({
           ...jevConfig,
@@ -448,7 +448,7 @@ describe('Jev requests and coordinates', () => {
   it('maps a scaled DeepLocate crop exactly once', async () => {
     rs.spyOn(globalThis, 'fetch').mockResolvedValue(response());
     const result = await AiLocateElement({
-      context: await context(),
+      uiContext: await context(),
       targetElementDescription: 'button',
       modelRuntime: getModelRuntime(jevConfig),
       searchConfig: {
@@ -476,7 +476,7 @@ describe('Jev requests and coordinates', () => {
     const result = await AiExtractElementInfo({
       taskType: 'boolean',
       dataQuery: { Boolean: 'matches' },
-      context: await context(),
+      uiContext: await context(),
       extractOption: { screenshotIncluded: false, context: 'context' },
       pageDescription: 'DOM',
       modelRuntime: getModelRuntime({
@@ -502,7 +502,7 @@ describe('Jev requests and coordinates', () => {
     await AiExtractElementInfo({
       taskType: 'boolean',
       dataQuery: { StatementIsTruthy: 'appeared' },
-      context: { ...ui, screenshotSequence: [ui.screenshot, ui.screenshot] },
+      uiContext: { ...ui, screenshotSequence: [ui.screenshot, ui.screenshot] },
       multimodalPrompt: {
         images: [{ name: 'target', url: await image(50, 50) }],
       },
@@ -613,7 +613,7 @@ describe('Jev requests and coordinates', () => {
       .mockResolvedValueOnce(new Response('{"answers":{}}'))
       .mockResolvedValueOnce(response());
     await AiLocateElement({
-      context: await context(),
+      uiContext: await context(),
       targetElementDescription: 'button',
       modelRuntime: getModelRuntime({ ...jevConfig, retryCount: 1 }),
     });
@@ -665,7 +665,7 @@ describe('Jev requests and coordinates', () => {
     const result = await AiExtractElementInfo({
       taskType: 'extract',
       dataQuery: 'extract text',
-      context: await context(),
+      uiContext: await context(),
       modelRuntime: runtime,
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -782,7 +782,7 @@ describe('Jev planning', () => {
       slot: 'planning',
     });
     return {
-      context: await context(),
+      uiContext: await context(),
       modelRuntime,
       conversationHistory: new ConversationHistory(),
       actionSpace: [

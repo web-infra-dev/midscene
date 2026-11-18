@@ -22,9 +22,9 @@ test.skipIf(!hasModelFamily)(
     timeout: 120 * 1000,
   },
   async () => {
-    const { context } = await getContextFromFixture('antd-tooltip');
+    const { uiContext } = await getContextFromFixture('antd-tooltip');
     const { searchAreaConfig } = await AiLocateSection({
-      context,
+      uiContext,
       sectionDescription: 'the version info on the top right corner',
       modelRuntime: modelRuntime(),
     });

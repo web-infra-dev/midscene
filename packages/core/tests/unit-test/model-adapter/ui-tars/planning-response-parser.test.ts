@@ -15,7 +15,7 @@ rs.mock('@ui-tars/action-parser', () => ({
   actionParser: rs.fn(),
 }));
 
-const context: UIContext = {
+const uiContext: UIContext = {
   screenshot: {
     base64: 'data:image/png;base64,AA==',
   } as any,
@@ -36,7 +36,7 @@ const modelRuntime = getModelRuntime({
 
 function createPlanOptions(): PlanOptions {
   return {
-    context,
+    uiContext,
     actionSpace: [],
     modelRuntime,
     conversationHistory: new ConversationHistory(),
@@ -68,7 +68,7 @@ describe('parseUiTarsPlanningResponse failures', () => {
     expect(() =>
       parseUiTarsPlanningResponse(
         'Thought: Click submit\nAction: click(start_box="bad")',
-        createPlanOptions().context.shotSize,
+        createPlanOptions().uiContext.shotSize,
         UITarsModelVersion.V1_0,
       ),
     ).toThrow('parser exploded');
@@ -79,7 +79,7 @@ describe('parseUiTarsPlanningResponse failures', () => {
 
     parseUiTarsPlanningResponse(
       "Thought: Click converted bbox\nAction: click(start_box='<bbox>400 300 600 700</bbox>')",
-      createPlanOptions().context.shotSize,
+      createPlanOptions().uiContext.shotSize,
       UITarsModelVersion.V1_0,
     );
 

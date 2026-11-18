@@ -51,7 +51,7 @@ const autoGlmAdapter = new ResolvedModelAdapter(
   'auto-glm',
 );
 
-const context: UIContext = {
+const uiContext: UIContext = {
   screenshot: {
     base64: 'data:image/png;base64,AA==',
   } as any,
@@ -64,7 +64,7 @@ const context: UIContext = {
 
 function createPlanOptions(overrides: Partial<PlanOptions> = {}): PlanOptions {
   return {
-    context,
+    uiContext,
     actionSpace: mockActionSpace.map((action) =>
       action.name === 'Scroll' ? defineActionScroll(async () => {}) : action,
     ),
@@ -117,7 +117,7 @@ describe('createAutoGlmPlanner', () => {
       const result = await runCustomPlanning(
         await prepareUserPrompt('swipe left'),
         createPlanOptions({
-          context: { ...context, shotSize: { width: 101, height: 81 } },
+          uiContext: { ...uiContext, shotSize: { width: 101, height: 81 } },
         }),
         resolveCustomPlanningDefinition({
           ...planner,

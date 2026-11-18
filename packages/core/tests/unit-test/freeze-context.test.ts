@@ -259,11 +259,11 @@ describe('PageAgent freeze/unfreeze page context', () => {
       ] as const;
 
       for (const action of actions) {
-        const context = await agent.getUIContext(action);
+        const uiContext = await agent.getUIContext(action);
 
         // Should return the frozen context, not call commonContextParser
-        expect(context).toBe(mockContext);
-        expect(context._isFrozen).toBe(true);
+        expect(uiContext).toBe(mockContext);
+        expect(uiContext._isFrozen).toBe(true);
       }
 
       // commonContextParser should not be called when frozen

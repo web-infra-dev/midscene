@@ -54,7 +54,7 @@ describe('locate prompt order', () => {
 
   it('places the prompt before the image for element locate', async () => {
     await AiLocateElement({
-      context: createFakeContext(),
+      uiContext: createFakeContext(),
       targetElementDescription: 'the Submit button',
       modelRuntime,
     });
@@ -68,7 +68,7 @@ describe('locate prompt order', () => {
 
   it('places the prompt before the image for search-area locate', async () => {
     await AiLocateSection({
-      context: createFakeContext(),
+      uiContext: createFakeContext(),
       sectionDescription: 'the row containing Apollo',
       modelRuntime,
     });

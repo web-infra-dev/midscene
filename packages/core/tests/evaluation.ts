@@ -23,9 +23,9 @@ export async function buildContext(targetDir: string): Promise<UIContext> {
 export const getContextFromFixture = async (
   pageName: string,
 ): Promise<{
-  context: UIContext;
+  uiContext: UIContext;
 }> => {
   const targetDir = path.join(__dirname, `./fixtures/page-data/${pageName}`);
-  const context = await buildContext(targetDir);
-  return { context };
+  const uiContext = await buildContext(targetDir);
+  return { uiContext };
 };

@@ -147,11 +147,11 @@ export async function standardPlan(
   userInstruction: PreparedUserPrompt,
   opts: PlanOptions,
 ): Promise<PlanningAIResponse> {
-  const { context, conversationHistory } = opts;
+  const { uiContext, conversationHistory } = opts;
   const modelRuntime = opts.modelRuntime;
   const { adapter } = modelRuntime;
-  const { shotSize } = context;
-  const screenshotBase64 = context.screenshot.base64;
+  const { shotSize } = uiContext;
+  const screenshotBase64 = uiContext.screenshot.base64;
   assert(
     adapter.planning.kind === 'standard',
     'standardPlan requires a standard planning adapter',
