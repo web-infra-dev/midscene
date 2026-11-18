@@ -32,13 +32,13 @@ it.each([
     platform: 'android',
     moving: false,
     effort: 'balance' as const,
-    recovery: true,
+    recovery: false,
   },
   {
     platform: 'harmony',
     moving: false,
     effort: 'balance' as const,
-    recovery: true,
+    recovery: false,
   },
   {
     platform: 'web',
@@ -71,6 +71,15 @@ it.each([
     ];
     const device = {
       interfaceType: platform,
+      captureScrollGeometry:
+        platform === 'ios'
+          ? async () => ({
+              targetId: 'form',
+              viewport: { x: 0, y: 0, width: 100, height: 200 },
+              offscreenDirections: ['left'],
+              anchors: {},
+            })
+          : undefined,
       actionSpace: () => actionSpace,
     } as AbstractInterface;
     const service = {
@@ -140,7 +149,9 @@ it.each([
       undefined,
       undefined,
       undefined,
-      recovery ? expect.stringContaining('exactly identical') : undefined,
+      recovery
+        ? expect.stringContaining('Fresh native scroll-view geometry')
+        : undefined,
       undefined,
     ];
     expect(feedback).toEqual(expected);

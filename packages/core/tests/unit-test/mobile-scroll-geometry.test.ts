@@ -1,4 +1,4 @@
-import { MobileScrollSearch } from '@/agent/mobile-scroll-search';
+import { ScrollGeometryObserver } from '@/agent/scroll-geometry-observer';
 import type { ScrollGeometry } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { ExecutionTask, UIContext } from '@/types';
@@ -13,7 +13,6 @@ const geometry = (x = 0): ScrollGeometry => ({
   },
 });
 function setup() {
-  const search = new MobileScrollSearch();
   const tasks: ExecutionTask[] = [];
   const context = (image = 'same'): UIContext => ({
     screenshot: ScreenshotItem.create(image, 1000 + tasks.length),
@@ -23,8 +22,8 @@ function setup() {
   const capture = rs
     .fn<() => Promise<ScrollGeometry | undefined>>()
     .mockResolvedValue(geometry());
-  const plan = (image = 'same') =>
-    search.planningFeedbackWithGeometry(tasks, context(image), capture);
+  const search = new ScrollGeometryObserver(capture);
+  const plan = (image = 'same') => search.feedback(tasks, context(image));
   const step = (image = 'same', subType = 'Scroll') => {
     tasks.push({
       taskId: String(tasks.length),
@@ -69,7 +68,7 @@ it('falls back when multiple/unsupported native views return no geometry', async
   await step();
   await step();
   await step();
-  expect(await step()).toContain('exactly identical');
+  expect(await step()).toBeUndefined();
 });
 it('does not reacquire geometry for a stale screenshot or unchanged action list', async () => {
   const { search, tasks, plan, step, capture, context } = setup();
@@ -86,44 +85,29 @@ it('does not reacquire geometry for a stale screenshot or unchanged action list'
     timing: { start: 0, callActionEnd: 999999 },
   };
   tasks.push(task);
-  await search.planningFeedbackWithGeometry(tasks, context(), capture);
+  await search.feedback(tasks, context());
   expect(capture).not.toHaveBeenCalled();
 });
-it('bounds blind geometry probes and renews the budget only when child geometry moves', async () => {
+it('samples again when the view moves and skips duplicate observations', async () => {
   const { plan, step, capture } = setup();
   await plan();
   await step();
   await step();
   await step();
+  await step();
+  expect(capture).toHaveBeenCalledTimes(1);
   capture.mockResolvedValue(geometry(100));
   expect(await step('changed')).toContain('"x":-100');
-  await step('changed');
-  await step('changed');
-  expect(await step('changed')).toContain('three further probes');
-  const count = capture.mock.calls.length;
-  await step('changed');
-  expect(capture).toHaveBeenCalledTimes(count);
-});
-
-it('continues fresh geometry observations through ambiguous swipes and navigation attempts', async () => {
-  const { plan, step, capture } = setup();
-  await plan();
-  await step();
-  await step();
-  await step();
-  expect(await step('same', 'KeyboardPress')).toContain(
-    'Fresh native scroll-view geometry',
-  );
+  expect(await step('changed', 'KeyboardPress')).toBeUndefined();
   expect(capture).toHaveBeenCalledTimes(2);
 });
-
 it('falls back after a native query error and does not repeatedly retry the backend', async () => {
   const { plan, step, capture } = setup();
   capture.mockRejectedValue(new Error('geometry query unavailable'));
   await plan();
   await step();
   await step();
-  expect(await step()).toContain('exactly identical');
+  expect(await step()).toBeUndefined();
   await step();
   expect(capture).toHaveBeenCalledTimes(1);
 });

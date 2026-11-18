@@ -49,13 +49,13 @@ import {
 } from './action-readiness';
 import { ExecutionSession } from './execution-session';
 import { withFileChooser } from './file-chooser';
-import { MobileScrollSearch } from './mobile-scroll-search';
 import {
   type AgentProgressPublisher,
   createAiActActionReporter,
   errorMessageForAiAct,
 } from './progress';
 import { renderAIContext } from './prompt-context';
+import { ScrollGeometryObserver } from './scroll-geometry-observer';
 import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
@@ -610,10 +610,12 @@ export class TaskExecutor {
       return session.appendErrorPlan(errorMsg);
     };
 
-    const mobileScrollSearch =
+    const scrollObserver =
       planningModel.adapter.planning.kind === 'standard' &&
-      ['ios', 'android', 'harmony'].includes(this.interface.interfaceType)
-        ? new MobileScrollSearch()
+      this.interface.captureScrollGeometry
+        ? new ScrollGeometryObserver(
+            this.interface.captureScrollGeometry.bind(this.interface),
+          )
         : undefined;
 
     let errorCountInOnePlanningLoop = 0; // count the number of errors in one planning loop
@@ -732,10 +734,9 @@ export class TaskExecutor {
             try {
               const preparedUserPrompt = await getPreparedUserPrompt();
               const executionFeedback = !delegation
-                ? await mobileScrollSearch?.planningFeedbackWithGeometry(
+                ? await scrollObserver?.feedback(
                     session.getRunner().tasks,
                     planningUiContext,
-                    this.interface.captureScrollGeometry?.bind(this.interface),
                   )
                 : undefined;
               if (executionFeedback) {
