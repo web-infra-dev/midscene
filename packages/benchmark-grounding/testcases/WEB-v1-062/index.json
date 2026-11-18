@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-062",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified by directly matching the book title visible on its cover."
+  },
+  "instruction": {
+    "en": "View the book \"Ms. Rachel and the Special Surprise\".",
+    "zh": "查看《Ms. Rachel and the Special Surprise》这本书。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [572.0, 1070.0, 773.0, 870.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L5174",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#431",
+    "image": {
+      "format": "png",
+      "sha256": "7f823b5738601e73e9da7045055ee3dfb3e820190978585c2e1e20f51534af6b"
+    },
+    "patch": "Expanded the abbreviated book name in the English instruction to the full title visible on the cover and added instruction.zh by translating the revised English instruction. Adjusted groundTruth from [579.0, 1074.0, 772.0, 871.0] to [572.0, 1070.0, 773.0, 870.0] in [top, right, bottom, left] pixel coordinates to cover the full book cover.",
+    "collectedAt": 1793763122996
+  }
+}

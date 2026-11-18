@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-048",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The temperature-unit control switches the weather display units."
+  },
+  "instruction": {
+    "en": "Change the temperature display unit to Celsius",
+    "zh": "将温度显示单位改为摄氏度。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [29, 1536, 62, 1460],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L4622",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#385",
+    "image": {
+      "format": "png",
+      "sha256": "0deeb723c4adc3b682a8f34aab2faebf3b8c129a5248cecf5c582a95a1280bd4"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1794206851855
+  }
+}

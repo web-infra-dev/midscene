@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-045",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires comparing the cart subtotal with the budget and, if necessary, comparing item prices to choose the appropriate action."
+  },
+  "instruction": {
+    "en": "I have a budget of $38. Check the total price of the items in the cart. If it does not exceed the budget, proceed to checkout; otherwise, remove one of the least expensive items.",
+    "zh": "我有 $38 的预算，检查购物车中物品的总价，如果没有超出预算就进行结账，否则就删除一个最便宜的商品。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [720, 2510, 775, 2467],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L1502",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#125",
+    "image": {
+      "format": "png",
+      "sha256": "fd3cdf09002c9c8c8c4a9edde179224be18b5911332874201342e4b3c68778d4"
+    },
+    "patch": "Replaced the original instruction “view settings of cocowhip light” with a conditional request to check a $38 budget and either proceed to checkout or remove one of the least expensive items, and added a corresponding Chinese instruction. Changed groundTruth from [1052, 2467, 1129, 2381] to [720, 2510, 775, 2467] in [top, right, bottom, left] pixel coordinates, moving the target from the CocoWhip Light settings icon to the removal icon for the lowest-priced cart item. Updated category.reason to explain the required budget and price comparisons.",
+    "collectedAt": 1794194697262
+  }
+}

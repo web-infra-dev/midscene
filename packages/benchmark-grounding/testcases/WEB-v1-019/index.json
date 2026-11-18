@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-019",
+  "platform": "web",
+  "category": {
+    "item": "Small Target",
+    "reason": "The playhead is a small marker above the timeline ruler with a narrow line through the tracks. It requires precise horizontal localization."
+  },
+  "instruction": {
+    "en": "Locate the playhead that marks the current playback position on the video editing timeline.",
+    "zh": "定位视频编辑时间轴上标记当前播放位置的播放头。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [
+    1226,
+    1558,
+    1820,
+    1538
+  ],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "a79e80c44175e2bac300e4954f87635858f366923e21509505649d760b89593d"
+    },
+    "patch": "Used the contributor-provided 3456 × 1922 screenshot of a video editing timeline and kept the supplied PNG unchanged. The bilingual instructions ask for the current playback position. Annotated the dark playhead marker and its vertical line at [1226, 1558, 1820, 1538] in [top, right, bottom, left] pixels.",
+    "collectedAt": 1794985807785
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-085",
+  "platform": "web",
+  "category": {
+    "item": "Refusal",
+    "reason": "No KerasflowGBM entry is present in the screenshot; the nearby Keras, Kubeflow and LightGBM links are separate items."
+  },
+  "instruction": {
+    "zh": "打开 KerasflowGBM。",
+    "en": "Open KerasflowGBM."
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L3758",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2_313",
+    "image": {
+      "format": "png",
+      "sha256": "1ca2543193ce0494170c5677e22de165cfa48258183829f0de3814e9e619ec4d"
+    },
+    "patch": "Replaced the original instruction “open keras” with a request to open KerasflowGBM and added a corresponding Chinese instruction. Changed groundTruth from [22, 830, 61, 711] to REFUSAL because the requested item is absent from the screenshot. Changed category.item from Basic Element to Refusal and updated category.reason to explain why no matching target is available.",
+    "collectedAt": 1792485870998
+  }
+}

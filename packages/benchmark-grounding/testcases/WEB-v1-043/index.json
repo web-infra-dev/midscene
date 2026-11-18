@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-043",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The described pregnancy matches “First pregnancy” and “Multiples.” The first card is already selected, so “Multiples” is the next applicable option."
+  },
+  "instruction": {
+    "en": "I conceived naturally and am pregnant with multiples. This pregnancy was planned, it is my first pregnancy, and I do not plan to become pregnant again. Check that all applicable options are selected. If they are, proceed to the next step; otherwise, select the next applicable option, scanning each row from left to right and moving from the top row to the bottom.",
+    "zh": "我通过自然怀孕怀上了多胞胎，这次怀孕在计划之内，这是我的首次怀孕并且我之后不再打算继续怀孕。请检查并确保已勾选所有符合的选项，如果已满足要求则进入下一步，否则帮我按照从左至右、从上至下的顺序继续选中我需要选中的下一个选项。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [
+    728,
+    2580,
+    1100,
+    2013
+  ],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "79c82198b0582e4d8fb56cc29ce3135b80ce64272710b307e495801cdeaa36d4"
+    },
+    "patch": "Used the contributor-provided 3456 × 1916 screenshot of the family checklist form with “First pregnancy” selected and kept the supplied PNG unchanged. Restored the earlier Midscene-authored bilingual instructions for a first pregnancy with multiples and clarified that the options are scanned left to right within each row, starting at the top. Annotated the remaining applicable card, “Multiples,” at [728, 2580, 1100, 2013] in [top, right, bottom, left] pixels.",
+    "collectedAt": 1794985388836
+  }
+}

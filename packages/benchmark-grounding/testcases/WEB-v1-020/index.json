@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-020",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The form shows monthly amounts. An annual cap of $550 allows the $40 option ($480 per year), and the next higher option is $50 ($600 per year)."
+  },
+  "instruction": {
+    "en": "I want to donate every month and spend no more than $550 over a year. Select the highest monthly amount that fits my budget.",
+    "zh": "我想每月捐款，一年总额不超过 550 美元。请选出预算内最高的月捐档位。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [
+    434,
+    1296,
+    497,
+    1176
+  ],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "83924944bed052434d6000b8803a0b3fdcee6731935986f52b66675d9f62d49d"
+    },
+    "patch": "Designed and rendered a 1440 × 900 fictional conservation donation page with original HTML and CSS and ImageGen creek artwork. The page offers six fixed monthly USD amounts. Wrote bilingual instructions for the highest monthly donation that fits a $550 yearly budget. Annotated the $40 button from its rendered bounds at [434, 1296, 497, 1176] in [top, right, bottom, left] pixels.",
+    "collectedAt": 1794974063692
+  }
+}

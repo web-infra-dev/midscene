@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-021",
+  "platform": "web",
+  "category": {
+    "item": "Small Target",
+    "reason": "The target is a 17 × 17 pixel square handle on a larger blue selection box in a 3456 × 1920 screenshot."
+  },
+  "instruction": {
+    "en": "On the canvas, locate the square resize handle at the bottom-left corner of the blue selection box around the vector.",
+    "zh": "在画布上找到矢量图形蓝色选框左下角的方形缩放手柄。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [
+    1156,
+    1289,
+    1173,
+    1272
+  ],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "ac57100a69d251198232059159405c0832e1b3a79281743a407e7d690b126f5a"
+    },
+    "patch": "Used a contributor-provided 3456 × 1920 screenshot of a vector selection in the Figma editor and kept the supplied PNG unchanged. Annotated the lower-left square resize handle of the blue selection box at [1156, 1289, 1173, 1272] in [top, right, bottom, left] pixels.",
+    "collectedAt": 1794985908199
+  }
+}

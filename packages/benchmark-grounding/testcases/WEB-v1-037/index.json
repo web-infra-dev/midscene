@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-037",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The refund control performs the action requested in the latest customer service message."
+  },
+  "instruction": {
+    "en": "Follow the instructions in the latest customer service message.",
+    "zh": "根据最新客服消息的指引进行相关操作。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1056.0, 1599.0, 1126.0, 1421.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L226",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#16",
+    "image": {
+      "format": "png",
+      "sha256": "21231834b77dd49047bda820a1a87a0661c428cc9d01e2264120a34be1d3d442"
+    },
+    "patch": "Replaced the original instruction describing a link to refund details with an instruction to follow the latest customer service message, which directs the user to the same refund button. Updated category.reason to describe the requested refund action; the ground truth remains unchanged.",
+    "collectedAt": 1792485870798
+  }
+}

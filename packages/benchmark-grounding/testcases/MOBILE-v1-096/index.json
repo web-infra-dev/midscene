@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-096",
+  "platform": "mobile",
+  "category": {
+    "item": "Small Target",
+    "reason": "The target is the small rounded cap of the bar for September, which requires matching the month label to its bar and locating its top precisely."
+  },
+  "instruction": {
+    "en": "Select the top of the September bar in the annual step count chart.",
+    "zh": "选中年度步数柱状图中 9 月柱子的顶端。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [
+    1036,
+    811,
+    1076,
+    781
+  ],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "jpeg",
+      "sha256": "1d6e299cf9c005d5e8ad0a6639cf336b24ea0cc741f63ffabeedd26c63dad6ea"
+    },
+    "patch": "Created a Midscene-authored testcase from a contributor-provided 1260 × 2844 JPEG screenshot of the annual step count chart. Preserved the screenshot bytes unchanged. Wrote bilingual instructions for the top of the September bar and annotated its top segment at [1036, 811, 1076, 781] in [top, right, bottom, left] pixels.",
+    "collectedAt": 1794973313368
+  }
+}

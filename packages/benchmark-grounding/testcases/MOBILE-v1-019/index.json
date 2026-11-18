@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-019",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The left circular handle sets the lower bound of the selected price range, currently ¥400."
+  },
+  "instruction": {
+    "en": "Locate the slider handle that sets the minimum price in the price-range filter.",
+    "zh": "找到价格区间筛选中用于设置最低价格的滑块。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [
+    894,
+    345,
+    963,
+    275
+  ],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "jpeg",
+      "sha256": "6568264ee96e813fe9543b2c50fd77891aee2c5f9fb1e5bdde5144e1f3646607"
+    },
+    "patch": "Created a Midscene-authored testcase using a user-provided 1260 × 2844 JPEG screenshot, with newly authored bilingual instructions and ground-truth annotations. The target is the left circular handle that sets the minimum price in the price-range filter. The screenshot bytes are preserved unchanged as provided.",
+    "collectedAt": 1794906284564
+  }
+}

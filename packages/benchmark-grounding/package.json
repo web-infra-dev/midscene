@@ -1,0 +1,20 @@
+{
+  "name": "@midscene/benchmark-grounding",
+  "version": "1.18.1",
+  "description": "Grounding benchmark testcase dataset with source-specific licenses and attribution for Midscene.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/midscene.git",
+    "directory": "packages/benchmark-grounding"
+  },
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json"
+  },
+  "files": ["testcases", "LICENSE"],
+  "license": "SEE LICENSE IN LICENSE",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

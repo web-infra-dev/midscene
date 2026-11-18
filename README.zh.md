@@ -190,4 +190,4 @@ Midscene 支持豆包 Seed、千问 Qwen、DeepSeek、Gemini、GPT、Kimi 等模
 
 ## 📝 许可协议
 
-Midscene.js 采用 [MIT 许可证](https://github.com/web-infra-dev/midscene/blob/main/LICENSE)。
+Midscene.js 代码采用 [MIT 许可证](https://github.com/web-infra-dev/midscene/blob/main/LICENSE)。独立发布的 `@midscene/benchmark-grounding` 数据包包含按各来源许可证分发的第三方数据。详见[数据包许可与来源归属](./packages/benchmark-grounding/LICENSE)。

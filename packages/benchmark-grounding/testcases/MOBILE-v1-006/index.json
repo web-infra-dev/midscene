@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-006",
+  "platform": "mobile",
+  "category": {
+    "item": "Color Recognition",
+    "reason": "The purple background distinguishes the text on the album artwork from the similarly worded text on the white background."
+  },
+  "instruction": {
+    "en": "Find the text containing “into the bliss” on a predominantly purple background (case-insensitive).",
+    "zh": "找到主色调为紫色背景的包含“into the bliss”内容的文本（不区分大小写）。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [635, 790, 685, 369],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L5222",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#435",
+    "image": {
+      "format": "png",
+      "sha256": "94a980d05554db0b3e194a760835b6fbe7145ebaa73898c3b18980c358cf9d40"
+    },
+    "patch": "Replaced the original instruction “play this album” with a request to find text containing “into the bliss” on a predominantly purple background, regardless of case, and added a corresponding Chinese instruction. Changed groundTruth from [1330, 555, 1488, 51] to [635, 790, 685, 369] in [top, right, bottom, left] pixel coordinates, moving the target from the Play button to the text on the album artwork. Changed category.item from Functional to Color Recognition and updated category.reason to explain the use of background color.",
+    "collectedAt": 1793870312267
+  }
+}

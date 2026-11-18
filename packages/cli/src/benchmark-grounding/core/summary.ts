@@ -1,0 +1,210 @@
+import { countBy, sum, sumBy } from 'es-toolkit';
+import type { Profile, ReportMeta, Result } from './schemas';
+
+const nonnegative = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value >= 0;
+
+/** Zero is a sample; absent, negative and non-finite measurements are not. */
+export function summarizeMetric(values: (number | null | undefined)[]) {
+  const samples = values.filter(nonnegative);
+  if (!samples.length) return { count: 0, average: null, total: 0 };
+  return {
+    count: samples.length,
+    average: Math.min(
+      Number.MAX_VALUE,
+      sumBy(samples, (value) => value / samples.length),
+    ),
+    total: Math.min(Number.MAX_VALUE, sum(samples)),
+  };
+}
+
+/** Model-equally-weighted median, before display rounding or chart transforms. */
+export function median(values: (number | null | undefined)[]): number | null {
+  const sorted = values.filter(nonnegative).sort((a, b) => a - b);
+  if (!sorted.length) return null;
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2
+    ? sorted[middle]
+    : sorted[middle - 1] / 2 + sorted[middle] / 2;
+}
+
+function sumKnown(profiles: Profile[], key: keyof Profile): number | undefined {
+  const values = profiles.map((profile) => profile[key]).filter(nonnegative);
+  return values.length ? Math.min(Number.MAX_VALUE, sum(values)) : undefined;
+}
+
+function completeUsage(profiles: Profile[]) {
+  return (
+    profiles.length > 0 &&
+    profiles.every((profile) => profile.usageStatus === 'complete')
+  );
+}
+
+function ratio(numerator: number, denominator: number | null) {
+  if (denominator === null || denominator <= 0) return null;
+  const value = numerator / denominator;
+  return Number.isFinite(value) ? value : null;
+}
+
+/** Report measurements include every attempt. */
+export function calculateSummary({
+  models: modelNames,
+  testcaseCount,
+  results,
+  meta,
+}: {
+  models: string[];
+  testcaseCount: number;
+  results: Result[];
+  meta?: ReportMeta;
+}) {
+  const models = modelNames.map((model) => {
+    const items = results.filter(
+      (result) => result.input.displayName === model,
+    );
+    const configured = meta?.models?.[model];
+    const reference = configured?.reference;
+    const performance = reference?.performance;
+    const throughputIncludesTtft =
+      reference &&
+      performance &&
+      'outputTokensPerSecond' in performance &&
+      (performance.url
+        ? new URL(performance.url).hostname === 'openrouter.ai'
+        : reference.source === 'OpenRouter' ||
+          new URL(reference.url).hostname === 'openrouter.ai');
+    const family = configured?.displayFamily ?? 'Other';
+    const style = meta?.families?.[family] ?? meta?.families?.Other;
+    const profiles = items.map((result) =>
+      result.attempts.map((attempt) => attempt.profiling),
+    );
+    const estimatedCost = summarizeMetric(
+      profiles.map((attempts) => {
+        const price = reference?.pricing;
+        if (!price || !attempts.length) return undefined;
+        if (price.inputPerToken === 0 && price.outputPerToken === 0) return 0;
+        if (
+          !completeUsage(attempts) ||
+          !attempts.every(
+            (profile) =>
+              nonnegative(profile.totalPromptTokens) &&
+              nonnegative(profile.totalCompletionTokens),
+          )
+        )
+          return undefined;
+        const conversion =
+          price.currency === 'CNY' ? price.usdExchangeRate.cnyPerUsd : 1;
+        const cost = sumBy(
+          attempts,
+          (profile) =>
+            ((profile.totalPromptTokens as number) * price.inputPerToken +
+              (profile.totalCompletionTokens as number) *
+                price.outputPerToken) /
+            conversion,
+        );
+        return nonnegative(cost) ? cost : undefined;
+      }),
+    );
+    const duration = summarizeMetric(
+      profiles.map((attempts) => sumKnown(attempts, 'durationMs')),
+    );
+    const estimatedElapsedTime = summarizeMetric(
+      profiles.map((attempts) => {
+        if (
+          !performance ||
+          !completeUsage(attempts) ||
+          !attempts.every((profile) => nonnegative(profile.calls))
+        )
+          return undefined;
+        if (
+          !('responseLatencyMs' in performance) &&
+          !attempts.every((profile) =>
+            nonnegative(profile.totalCompletionTokens),
+          )
+        )
+          return undefined;
+        const calls = sumKnown(attempts, 'calls') as number;
+        const output = sumKnown(attempts, 'totalCompletionTokens') ?? 0;
+        if ('responseLatencyMs' in performance)
+          return calls * performance.responseLatencyMs;
+        // OpenRouter measures from request start, including the first-token wait.
+        if (throughputIncludesTtft)
+          return sumBy(attempts, (profile) =>
+            Math.max(
+              (profile.calls as number) * performance.timeToFirstTokenMs,
+              ((profile.totalCompletionTokens as number) /
+                performance.outputTokensPerSecond) *
+                1000,
+            ),
+          );
+        return (
+          calls * performance.timeToFirstTokenMs +
+          (Math.max(output - calls, 0) / performance.outputTokensPerSecond) *
+            1000
+        );
+      }),
+    );
+    if (estimatedElapsedTime.average !== null && duration.average !== null) {
+      estimatedElapsedTime.average = Math.min(
+        estimatedElapsedTime.average,
+        Math.max(duration.average - 100, 0),
+      );
+      estimatedElapsedTime.total = Math.min(
+        Number.MAX_VALUE,
+        estimatedElapsedTime.average * estimatedElapsedTime.count,
+      );
+    }
+    const passed = items.filter((result) => result.output.correct).length;
+    const usage = countBy(profiles, (attempts) =>
+      completeUsage(attempts)
+        ? 'complete'
+        : attempts.some((profile) => profile.usageStatus !== 'missing')
+          ? 'partial'
+          : 'missing',
+    );
+    return {
+      model,
+      modelId: configured?.name ?? items[0]?.input.model,
+      family,
+      color: style?.color ?? '#94a3b8',
+      ...(style?.logo ? { icon: style.logo } : {}),
+      ...(reference ? { reference } : {}),
+      total: testcaseCount,
+      count: items.length,
+      missing: Math.max(testcaseCount - items.length, 0),
+      passed,
+      errors: items.filter((result) => result.output.type === 'ERROR').length,
+      score: items.length ? (passed / items.length) * 100 : null,
+      duration,
+      inputTokens: summarizeMetric(
+        profiles.map((attempts) => sumKnown(attempts, 'totalPromptTokens')),
+      ),
+      outputTokens: summarizeMetric(
+        profiles.map((attempts) => sumKnown(attempts, 'totalCompletionTokens')),
+      ),
+      totalTokens: summarizeMetric(
+        profiles.map((attempts) => sumKnown(attempts, 'totalTokens')),
+      ),
+      estimatedElapsedTime,
+      estimatedCost,
+      speed: ratio(60_000, estimatedElapsedTime.average),
+      affordability: ratio(1, estimatedCost.average),
+      usage: {
+        complete: usage.complete ?? 0,
+        partial: usage.partial ?? 0,
+        missing: usage.missing ?? 0,
+      },
+    };
+  });
+  const correct = results.filter((result) => result.output.correct).length;
+  const total = modelNames.length * testcaseCount;
+  return {
+    total,
+    count: results.length,
+    missing: Math.max(total - results.length, 0),
+    correct,
+    errors: results.filter((result) => result.output.type === 'ERROR').length,
+    score: results.length ? (correct / results.length) * 100 : null,
+    models,
+  };
+}

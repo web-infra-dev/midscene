@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-072",
+  "platform": "mobile",
+  "category": {
+    "item": "Refusal",
+    "reason": "All four displayed download percentages are at or below 74%, so no app satisfies the requested condition and the model must refuse to locate it."
+  },
+  "instruction": {
+    "en": "Find the app whose download progress is greater than 74%.",
+    "zh": "寻找下载进度大于 74% 的 App。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=222",
+    "image": {
+      "format": "png",
+      "sha256": "8857a52d9b4adfce7c7647324ef486635e85fb3e4c22b6f270213a61f851c9d5"
+    },
+    "patch": "Recreated the original 1080 × 2400 JPEG screenshot as an AI-generated 841 × 1870 PNG image: changed Apps (1) to Apps (4), retained AI Life’s original 14% download progress, and added three fictional apps with download progress of 27%, 53%, and 74%. Replaced the original instruction ‘Click on \"Size: 88.48 MB\"’ with a request to find an app whose download progress is greater than 74%, and added instruction.zh by translating the revised English instruction. Changed groundTruth from [556.0, 623.0, 621.0, 237.0] in [top, right, bottom, left] pixel coordinates to REFUSAL because no displayed app meets the condition. Changed category.item to Refusal and updated category.reason accordingly.",
+    "collectedAt": 1793776824833
+  }
+}

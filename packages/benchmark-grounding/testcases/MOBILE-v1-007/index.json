@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-007",
+  "platform": "mobile",
+  "category": {
+    "item": "Color Recognition",
+    "reason": "The task requires recognizing the predominantly green food icon among the category icons."
+  },
+  "instruction": {
+    "en": "Select the food category whose icon is predominantly green.",
+    "zh": "选择图标主色是绿色的菜品类型。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1237, 699, 1655, 380],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1061",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1061",
+    "image": {
+      "format": "png",
+      "sha256": "2752b2a5adf6ed4aea32fbc33510223339a075847adf9047ca9d4e641f60101a"
+    },
+    "patch": "Replaced the original instruction “Click the first button on the top row” with an instruction to select the food category whose icon is predominantly green, and added instruction.zh by translating the revised English instruction. Changed groundTruth from [798, 360, 1216, 42] to [1237, 699, 1655, 380] in [top, right, bottom, left] pixel coordinates, moving the target from the Pasta card to the Meatless card. Updated category.item and category.reason to reflect color recognition.",
+    "collectedAt": 1793776824833
+  }
+}

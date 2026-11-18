@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-099",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is the curved-line tool, identified by its function of drawing a curve."
+  },
+  "instruction": {
+    "en": "I need to draw a curve.",
+    "zh": "我需要画曲线。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [615, 1034, 817, 822],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00001-of-00002.parquet#row=220",
+    "image": {
+      "format": "png",
+      "sha256": "7303f569579000423865527f10ec41f11ccb8fccb0ca977b970aef0b30f8ef07"
+    },
+    "patch": "Replaced the original instruction “Click on the circle.” with a request to draw a curve and added a corresponding Chinese instruction. Changed groundTruth from [956.0, 1092.0, 1217.0, 771.0] to [615, 1034, 817, 822] in [top, right, bottom, left] pixel coordinates, moving the target from the circle to the curved-line tool. Changed category.item from Basic Element to Functional and updated category.reason to explain the tool’s drawing function.",
+    "collectedAt": 1793776824833
+  }
+}

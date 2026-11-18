@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-025",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires interpreting a project timeline to identify a task that spans one specified week and finishes in another."
+  },
+  "instruction": {
+    "en": "Find the task that spans Week 47 and is scheduled to be completed in Week 48, and click to view its details.",
+    "zh": "找到跨越第 47 周并在第 48 周完成的任务，点击查看详情。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1702.0, 3550.0, 1773.0, 3043.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L14716",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#1051",
+    "image": {
+      "format": "png",
+      "sha256": "9952bb0acf638bb3285fa52b6059a9c14d1db9de24ca550e254d3b60caed2fc6"
+    },
+    "patch": "Revised both instructions to identify a task that spans Week 47 and ends in Week 48, instead of a Phase Two task completing in Week 47. Expanded the ground truth's left edge from 3077.0 to 3043.0 to include the task's expansion triangle, and updated category.reason to describe interpreting the project timeline.",
+    "collectedAt": 1792485870688
+  }
+}

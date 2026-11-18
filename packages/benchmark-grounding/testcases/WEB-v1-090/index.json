@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-090",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The target requires filtering applications by total downloads, rating and package size, comparing their download counts over the last seven days, and locating the SHA-256 in the selected row."
+  },
+  "instruction": {
+    "en": "Among the apps with more than 10 million total downloads, a rating of at least 4.7, and a package size between 100 and 350 MB inclusive, find the package SHA-256 of the app with the fewest downloads in the last 7 days.",
+    "zh": "在总下载量超过 1,000 万、评分不低于 4.7 且安装包体积为 100 至 350 MB（含边界）的应用中，找到近 7 天下载量最少的应用的安装包 SHA-256。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [1359, 3456, 1407, 2567],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "eeb88c1b1797ce5f00651b9bd092d92ce2879c55000452c68f6d8d6b19db86ce"
+    },
+    "patch": "Added instruction.en by translating the original Chinese instruction. Replaced the screenshot with a new capture that includes the App Statistics title bar and removes the black corner artifacts. The image size changed from 3456 × 1828 to 3456 × 1924, shifting the spreadsheet down by 96 pixels. Updated groundTruth from [1263, 3456, 1311, 2567] to [1359, 3456, 1407, 2567] in [top, right, bottom, left] pixel coordinates to follow the same Package SHA-256 cell in the Vela Recipe row. The table data and instructions are unchanged; Vela Recipe remains the unique qualifying app with the fewest downloads in the last seven days.",
+    "collectedAt": 1794379601126
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-097",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Two messages share the sender 栖岛账号团队. The target is the empty checkbox for the message that is not selected."
+  },
+  "instruction": {
+    "en": "Locate the checkbox for the unselected email from “栖岛账号团队”.",
+    "zh": "找到发件人为“栖岛账号团队”且尚未勾选的邮件的复选框。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [
+    1740,
+    1086,
+    1800,
+    1026
+  ],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "89af51732d25fdb076fddcbaac219d62118f5fbacc761e19df3f431bb0128ffb"
+    },
+    "patch": "Independently designed and rendered a 1170 × 2532 mobile inbox using original HTML and CSS, fictional senders, and fictional messages. Wrote bilingual instructions to locate the unchecked message from 栖岛账号团队. Annotated its checkbox from the rendered element bounds as [1740, 1086, 1800, 1026] in [top, right, bottom, left] pixels.",
+    "collectedAt": 1794973486797
+  }
+}

@@ -1,0 +1,369 @@
+Licensing of @midscene/benchmark-grounding
+
+This file contains the complete license texts and the source attribution
+for the dataset. The source attribution section identifies the applicable
+license for each source.
+
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright [yyyy] [name of copyright owner]
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+MIT License
+
+Copyright (c) 2024-present Bytedance, Inc. and its affiliates.
+Copyright (c) 2025 inclusionAI
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Source attribution and modification notices
+===========================================
+
+Midscene contributions
+---------------------
+Copyright (c) 2024-present Bytedance, Inc. and its affiliates.
+License: MIT, to the extent of Midscene's rights in its testcases,
+annotations, translations, documentation and compilation.
+https://github.com/web-infra-dev/midscene/blob/72580c6fd596ad20ba6a4ab76cd106e6e7df1bfb/LICENSE
+The independently authored testcases are WEB-v1-019, WEB-v1-020, WEB-v1-021,
+WEB-v1-043, WEB-v1-090, MOBILE-v1-008, MOBILE-v1-018, MOBILE-v1-019,
+MOBILE-v1-020, MOBILE-v1-095, MOBILE-v1-096 and MOBILE-v1-097.
+MOBILE-v1-018, MOBILE-v1-019, MOBILE-v1-020, MOBILE-v1-095, MOBILE-v1-096,
+WEB-v1-019, WEB-v1-021 and WEB-v1-043 use contributor-provided screenshots.
+Each testcase's reference.patch describes its screenshot and annotation changes.
+
+VenusBench-GD
+-------------
+Publisher: inclusionAI; VenusBench-GD contributors.
+Copyright (c) 2025 inclusionAI.
+Source release: 7e5714566f912203c9989b06ef4c08bdf913e3fa.
+License: MIT, declared by the official dataset release.
+https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/README.md
+https://github.com/inclusionAI/UI-Venus/blob/56b1005aaf7675fc516c0d58a2dc4640e197e091/LICENSE
+
+ScreenSpot-v2
+------------
+Publisher: OS-Copilot; ScreenSpot-v2 contributors.
+Source release: 5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c.
+License: Apache-2.0, declared in the dataset card.
+https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/README.md
+
+MMBench-GUI L2
+--------------
+Publisher: OpenGVLab; MMBench-GUI contributors.
+Source release: e27757e3910e0d5995b811f916b509b4e34a4690.
+License: Apache-2.0, declared in the dataset card.
+https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/README.md
+
+WebClick
+--------
+Publisher and attribution: H Company Research Team, H Company.
+Source release: 9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a.
+License: Apache-2.0, declared in the dataset card and its Licence section.
+https://huggingface.co/datasets/Hcompany/WebClick/blob/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/README.md
+
+UI-I2E-Bench
+------------
+Publisher: vaundys; UI-I2E-Bench contributors.
+Source release: ecfcc016d92c87ce6c194dba1b3faffabf7db51d.
+License: Apache-2.0, declared in the dataset card.
+https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/README.md
+All included Web and Mobile records use the official Apache-2.0 dataset
+release. Earlier source ancestry, including AndroidControl, is retained as
+provenance without adding conditions to the official release license.
+AndroidControl provenance (Apache-2.0): Google Research.
+Copyright 2024 The Google Research Authors.
+https://github.com/google-research/google-research/blob/master/android_control/README.md#license
+The AndroidControl-derived cases are MOBILE-v1-001, MOBILE-v1-002,
+MOBILE-v1-007, MOBILE-v1-022, MOBILE-v1-023, MOBILE-v1-035, MOBILE-v1-037,
+MOBILE-v1-040, MOBILE-v1-041, MOBILE-v1-042, MOBILE-v1-062, MOBILE-v1-063,
+MOBILE-v1-064 and MOBILE-v1-066.
+
+OSWorld-G
+---------
+Publisher: xlang-ai; OSWorld-G contributors.
+Authors credited by the project: Tianbao Xie, Jiaqi Deng, Xiaochuan Li,
+Junlin Yang, Haoyuan Wu, Jixuan Chen, Wenjing Hu, Xinyuan Wang, Yuhui Xu,
+Zekun Wang, Yiheng Xu, Junli Wang, Doyen Sahoo, Tao Yu and Caiming Xiong.
+Source release: daa6bd8e0e629f0917ad2984df930bf0bd967540.
+License: Apache-2.0, supplied in the source repository's LICENSE.
+https://github.com/xlang-ai/OSWorld-G/blob/daa6bd8e0e629f0917ad2984df930bf0bd967540/LICENSE
+https://github.com/xlang-ai/OSWorld-G/blob/daa6bd8e0e629f0917ad2984df930bf0bd967540/README.md
+
+GroundUI-1K / GroundUI-18K
+--------------------------
+Publisher: agent-studio; AgentStudio/GroundUI contributors.
+GroundUI-1K release: 5d18efc3085902648b7031bf747a1090356a1b17.
+GroundUI-18K release: f061eba2b7e3fffcf511694f15ad3ca38898ab9e.
+License: MIT, declared separately for these datasets in their dataset cards.
+https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/README.md
+https://huggingface.co/datasets/agent-studio/GroundUI-18K/blob/f061eba2b7e3fffcf511694f15ad3ca38898ab9e/README.md
+The source cards ask users to keep these test sets out of training.
+
+ScreenSpot provenance (Apache-2.0): OS-Copilot/ScreenSpot-v2.
+The original screenshot bytes for MOBILE-v1-072 and MOBILE-v1-099 match
+images in the ScreenSpot-v2 release identified above. These GroundUI
+records use their official GroundUI MIT release license. MOBILE-v1-072
+has subsequent Midscene image edits recorded in its reference.patch.
+The ScreenSpot-v2 annotations below use zero-based record numbers. The
+original PNGs are stored in the release archive.
+https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/resolve/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspotv2_image.zip
+MOBILE-v1-072: #320, mobile_97ca06a1-8d37-4ece-b7ed-79517c61da2f.png
+Original SHA-256: 5ef7f6467f557c5e6e5b040f44c08219f0f7ba81f95037c34acc807ff2e28a80
+https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L3842
+MOBILE-v1-099: #284, mobile_d3865883-8214-4bff-9834-13987580abe8.png
+Original SHA-256: 7303f569579000423865527f10ec41f11ccb8fccb0ca977b970aef0b30f8ef07
+https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L3410
+
+Other included GroundUI source provenance: MoTIF (aburns4/MoTIF).
+The authors are Andrea Burns, Deniz Arsan, Sanjna Agrawal, Ranjitha Kumar,
+Kate Saenko and Bryan A. Plummer.
+https://github.com/aburns4/MoTIF
+The affected cases are MOBILE-v1-004, MOBILE-v1-009, MOBILE-v1-029,
+MOBILE-v1-073 and MOBILE-v1-082. These use the GroundUI-1K MIT release.
+MoTIF's original license remains unverified.
+
+Underlying dataset: OmniACT, published by Writer.
+WEB-v1-073 comes from GroundUI-1K and WEB-v1-017 comes from GroundUI-18K.
+Authors credited by the dataset: Raghav Kapoor, Yash Parag Butala,
+Melisa Russak, Jing Yu Koh, Kiran Kamble, Waseem Alshikh and
+Ruslan Salakhutdinov.
+License: MIT, declared in the OmniACT dataset card.
+License evidence reviewed at revision 5e4bcb26745afc8d58ba9519ea9c9fb832386d26:
+https://huggingface.co/datasets/Writer/omniact/blob/5e4bcb26745afc8d58ba9519ea9c9fb832386d26/README.md
+The OmniACT revision identifies the license evidence. The GroundUI revisions
+above identify the imported releases.
+
+Modifications in this distribution
+---------------------------------
+Midscene selected source records, converted their annotations to the local
+testcase format, and supplied bilingual instructions and category explanations.
+Each imported testcase's index.json records its upstream dataset, record ID
+and source URL. Each testcase records individual changes in reference.patch.
+
+Excluded records and third-party materials
+-----------------------------------------
+The distribution uses sources with an explicit MIT or Apache-2.0 license
+declared by their publishers. The exclusion policy covers records without
+verified source authorization and original Mind2Web screenshots and
+annotations. All 200 testcase IDs have versions in this dataset.
+
+Depicted interfaces, logos, product names, trademarks and other third-party
+content remain subject to their owners' rights. This package supplies no
+additional permission or endorsement on their behalf.
+WEB-v1-013 (Reddit), WEB-v1-031 (Yahoo Finance), WEB-v1-037 (JD.com) and
+WEB-v1-046 (Weibo) preserve copyright notices visible in the page footers.

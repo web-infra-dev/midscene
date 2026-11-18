@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-035",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires identifying the footwear item among other product categories and then selecting the requested color swatch."
+  },
+  "instruction": {
+    "en": "Click the red color swatch of the only footwear item to view the red version of the shoe.",
+    "zh": "点击唯一一个鞋类商品的红色颜色查看器以查看该鞋子红色款式。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1661.0, 1967.0, 1697.0, 1931.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L11510",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#822",
+    "image": {
+      "format": "png",
+      "sha256": "b2cd665cfc5ce62a674211759b7d8d1d427d3afca57540680eb4dc73e3b883cf"
+    },
+    "patch": "Changed both instructions from clicking the footwear product image to clicking its red color swatch to view the red version. Moved the ground truth from the shoe image to the red swatch and updated category.reason to reflect product identification and color selection.",
+    "collectedAt": 1792485870777
+  }
+}

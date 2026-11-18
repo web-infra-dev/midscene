@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-034",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires evaluating a numeric range condition against product customer counts to identify a qualifying product."
+  },
+  "instruction": {
+    "en": "Select the image of the product with more than 60 and fewer than 100 paying customers.",
+    "zh": "选择付款人数大于 60 且小于 100 的商品图片。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [610.0, 2789.0, 1095.0, 2298.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L4160",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#297",
+    "image": {
+      "format": "png",
+      "sha256": "7d300f81422d1f2496e6bd3871cd7759a892caf2f19f81065c7a8aa0067341cb"
+    },
+    "patch": "Reworded the English and Chinese instructions to clearly describe the number of paying customers, preserving the original numerical conditions and target.",
+    "collectedAt": 1792485870768
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-008",
+  "platform": "mobile",
+  "category": {
+    "item": "Color Recognition",
+    "reason": "The checked green swatch determines which color to select. The task targets the purple preset in the lower common-colors grid."
+  },
+  "instruction": {
+    "en": "In the lower “Common colors” section, select teal if red is currently selected, select black if yellow is currently selected, and select purple if the current selection is neither black nor blue.",
+    "zh": "在下方「常用颜色」中，如果当前选中的是红色就改选青绿色，如果当前选中的是黄色就改选黑色，如果当前选中的既不是黑色也不是蓝色就改选为紫色。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [
+    2148,
+    232,
+    2274,
+    93
+  ],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "a507e13ab4c8720578816551cb1aba71240d330c7b8c7f6ed29151d28829298f"
+    },
+    "patch": "Independently designed and rendered a 1170 × 2532 fictional journal theme-color editor with original HTML and CSS. The editor has a saturation and brightness spectrum, a hue slider, HEX and RGB values, opacity, and a separate 12-color preset picker with green selected. Wrote bilingual instructions to select teal for red, black for yellow, and purple when the current preset is neither black nor blue. Annotated the purple preset's rendered bounds at [2148, 232, 2274, 93] in [top, right, bottom, left] pixels.",
+    "collectedAt": 1794984378024
+  }
+}

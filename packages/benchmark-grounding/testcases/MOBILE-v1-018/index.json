@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-018",
+  "platform": "mobile",
+  "category": {
+    "item": "Small Target",
+    "reason": "The current rotation angle is indicated by a narrow tick among similar neighboring ruler marks, requiring precise localization without a numeric readout."
+  },
+  "instruction": {
+    "en": "Locate the tick mark that indicates the current rotation angle on the rotation adjustment ruler.",
+    "zh": "定位旋转角度调节标尺上表示当前角度的刻度线。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [
+    1472,
+    421,
+    1524,
+    415
+  ],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "644ffce5f893191985513d45edd760478e2f654f1a68b55822e68fa293aab2b3"
+    },
+    "patch": "Created a Midscene-authored testcase from a contributor-provided 1260 × 2844 JPEG screenshot of a photo rotation editor. Used the built-in imagegen tool to composite out the “-8.0” numeric readout below the rotation-angle ruler, removing the text-based positioning clue while retaining the ruler and its current-angle tick. The generated screenshot is an 835 × 1884 PNG. Authored new English and Chinese instructions to locate the current rotation-angle tick, classified the task as Small Target, and annotated groundTruth as [1472, 421, 1524, 415] in [top, right, bottom, left] pixels on the generated image.",
+    "collectedAt": 1794908290996
+  }
+}

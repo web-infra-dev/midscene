@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-073",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The target requires comparing the apartment’s bedroom count and dwelling type with the capacity descriptions of the moving trucks."
+  },
+  "instruction": {
+    "en": "I need to move from a three-bedroom apartment. Select the most suitable moving truck.",
+    "zh": "我需要搬家，我的公寓有 3 间卧室，请选择最合适的搬家车辆。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [660, 1111, 789, 975],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00000-of-00002.parquet",
+    "dataset": "GroundUI-1K",
+    "recordId": "data/train-00000-of-00002.parquet#row=60",
+    "image": {
+      "format": "png",
+      "sha256": "34008777bf5eefac01fa2e6d52ab280786f5fe761a29ef13a37b7b4da20c71e8"
+    },
+    "patch": "Replaced the original instruction “Click on 'MovingHelp'” with a request to select the most suitable moving truck for a three-bedroom apartment, and added a corresponding Chinese instruction. Changed groundTruth from [163, 1231, 204, 1023] to [660, 1111, 789, 975] in [top, right, bottom, left] pixel coordinates, moving the target from the MovingHelp region to the 20-foot truck option. Changed category.item from Basic Element to Reasoning and updated category.reason to explain the comparison of truck capacity with the apartment description.",
+    "collectedAt": 1793867571070
+  }
+}

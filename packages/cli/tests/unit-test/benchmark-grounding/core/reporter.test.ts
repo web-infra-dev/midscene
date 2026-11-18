@@ -1,0 +1,426 @@
+import {
+  mkdir,
+  mkdtemp,
+  rm,
+  symlink,
+  unlink,
+  writeFile,
+} from 'node:fs/promises';
+import * as actual from 'node:fs/promises' with { rstest: 'importActual' };
+import os from 'node:os';
+import path from 'node:path';
+import { mergeReportMeta } from '@/benchmark-grounding/core/metadata';
+import {
+  createReport,
+  createViewer,
+} from '@/benchmark-grounding/core/reporter';
+import {
+  type LoadedTestcase,
+  type ReportMeta,
+  type Result,
+  reportMetaSchema,
+} from '@/benchmark-grounding/core/schemas';
+import { presetMeta } from '@/benchmark-grounding/presets';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
+import { fixture as testcase, writeFixture } from '../fixture';
+
+rs.mock('node:fs/promises', () => {
+  return {
+    ...actual,
+    readFile: (filename: string | URL, options?: 'utf8') => {
+      if (
+        filename instanceof URL &&
+        filename.pathname.endsWith('/ui-template.html')
+      ) {
+        return Promise.resolve(
+          '<!doctype html><title>Midscene Grounding Benchmark</title><script id="benchmark-data" type="application/json">"__MIDSCENE_BENCHMARK_DATA__"</script>',
+        );
+      }
+      return options === 'utf8'
+        ? actual.readFile(filename, 'utf8')
+        : actual.readFile(filename);
+    },
+  };
+});
+
+const temporary: string[] = [];
+afterEach(async () => {
+  await Promise.all(
+    temporary
+      .splice(0)
+      .map((directory) => rm(directory, { recursive: true, force: true })),
+  );
+});
+function result(record: LoadedTestcase): Result {
+  const attempt: Result['attempts'][number] = {
+    output: {
+      type: 'POINT',
+      correct: true,
+      center: [0.5, 0.5],
+    },
+    profiling: {
+      durationMs: 100,
+      usageStatus: 'complete',
+      calls: 1,
+      totalPromptTokens: 10,
+      totalCompletionTokens: 2,
+      totalTokens: 12,
+    },
+  };
+  return {
+    schemaVersion: 1,
+    consistency: { testcaseSha256: record.testcaseSha256 },
+    input: {
+      testcase: record.testcase.name,
+      model: 'api-model',
+      family: 'qwen3',
+      displayName: 'model',
+      platform: 'web',
+      instruction: record.testcase.instruction.en,
+      groundTruth: record.testcase.groundTruth,
+    },
+    output: attempt.output,
+    profiling: attempt.profiling,
+    attempts: [attempt],
+  };
+}
+
+const capturedMeta: ReportMeta = {
+  models: {
+    model: {
+      name: 'api-model',
+      family: 'qwen3',
+      displayName: 'model',
+      displayFamily: 'Captured',
+      reference: {
+        source: 'Snapshot source',
+        url: 'https://example.com/reference',
+        observedAt: '2026-11-12',
+        pricing: { currency: 'USD', inputPerToken: 1, outputPerToken: 2 },
+      },
+    },
+  },
+  families: {
+    Captured: { color: '#123456', logo: 'data:image/svg+xml;base64,PHN2Zy8+' },
+  },
+};
+
+async function fixture(record = testcase('one')) {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'grounding-report-'));
+  temporary.push(directory);
+  await mkdir(path.join(directory, 'results', 'model'), { recursive: true });
+  await Promise.all([
+    writeFixture(path.join(directory, 'testcases'), record),
+    writeFile(path.join(directory, 'meta.json'), JSON.stringify(capturedMeta)),
+    writeFile(
+      path.join(directory, 'results', 'model', `${record.testcase.name}.json`),
+      JSON.stringify(result(record)),
+    ),
+  ]);
+  return { directory, record };
+}
+
+function payload(html: string) {
+  return JSON.parse(
+    html.split('type="application/json">')[1].split('</script>')[0],
+  );
+}
+
+describe('grounding HTML assembly', () => {
+  it('embeds raw snapshot JSON, SHA, and image once, safely escaping script terminators', async () => {
+    const record = testcase('one', {
+      instruction: {
+        en: '</script><script>alert("x")</script>&\u2028\u2029$&',
+        zh: '定位目标',
+      },
+    });
+    const html = await createViewer({ testcases: [record] });
+    expect(html).not.toContain('<script>alert');
+    expect(html).toContain('\\u003c/script\\u003e');
+    const data = payload(html);
+    expect(data.mode).toBe('viewer');
+    expect(data.testcases[0].instruction.en).toBe(
+      record.testcase.instruction.en,
+    );
+    expect(data.testcases[0].indexJson).toBe(
+      record.files['index.json'].toString('utf8'),
+    );
+    expect(data.testcases[0].indexSha256).toBe(
+      record.files['index.sha256'].toString('utf8'),
+    );
+    expect(data.testcases[0].image).toMatch(/^data:image\/png;base64,/);
+  });
+
+  it('validates caller data and sorts the viewer by complete testcase name', async () => {
+    expect(
+      payload(
+        await createViewer({ testcases: [testcase('two'), testcase('one')] }),
+      ).testcases.map((item: { name: string }) => item.name),
+    ).toEqual(['one', 'two']);
+    const record = testcase();
+    record.testcase.instruction.en = 'Mutable caller value';
+    await expect(createViewer({ testcases: [record] })).rejects.toThrow(
+      /does not match/,
+    );
+    await expect(
+      createViewer({ testcases: [testcase(), testcase()] }),
+    ).rejects.toThrow(/Duplicate/);
+  });
+
+  it('can reference served images without embedding their bytes or skipping validation', async () => {
+    const record = testcase('case with # and ?');
+    const html = await createViewer({
+      testcases: [record],
+      imageBaseUrl: '/images/',
+    });
+    const data = payload(html);
+    expect(data.testcases[0].image).toBe(
+      `/images/case%20with%20%23%20and%20%3F/image.png?sha256=${record.testcase.reference.image.sha256}`,
+    );
+    expect(data.testcases[0].indexJson).toBe(
+      record.files['index.json'].toString('utf8'),
+    );
+    expect(html).not.toContain(record.files['image.png'].toString('base64'));
+    record.files['image.png'].fill(0);
+    await expect(
+      createViewer({ testcases: [record], imageBaseUrl: '/images' }),
+    ).rejects.toThrow('image SHA-256 mismatch');
+  });
+
+  it('regenerates using only saved snapshots and captured metadata', async () => {
+    const { directory, record } = await fixture();
+    record.files['image.png'].fill(0);
+    record.testcase.instruction.en = 'Caller changed';
+    const html = await createReport({ runDirectory: directory });
+    const data = payload(html);
+    expect(data.summaries.missing).toBe(0);
+    expect(data.evaluationId).toBe(path.basename(directory));
+    expect(data.models).toEqual(['model']);
+    expect(data.results).toHaveLength(1);
+    expect(data.testcases[0].instruction.en).toBe('Locate the target');
+    expect(data.meta).toEqual(capturedMeta);
+    expect(data.summaries.models[0].estimatedCost.average).toBe(14);
+    expect(html).not.toContain('apiKey');
+    expect(html).not.toContain('baseUrl');
+  });
+
+  it('renders an incomplete report when results have not yet been saved', async () => {
+    const { directory } = await fixture();
+    await unlink(path.join(directory, 'results', 'model', 'one.json'));
+    const data = payload(await createReport({ runDirectory: directory }));
+    expect(data.summaries.missing).toBe(1);
+    expect(data.summaries.models[0]).toMatchObject({
+      count: 0,
+      missing: 1,
+      score: null,
+    });
+  });
+
+  it('rejects missing or damaged metadata instead of using current presets', async () => {
+    const { directory } = await fixture();
+    await unlink(path.join(directory, 'meta.json'));
+    await expect(createReport({ runDirectory: directory })).rejects.toThrow();
+    await writeFile(path.join(directory, 'meta.json'), '{}');
+    await expect(createReport({ runDirectory: directory })).rejects.toThrow(
+      /complete models and families/,
+    );
+    await writeFile(
+      path.join(directory, 'meta.json'),
+      JSON.stringify({
+        ...capturedMeta,
+        families: { Captured: { color: '#123', logo: '/source/logo.svg' } },
+      }),
+    );
+    await expect(createReport({ runDirectory: directory })).rejects.toThrow(
+      /embedded/,
+    );
+  });
+
+  it('rejects modified testcase bytes and a result with the wrong testcase SHA', async () => {
+    const first = await fixture();
+    await writeFile(
+      path.join(first.directory, 'testcases', 'one', 'index.json'),
+      Buffer.concat([first.record.files['index.json'], Buffer.from(' ')]),
+    );
+    await expect(
+      createReport({ runDirectory: first.directory }),
+    ).rejects.toThrow(/SHA-256 mismatch/);
+    const second = await fixture();
+    const wrong = result(second.record);
+    wrong.consistency.testcaseSha256 = '0'.repeat(64);
+    await writeFile(
+      path.join(second.directory, 'results', 'model', 'one.json'),
+      JSON.stringify(wrong),
+    );
+    await expect(
+      createReport({ runDirectory: second.directory }),
+    ).rejects.toThrow(/SHA-256/);
+  });
+
+  it('rejects snapshots that point to resources outside the saved run', async () => {
+    const { directory } = await fixture();
+    const image = path.join(directory, 'testcases', 'one', 'image.png');
+    await unlink(image);
+    await symlink('/nonexistent/external-image.png', image);
+    await expect(createReport({ runDirectory: directory })).rejects.toThrow(
+      /regular testcase files/,
+    );
+  });
+
+  it('retains versioned model identities when their result directories are empty or missing', async () => {
+    const { directory } = await fixture();
+    await mkdir(path.join(directory, 'results', 'empty'));
+    await writeFile(
+      path.join(directory, 'meta.json'),
+      JSON.stringify({
+        ...capturedMeta,
+        models: {
+          ...capturedMeta.models,
+          empty: {
+            name: 'empty-api-v2',
+            family: 'qwen3',
+            displayName: 'empty',
+          },
+        },
+      }),
+    );
+    const data = payload(await createReport({ runDirectory: directory }));
+    expect(data.models).toEqual(['model', 'empty']);
+    expect(data.summaries).toMatchObject({ total: 2, count: 1, missing: 1 });
+    expect(data.summaries.models[1]).toMatchObject({
+      model: 'empty',
+      modelId: 'empty-api-v2',
+      count: 0,
+      missing: 1,
+      score: null,
+    });
+    await rm(path.join(directory, 'results', 'empty'), { recursive: true });
+    const missing = payload(await createReport({ runDirectory: directory }));
+    expect(missing.models).toEqual(data.models);
+    expect(missing.summaries.missing).toBe(1);
+  });
+
+  it.each([
+    'model',
+    'family',
+    'displayName',
+    'testcase',
+    'instruction',
+    'platform',
+    'groundTruth',
+  ] as const)(
+    'rejects result input inconsistent with saved identity: %s',
+    async (field) => {
+      const { directory, record } = await fixture();
+      const wrong = result(record);
+      Object.assign(wrong.input, {
+        [field]:
+          field === 'groundTruth'
+            ? 'REFUSAL'
+            : field === 'platform'
+              ? 'mobile'
+              : 'wrong-value',
+      });
+      await writeFile(
+        path.join(directory, 'results', 'model', 'one.json'),
+        JSON.stringify(wrong),
+      );
+      await expect(createReport({ runDirectory: directory })).rejects.toThrow();
+    },
+  );
+
+  it('rejects misplaced model results and inconsistent final outputs', async () => {
+    const first = await fixture();
+    await mkdir(path.join(first.directory, 'results', 'unknown'));
+    await writeFile(
+      path.join(first.directory, 'results', 'unknown', 'one.json'),
+      JSON.stringify(result(first.record)),
+    );
+    await expect(
+      createReport({ runDirectory: first.directory }),
+    ).rejects.toThrow(/Unexpected model/);
+    const third = await fixture();
+    const wrong = result(third.record);
+    wrong.output = { type: 'REFUSAL', correct: false };
+    await writeFile(
+      path.join(third.directory, 'results', 'model', 'one.json'),
+      JSON.stringify(wrong),
+    );
+    await expect(
+      createReport({ runDirectory: third.directory }),
+    ).rejects.toThrow(/last attempt/);
+  });
+});
+
+describe('public metadata snapshots', () => {
+  it('retains model reference data and public preset logo URLs', () => {
+    expect(reportMetaSchema.safeParse(presetMeta).success).toBe(true);
+    expect(
+      Object.values(presetMeta.families!).every(
+        (family) => !family.logo || family.logo.startsWith('https://'),
+      ),
+    ).toBe(true);
+    expect(JSON.stringify(presetMeta)).not.toContain('apiKey');
+    expect(JSON.stringify(presetMeta)).not.toContain('baseUrl');
+  });
+
+  it('captures local logo bytes, preserves remote URLs, and retains no caller references', async () => {
+    const directory = await mkdtemp(path.join(os.tmpdir(), 'grounding-logo-'));
+    temporary.push(directory);
+    const logo = path.join(directory, 'custom.svg');
+    await writeFile(logo, '<svg/>');
+    const encodedLogo = 'data:image/svg+xml;charset=utf-8,%3Csvg%2F%3E';
+    const input: ReportMeta = {
+      models: { 'qwen3.8-max': { displayFamily: 'Custom' } },
+      families: {
+        Custom: { color: '#abcdef', logo },
+        Encoded: { color: '#123', logo: encodedLogo },
+        Remote: { color: '#456', logo: 'https://example.com/logo.svg' },
+        Http: { color: '#789', logo: 'http://example.com/logo.svg' },
+      },
+    };
+    const promise = mergeReportMeta(input);
+    input.models!['qwen3.8-max'].displayFamily = 'Mutated';
+    const saved = await promise;
+    await unlink(logo);
+    expect(saved.models!['qwen3.8-max']).toEqual({ displayFamily: 'Custom' });
+    expect(saved.families!.Custom.logo).toBe(
+      'data:image/svg+xml;base64,PHN2Zy8+',
+    );
+    expect(saved.families!.Encoded.logo).toBe(encodedLogo);
+    expect(saved.families!.Remote.logo).toBe('https://example.com/logo.svg');
+    expect(saved.families!.Http.logo).toBe('http://example.com/logo.svg');
+    expect(saved.models!['qwen3.8-flash']).toBeDefined();
+    const report = await fixture();
+    const snapshot = {
+      ...saved,
+      models: {
+        model: { ...capturedMeta.models!.model, displayFamily: 'Custom' },
+      },
+    };
+    await writeFile(
+      path.join(report.directory, 'meta.json'),
+      JSON.stringify(snapshot),
+    );
+    expect(
+      payload(await createReport({ runDirectory: report.directory })).meta,
+    ).toEqual(snapshot);
+  });
+
+  it('rejects unsupported logo schemes and missing local files', async () => {
+    await expect(
+      mergeReportMeta({
+        families: {
+          Invalid: { color: '#123', logo: 'javascript:alert(1)' },
+        },
+      }),
+    ).rejects.toThrow(/local file/);
+    await expect(
+      mergeReportMeta({
+        families: {
+          Missing: { color: '#123', logo: '/nonexistent/grounding-logo.svg' },
+        },
+      }),
+    ).rejects.toThrow();
+  });
+});

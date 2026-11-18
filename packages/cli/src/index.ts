@@ -40,7 +40,18 @@ Promise.resolve(
 
     if (firstArg === 'model') {
       const exitCode = await runModelCommand(rawArgs);
-      process.exit(exitCode);
+      if (exitCode !== undefined) {
+        // Flush benchmark progress before exiting; a viewer keeps its server alive.
+        await Promise.all([
+          new Promise<void>((resolve) =>
+            process.stdout.write('', () => resolve()),
+          ),
+          new Promise<void>((resolve) =>
+            process.stderr.write('', () => resolve()),
+          ),
+        ]);
+        process.exit(exitCode);
+      }
       return;
     }
 

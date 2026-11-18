@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-060",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires comparing the displayed coupons by eligibility, availability and value to select the highest-value qualifying option."
+  },
+  "instruction": {
+    "en": "Claim the highest-value no-minimum-spend coupon currently shown as available to claim.",
+    "zh": "领取目前显示可领取的最大额度的无门槛优惠券。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [268.0, 557.0, 513.0, 333.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L9060",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#647",
+    "image": {
+      "format": "png",
+      "sha256": "0173f73317fa03911ced35afb4e7e7d0b9a0a067b2a4ca8b3dff43e4cc70a4df"
+    },
+    "patch": "Replaced the original English instruction “Find the text \"Lowest price online? 17.8\".” with a request to claim the highest-value no-minimum-spend coupon currently shown as available, and added a corresponding Chinese instruction. Changed groundTruth from [1484.0, 726.0, 1521.0, 517.0] to [268.0, 557.0, 513.0, 333.0] in [top, right, bottom, left] pixel coordinates to cover the eligible coupon card. Changed category.item from Basic Element to Reasoning and updated category.reason to describe the comparison required by the instruction.",
+    "collectedAt": 1792485870338
+  }
+}
