@@ -144,7 +144,6 @@ export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
 
 | 名称 | 描述 |
 |------|-------------|
-| `MIDSCENE_MODEL_PROVIDER` | 模型供应方，可选值为 `openrouter` 和 `official`，分别使用 OpenRouter 和模型官方的参数适配规则。默认根据 Base URL 自动识别：Base URL 为 `https://openrouter.ai/api/v1` 时使用 OpenRouter 适配，其他地址使用模型官方接口适配。如果你使用了自建的代理或中转服务器，但背后依然是 OpenRouter，需要显式设置为 `openrouter`。 |
 | `MIDSCENE_MODEL_ENDPOINT` | System One API 的完整请求 URL，仅支持 System One 模型（目前为 Jev）。优先于对应模型的 `BASE_URL`，直接使用，不追加路径；设置后无需配置 `BASE_URL`。例如 `https://api.typesafe.ai/v1/systemone`。未设置时，沿用在 Base URL 后追加 `/systemone` 的行为。 |
 | `MIDSCENE_MODEL_TIMEOUT` | 单次模型请求的超时时间，单位毫秒，默认 `180000`（180 秒），包含响应体读取时间。设为 `0` 禁用此超时限制。 |
 | `MIDSCENE_MODEL_TEMPERATURE` | 模型采样温度。配置为 `unset` 时不传递温度参数。 |
@@ -161,6 +160,7 @@ export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
 | `MIDSCENE_MODEL_PROTOCOL` | 模型 API 协议：`openai-chat`（默认）或 `openai-responses`。后者的适用范围见[使用 Responses API](#model-api-type)。 |
 | `MIDSCENE_MODEL_AUTH_MODE` | 认证模式：`api-key`（默认）使用配置的 API Key；`siwc` 使用 ChatGPT 授权后保存的凭据，并自动刷新 access token。接入步骤参见[使用 ChatGPT 订阅额度](./chatgpt-subscription)。 |
 | `MIDSCENE_MODEL_STREAM_MODE` | 默认是非流式（`non-stream`）；如果指定为流式（`stream`），会将流式的结果聚合为完整结果再解析。 |
+| `MIDSCENE_MODEL_PROVIDER` | 模型服务商，可选值为 `openrouter` 和 `official`，分别使用 OpenRouter 和模型官方的参数适配规则。默认根据 Base URL 自动识别：Base URL 为 `https://openrouter.ai/api/v1` 时使用 OpenRouter 适配，其他地址使用模型官方接口适配。如果模型服务商是 OpenRouter，但 Base URL 不是上述地址，需要显式设置为 `openrouter`。 |
 
 ### 使用 Responses API {#model-api-type}
 

@@ -144,7 +144,6 @@ To configure a separate model for Planning, Locate, or Insight, use the correspo
 
 | Name | Description |
 |------|-------------|
-| `MIDSCENE_MODEL_PROVIDER` | Model provider. Accepted values are `openrouter` and `official`, which use OpenRouter’s and the model’s official parameter mappings, respectively. By default, Midscene detects the provider from the Base URL: `https://openrouter.ai/api/v1` selects OpenRouter mappings; other URLs use the model’s official API mappings. If you use a custom proxy or relay server backed by OpenRouter, explicitly set this to `openrouter`. |
 | `MIDSCENE_MODEL_ENDPOINT` | Full request URL for the System One API. Supported only by System One models (currently Jev). Takes precedence over the model's `BASE_URL` and is used as-is, without appending a path; `BASE_URL` is optional when this is set. For example, `https://api.typesafe.ai/v1/systemone`. When unset, Midscene continues to append `/systemone` to the Base URL. |
 | `MIDSCENE_MODEL_TIMEOUT` | Timeout per model request in milliseconds, including reading the response body. Defaults to `180000` (180 seconds). Set to `0` to disable this timeout. |
 | `MIDSCENE_MODEL_TEMPERATURE` | Model sampling temperature. Set to `unset` to omit the temperature parameter. |
@@ -161,6 +160,7 @@ To configure a separate model for Planning, Locate, or Insight, use the correspo
 | `MIDSCENE_MODEL_PROTOCOL` | Model API protocol: `openai-chat` (default) or `openai-responses`. For Responses API support requirements, see [Use the Responses API](#model-api-type). |
 | `MIDSCENE_MODEL_AUTH_MODE` | Authentication mode: `api-key` (default) uses the configured API Key; `siwc` uses credentials saved after ChatGPT authorization and automatically refreshes access tokens. For setup instructions, see [Use your ChatGPT subscription](./chatgpt-subscription). |
 | `MIDSCENE_MODEL_STREAM_MODE` | Defaults to non-streaming (`non-stream`). When set to `stream`, streamed results are aggregated into a complete result before parsing. |
+| `MIDSCENE_MODEL_PROVIDER` | Model provider. Accepted values are `openrouter` and `official`, which use OpenRouter’s and the model’s official parameter mappings, respectively. By default, Midscene detects the provider from the Base URL: `https://openrouter.ai/api/v1` selects OpenRouter mappings; other URLs use the model’s official API mappings. If your model provider is OpenRouter but the Base URL differs from the address above, explicitly set this to `openrouter`. |
 
 ### Use the Responses API {#model-api-type}
 
