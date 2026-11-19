@@ -1,7 +1,11 @@
 import { AIResponseParseError, ConversationHistory } from '@/ai-model';
 import type { ModelRuntime } from '@/ai-model/models';
 import { buildTypeQueryDemandValue } from '@/ai-model/prompt/insight';
-import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
+import {
+  type PreparedUserPrompt,
+  prepareReferenceImages,
+  prepareUserPrompt,
+} from '@/ai-model/shared/multimodal-prompt';
 import { standardPlan } from '@/ai-model/workflows/planning';
 import {
   type TMultimodalPrompt,
@@ -622,11 +626,26 @@ export class TaskExecutor {
       );
     }
     const getPreparedUserPrompt = (() => {
-      let promise: ReturnType<typeof prepareUserPrompt> | undefined;
+      let preparedPromptPromise:
+        | ReturnType<typeof prepareUserPrompt>
+        | undefined;
+      let jevPrompt: PreparedUserPrompt | undefined;
 
-      return () => {
-        promise ??= prepareUserPrompt(userPrompt);
-        return promise;
+      return async (modelRuntime: ModelRuntime) => {
+        preparedPromptPromise ??= prepareUserPrompt(userPrompt);
+        const preparedPrompt = await preparedPromptPromise;
+        if (modelRuntime.config.modelFamily !== 'jev') {
+          return preparedPrompt;
+        }
+        // Jev needs inline images; reuse them across planning rounds in this action.
+        jevPrompt ??= {
+          ...preparedPrompt,
+          referenceImages: await prepareReferenceImages({
+            images: preparedPrompt.referenceImages,
+            convertHttpImage2Base64: true,
+          }),
+        };
+        return jevPrompt;
       };
     })();
 
@@ -725,7 +744,8 @@ export class TaskExecutor {
 
             let planResult: Awaited<ReturnType<typeof planImpl>>;
             try {
-              const preparedUserPrompt = await getPreparedUserPrompt();
+              const preparedUserPrompt =
+                await getPreparedUserPrompt(modelRuntime);
 
               setTimingFieldOnce(timing, 'callAiStart');
               planResult = await planImpl(preparedUserPrompt, {
