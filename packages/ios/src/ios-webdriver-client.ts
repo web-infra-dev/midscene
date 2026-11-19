@@ -306,8 +306,15 @@ export class IOSWebDriverClient extends WebDriverClient {
   }
 
   /** Wait for keyboard focus before attempting to clear or type text. */
-  async waitForInputFocus(): Promise<void> {
-    await waitForInputFocus(this.requestInput);
+  async waitForInputFocus({
+    allowVisibleKeyboard = false,
+  } = {}): Promise<void> {
+    await waitForInputFocus(
+      this.requestInput,
+      allowVisibleKeyboard
+        ? (deadline) => this.findVisibleKeyboardIds(deadline)
+        : undefined,
+    );
   }
 
   private requestInput: InputRequest = (method, path, data, options) => {
@@ -361,17 +368,7 @@ export class IOSWebDriverClient extends WebDriverClient {
     });
   }
 
-  private remainingKeyboardDismissTimeout(deadline: number): number {
-    const remainingTimeout = deadline - Date.now();
-    if (remainingTimeout <= 0) {
-      throw new Error(
-        `iOS keyboard dismissal exceeded its ${keyboardDismissDeadlineMs}ms deadline`,
-      );
-    }
-    return Math.max(1, Math.ceil(remainingTimeout));
-  }
-
-  private async makeKeyboardDismissRequest(
+  private async makeKeyboardRequest(
     method: 'GET' | 'POST',
     endpoint: string,
     data: unknown,
@@ -380,9 +377,10 @@ export class IOSWebDriverClient extends WebDriverClient {
     if (deadline === undefined) {
       return await this.makeRequest(method, endpoint, data);
     }
-    return await this.makeRequest(method, endpoint, data, {
-      timeout: this.remainingKeyboardDismissTimeout(deadline),
-    });
+    const timeout = deadline - Date.now();
+    if (timeout <= 0)
+      throw new Error('iOS keyboard request exceeded its deadline');
+    return await this.makeRequest(method, endpoint, data, { timeout });
   }
 
   private async findElementIds(
@@ -393,7 +391,7 @@ export class IOSWebDriverClient extends WebDriverClient {
     const endpoint = options.rootElementId
       ? `/session/${this.sessionId}/element/${options.rootElementId}/elements`
       : `/session/${this.sessionId}/elements`;
-    const response = await this.makeKeyboardDismissRequest(
+    const response = await this.makeKeyboardRequest(
       'POST',
       endpoint,
       { using, value },
@@ -406,7 +404,7 @@ export class IOSWebDriverClient extends WebDriverClient {
     elementId: string,
     deadline?: number,
   ): Promise<WebDriverElementRect> {
-    const response = await this.makeKeyboardDismissRequest(
+    const response = await this.makeKeyboardRequest(
       'GET',
       `/session/${this.sessionId}/element/${elementId}/rect`,
       undefined,
@@ -437,7 +435,7 @@ export class IOSWebDriverClient extends WebDriverClient {
     elementId: string,
     deadline?: number,
   ): Promise<void> {
-    await this.makeKeyboardDismissRequest(
+    await this.makeKeyboardRequest(
       'POST',
       `/session/${this.sessionId}/element/${elementId}/click`,
       undefined,

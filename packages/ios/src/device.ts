@@ -662,7 +662,10 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   private async typeText(
     text: string,
-    options?: IOSDeviceInputOpt & { skipDefaultWait?: boolean },
+    options?: IOSDeviceInputOpt & {
+      replace?: boolean;
+      skipDefaultWait?: boolean;
+    },
     focusRestorePoint?: PointerPoint,
     resolvedInputOptions: ResolvedTextInputOptions = resolveTextInputOptions(
       options,
@@ -680,7 +683,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     debugDevice(`Typing text: "${text}"`);
 
     try {
-      await this.wdaBackend.waitForInputFocus();
+      await this.wdaBackend.waitForInputFocus({
+        allowVisibleKeyboard: !!focusRestorePoint && options?.replace === false,
+      });
 
       if (inputSequentially) {
         // Type one character at a time with a delay between keystrokes.

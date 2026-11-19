@@ -45,8 +45,11 @@ async function activeInput(
   }
 }
 
-/** Wait for a focus owner before clearing or synthesizing text events. */
-export async function waitForInputFocus(request: InputRequest): Promise<void> {
+/** Located type-only input can also use the software keyboard after a tap. */
+export async function waitForInputFocus(
+  request: InputRequest,
+  findVisibleKeyboardIds?: (deadline: number) => Promise<string[]>,
+): Promise<void> {
   const deadline = Date.now() + 3000;
   while (Date.now() < deadline) {
     const target = await activeInput(
@@ -55,6 +58,12 @@ export async function waitForInputFocus(request: InputRequest): Promise<void> {
     );
     if (Date.now() >= deadline) break;
     if (target) return;
+    if (
+      findVisibleKeyboardIds &&
+      (await findVisibleKeyboardIds(deadline)).length > 0 &&
+      Date.now() < deadline
+    )
+      return;
     const remaining = deadline - Date.now();
     if (remaining > 0) {
       await new Promise((resolve) =>

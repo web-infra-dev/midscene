@@ -193,6 +193,16 @@ On iOS, `device.destroy()` stops the MJPEG frame source, deletes the WDA session
 
 ## Troubleshooting
 
+### How do I type into a custom-rendered field?
+
+If tapping a field opens the software keyboard but WebDriverAgent reports `no such element` for `/element/active`, pass a locator and use `typeOnly`.
+
+```sh
+midscene-ios input --locate '{"prompt":"Nickname field"}' --mode typeOnly --value "test"
+```
+
+`typeOnly` inserts text at the caret. To replace existing text in a field that WDA cannot clear, clear it through the app first.
+
 <a id="how-to-use-custom-webdriveragent-port-and-host"></a>
 
 ### How do I customize the WebDriverAgent port and host?

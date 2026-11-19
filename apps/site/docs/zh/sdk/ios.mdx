@@ -193,6 +193,16 @@ agent.destroy(): Promise<void>
 
 ## 问题排查
 
+### 如何在自绘输入框中输入文字？
+
+如果点击输入框后能看到软键盘，但 WebDriverAgent 的 `/element/active` 返回 `no such element`，可以指定目标输入框并使用 `typeOnly` 模式。
+
+```sh
+midscene-ios input --locate '{"prompt":"昵称输入框"}' --mode typeOnly --value "test"
+```
+
+`typeOnly` 会在光标处插入文字。如果需要替换已有内容，而 WDA 无法清空该输入框，请先通过应用界面清空内容。
+
 <a id="如何自定义-webdriveragent-的端口和-host"></a>
 
 ### 如何自定义 WebDriverAgent 的端口和主机地址？

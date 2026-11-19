@@ -364,6 +364,9 @@ describe('IOSDevice', () => {
       );
       expect(mockWdaClient.typeText).toHaveBeenCalledWith('account');
       expect(mockWdaClient.waitForInputFocus).toHaveBeenCalledOnce();
+      expect(mockWdaClient.waitForInputFocus).toHaveBeenCalledWith({
+        allowVisibleKeyboard: false,
+      });
       expect(delay).not.toHaveBeenCalledWith(300);
       await action.call(
         { value: 'password', mode: 'typeOnly', autoDismissKeyboard: false },
@@ -401,6 +404,10 @@ describe('IOSDevice', () => {
       });
       expect(text).toBe('new text');
       expect(events).toEqual(['ready', 'clear', 'ready', 'type']);
+      expect(mockWdaClient.waitForInputFocus).toHaveBeenNthCalledWith(1);
+      expect(mockWdaClient.waitForInputFocus).toHaveBeenNthCalledWith(2, {
+        allowVisibleKeyboard: false,
+      });
       expect(mockWdaClient.typeText).toHaveBeenCalledTimes(1);
     });
 
