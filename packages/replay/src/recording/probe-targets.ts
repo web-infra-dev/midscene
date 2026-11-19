@@ -3,7 +3,7 @@ import type { ProbeOptions } from './probe';
 
 /* istanbul ignore next -- browser realm has no host coverage counters */
 export function createProbeTargets(
-  options: Pick<ProbeOptions, 'budgetMs' | 'secretSelectors'>,
+  options: Pick<ProbeOptions, 'budgetMs'>,
   documentId: string,
 ) {
   let serial = 0;
@@ -126,30 +126,6 @@ export function createProbeTargets(
     ['checkbox', 'radio', 'switch'].includes(
       element.getAttribute('role') ?? '',
     );
-  const secretOf = (element: Element) => {
-    if (
-      !(
-        element instanceof HTMLInputElement ||
-        element instanceof HTMLTextAreaElement
-      )
-    )
-      return false;
-    if (element instanceof HTMLInputElement && element.type === 'password')
-      return true;
-    const auto = element.getAttribute('autocomplete') ?? '';
-    if (
-      /current-password|new-password|one-time-code|cc-number|cc-csc/.test(auto)
-    )
-      return true;
-    if (element.closest('[data-midscene-secret]')) return true;
-    return options.secretSelectors.some((selector) => {
-      try {
-        return element.matches(selector);
-      } catch {
-        return false;
-      }
-    });
-  };
   const structural = (element: Element): string | undefined => {
     const parts: string[] = [];
     let current: Element | null = element;
@@ -312,7 +288,6 @@ export function createProbeTargets(
       rect: rectOf(element),
       ...(editableOf(element) ? { editable: true } : {}),
       ...(checkableOf(element) ? { checkable: true } : {}),
-      ...(secretOf(element) ? { secret: true } : {}),
       ...(partial ? { partial: true } : {}),
     };
     sampleCache.set(element, { at: performance.now(), sample });
@@ -342,12 +317,7 @@ export function createProbeTargets(
     state.focused = active === element;
     if (editableOf(element) || element instanceof HTMLSelectElement) {
       const value = fieldValue(element);
-      // Secret values never enter the trace; the host stores a placeholder.
-      if (value !== undefined) {
-        if (secretOf(element)) {
-          state.secret = true;
-        } else state.value = value.slice(0, 16384);
-      }
+      if (value !== undefined) state.value = value.slice(0, 16384);
     }
     if (
       element instanceof HTMLInputElement &&
@@ -366,10 +336,8 @@ export function createProbeTargets(
     keyOf,
     receiverOf,
     sampleTarget,
-    rectOf,
     editableOf,
     checkableOf,
-    secretOf,
     fieldValue,
     stateOf,
   };

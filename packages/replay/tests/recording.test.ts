@@ -247,107 +247,45 @@ describe('web recording probe', () => {
     }
   });
 
-  it('clips field masks and keeps them on the captured page and document', async () => {
-    const context = await browser.newContext({
-      viewport: { width: 800, height: 600 },
-      deviceScaleFactor: 2,
-    });
-    const opener = await context.newPage();
-    const screencast = watchScreencast(opener);
-    const dir = mkdtempSync(join(tmpdir(), 'replay-redaction-'));
-    const url = 'http://replay.test/workflow';
-    let loggedIn = false;
-    const recorder = new WebRecorder(opener);
-    await context.route('http://replay.test/**', (route) =>
-      route.fulfill({
-        contentType: 'text/html',
-        body:
-          route.request().url() !== url
-            ? '<style>body{background:#00cc00}</style><button>Popup action</button>'
-            : loggedIn
-              ? '<style>body{background:#000}</style><button>Read dashboard</button>'
-              : `<style>
-                body { background: #ee0000; }
-                input { position: absolute; left: -10px; top: 80px; width: 120px; height: 50px; padding: 0; border: 0; }
-              </style>
-              <input aria-label="One time code" autocomplete="one-time-code" value="123456">
-              <a href="/popup" target="_blank">Open popup</a>`,
-      }),
-    );
-    const pixel = (path: string, x: number, y: number) =>
-      sharp(join(dir, path))
-        .extract({ left: x, top: y, width: 1, height: 1 })
-        .raw()
-        .toBuffer();
+  it('writes sampled values and unmasked frames for a marked field', async () => {
+    const p = await page(`
+      <style>
+        input {
+          position: absolute; left: 20px; top: 80px; width: 180px;
+          height: 50px; padding: 0; border: 0; background: #11cc33;
+        }
+      </style>
+      <input aria-label="One time code" autocomplete="one-time-code"
+        data-midscene-secret value="123456">`);
+    const screencast = watchScreencast(p);
+    const dir = mkdtempSync(join(tmpdir(), 'replay-field-evidence-'));
+    const recorder = new WebRecorder(p);
     try {
-      await opener.goto(url);
       await recorder.start();
-      await opener.getByRole('textbox', { name: 'One time code' }).click();
-      const [popup] = await Promise.all([
-        opener.waitForEvent('popup'),
-        opener.getByRole('link', { name: 'Open popup' }).click(),
-      ]);
-      await popup.setViewportSize({ width: 480, height: 320 });
-      await popup.waitForFunction(() =>
-        Object.keys(window).some((key) =>
-          key.startsWith('__midsceneRecorder_'),
-        ),
-      );
-      await popup.getByRole('button', { name: 'Popup action' }).click();
-      await popup.close();
+      await expect.poll(screencast.latest).toBeDefined();
+      await p.getByRole('textbox', { name: 'One time code' }).click();
 
-      loggedIn = true;
-      await opener.reload();
-      // Trigger a new paint after navigation and wait for its delivered frame.
-      await opener.evaluate(() => {
-        document.body.style.background = '#0055ff';
-      });
-      await expect
-        .poll(async () => {
-          const frame = screencast.latest();
-          if (!frame) return 0;
-          const pixel = await sharp(frame)
-            .extract({ left: 40, top: 105, width: 1, height: 1 })
-            .raw()
-            .toBuffer();
-          return pixel[2];
-        })
-        .toBeGreaterThan(240);
-      await opener.getByRole('button', { name: 'Read dashboard' }).click();
       const trace = readTrace(await recorder.stop(dir));
-      const imageBefore = (name: string) => {
-        const event = trace.events.find(
-          (event) =>
-            event.type === 'pointer' &&
-            event.phase === 'down' &&
-            event.target?.fingerprint?.name === name,
-        );
-        expect(event?.before).toBeDefined();
-        return trace.frames[event!.before!];
-      };
-
-      const secret = await pixel(imageBefore('One time code'), 40, 105);
-      expect([...secret].every((channel) => Math.abs(channel - 128) <= 4)).toBe(
-        true,
+      const press = trace.events.find(
+        (event) => event.type === 'pointer' && event.phase === 'down',
       );
-      const outsideMask = await pixel(imageBefore('One time code'), 125, 105);
-      expect(outsideMask[0]).toBeGreaterThan(225);
-      const popupPixel = await pixel(imageBefore('Popup action'), 40, 105);
-      expect(popupPixel[1]).toBeGreaterThan(190);
-      expect(popupPixel[0]).toBeLessThan(15);
-      const dashboard = await pixel(imageBefore('Read dashboard'), 40, 105);
-      expect(dashboard[2]).toBeGreaterThan(240);
-      expect(dashboard[0]).toBeLessThan(15);
-      const terminal = trace.frames[trace.meta.end!.frame];
-      const terminalPixel = await pixel(terminal, 80, 210);
-      expect(terminalPixel[2]).toBeGreaterThan(240);
-      expect(terminalPixel[0]).toBeLessThan(15);
+      expect(press?.state?.value).toBe('123456');
+      expect(press?.before).toBeDefined();
+      expect(trace.meta.end?.frame).toBeDefined();
+      for (const frame of [press!.before!, trace.meta.end!.frame]) {
+        const pixel = await sharp(join(dir, trace.frames[frame]))
+          .extract({ left: 160, top: 105, width: 1, height: 1 })
+          .raw()
+          .toBuffer();
+        expect(pixel[1]).toBeGreaterThan(190);
+        expect(pixel[0]).toBeLessThan(45);
+      }
     } finally {
       await recorder.dispose();
-      await context.close();
+      await p.context().close();
       rmSync(dir, { recursive: true, force: true });
     }
-  }, 20_000);
+  });
 
   it('samples at press time, twice per edit, and not on moves', async () => {
     const p = await page(`
@@ -363,7 +301,8 @@ describe('web recording probe', () => {
     await p.keyboard.type('k');
     await p.click('#remove');
     await p.click('[name=pw]');
-    await p.keyboard.type('hunter2');
+    const password = 'fixture-password';
+    await p.keyboard.type(password);
     await p.keyboard.press('Enter');
     const dir = await recorder.stop(
       join(mkdtempSync(join(tmpdir(), 'probe-')), 'trace'),
@@ -397,15 +336,12 @@ describe('web recording probe', () => {
     const titleEnd = edits[1];
     expect(titleEnd.state?.value).toBe('Buy milk');
     expect(sampled.length).toBeLessThan(12);
-    // Secrets: placeholder only, nothing in the trace files.
-    const files = readFileSync(join(dir, 'events.jsonl'), 'utf8');
-    expect(files).not.toContain('hunter2');
-    expect(edits[3].state?.value).toBe('{{secret}}');
-    expect(edits[3].target?.secret).toBe(true);
+    expect(edits[3].state?.value).toBe(password);
+    expect(readFileSync(join(dir, 'events.jsonl'), 'utf8')).toContain(password);
     // The Enter key is an action sampled with the focused element as target.
     const enter = trace.events.find((event) => event.type === 'key');
     expect(enter && enter.type === 'key' && enter.key).toBe('Enter');
-    expect(enter?.target?.secret).toBe(true);
+    expect(enter?.state?.value).toBe(password);
     expect(types).toContain('effect');
     // Candidate locators: testid first, then semantic placeholder.
     const titleTarget = edits[0].target!;

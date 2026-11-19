@@ -47,7 +47,6 @@ export interface TargetSample {
   rect: Rect;
   editable?: boolean;
   checkable?: boolean;
-  secret?: boolean;
   /** Candidate generation stopped at its time budget. */
   partial?: boolean;
   /** Only visual locating is possible for this surface. */

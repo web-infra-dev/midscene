@@ -7,7 +7,7 @@ import {
   type TraceMeta,
 } from './trace';
 
-/** Read a recorded trace directory. Secrets are only loaded when asked. */
+/** Read the metadata, events and frame index from a recorded trace directory. */
 export function readTrace(directory: string): Trace & { directory: string } {
   const root = resolve(directory);
   const meta = JSON.parse(

@@ -6,6 +6,8 @@
 
 ## 录制与准备
 
+> **录制数据风险。** 录制可能保存未打码的截图、采样到的表单值、页面内容和 URL，其中可能包含密码、验证码或私密数据。回放报告也可能包含敏感截图。
+
 在已安装工作区依赖的仓库根目录执行，使用新目录：
 
 ```sh
@@ -15,7 +17,7 @@ node packages/replay/scripts/cli.mjs record web --url https://cn.bing.com/ --out
 node packages/replay/scripts/cli.mjs prepare midscene_run/replay/my-recording --out midscene_run/replay/my-authoring
 ```
 
-`prepare` 生成来源清单和索引，把现有宿主/工具依赖链接到新的工作目录并验证导入，输出 Skill 路径。它不会启动另一个编码 Agent，也不安装或修改宿主依赖。`--goal TEXT` 可选。命令读取调用目录的 `.env`，也可用 `--env-file FILE`；凭据保留在宿主。`--version` 显示 Midscene SDK 包版本。
+`prepare` 生成来源清单和索引，把现有宿主/工具依赖链接到新的工作目录并验证导入，输出 Skill 路径。它不会启动另一个编码 Agent，也不安装或修改宿主依赖。`--goal TEXT` 可选。命令从调用目录的 `.env` 或 `--env-file FILE` 加载宿主配置。`--version` 显示 Midscene SDK 包版本。
 
 录制默认打开一个使用独立配置的 Chrome 新窗口。可用 `--browser msedge` 或 `--browser chromium` 换一个浏览器开新窗口。macOS 上可用 `node packages/replay/scripts/cli.mjs browser msedge`（或 `browser chrome`）打开保留登录态的专用浏览器。首次手动登录，之后给 `record web`、`run` 或 `trial` 加上 `--cdp http://127.0.0.1:9222`。专用窗口长期保存登录资料。CDP 试跑每轮把适用于起点 URL 的 Cookie 和同源 `localStorage` 带入新上下文。跨域认证、其他登录状态或服务端数据复位用自定义会话。[会话配置](./skills/midscene-replay/references/session.md)
 
