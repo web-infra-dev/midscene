@@ -26,9 +26,9 @@ const locateTestOptions = {
 
 describe.skipIf(!hasModelFamily)('service locate with deep think', () => {
   test('service locate with search area', locateTestOptions, async () => {
-    const { context } = await getContextFromFixture('taobao');
+    const { uiContext } = await getContextFromFixture('taobao');
 
-    const service = new Service(context);
+    const service = new Service(uiContext);
     const { element } = await service.locate(
       {
         prompt: '购物车 icon',
@@ -46,9 +46,9 @@ describe.skipIf(!hasModelFamily)('service locate with deep think', () => {
     'service locate with search area - deep think',
     locateTestOptions,
     async () => {
-      const { context } = await getContextFromFixture('taobao');
+      const { uiContext } = await getContextFromFixture('taobao');
 
-      const service = new Service(context);
+      const service = new Service(uiContext);
       const { element, dump } = await service.locate(
         {
           prompt: '顶部购物车 icon',
@@ -74,9 +74,9 @@ describe.skipIf(!hasModelFamily)('service locate with deep think', () => {
 });
 
 test.skip('service locate with search area', async () => {
-  const { context } = await getContextFromFixture('image-only');
+  const { uiContext } = await getContextFromFixture('image-only');
 
-  const service = new Service(context);
+  const service = new Service(uiContext);
   const { element, dump } = await service.locate(
     {
       prompt: '-',
@@ -96,8 +96,8 @@ describe(
   },
   () => {
     test('service describe - by rect', async () => {
-      const { context } = await getContextFromFixture('taobao');
-      const service = new Service(context);
+      const { uiContext } = await getContextFromFixture('taobao');
+      const service = new Service(uiContext);
       const { description } = await service.describe(
         {
           left: 580,
@@ -112,8 +112,8 @@ describe(
     });
 
     test('service describe - by center point', async () => {
-      const { context } = await getContextFromFixture('taobao');
-      const service = new Service(context);
+      const { uiContext } = await getContextFromFixture('taobao');
+      const service = new Service(uiContext);
       const { description } = await service.describe(
         [580, 140],
         modelRuntime(),

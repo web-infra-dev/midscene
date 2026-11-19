@@ -72,7 +72,7 @@ describe('section locate protocol', () => {
     }
 
     const result = await AiLocateSection({
-      context: createFakeContext(),
+      uiContext: createFakeContext(),
       sectionDescription: 'the row containing Peter',
       modelRuntime: {
         config: modelConfig,
@@ -184,7 +184,7 @@ describe('section locate protocol', () => {
         'mixed-search-regions',
       );
       const result = await AiLocateSection({
-        context: createFakeContext(),
+        uiContext: createFakeContext(),
         sectionDescription: 'target with reference',
         modelRuntime: { config: modelConfig, adapter },
       });

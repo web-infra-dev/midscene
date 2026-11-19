@@ -33,7 +33,7 @@ function createPlanner(): ResolvedCustomPlanningDefinition<null> {
 
 function createLocateRequest() {
   const options = {
-    context: {
+    uiContext: {
       screenshot: ScreenshotItem.create(
         'data:image/png;base64,SCREENSHOT==',
         123,
@@ -106,11 +106,11 @@ describe('resolvePlanningTapLocator', () => {
 
     const [, planOptions, locatorPlanner] =
       rs.mocked(runCustomPlanning).mock.calls[0];
-    expect(planOptions.context.screenshot.base64).toBe(
+    expect(planOptions.uiContext.screenshot.base64).toBe(
       'data:image/png;base64,CROP==',
     );
-    expect(planOptions.context.screenshot.capturedAt).toBe(123);
-    expect(planOptions.context.shotSize).toEqual({ width: 320, height: 240 });
+    expect(planOptions.uiContext.screenshot.capturedAt).toBe(123);
+    expect(planOptions.uiContext.shotSize).toEqual({ width: 320, height: 240 });
     expect(planOptions.includeLocateInPlanning).toBe(true);
     expect(planOptions.actionSpace.map((action: any) => action.name)).toEqual([
       'Tap',

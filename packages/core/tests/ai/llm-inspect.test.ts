@@ -17,10 +17,10 @@ test(
     timeout: 1000000,
   },
   async () => {
-    const { context } = await getContextFromFixture('todo');
+    const { uiContext } = await getContextFromFixture('todo');
 
     const { parseResult } = await AiLocateElement({
-      context,
+      uiContext,
       targetElementDescription: 'input 输入框',
       modelRuntime: defaultModelRuntime(),
     });
@@ -29,9 +29,9 @@ test(
 );
 
 test('locate section', { timeout: 120 * 1000 }, async () => {
-  const { context } = await getContextFromFixture('todo');
+  const { uiContext } = await getContextFromFixture('todo');
   const { searchAreaConfig } = await AiLocateSection({
-    context,
+    uiContext,
     sectionDescription: '搜索框',
     modelRuntime: defaultModelRuntime(),
   });

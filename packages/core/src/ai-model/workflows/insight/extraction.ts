@@ -32,7 +32,7 @@ export interface ExtractOptions {
   taskType: 'boolean' | 'extract';
   dataQuery: string | Record<string, string>;
   multimodalPrompt?: TMultimodalPrompt;
-  context: UIContext;
+  uiContext: UIContext;
   pageDescription?: string;
   extractOption?: ServiceExtractOption;
   modelRuntime: ModelRuntime;
@@ -46,15 +46,20 @@ export async function AiExtractElementInfo<T>(options: ExtractOptions) {
   ) {
     return extractBoolean<T>(options);
   }
-  const { dataQuery, context, extractOption, multimodalPrompt, modelRuntime } =
-    options;
+  const {
+    dataQuery,
+    uiContext,
+    extractOption,
+    multimodalPrompt,
+    modelRuntime,
+  } = options;
   const insightProtocol = modelRuntime.adapter.insight.protocol;
   const systemPrompt = buildInsightSystemPrompt({
     screenshotIncluded: extractOption?.screenshotIncluded !== false,
     referenceImagesIncluded: !!multimodalPrompt?.images?.length,
     insightProtocol,
   });
-  const screenshotBase64 = context.screenshot.base64;
+  const screenshotBase64 = uiContext.screenshot.base64;
 
   const renderedContext = renderAIContext(extractOption?.context);
   const extractDataPromptText = extractDataQueryPrompt(
@@ -66,7 +71,7 @@ export async function AiExtractElementInfo<T>(options: ExtractOptions) {
   const userContent: ConversationUserMessage['content'] = [];
 
   if (extractOption?.screenshotIncluded !== false) {
-    const screenshotSequence = context.screenshotSequence;
+    const screenshotSequence = uiContext.screenshotSequence;
     if (screenshotSequence && screenshotSequence.length > 1) {
       userContent.push({
         type: 'text',

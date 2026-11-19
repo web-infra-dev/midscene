@@ -72,7 +72,7 @@ describe('insight extraction prompt assembly', () => {
       };
       await AiExtractElementInfo({
         taskType: 'extract',
-        context: createFakeContext(),
+        uiContext: createFakeContext(),
         dataQuery,
         modelRuntime,
       });
@@ -96,7 +96,7 @@ describe('insight extraction prompt assembly', () => {
         },
       };
       const result = await AiExtractElementInfo({
-        context: createFakeContext(),
+        uiContext: createFakeContext(),
         taskType: 'boolean',
         dataQuery: { [key]: 'Is the page ready?' },
         modelRuntime,
@@ -108,11 +108,11 @@ describe('insight extraction prompt assembly', () => {
   );
 
   it('marks the current screenshot as primary and reference images as supporting context', async () => {
-    const context = createFakeContext();
+    const uiContext = createFakeContext();
 
     const result = await AiExtractElementInfo<{ result: boolean }>({
       taskType: 'extract',
-      context,
+      uiContext,
       dataQuery: {
         StatementIsTruthy:
           'Boolean, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, whether the following statement is true: 有点赞按钮',
@@ -204,7 +204,7 @@ describe('insight extraction prompt assembly', () => {
 
     await AiExtractElementInfo<{ result: boolean }>({
       taskType: 'extract',
-      context: createFakeContext(),
+      uiContext: createFakeContext(),
       dataQuery: {
         StatementIsTruthy: 'Boolean, whether the success toast is visible',
       },
@@ -221,7 +221,7 @@ describe('insight extraction prompt assembly', () => {
   it('renders the selected context as one model prompt block', async () => {
     await AiExtractElementInfo<{ result: boolean }>({
       taskType: 'extract',
-      context: createFakeContext(),
+      uiContext: createFakeContext(),
       dataQuery: {
         StatementIsTruthy: 'Boolean, whether the success toast is visible',
       },
@@ -262,7 +262,7 @@ describe('insight extraction prompt assembly', () => {
 
     const result = await AiExtractElementInfo<{ result: boolean }>({
       taskType: 'extract',
-      context: createFakeContext(),
+      uiContext: createFakeContext(),
       dataQuery: {
         StatementIsTruthy: 'Boolean, whether the success toast is visible',
       },

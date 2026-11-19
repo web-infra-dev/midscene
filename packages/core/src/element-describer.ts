@@ -227,7 +227,7 @@ export async function describeElementAtPoint(
     const describeOpt: ServiceDescribeOptions = screenshotContext
       ? {
           deepDescribe,
-          context: screenshotContext,
+          uiContext: screenshotContext,
         }
       : {
           deepDescribe,
@@ -355,7 +355,7 @@ async function locateAndVerify(
   assert(description?.trim(), 'description must not be empty');
   const { screenshotContext, targetCenter } =
     await createScreenshotBoundLocatorContext(center, opt);
-  const context = opt?.uiContext || screenshotContext;
+  const uiContext = opt?.uiContext || screenshotContext;
   const locateParam = buildDetailedLocateParam(description, {
     cacheable: opt?.cacheable,
     deepLocate: opt?.deepLocate,
@@ -365,7 +365,7 @@ async function locateAndVerify(
 
   const locateResult = await runtime.service.locate(
     locateParam,
-    context ? { context } : {},
+    uiContext ? { uiContext } : {},
     runtime.locateModelRuntime,
     opt?.abortSignal,
   );

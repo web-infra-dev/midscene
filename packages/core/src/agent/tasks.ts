@@ -729,7 +729,7 @@ export class TaskExecutor {
 
               setTimingFieldOnce(timing, 'callAiStart');
               planResult = await planImpl(preparedUserPrompt, {
-                context: planningUiContext,
+                uiContext: planningUiContext,
                 actionContext: renderAIContext(aiActContext),
                 actionSpace,
                 modelRuntime,

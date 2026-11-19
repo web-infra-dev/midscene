@@ -51,7 +51,7 @@ import {
 } from './utils';
 
 export interface LocateOpts {
-  context?: UIContext;
+  uiContext?: UIContext;
   planLocatedElement?: LocateResultElement;
 }
 
@@ -82,16 +82,16 @@ export default class Service {
   taskInfo?: Omit<ServiceTaskInfo, 'durationMs'>;
 
   constructor(
-    context:
+    uiContext:
       | UIContext
       | ((signal?: AbortSignal) => Promise<UIContext> | UIContext),
     opt?: ServiceOptions,
   ) {
-    assert(context, 'context is required for Service');
-    if (typeof context === 'function') {
-      this.contextRetrieverFn = context;
+    assert(uiContext, 'uiContext is required for Service');
+    if (typeof uiContext === 'function') {
+      this.contextRetrieverFn = uiContext;
     } else {
-      this.contextRetrieverFn = () => Promise.resolve(context);
+      this.contextRetrieverFn = () => Promise.resolve(uiContext);
     }
 
     if (typeof opt?.taskInfo !== 'undefined') {
@@ -113,14 +113,14 @@ export default class Service {
       throw new Error(modelFamilyRequiredForLocateMessage(modelConfig.slot));
     }
 
-    const context = opt?.context || (await this.contextRetrieverFn());
+    const uiContext = opt?.uiContext || (await this.contextRetrieverFn());
 
     const searchAreaStartTime = Date.now();
     const searchArea = await this.resolveLocateSearchArea({
       query,
       queryPrompt,
       opt,
-      context,
+      uiContext,
       modelRuntime,
       abortSignal,
     });
@@ -154,7 +154,7 @@ export default class Service {
       usage,
       reasoning_content,
     } = await AiLocateElement({
-      context,
+      uiContext,
       targetElementDescription: queryPrompt,
       searchConfig: searchArea.config,
       modelRuntime,
@@ -224,11 +224,11 @@ export default class Service {
     query: DetailedLocateParam;
     queryPrompt: TUserPrompt;
     opt: LocateOpts;
-    context: UIContext;
+    uiContext: UIContext;
     modelRuntime: ModelRuntime;
     abortSignal?: AbortSignal;
   }): Promise<LocateSearchAreaResult> {
-    const { query, queryPrompt, opt, context, modelRuntime, abortSignal } =
+    const { query, queryPrompt, opt, uiContext, modelRuntime, abortSignal } =
       options;
     const { adapter } = modelRuntime;
     const hasPlanLocatedElement = !!opt?.planLocatedElement?.center;
@@ -242,7 +242,7 @@ export default class Service {
     // this orchestration layer instead of building it inside AiLocateSection.
     if (hasPlanLocatedElement) {
       const config = await buildSearchAreaConfig({
-        context,
+        uiContext,
         baseRect: mergeSearchAreaResults(opt.planLocatedElement!),
       });
 
@@ -261,7 +261,7 @@ export default class Service {
 
     if (adapter.locate.kind === 'standard' && adapter.locate.searchArea) {
       const searchAreaResponse = await AiLocateSection({
-        context,
+        uiContext,
         sectionDescription: queryPrompt,
         modelRuntime,
         abortSignal,
@@ -290,7 +290,7 @@ export default class Service {
     }
 
     const firstPassLocateResult = await AiLocateElement({
-      context,
+      uiContext,
       targetElementDescription: queryPrompt,
       modelRuntime,
       abortSignal,
@@ -305,7 +305,7 @@ export default class Service {
     );
 
     const config = await buildSearchAreaConfig({
-      context,
+      uiContext,
       baseRect: mergeSearchAreaResults(
         firstPassLocateResult.parseResult.element!,
       ),
@@ -334,12 +334,12 @@ export default class Service {
     opt?: ServiceExtractOption,
     pageDescription?: string,
     multimodalPrompt?: TMultimodalPrompt,
-    context?: UIContext,
+    uiContext?: UIContext,
     executionOptions?: {
       abortSignal?: AbortSignal;
     },
   ): Promise<ServiceExtractResult<T>> {
-    assert(context, 'context is required for extract');
+    assert(uiContext, 'uiContext is required for extract');
     assert(
       typeof dataDemand === 'object' || typeof dataDemand === 'string',
       `dataDemand should be object or string, but get ${typeof dataDemand}`,
@@ -357,7 +357,7 @@ export default class Service {
 
     try {
       const result = await AiExtractElementInfo<T>({
-        context,
+        uiContext,
         dataQuery: dataDemand,
         taskType,
         multimodalPrompt,
@@ -445,13 +445,13 @@ export default class Service {
     modelRuntime: ModelRuntime,
     opt?: {
       deepDescribe?: boolean;
-      context?: UIContext;
+      uiContext?: UIContext;
     },
   ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
     assert(target, 'target is required for service.describe');
-    const context = opt?.context || (await this.contextRetrieverFn());
-    const { shotSize } = context;
-    const screenshotBase64 = context.screenshot.base64;
+    const uiContext = opt?.uiContext || (await this.contextRetrieverFn());
+    const { shotSize } = uiContext;
+    const screenshotBase64 = uiContext.screenshot.base64;
     assert(screenshotBase64, 'screenshot is required for service.describe');
     const systemPrompt = elementDescriberInstruction();
 

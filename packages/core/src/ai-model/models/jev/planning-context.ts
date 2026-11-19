@@ -6,7 +6,7 @@ export async function prepareJevPlanningContext(
   options: PlanOptions,
 ) {
   const history = options.conversationHistory;
-  const image = await prepareJevImage(options.context.screenshot.base64);
+  const image = await prepareJevImage(options.uiContext.screenshot.base64);
   const references = await Promise.all(
     instruction.referenceImages.map(async (reference, index) => ({
       key: `reference_${index}`,

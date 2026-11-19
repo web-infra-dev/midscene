@@ -30,7 +30,7 @@ export function buildCustomPlanningMessages<TParsed>(
   config: CustomPlanningMessageConfig<TParsed>,
 ): ModelCallMessages {
   const { options } = input;
-  const { conversationHistory, context, actionContext } = options;
+  const { conversationHistory, uiContext, actionContext } = options;
   const systemPrompt = appendActionContext(
     config.buildSystemPrompt(),
     actionContext,
@@ -61,7 +61,7 @@ export function buildCustomPlanningMessages<TParsed>(
     content: [
       {
         type: 'image',
-        url: context.screenshot.base64,
+        url: uiContext.screenshot.base64,
       },
     ],
   });
@@ -93,20 +93,20 @@ export async function runCustomPlanning<TParsed>(
   options: PlanOptions,
   config: ResolvedCustomPlanningDefinition<TParsed>,
 ): Promise<PlanningAIResponse> {
-  const { context } = options;
+  const { uiContext } = options;
   const preparedImage = await prepareModelImage({
-    imageBase64: context.screenshot.base64,
-    width: context.shotSize.width,
-    height: context.shotSize.height,
+    imageBase64: uiContext.screenshot.base64,
+    width: uiContext.shotSize.width,
+    height: uiContext.shotSize.height,
     policy: options.modelRuntime.adapter.imagePreprocess,
   });
   const preparedOptions: PlanOptions = {
     ...options,
-    context: {
-      ...context,
+    uiContext: {
+      ...uiContext,
       screenshot: ScreenshotItem.create(
         preparedImage.imageBase64,
-        context.screenshot.capturedAt,
+        uiContext.screenshot.capturedAt,
       ),
       shotSize: preparedImage.preparedSize,
     },

@@ -31,15 +31,15 @@ async function buildPlanningTapLocatorPlanOptions(
   locateRequest: LocateRequest,
 ): Promise<PlanOptions> {
   const { options, locateImage } = locateRequest;
-  const { context } = options;
+  const { uiContext } = options;
 
   return {
     ...options,
-    context: {
-      ...context,
+    uiContext: {
+      ...uiContext,
       screenshot: ScreenshotItem.create(
         locateImage.imageBase64,
-        context.screenshot.capturedAt,
+        uiContext.screenshot.capturedAt,
       ),
       shotSize: {
         width: locateImage.width,
