@@ -21,6 +21,46 @@ const page = async (html: string): Promise<Page> => {
   return page;
 };
 
+function watchScreencast(page: Page) {
+  const context = page.context();
+  const createSession = context.newCDPSession.bind(context);
+  let latest: Buffer | undefined;
+  let withhold = false;
+  let withheld = 0;
+  context.newCDPSession = async (target) => {
+    const session = await createSession(target);
+    if (target === page) {
+      session.on = new Proxy(session.on, {
+        apply(subscribe, receiver, args) {
+          const [event, listener] = args;
+          if (event !== 'Page.screencastFrame')
+            return Reflect.apply(subscribe, receiver, args);
+          return Reflect.apply(subscribe, receiver, [
+            event,
+            (frame: { data: string }) => {
+              if (withhold) {
+                withheld++;
+                return;
+              }
+              listener(frame);
+              latest = Buffer.from(frame.data, 'base64');
+            },
+          ]);
+        },
+      });
+    }
+    return session;
+  };
+
+  return {
+    latest: () => latest,
+    withhold: () => {
+      withhold = true;
+    },
+    withheld: () => withheld,
+  };
+}
+
 describe('web recording probe', () => {
   it('continues on the opener and saves its terminal frame after a popup closes', async () => {
     const opener = await page('');
@@ -163,12 +203,57 @@ describe('web recording probe', () => {
     );
   });
 
+  it('does not attach a previous document frame when the reloaded page frame arrives late', async () => {
+    const p = await browser.newPage({ viewport: { width: 800, height: 600 } });
+    const screencast = watchScreencast(p);
+    const dir = mkdtempSync(join(tmpdir(), 'replay-delayed-frame-'));
+    const recorder = new WebRecorder(p);
+    const url = 'http://replay.test/workflow';
+    let reloaded = false;
+    await p.route(url, (route) =>
+      route.fulfill({
+        contentType: 'text/html',
+        body: reloaded
+          ? '<style>body{background:blue}</style><button>Dashboard</button>'
+          : '<style>body{background:red}</style><button>Sign in</button>',
+      }),
+    );
+    try {
+      await p.goto(url);
+      await recorder.start();
+      await expect.poll(screencast.latest).toBeDefined();
+      await p.getByRole('button', { name: 'Sign in' }).click();
+
+      screencast.withhold();
+      reloaded = true;
+      await p.reload();
+      await p.getByRole('button', { name: 'Dashboard' }).click();
+      await expect.poll(screencast.withheld).toBeGreaterThan(0);
+
+      const trace = readTrace(await recorder.stop(dir));
+      const clicks = trace.events.filter(
+        (event) => event.type === 'pointer' && event.phase === 'down',
+      );
+      expect(clicks).toHaveLength(2);
+      expect(clicks[0].target?.fingerprint?.name).toBe('Sign in');
+      expect(trace.frames[clicks[0].before!]).toBeDefined();
+      expect(clicks[1].target?.fingerprint?.name).toBe('Dashboard');
+      expect(clicks[1].before).toBeUndefined();
+      expect(trace.frames[trace.meta.end!.frame]).toBeDefined();
+    } finally {
+      await recorder.dispose();
+      await p.context().close();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('clips field masks and keeps them on the captured page and document', async () => {
     const context = await browser.newContext({
       viewport: { width: 800, height: 600 },
       deviceScaleFactor: 2,
     });
     const opener = await context.newPage();
+    const screencast = watchScreencast(opener);
     const dir = mkdtempSync(join(tmpdir(), 'replay-redaction-'));
     const url = 'http://replay.test/workflow';
     let loggedIn = false;
@@ -180,7 +265,7 @@ describe('web recording probe', () => {
           route.request().url() !== url
             ? '<style>body{background:#00cc00}</style><button>Popup action</button>'
             : loggedIn
-              ? '<style>body{background:#0055ff}</style><button>Read dashboard</button>'
+              ? '<style>body{background:#000}</style><button>Read dashboard</button>'
               : `<style>
                 body { background: #ee0000; }
                 input { position: absolute; left: -10px; top: 80px; width: 120px; height: 50px; padding: 0; border: 0; }
@@ -213,6 +298,21 @@ describe('web recording probe', () => {
 
       loggedIn = true;
       await opener.reload();
+      // Trigger a new paint after navigation and wait for its delivered frame.
+      await opener.evaluate(() => {
+        document.body.style.background = '#0055ff';
+      });
+      await expect
+        .poll(async () => {
+          const frame = screencast.latest();
+          if (!frame) return 0;
+          const pixel = await sharp(frame)
+            .extract({ left: 40, top: 105, width: 1, height: 1 })
+            .raw()
+            .toBuffer();
+          return pixel[2];
+        })
+        .toBeGreaterThan(240);
       await opener.getByRole('button', { name: 'Read dashboard' }).click();
       const trace = readTrace(await recorder.stop(dir));
       const imageBefore = (name: string) => {
