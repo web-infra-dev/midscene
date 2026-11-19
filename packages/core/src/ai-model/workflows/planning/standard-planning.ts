@@ -319,7 +319,7 @@ export async function standardPlan(
   const yamlFlow = buildYamlFlowFromPlans(
     actions,
     opts.actionSpace,
-    context.shrunkShotToLogicalRatio,
+    uiContext.shrunkShotToLogicalRatio,
   );
 
   let shouldContinuePlanning = true;
