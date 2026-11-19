@@ -9,13 +9,13 @@ import type { ExecutionSession } from './execution-session';
 /** Per-aiAct review state and report lifecycle; never executes a UI action. */
 export class ScrollRecovery {
   private reviewedTaskId?: string;
-  private recoveringTargetId?: string;
+  private recoveringTarget?: { id: string; hasSearchDirection: boolean };
 
   constructor(private readonly session: ExecutionSession) {}
 
   /** Keep measured state fresh until the action or target changes. */
   planningFeedback(): string | undefined {
-    if (!this.recoveringTargetId) return undefined;
+    if (!this.recoveringTarget) return undefined;
     const task = this.session
       .getRunner()
       .tasks.filter((t) => t.type === 'Action Space')
@@ -23,12 +23,15 @@ export class ScrollRecovery {
     if (
       task?.subType === 'Scroll' &&
       task.status === 'finished' &&
-      task.scrollProgress?.after?.targetId === this.recoveringTargetId
+      task.scrollProgress?.after?.targetId === this.recoveringTarget.id
     ) {
-      const feedback = scrollPlanningFeedback(task);
+      const feedback = scrollPlanningFeedback(
+        task,
+        this.recoveringTarget.hasSearchDirection,
+      );
       if (feedback) return feedback;
     }
-    this.recoveringTargetId = undefined;
+    this.recoveringTarget = undefined;
     return undefined;
   }
 
@@ -52,7 +55,10 @@ export class ScrollRecovery {
       param: { scroll: task.param, progressEvidence: task.scrollProgress },
       executor: async () => ({ output: observation }),
     });
-    this.recoveringTargetId = task.scrollProgress?.after?.targetId;
+    const id = task.scrollProgress?.after?.targetId;
+    this.recoveringTarget = id
+      ? { id, hasSearchDirection: observation.nextSearchDirection !== null }
+      : undefined;
     return observation;
   }
 }

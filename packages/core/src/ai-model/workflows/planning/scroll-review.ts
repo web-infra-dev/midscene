@@ -119,17 +119,51 @@ export function nativeScrollReview(
   };
 }
 
+const searchGuidance =
+  'When the target position is unknown, scroll about one panel at a time in the same available direction and inspect each view, including similar-looking items. Change direction when you reach an edge or the visible ordering places the target behind you. Jump to an end only when the task or visible ordering points there. Before tapping a repeated button, check that its label and button belong to the same item; reveal the whole item if needed.';
+
 /** Fresh facts, supplied only while recovering the same measured container. */
 export function scrollPlanningFeedback(
   task: ExecutionTask,
+  hasSearchDirection: boolean,
 ): string | undefined {
   const state = task.scrollProgress?.after;
   if (!state || !confirmedTarget(task)) return undefined;
   const available = availableScrollDirections(state);
   if (!available) return undefined;
-  return `For the same scroll container ${state.targetId}, the latest executed scroll was ${scrollDirection(task.param)}. Directions with remaining range: ${available.join(', ') || 'none'}. These current measurements supersede earlier assumptions about this container. For a goal-driven search, do not repeat a direction with no remaining range on this target; choose a supported direction or reassess the target/loading controls. Consider a larger step or a boundary scroll when appropriate for the goal. Explicit user directions, distances, counts and stop conditions take priority. No remaining range does not establish task completion or that the requested item is absent.`;
+  const direction = scrollDirection(task.param);
+  const guidance = hasSearchDirection
+    ? searchGuidance
+    : 'Consider a larger step or a boundary scroll when appropriate for the goal.';
+  let feedback = `For the same scroll container ${state.targetId}, the latest executed scroll was ${direction}. Directions with remaining range: ${available.join(', ') || 'none'}. These current measurements supersede earlier assumptions about this container. For a goal-driven search, do not repeat a direction with no remaining range on this target; choose a supported direction or reassess the target/loading controls. ${guidance} Explicit user directions, distances, counts and stop conditions take priority. No remaining range does not establish task completion or that the requested item is absent.`;
+  if (!hasSearchDirection) return feedback;
+  const positions = [];
+  if ((state.maxScrollLeft ?? 0) > 0)
+    positions.push(`horizontal ${state.scrollLeft} of ${state.maxScrollLeft}`);
+  if ((state.maxScrollTop ?? 0) > 0)
+    positions.push(`vertical ${state.scrollTop} of ${state.maxScrollTop}`);
+  if (positions.length)
+    feedback += ` Current scroll position in this container: ${positions.join(', ')}.`;
+
+  // Continue a successful single scroll, or probe the sole available direction.
+  const continuing =
+    task.scrollProgress?.status === 'moved' &&
+    !task.param?.scrollType &&
+    available.includes(direction);
+  const next = continuing
+    ? direction
+    : available.length === 1
+      ? available[0]
+      : undefined;
+  if (!next) return feedback;
+  const span =
+    next === 'left' || next === 'right'
+      ? state.rect?.width
+      : state.rect?.height;
+  if (!Number.isFinite(span) || span < 1) return feedback;
+  return `${feedback} If the goal is still off screen and its position is unknown, the next search step to try is Scroll ${next} inside this container, distance ${Math.round(span)} (one visible panel). Inspect that view before choosing another step. Use a smaller step if the visible target is partly clipped; explicit user instructions take priority.`;
 }
 
 export function scrollReviewFeedback(review: ScrollReview): string {
-  return `Review of the last scroll: ${review.observation}\n${review.nextSearchDirection ? `A candidate search direction is ${review.nextSearchDirection}. Verify it against the task and current UI before acting; the observation may be incomplete.` : 'Reassess the scroll target, dispatch position, and task-relevant controls. No alternative direction was established.'} For goal-driven searches, consider a larger step or a boundary scroll if appropriate. No movement or absent direction guidance does not establish that the target is absent or the task is complete. Explicit user direction and distance instructions take priority. This review describes observations, not an executed action.`;
+  return `Review of the last scroll: ${review.observation}\n${review.nextSearchDirection ? `A candidate search direction is ${review.nextSearchDirection}. Verify it against the task and current UI before acting; the observation may be incomplete.` : 'Reassess the scroll target, dispatch position, and task-relevant controls. No alternative direction was established.'} ${review.nextSearchDirection ? searchGuidance : 'For goal-driven searches, consider a larger step or a boundary scroll if appropriate.'} No movement or absent direction guidance does not establish that the target is absent or the task is complete. Explicit user direction and distance instructions take priority. This review describes observations, not an executed action.`;
 }

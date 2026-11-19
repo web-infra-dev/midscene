@@ -100,3 +100,22 @@ it('default native mode skips incomplete measurements without invoking visual fa
   expect(started).toBe(false);
   expect(recovery.planningFeedback()).toBeUndefined();
 });
+
+it('keeps an ambiguous recovery qualitative after the next scroll moves', async () => {
+  const { tasks, recovery } = setup();
+  for (const task of tasks) {
+    task.scrollProgress!.before!.scrollLeft = 50;
+    task.scrollProgress!.after!.scrollLeft = 50;
+  }
+  const observation = await recovery.review(async () => {});
+  expect(observation?.nextSearchDirection).toBeNull();
+  const step = scroll('list', 70);
+  step.param.direction = 'right';
+  step.scrollProgress!.before!.scrollLeft = 50;
+  step.scrollProgress!.status = 'moved';
+  tasks.push(step);
+  const feedback = recovery.planningFeedback();
+  expect(feedback).toContain('left, right');
+  expect(feedback).not.toContain('next search step');
+  expect(feedback).not.toContain('Current scroll position');
+});

@@ -2,6 +2,7 @@ import {
   compareScrollStates,
   findScrollToReview,
   nativeScrollReview,
+  scrollPlanningFeedback,
 } from '@/ai-model/workflows/planning/scroll-review';
 import type { ActionScrollParam, ExecutionTask, ScrollState } from '@/types';
 import { expect, it } from '@rstest/core';
@@ -103,4 +104,24 @@ it('measures only progress along the requested direction on the same target', ()
   expect(
     compareScrollStates(state(), { ...state(), scrollLeft: 20 }, param),
   ).toBe('unchanged');
+});
+
+it('suggests one panel on a supported search path and leaves ambiguous stalls open', () => {
+  const task = scroll('search');
+  const after = task.scrollProgress!.after!;
+  after.maxScrollLeft = 900;
+  after.rect.width = 240;
+  expect(scrollPlanningFeedback(task, true)).toContain(
+    'Scroll right inside this container, distance 240',
+  );
+  after.scrollLeft = 300;
+  expect(scrollPlanningFeedback(task, true)).toContain('horizontal 300 of 900');
+  expect(scrollPlanningFeedback(task, true)).not.toContain('next search step');
+  task.param.direction = 'left';
+  task.scrollProgress!.status = 'moved';
+  expect(scrollPlanningFeedback(task, true)).toContain(
+    'Scroll left inside this container, distance 240',
+  );
+  after.rect.width = 0;
+  expect(scrollPlanningFeedback(task, true)).not.toContain('next search step');
 });
