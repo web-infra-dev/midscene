@@ -44,7 +44,7 @@ describe('IOSDevice', () => {
       typeText: rs.fn().mockResolvedValue(undefined),
       typeRawKeys: rs.fn().mockResolvedValue(undefined),
       waitForInputFocus: rs.fn().mockResolvedValue(undefined),
-      selectAllForCustomInput: rs.fn().mockResolvedValue(false),
+      tapAndPrepareReplacement: rs.fn().mockResolvedValue('native'),
       clearActiveElement: rs.fn().mockResolvedValue(true),
       pressKey: rs.fn().mockResolvedValue(undefined),
       pressHomeButton: rs.fn().mockResolvedValue(undefined),
@@ -384,10 +384,10 @@ describe('IOSDevice', () => {
       let focused = false;
       let text = 'old text';
       const events: string[] = [];
-      mockWdaClient.selectAllForCustomInput.mockImplementation(async () => {
+      mockWdaClient.tapAndPrepareReplacement.mockImplementation(async () => {
         focused = true;
         events.push('ready');
-        return false;
+        return 'native';
       });
       mockWdaClient.waitForInputFocus.mockImplementation(async () => {
         events.push('ready');
@@ -409,7 +409,7 @@ describe('IOSDevice', () => {
       });
       expect(text).toBe('new text');
       expect(events).toEqual(['ready', 'clear', 'ready', 'type']);
-      expect(mockWdaClient.selectAllForCustomInput).toHaveBeenCalledWith(
+      expect(mockWdaClient.tapAndPrepareReplacement).toHaveBeenCalledWith(
         10,
         20,
       );
@@ -435,7 +435,7 @@ describe('IOSDevice', () => {
       'does not send text when focus fails (replace=%s)',
       async (replace) => {
         const readiness = replace
-          ? mockWdaClient.selectAllForCustomInput
+          ? mockWdaClient.tapAndPrepareReplacement
           : mockWdaClient.waitForInputFocus;
         readiness.mockRejectedValue(new Error('focus timed out'));
         await expect(
@@ -636,8 +636,16 @@ describe('IOSDevice', () => {
         autoDismissKeyboard: false,
       } as any);
 
-      expect(mockWdaClient.tap).toHaveBeenNthCalledWith(1, 10, 20);
-      expect(mockWdaClient.tap).toHaveBeenNthCalledWith(2, 30, 40);
+      expect(mockWdaClient.tapAndPrepareReplacement).toHaveBeenNthCalledWith(
+        1,
+        10,
+        20,
+      );
+      expect(mockWdaClient.tapAndPrepareReplacement).toHaveBeenNthCalledWith(
+        2,
+        30,
+        40,
+      );
       expect(mockWdaClient.clearActiveElement).toHaveBeenCalledTimes(2);
       expect(mockWdaClient.typeText).toHaveBeenNthCalledWith(1, 'from action');
       expect(mockWdaClient.typeText).toHaveBeenNthCalledWith(2, 'from pointer');

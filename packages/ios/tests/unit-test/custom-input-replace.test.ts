@@ -6,6 +6,16 @@ describe('located iOS replacement on custom inputs', () => {
   const target = { center: [40, 80] };
   let value: string;
   let menuOpen: boolean;
+  let opensOnTap: boolean;
+  let decoy: boolean;
+  let decoyOnFocus: boolean;
+  let outsideClicks: number;
+  let snapshot: number;
+  let menuY: number;
+  let placeholder: string | null;
+  let emptyNativeMenu: boolean;
+  let reportsInputValue: boolean;
+  let readbacks: number;
   let selected: boolean;
   let itemCount: number;
   let keyboardTop: number;
@@ -34,6 +44,16 @@ describe('located iOS replacement on custom inputs', () => {
     value = original;
     menuOpen = false;
     selected = false;
+    opensOnTap = false;
+    decoy = false;
+    decoyOnFocus = false;
+    outsideClicks = 0;
+    snapshot = 0;
+    menuY = 10;
+    placeholder = null;
+    emptyNativeMenu = false;
+    reportsInputValue = false;
+    readbacks = 0;
     itemCount = 1;
     keyboardTop = 400;
     rejectClick = false;
@@ -49,6 +69,8 @@ describe('located iOS replacement on custom inputs', () => {
       const ok = (value: unknown) => Response.json({ value });
       switch (path) {
         case '/wda/tap':
+          menuOpen = opensOnTap;
+          if (decoyOnFocus) decoy = true;
           return ok(null);
         case '/element/active':
           if (active) return ok({ ELEMENT: 'field' });
@@ -59,7 +81,12 @@ describe('located iOS replacement on custom inputs', () => {
         case '/element/field/attribute/accessible':
           return ok(active!.accessible);
         case '/element/field/attribute/value':
-          return ok(active!.value);
+          if (keyRequests.length) readbacks++;
+          return ok(
+            reportsInputValue && keyRequests.length ? value : active!.value,
+          );
+        case '/element/field/attribute/placeholderValue':
+          return ok(placeholder);
         case '/element/field/attribute/name':
           return ok(null);
         case '/element/field/attribute/type':
@@ -71,18 +98,39 @@ describe('located iOS replacement on custom inputs', () => {
         case '/elements': {
           if (body.value.includes('XCUIElementTypeKeyboard'))
             return ok(keyboardTop < 0 ? [] : [{ ELEMENT: 'keyboard' }]);
+          if (body.value.startsWith('**/XCUIElementTypeCollectionView')) {
+            return ok(
+              menuOpen && emptyNativeMenu ? [{ ELEMENT: 'empty-menu' }] : [],
+            );
+          }
           expect(body.using).toBe('class chain');
           expect(body.value).toContain('XCUIElementTypeMenuItem');
           expect(body.value).toContain('XCUIElementTypeButton');
           expect(body.value).toContain('"Copy"');
           expect(body.value).toContain('全选');
-          if (!menuOpen) return ok([]);
+          snapshot++;
+          return ok([
+            ...(decoy ? [{ ELEMENT: 'page' }] : []),
+            ...(menuOpen ? [{ ELEMENT: 'editor-menu' }] : []),
+          ]);
+        }
+        case '/element/empty-menu/rect':
+          return ok({ x: 12, y: 10, width: 70, height: 42 });
+        case '/element/empty-menu/elements':
+          return ok([]);
+        case '/element/page/rect':
+          return ok({ x: 8, y: 61, width: 80, height: 30 });
+        case '/element/page/elements':
+          return ok([{ ELEMENT: `outside-${snapshot}` }]);
+        case '/element/editor-menu/rect':
+          return ok({ x: 15, y: menuY, width: 180, height: 40 });
+        case '/element/editor-menu/elements':
+          expect(body.using).toBe('predicate string');
           return ok(
             Array.from({ length: itemCount }, (_, i) => ({
               ELEMENT: `all-${i}`,
             })),
           );
-        }
         case '/element/keyboard/rect':
           return ok({ x: 0, y: keyboardTop, width: 375, height: 220 });
         case '/element/field/rect':
@@ -92,6 +140,8 @@ describe('located iOS replacement on custom inputs', () => {
           holds++;
           menuOpen = true;
           return ok(null);
+        case '/element/all-0/attribute/type':
+          return ok('XCUIElementTypeMenuItem');
         case '/element/all-0/click':
           if (rejectClick)
             return Response.json(
@@ -108,6 +158,12 @@ describe('located iOS replacement on custom inputs', () => {
           return ok(null);
         }
         default:
+          if (path.match(/^\/element\/outside-\d+\/attribute\/type$/))
+            return ok('XCUIElementTypeButton');
+          if (path.match(/^\/element\/outside-\d+\/click$/)) {
+            outsideClicks++;
+            return ok(null);
+          }
           throw new Error(`Unexpected WDA request ${path}`);
       }
     });
@@ -123,20 +179,23 @@ describe('located iOS replacement on custom inputs', () => {
     expect(keyRequests).toEqual([' 新名字 ']);
   });
 
-  it('uses an already open edit menu for sequential replacement', async () => {
-    menuOpen = true;
+  it('uses the edit menu opened by the tap for sequential replacement', async () => {
+    opensOnTap = true;
     await replace('A😀', 'sequential');
     expect(holds).toBe(0);
     expect(value).toBe('A😀');
     expect(keyRequests).toEqual(['A', '😀']);
   });
 
-  it('selects the contents of an inaccessible UIKeyInput whose WDA value is null', async () => {
-    active = { accessible: false, value: null };
-    await replace('昵称42');
-    expect(holds).toBe(1);
-    expect(value).toBe('昵称42');
-  });
+  it.each([true, false])(
+    'replaces hidden old text even when accessible=%s',
+    async (accessible) => {
+      active = { accessible, value: null };
+      await replace('昵称42');
+      expect(holds).toBe(1);
+      expect(value).toBe('昵称42');
+    },
+  );
 
   it('can open the active editor’s edit menu when the software keyboard is hidden', async () => {
     active = { accessible: false, value: null };
@@ -147,19 +206,79 @@ describe('located iOS replacement on custom inputs', () => {
   });
 
   it.each([
-    { accessible: true, value: null },
     { accessible: true, value: 'old' },
     { accessible: false, value: 'old' },
-  ])(
-    'uses native clear for a readable or accessible input (%j)',
-    async (field) => {
-      active = field;
-      value = field.value ?? '';
-      await replace('new');
-      expect(holds).toBe(0);
-      expect(value).toBe('new');
+  ])('uses native clear for a readable input (%j)', async (field) => {
+    active = field;
+    value = field.value ?? '';
+    await replace('new');
+    expect(holds).toBe(0);
+    expect(value).toBe('new');
+  });
+
+  it('ignores an existing Select All toolbar even when WDA reassigns its button ID', async () => {
+    decoy = true;
+    await replace('new');
+    expect(value).toBe('new');
+    expect(outsideClicks).toBe(0);
+    expect(holds).toBe(1);
+  });
+
+  it('ignores a separate toolbar that appears when tapping opens the keyboard', async () => {
+    decoyOnFocus = true;
+    await replace('new');
+    expect(value).toBe('new');
+    expect(outsideClicks).toBe(0);
+    expect(holds).toBe(1);
+  });
+
+  it.each(['existing', 'distant'])(
+    'stops before typing when only a %s toolbar is available',
+    async (kind) => {
+      decoy = kind === 'existing';
+      if (decoy) itemCount = 0;
+      else menuY = 540;
+      await expect(replace('new')).rejects.toThrow(
+        /Select All|deadline|timeout/i,
+      );
+      expect(value).toBe(original);
+      expect(outsideClicks).toBe(0);
+      expect(keyRequests).toEqual([]);
     },
   );
+
+  it.each([null, 'Nickname'])(
+    'replaces an empty UIKit field showing its empty caret menu (%s)',
+    async (reportedValue) => {
+      placeholder = reportedValue ?? '';
+      active = { accessible: true, value: reportedValue };
+      itemCount = 0;
+      emptyNativeMenu = true;
+      reportsInputValue = true;
+      value = '';
+      await replace(' new ');
+      expect(value).toBe(' new ');
+      expect(readbacks).toBe(1);
+    },
+  );
+
+  it('requires readback when the native empty-field path is used', async () => {
+    placeholder = '';
+    active = { accessible: true, value: null };
+    itemCount = 0;
+    value = '';
+    emptyNativeMenu = true;
+    await expect(replace('new')).rejects.toThrow('verify the replacement');
+    expect(keyRequests).toEqual(['new']);
+  });
+
+  it('selects hidden old text when WDA reports only a placeholder', async () => {
+    placeholder = 'Nickname';
+    active = { accessible: true, value: placeholder };
+    await replace('new');
+    expect(holds).toBe(1);
+    expect(value).toBe('new');
+  });
 
   it('avoids pressing the keyboard if it now covers the input location', async () => {
     keyboardTop = 60;

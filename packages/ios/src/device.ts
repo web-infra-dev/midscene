@@ -30,7 +30,10 @@ import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison } from '@midscene/shared/utils';
 import { WDAManager } from '@midscene/webdriver';
-import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
+import {
+  type ReplacementPreparation,
+  IOSWebDriverClient as WebDriverAgentBackend,
+} from './ios-webdriver-client';
 import { MjpegFrameSource } from './mjpeg-frame-source';
 import {
   assertWdaConnectionOptions,
@@ -107,13 +110,12 @@ export class IOSDevice implements AbstractInterface {
         const focusRestorePoint = target
           ? { x: target.center[0], y: target.center[1] }
           : undefined;
-        let replaceSelection = false;
+        let preparation: ReplacementPreparation = 'native';
         if (focusRestorePoint && opts?.replace !== false) {
-          const preparation = await this.clearOrSelectInput(
+          preparation = await this.clearOrSelectInput(
             focusRestorePoint,
             Boolean(value) && !opts?.focusOnly,
           );
-          replaceSelection = preparation === 'selected';
         } else if (focusRestorePoint) {
           await this.tapPoint(focusRestorePoint);
         }
@@ -127,7 +129,7 @@ export class IOSDevice implements AbstractInterface {
           opts,
           focusRestorePoint,
           resolvedInputOptions,
-          replaceSelection,
+          preparation,
         );
       },
       clearInput: (target) =>
@@ -272,21 +274,16 @@ export class IOSDevice implements AbstractInterface {
   private async clearOrSelectInput(
     point?: PointerPoint,
     allowSelection = false,
-  ): Promise<'cleared' | 'selected'> {
+  ): Promise<ReplacementPreparation> {
     this.invalidatePendingKeyboardFollowUp('clear input');
-    if (point) {
-      await this.tapPoint(point);
-    }
-
     if (allowSelection && point) {
-      if (
-        await this.wdaBackend.selectAllForCustomInput(
-          Math.round(point.x),
-          Math.round(point.y),
-        )
-      )
-        return 'selected';
+      const preparation = await this.wdaBackend.tapAndPrepareReplacement(
+        Math.round(point.x),
+        Math.round(point.y),
+      );
+      if (preparation !== 'native') return preparation;
     } else {
+      if (point) await this.tapPoint(point);
       await this.wdaBackend.waitForInputFocus();
     }
     debugDevice('Attempting to clear input with WebDriver Clear API');
@@ -296,7 +293,7 @@ export class IOSDevice implements AbstractInterface {
       'Cannot verify that input was cleared; refusing to append text',
     );
     debugDevice('Successfully cleared input with WebDriver Clear API');
-    return 'cleared';
+    return 'native';
   }
 
   actionSpace(): DeviceAction<any>[] {
@@ -691,7 +688,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       options,
       this.options,
     ),
-    replaceSelection = false,
+    preparation: ReplacementPreparation = 'native',
   ): Promise<void> {
     this.invalidatePendingKeyboardFollowUp('new text input');
     if (!text) return;
@@ -704,7 +701,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     debugDevice(`Typing text: "${text}"`);
 
     try {
-      if (!replaceSelection) {
+      if (preparation === 'native') {
         await this.wdaBackend.waitForInputFocus({
           allowVisibleKeyboard:
             !!focusRestorePoint && options?.replace === false,
@@ -727,10 +724,17 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
             delayAfterLast: resolvedInputOptions.inputStrategy === 'legacy',
           },
         );
-      } else if (replaceSelection) {
+      } else if (preparation !== 'native') {
         await this.wdaBackend.typeRawKeys([text]);
       } else {
         await this.wdaBackend.typeText(text);
+      }
+
+      if (typeof preparation === 'object') {
+        await this.wdaBackend.verifyReplacedValue(
+          preparation.emptyFieldId,
+          text,
+        );
       }
 
       // Optional settling is owned by a custom action waiter when configured.
