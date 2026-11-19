@@ -1,11 +1,14 @@
 import type { GlobalConfigManager } from './global-config-manager';
+import { parseJson } from './helper';
 import { decideModelConfigFromIntentConfig } from './parse-model-config';
 
-import type {
-  CreateOpenAIClientFn,
-  IModelConfig,
-  TIntent,
-  TModelConfig,
+import {
+  type CreateOpenAIClientFn,
+  type IModelConfig,
+  MIDSCENE_MODEL_INIT_CONFIG_JSON,
+  MIDSCENE_OPENAI_INIT_CONFIG_JSON,
+  type TIntent,
+  type TModelConfig,
 } from './types';
 
 export class ModelConfigManager {
@@ -142,9 +145,15 @@ export class ModelConfigManager {
   }
 
   getUploadTestServerUrl(): string | undefined {
-    const { openaiExtraConfig } = this.getModelConfig('default');
-    const serverUrl = openaiExtraConfig?.REPORT_SERVER_URL as string;
-    return serverUrl;
+    // Read report configuration independently of provider credentials and
+    // per-intent model settings. Explicit Agent config remains isolated.
+    const config =
+      this.modelConfig ?? this.globalConfigManager?.getAllEnvConfig();
+    return parseJson(
+      MIDSCENE_MODEL_INIT_CONFIG_JSON,
+      String(config?.[MIDSCENE_MODEL_INIT_CONFIG_JSON] ?? '') ||
+        String(config?.[MIDSCENE_OPENAI_INIT_CONFIG_JSON] ?? ''),
+    )?.REPORT_SERVER_URL as string | undefined;
   }
 
   registerGlobalConfigManager(globalConfigManager: GlobalConfigManager) {
