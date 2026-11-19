@@ -575,7 +575,7 @@ jobs:
               | (release_title | .[0:256]) as $title
               | {
                   username: "Midscene Release",
-                  avatar_url: "https://midscenejs.com/midscene-icon.png",
+                  avatar_url: "https://www.midscenejs.com/midscene-icon.png",
                   allowed_mentions: {
                     parse: []
                   },

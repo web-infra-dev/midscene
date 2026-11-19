@@ -73,7 +73,7 @@ describe('Android Utils', () => {
       (mockAdbInstance.getConnectedDevices as Mock).mockRejectedValue(error);
 
       await expect(getConnectedDevices()).rejects.toThrow(
-        `Unable to get connected Android device list (ADB executable: /mock/platform-tools/adb), please check https://midscenejs.com/integrate-with-android.html#faq : ${error.message}`,
+        `Unable to get connected Android device list (ADB executable: /mock/platform-tools/adb), please check https://www.midscenejs.com/platforms/android#faq : ${error.message}`,
       );
     });
   });

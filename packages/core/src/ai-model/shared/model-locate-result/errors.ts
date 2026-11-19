@@ -1,5 +1,5 @@
 const modelConfigDocUrl =
-  'https://midscenejs.com/model-config#common-configuration-errors';
+  'https://www.midscenejs.com/model-config#common-configuration-errors';
 
 export function modelFamilyRequiredForLocateMessage(slot?: string) {
   const role = slot === 'locate' ? 'Locate' : 'Default';

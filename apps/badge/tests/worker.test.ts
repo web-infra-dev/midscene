@@ -236,7 +236,7 @@ describe('handleRequest', () => {
   it('links by-midscene snippets to the Midscene.js site', async () => {
     const html = await handleRequest(get('/?lang=en')).text();
     expect(html).toContain(
-      `[![E2E by Midscene.js](${ORIGIN}/by-midscene?style=large)](https://midscenejs.com)`,
+      `[![E2E by Midscene.js](${ORIGIN}/by-midscene?style=large)](https://www.midscenejs.com)`,
     );
     expect(html).toContain('<img src="/by-midscene"');
   });

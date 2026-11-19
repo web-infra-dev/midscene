@@ -31,7 +31,7 @@ export function NavActions({
   showTooltipWhenEmpty = false,
   showModelName = false,
   githubUrl = 'https://github.com/web-infra-dev/midscene',
-  helpUrl = 'https://midscenejs.com/quick-start.html#chrome-extension',
+  helpUrl = 'https://www.midscenejs.com/platforms/web#chrome-extension',
   className = '',
   playgroundSDK,
   onVerify,

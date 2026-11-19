@@ -7,7 +7,7 @@
     "url": "https://github.com/web-infra-dev/midscene.git",
     "directory": "packages/test"
   },
-  "homepage": "https://midscenejs.com/",
+  "homepage": "https://www.midscenejs.com/",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.mjs",
   "types": "./dist/types/index.d.ts",
