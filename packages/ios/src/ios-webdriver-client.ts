@@ -23,6 +23,19 @@ const WDA_MJPEG_SCALING_FACTOR = 50;
 const w3cElementId = 'element-6066-11e4-a52e-4f735466cecf';
 const keyboardDismissDeadlineMs = 5000;
 const keyboardDismissPollIntervalMs = 100;
+const editMenuTimeoutMs = 5000;
+const editControl =
+  'type IN {"XCUIElementTypeMenuItem", "XCUIElementTypeButton"} AND visible == true';
+const editTitles =
+  '{"Cut", "Copy", "Paste", "Select", "剪切", "剪下", "拷贝", "复制", "拷貝", "複製", "粘贴", "貼上", "选择", "選取", "選擇"}';
+const selectAllTitles = '{"Select All", "全选", "全選"}';
+// UIKit exposes edit menu items in a collection view. Custom menus can expose buttons.
+// Require another text editing command in the same container to exclude page-wide Select All actions.
+const selectAllEditMenuQuery = [
+  '**/XCUIElementTypeAny[`type IN {"XCUIElementTypeMenu", "XCUIElementTypeCollectionView", "XCUIElementTypeToolbar"}`]',
+  `[$${editControl} AND (name IN[c] ${editTitles} OR label IN[c] ${editTitles})$]`,
+  `/**/XCUIElementTypeAny[\`${editControl} AND enabled == true AND (name IN[c] ${selectAllTitles} OR label IN[c] ${selectAllTitles})\`]`,
+].join('');
 
 type FindElementIdsOptions = {
   rootElementId?: string;
@@ -315,6 +328,58 @@ export class IOSWebDriverClient extends WebDriverClient {
         ? (deadline) => this.findVisibleKeyboardIds(deadline)
         : undefined,
     );
+  }
+
+  /** Select the old text when WDA cannot clear the tapped editor's contents. */
+  async selectAllForCustomInput(x: number, y: number): Promise<boolean> {
+    const activeId = await waitForInputFocus(this.requestInput, (deadline) =>
+      this.findVisibleKeyboardIds(deadline),
+    );
+    if (activeId) {
+      const path = `/element/${activeId}/attribute`;
+      const accessible = await this.requestInput('GET', `${path}/accessible`);
+      if (accessible.value !== false) return false;
+      // WDA can synthesize an inaccessible TextView for UIKeyInput. Its clear
+      // endpoint returns success without deleting anything when the value is absent.
+      const { value } = await this.requestInput('GET', `${path}/value`);
+      if (value !== null && value !== '') return false;
+    }
+
+    const findSelectAll = (deadline: number) =>
+      this.findElementIds('class chain', selectAllEditMenuQuery, { deadline });
+    const initialDeadline = Date.now() + editMenuTimeoutMs;
+    let matches = await findSelectAll(initialDeadline);
+    if (matches.length === 0) {
+      // The newly opened keyboard may now cover the original tap coordinates.
+      const keyboard = await this.getVisibleKeyboardRect(initialDeadline);
+      const containsTap = (rect: WebDriverElementRect) =>
+        x >= rect.x &&
+        x < rect.x + rect.width &&
+        y >= rect.y &&
+        y < rect.y + rect.height;
+      // With a hidden keyboard, the active editor's bounds can still confirm the target.
+      const canLongPress = keyboard
+        ? !containsTap(keyboard)
+        : activeId &&
+          containsTap(await this.getElementRect(activeId, initialDeadline));
+      if (!canLongPress) {
+        throw new Error('Cannot open the edit menu at the input location');
+      }
+      await this.longPress(x, y);
+      const deadline = Date.now() + editMenuTimeoutMs;
+      while (Date.now() < deadline) {
+        matches = await findSelectAll(deadline);
+        if (matches.length) break;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
+    if (matches.length !== 1) {
+      throw new Error(
+        'Cannot uniquely locate Select All in the input edit menu; refusing to append text',
+      );
+    }
+    await this.clickElement(matches[0]);
+    return true;
   }
 
   private requestInput: InputRequest = (method, path, data, options) => {

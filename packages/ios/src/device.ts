@@ -107,10 +107,15 @@ export class IOSDevice implements AbstractInterface {
         const focusRestorePoint = target
           ? { x: target.center[0], y: target.center[1] }
           : undefined;
-        if (target && opts?.replace !== false) {
-          await this.clearInput(target);
-        } else if (target) {
-          await this.tapPoint({ x: target.center[0], y: target.center[1] });
+        let replaceSelection = false;
+        if (focusRestorePoint && opts?.replace !== false) {
+          const preparation = await this.clearOrSelectInput(
+            focusRestorePoint,
+            Boolean(value) && !opts?.focusOnly,
+          );
+          replaceSelection = preparation === 'selected';
+        } else if (focusRestorePoint) {
+          await this.tapPoint(focusRestorePoint);
         }
 
         if (opts?.focusOnly) {
@@ -122,6 +127,7 @@ export class IOSDevice implements AbstractInterface {
           opts,
           focusRestorePoint,
           resolvedInputOptions,
+          replaceSelection,
         );
       },
       clearInput: (target) =>
@@ -263,13 +269,26 @@ export class IOSDevice implements AbstractInterface {
     );
   }
 
-  private async clearInputAt(point?: PointerPoint): Promise<void> {
+  private async clearOrSelectInput(
+    point?: PointerPoint,
+    allowSelection = false,
+  ): Promise<'cleared' | 'selected'> {
     this.invalidatePendingKeyboardFollowUp('clear input');
     if (point) {
       await this.tapPoint(point);
     }
 
-    await this.wdaBackend.waitForInputFocus();
+    if (allowSelection && point) {
+      if (
+        await this.wdaBackend.selectAllForCustomInput(
+          Math.round(point.x),
+          Math.round(point.y),
+        )
+      )
+        return 'selected';
+    } else {
+      await this.wdaBackend.waitForInputFocus();
+    }
     debugDevice('Attempting to clear input with WebDriver Clear API');
     const cleared = await this.wdaBackend.clearActiveElement();
     assert(
@@ -277,6 +296,7 @@ export class IOSDevice implements AbstractInterface {
       'Cannot verify that input was cleared; refusing to append text',
     );
     debugDevice('Successfully cleared input with WebDriver Clear API');
+    return 'cleared';
   }
 
   actionSpace(): DeviceAction<any>[] {
@@ -627,7 +647,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   async clearInput(element?: ElementInfo): Promise<void> {
-    await this.clearInputAt(
+    await this.clearOrSelectInput(
       element ? { x: element.center[0], y: element.center[1] } : undefined,
     );
   }
@@ -671,6 +691,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       options,
       this.options,
     ),
+    replaceSelection = false,
   ): Promise<void> {
     this.invalidatePendingKeyboardFollowUp('new text input');
     if (!text) return;
@@ -683,9 +704,12 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     debugDevice(`Typing text: "${text}"`);
 
     try {
-      await this.wdaBackend.waitForInputFocus({
-        allowVisibleKeyboard: !!focusRestorePoint && options?.replace === false,
-      });
+      if (!replaceSelection) {
+        await this.wdaBackend.waitForInputFocus({
+          allowVisibleKeyboard:
+            !!focusRestorePoint && options?.replace === false,
+        });
+      }
 
       if (inputSequentially) {
         // Type one character at a time with a delay between keystrokes.
@@ -703,6 +727,8 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
             delayAfterLast: resolvedInputOptions.inputStrategy === 'legacy',
           },
         );
+      } else if (replaceSelection) {
+        await this.wdaBackend.typeRawKeys([text]);
       } else {
         await this.wdaBackend.typeText(text);
       }

@@ -195,13 +195,13 @@ On iOS, `device.destroy()` stops the MJPEG frame source, deletes the WDA session
 
 ### How do I type into a custom-rendered field?
 
-If tapping a field opens the software keyboard but WebDriverAgent reports `no such element` for `/element/active`, pass a locator and use `typeOnly`.
+Use a locator and `replace` to overwrite existing text in a custom-rendered field. This also works when the software keyboard opens and WebDriverAgent reports `no such element` for `/element/active`, or exposes an inaccessible focus owner with no readable value.
 
 ```sh
-midscene-ios input --locate '{"prompt":"Nickname field"}' --mode typeOnly --value "test"
+midscene-ios input --locate '{"prompt":"Nickname field"}' --mode replace --value "test"
 ```
 
-`typeOnly` inserts text at the caret. To replace existing text in a field that WDA cannot clear, clear it through the app first.
+Midscene opens the field's edit menu with a long press if needed, chooses **Select All**, then types the replacement. WDA must expose a single enabled `Select All`, `全选`, or `全選` command alongside a text editing command such as Copy or Paste. If selection fails, the action stops before typing. Use `typeOnly` to insert at the caret, including in a known empty field.
 
 <a id="how-to-use-custom-webdriveragent-port-and-host"></a>
 

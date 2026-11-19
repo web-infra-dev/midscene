@@ -44,6 +44,7 @@ describe('IOSDevice', () => {
       typeText: rs.fn().mockResolvedValue(undefined),
       typeRawKeys: rs.fn().mockResolvedValue(undefined),
       waitForInputFocus: rs.fn().mockResolvedValue(undefined),
+      selectAllForCustomInput: rs.fn().mockResolvedValue(false),
       clearActiveElement: rs.fn().mockResolvedValue(true),
       pressKey: rs.fn().mockResolvedValue(undefined),
       pressHomeButton: rs.fn().mockResolvedValue(undefined),
@@ -383,8 +384,12 @@ describe('IOSDevice', () => {
       let focused = false;
       let text = 'old text';
       const events: string[] = [];
-      mockWdaClient.waitForInputFocus.mockImplementation(async () => {
+      mockWdaClient.selectAllForCustomInput.mockImplementation(async () => {
         focused = true;
+        events.push('ready');
+        return false;
+      });
+      mockWdaClient.waitForInputFocus.mockImplementation(async () => {
         events.push('ready');
       });
       mockWdaClient.clearActiveElement.mockImplementation(async () => {
@@ -404,8 +409,11 @@ describe('IOSDevice', () => {
       });
       expect(text).toBe('new text');
       expect(events).toEqual(['ready', 'clear', 'ready', 'type']);
-      expect(mockWdaClient.waitForInputFocus).toHaveBeenNthCalledWith(1);
-      expect(mockWdaClient.waitForInputFocus).toHaveBeenNthCalledWith(2, {
+      expect(mockWdaClient.selectAllForCustomInput).toHaveBeenCalledWith(
+        10,
+        20,
+      );
+      expect(mockWdaClient.waitForInputFocus).toHaveBeenCalledWith({
         allowVisibleKeyboard: false,
       });
       expect(mockWdaClient.typeText).toHaveBeenCalledTimes(1);
@@ -426,9 +434,10 @@ describe('IOSDevice', () => {
     it.each([true, false])(
       'does not send text when focus fails (replace=%s)',
       async (replace) => {
-        mockWdaClient.waitForInputFocus.mockRejectedValue(
-          new Error('focus timed out'),
-        );
+        const readiness = replace
+          ? mockWdaClient.selectAllForCustomInput
+          : mockWdaClient.waitForInputFocus;
+        readiness.mockRejectedValue(new Error('focus timed out'));
         await expect(
           device.inputPrimitives.keyboard.typeText('new text', {
             target: { center: [10, 20] },
