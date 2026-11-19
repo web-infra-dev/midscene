@@ -41,6 +41,7 @@ interface FrameRef {
   page: Page;
   id: string;
   at: number;
+  hasCaptureTimestamp?: boolean;
   data: string;
   viewport: Viewport;
   compatibleViewport: boolean;
@@ -53,6 +54,7 @@ type ProbeEvent = Record<string, unknown> & {
   t: number;
   type: string;
   frame?: boolean;
+  probeStartedAt?: number;
   settle?: boolean;
   redactionGeometry?: RedactionGeometry;
 };
@@ -211,13 +213,12 @@ export class WebRecorder {
         firstFrame = resolve;
       });
       cdp.on('Page.screencastFrame', (frame) => {
+        const { timestamp } = frame.metadata;
         const ref = {
           page,
           id: `f${++this.frameSequence}`,
-          at:
-            frame.metadata.timestamp === undefined
-              ? Date.now()
-              : frame.metadata.timestamp * 1000,
+          at: timestamp === undefined ? Date.now() : timestamp * 1000,
+          hasCaptureTimestamp: timestamp !== undefined,
           data: frame.data,
           viewport: {
             width: frame.metadata.deviceWidth,
@@ -228,7 +229,7 @@ export class WebRecorder {
           compatibleViewport:
             frame.metadata.offsetTop === 0 &&
             frame.metadata.pageScaleFactor === 1 &&
-            frame.metadata.timestamp !== undefined,
+            timestamp !== undefined,
         };
         this.latest = ref;
         this.frames.push(ref);
@@ -277,9 +278,13 @@ export class WebRecorder {
   }
 
   /** Latest frame at or before a timestamp: the UI the user acted on. */
-  private frameBefore(at: number, page: Page) {
+  private frameBefore(at: number, page: Page, probeStartedAt?: number) {
     const frame = this.frames.findLast(
-      (item) => item.at <= at && item.page === page,
+      (item) =>
+        item.at <= at &&
+        item.page === page &&
+        (probeStartedAt === undefined ||
+          (item.hasCaptureTimestamp && item.at >= probeStartedAt)),
     );
     if (!frame) return undefined;
     this.keep.add(frame.id);
@@ -292,7 +297,7 @@ export class WebRecorder {
   }
 
   private accept(raw: ProbeEvent, page: Page) {
-    const { frame, settle, redactionGeometry, ...event } = raw;
+    const { frame, probeStartedAt, settle, redactionGeometry, ...event } = raw;
     const sample: {
       target?: TargetSample;
       state?: StateSample & { secret?: boolean };
@@ -313,8 +318,14 @@ export class WebRecorder {
       ...(sample.target ? { target: sample.target } : {}),
       ...(sample.state ? { state: sample.state } : {}),
     } as TraceEvent;
-    if (frame)
-      (traced as { before?: string }).before = this.frameBefore(event.t, page);
+    // The browser may deliver the input before a frame from the new
+    // document. Keep the action even when its pre-action image is unavailable.
+    if (frame && probeStartedAt !== undefined)
+      (traced as { before?: string }).before = this.frameBefore(
+        event.t,
+        page,
+        probeStartedAt,
+      );
     if (
       (traced.type === 'pointer' && traced.phase === 'down') ||
       traced.type === 'key'

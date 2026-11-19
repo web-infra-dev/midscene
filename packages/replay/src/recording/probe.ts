@@ -39,6 +39,9 @@ function installDomProbe(
   // Wall-clock milliseconds, comparable with screencast frame timestamps and across documents.
   const now = () =>
     Math.round((performance.timeOrigin + performance.now()) * 10) / 10;
+  // The navigation time origin can precede the commit while the old page is
+  // still visible. Use installation in this document as the frame boundary.
+  const probeStartedAt = now();
   const documentId = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   let eventSerial = 0;
   const buffer: Record<string, unknown>[] = [];
@@ -49,6 +52,7 @@ function installDomProbe(
     void send(buffer.splice(0, buffer.length)).catch(() => undefined);
   };
   const push = (event: Record<string, unknown>) => {
+    if (event.frame) event.probeStartedAt = probeStartedAt;
     if (
       (event.target as { secret?: boolean } | undefined)?.secret ||
       (event.state as { secret?: boolean } | undefined)?.secret
