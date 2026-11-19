@@ -29,7 +29,7 @@ for (const confirmed of [false, true]) {
       'Authorization will open in a new tab.',
     );
     expect(dialog.querySelector('a')?.href).toBe(
-      'https://midscenejs.com/chatgpt-subscription.html',
+      'https://www.midscenejs.com/chatgpt-subscription.html',
     );
     const action = Array.from(dialog.querySelectorAll('button')).find(
       (button) =>

@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://midscenejs.com/sitemap.xml
+Sitemap: https://www.midscenejs.com/sitemap.xml

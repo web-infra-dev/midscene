@@ -5,14 +5,14 @@
 </p>
 
 <p align="center">
-  <a href="https://midscenejs.com/">Website</a> · English / <a href="./README.zh.md">简体中文</a>
+  <a href="https://www.midscenejs.com/">Website</a> · English / <a href="./README.zh.md">简体中文</a>
 </p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@midscene/web"><img src="https://img.shields.io/npm/v/@midscene/web?style=flat-square&color=00a8f0" alt="npm version" /></a>
   <a href="https://npm-compare.com/@midscene/web/#timeRange=THREE_YEARS"><img src="https://img.shields.io/npm/dm/@midscene/web.svg?style=flat-square&color=00a8f0" alt="downloads" /></a>
   <a href="https://github.com/web-infra-dev/midscene/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" /></a>
-  <a href="https://midscenejs.com/"><img src="https://badge.midscenejs.com/by-midscene" alt="E2E by Midscene.js" /></a>
+  <a href="https://www.midscenejs.com/"><img src="https://badge.midscenejs.com/by-midscene" alt="E2E by Midscene.js" /></a>
   <a href="https://trendshift.io/repositories/12524"><img src="https://img.shields.io/badge/GitHub_Trending-featured-00a8f0?style=flat-square&logo=github" alt="Featured on GitHub Trending" /></a>
 </p>
 
@@ -22,7 +22,7 @@ Midscene.js brings AI vision to E2E testing. Describe UI steps and expected resu
 
 ### YAML test cases with Midscene Test
 
-After [creating a Midscene Test project](https://midscenejs.com/midscene-test/use) and configuring a model and the Web runtime, write a case like this. Replace the example URL with your app's address:
+After [creating a Midscene Test project](https://www.midscenejs.com/midscene-test/use) and configuring a model and the Web runtime, write a case like this. Replace the example URL with your app's address:
 
 ```yaml
 beforeEach:
@@ -50,7 +50,7 @@ await agent.aiWaitFor('The filtered search results are visible');
 await agent.aiAssert('There are products in the search results, and each costs less than $100');
 ```
 
-For mobile and desktop apps, use the platform Agent with [Rstest](https://midscenejs.com/sdk/rstest) or [Vitest](https://midscenejs.com/sdk/vitest). Open the generated HTML report to inspect screenshots, element locations, the AI decision process, and action and assertion results.
+For mobile and desktop apps, use the platform Agent with [Rstest](https://www.midscenejs.com/sdk/rstest) or [Vitest](https://www.midscenejs.com/sdk/vitest). Open the generated HTML report to inspect screenshots, element locations, the AI decision process, and action and assertion results.
 
 ## 👁️ See, act, and verify like a human
 
@@ -75,34 +75,34 @@ Visual localization does not depend on the UI rendering stack, so the same Agent
 
 | Platform | Integration |
 | --- | --- |
-| Web | [Playwright](https://midscenejs.com/integrate-with-playwright), [Puppeteer](https://midscenejs.com/integrate-with-puppeteer), or [desktop Chrome](https://midscenejs.com/bridge-mode) |
-| Android | [Devices and emulators through ADB](https://midscenejs.com/platforms/android) |
-| iOS | [Devices and simulators through WebDriverAgent](https://midscenejs.com/platforms/ios) |
-| HarmonyOS | [HarmonyOS NEXT through HDC](https://midscenejs.com/platforms/harmonyos) |
-| Desktop | [macOS, Windows, and Linux, with remote RDP support](https://midscenejs.com/platforms/desktop) |
-| Custom interfaces | [Provide screenshots and action capabilities](https://midscenejs.com/integrate-with-any-interface) |
+| Web | [Playwright](https://www.midscenejs.com/integrate-with-playwright), [Puppeteer](https://www.midscenejs.com/integrate-with-puppeteer), or [desktop Chrome](https://www.midscenejs.com/bridge-mode) |
+| Android | [Devices and emulators through ADB](https://www.midscenejs.com/platforms/android) |
+| iOS | [Devices and simulators through WebDriverAgent](https://www.midscenejs.com/platforms/ios) |
+| HarmonyOS | [HarmonyOS NEXT through HDC](https://www.midscenejs.com/platforms/harmonyos) |
+| Desktop | [macOS, Windows, and Linux, with remote RDP support](https://www.midscenejs.com/platforms/desktop) |
+| Custom interfaces | [Provide screenshots and action capabilities](https://www.midscenejs.com/integrate-with-any-interface) |
 
 ## 📊 Models, cost, and benchmarks
 
 ### Choose models for your needs and budget
 
-Screenshot-based UI actions avoid sending large DOM trees to the model. In the reported AppControlBench run, Midscene with Doubao Seed 2.1 Turbo passed **58 of 60 tasks with $0.59 in total model cost**. The [report](https://midscenejs.com/app-control-bench-report) provides per-task costs and comparisons across models.
+Screenshot-based UI actions avoid sending large DOM trees to the model. In the reported AppControlBench run, Midscene with Doubao Seed 2.1 Turbo passed **58 of 60 tasks with $0.59 in total model cost**. The [report](https://www.midscenejs.com/app-control-bench-report) provides per-task costs and comparisons across models.
 
-Midscene supports GPT, Qwen, Doubao Seed, DeepSeek, Gemini, Kimi, and more, including open-source options you can self-host. See [Model Selection Guide](https://midscenejs.com/model-selection) to choose a model and [Model Configuration](https://midscenejs.com/model-api-setup) to set it up.
+Midscene supports GPT, Qwen, Doubao Seed, DeepSeek, Gemini, Kimi, and more, including open-source options you can self-host. See [Model Selection Guide](https://www.midscenejs.com/model-selection) to choose a model and [Model Configuration](https://www.midscenejs.com/model-api-setup) to set it up.
 
 ### Benchmarks
 
 | Benchmark | Pass@1 | Model used in the reported run |
 | --- | --- | --- |
-| [AndroidWorld](https://midscenejs.com/android-world-benchmark-report) | 93.1% | Gemini-3.5-Flash |
-| [MobileWorld](https://midscenejs.com/mobile-world-benchmark-report) | 78.6% | Gemini-3.6-Flash |
-| [AppControlBench](https://midscenejs.com/app-control-bench-report) | 96.7% | Doubao Seed 2.1 Turbo |
+| [AndroidWorld](https://www.midscenejs.com/android-world-benchmark-report) | 93.1% | Gemini-3.5-Flash |
+| [MobileWorld](https://www.midscenejs.com/mobile-world-benchmark-report) | 78.6% | Gemini-3.6-Flash |
+| [AppControlBench](https://www.midscenejs.com/app-control-bench-report) | 96.7% | Doubao Seed 2.1 Turbo |
 
-Each report includes the run configuration and task results; see AndroidWorld's report for its environment and validator adjustments. Explore [cross-platform showcases](https://midscenejs.com/showcases), from web form validation to mobile workflows and community-built in-vehicle testing.
+Each report includes the run configuration and task results; see AndroidWorld's report for its environment and validator adjustments. Explore [cross-platform showcases](https://www.midscenejs.com/showcases), from web form validation to mobile workflows and community-built in-vehicle testing.
 
 ## 🧩 Midscene Test: a natural-language E2E testing framework
 
-[Midscene Test](https://midscenejs.com/midscene-test/overview) (`@midscene/test`) is a natural-language E2E testing framework. Describe actions and expectations in YAML, and keep logic that needs precise control in TypeScript.
+[Midscene Test](https://www.midscenejs.com/midscene-test/overview) (`@midscene/test`) is a natural-language E2E testing framework. Describe actions and expectations in YAML, and keep logic that needs precise control in TypeScript.
 
 ### Test cases maintained by people and AI
 
@@ -117,23 +117,23 @@ Each report includes the run configuration and task results; see AndroidWorld's 
 - **Concurrency and isolation:** `maxConcurrentFiles`, with `fileSetup` giving each file its own page, Agent, or device.
 - **Step-level reports:** screenshots, inputs, outputs, and Agent replay for every step, `#runner-step=last-error` deep links, and `summary.json` for scripts and AI agents.
 
-Start with [Create and use test projects](https://midscenejs.com/midscene-test/use), then learn how to [Develop custom Nodes](https://midscenejs.com/midscene-test/extend) and control [lifecycle and concurrency](https://midscenejs.com/midscene-test/execution).
+Start with [Create and use test projects](https://www.midscenejs.com/midscene-test/use), then learn how to [Develop custom Nodes](https://www.midscenejs.com/midscene-test/extend) and control [lifecycle and concurrency](https://www.midscenejs.com/midscene-test/execution).
 
-Reports, Test results, caches and logs are saved in `midscene_run/`. See [artifact directories](https://midscenejs.com/midscene-test/running#unified-artifact-root-and-migration) for configuration and CI archiving.
+Reports, Test results, caches and logs are saved in `midscene_run/`. See [artifact directories](https://www.midscenejs.com/midscene-test/running#unified-artifact-root-and-migration) for configuration and CI archiving.
 
 ## 🚀 Get started
 
-- **Write YAML test cases** — [create a Midscene Test project](https://midscenejs.com/midscene-test/use).
-- **Add visual capabilities to existing tests** — [Playwright](https://midscenejs.com/integrate-with-playwright) for web apps, [Rstest](https://midscenejs.com/sdk/rstest) or [Vitest](https://midscenejs.com/sdk/vitest) for mobile and desktop apps.
-- **Try it before writing tests** — the [Chrome extension](https://midscenejs.com/get-started?scene=playground&platform=web) or a [Playground for mobile or desktop](https://midscenejs.com/platforms).
-- **Run standalone automation scripts** — the [JavaScript SDK](https://midscenejs.com/sdk/standalone).
-- **Let your AI agent operate the UI** — [Midscene Skills](https://midscenejs.com/skills).
+- **Write YAML test cases** — [create a Midscene Test project](https://www.midscenejs.com/midscene-test/use).
+- **Add visual capabilities to existing tests** — [Playwright](https://www.midscenejs.com/integrate-with-playwright) for web apps, [Rstest](https://www.midscenejs.com/sdk/rstest) or [Vitest](https://www.midscenejs.com/sdk/vitest) for mobile and desktop apps.
+- **Try it before writing tests** — the [Chrome extension](https://www.midscenejs.com/get-started?scene=playground&platform=web) or a [Playground for mobile or desktop](https://www.midscenejs.com/platforms).
+- **Run standalone automation scripts** — the [JavaScript SDK](https://www.midscenejs.com/sdk/standalone).
+- **Let your AI agent operate the UI** — [Midscene Skills](https://www.midscenejs.com/skills).
 
 ## 📄 Resources
 
-* Documentation: [https://midscenejs.com](https://midscenejs.com/)
+* Documentation: [https://www.midscenejs.com](https://www.midscenejs.com/)
 * Sample projects: [midscene-example](https://github.com/web-infra-dev/midscene-example)
-* API reference: [https://midscenejs.com/reference/#common](https://midscenejs.com/reference/#common)
+* API reference: [https://www.midscenejs.com/reference/#common](https://www.midscenejs.com/reference/#common)
 
 ## 🤝 Community
 

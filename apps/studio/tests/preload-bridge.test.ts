@@ -52,7 +52,7 @@ describe('preload bridge', () => {
 
     await shellApi.closeWindow();
     await shellApi.minimizeWindow();
-    await shellApi.openExternalUrl('https://midscenejs.com');
+    await shellApi.openExternalUrl('https://www.midscenejs.com');
     await shellApi.openRunDirectory();
     await shellApi.chooseReportSavePath('report.html');
     await shellApi.chooseFileSavePath({
@@ -150,7 +150,7 @@ describe('preload bridge', () => {
     expect(mocks.invoke.mock.calls).toEqual([
       [IPC_CHANNELS.closeWindow],
       [IPC_CHANNELS.minimizeWindow],
-      [IPC_CHANNELS.openExternalUrl, 'https://midscenejs.com'],
+      [IPC_CHANNELS.openExternalUrl, 'https://www.midscenejs.com'],
       [IPC_CHANNELS.openRunDirectory],
       [IPC_CHANNELS.chooseReportSavePath, 'report.html'],
       [

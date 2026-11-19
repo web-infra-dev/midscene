@@ -1,3 +1,3 @@
 # @midscene/android-playground
 
-See <https://midscenejs.com/platforms/android#launch-playground>.
+See <https://www.midscenejs.com/get-started?platform=android&scene=playground>.

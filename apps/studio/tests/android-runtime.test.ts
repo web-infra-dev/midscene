@@ -35,7 +35,7 @@ describe('android runtime CORS policy', () => {
   });
 
   it('rejects non-loopback browser origins', () => {
-    expect(isAllowedStudioOrigin('https://midscenejs.com')).toBe(false);
+    expect(isAllowedStudioOrigin('https://www.midscenejs.com')).toBe(false);
     expect(isAllowedStudioOrigin('http://192.168.1.10:3210')).toBe(false);
     expect(isAllowedStudioOrigin('not-a-url')).toBe(false);
   });
@@ -51,7 +51,7 @@ describe('android runtime CORS policy', () => {
     });
 
     let blockedResult: boolean | undefined;
-    originResolver('https://midscenejs.com', (error, allowed) => {
+    originResolver('https://www.midscenejs.com', (error, allowed) => {
       expect(error).toBeNull();
       blockedResult = allowed;
     });

@@ -706,7 +706,7 @@ ${Object.keys(size)
 
             // throw the error again
             throw new Error(
-              `ADB error with device ${deviceId} when calling ${methodName} (ADB executable: ${adbExecutable}), please check https://midscenejs.com/integrate-with-android.html#faq : ${error.message}`,
+              `ADB error with device ${deviceId} when calling ${methodName} (ADB executable: ${adbExecutable}), please check https://www.midscenejs.com/platforms/android#faq : ${error.message}`,
               {
                 cause: error,
               },

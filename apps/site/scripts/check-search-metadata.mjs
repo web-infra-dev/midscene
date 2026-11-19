@@ -8,9 +8,9 @@ const siteRoot = path.resolve(
   '..',
 );
 const outputRoot = path.join(siteRoot, 'doc_build');
-const faviconUrl = 'https://midscenejs.com/favicon.png';
+const faviconUrl = 'https://www.midscenejs.com/favicon.png';
 const faviconLinkUrl = `${faviconUrl}?v=20260929`;
-const ogImageUrl = 'https://midscenejs.com/og-image.png';
+const ogImageUrl = 'https://www.midscenejs.com/og-image.png';
 const bingImagePreviewMeta =
   '<meta name="bingbot" content="max-image-preview:none">';
 
@@ -21,7 +21,7 @@ for (const relativePath of ['index.html', 'zh/index.html']) {
   const html = await readOutput(relativePath);
   assert.match(
     html,
-    /<link rel="icon" type="image\/png" sizes="600x600" href="https:\/\/midscenejs\.com\/favicon\.png\?v=20260929">/,
+    /<link rel="icon" type="image\/png" sizes="600x600" href="https:\/\/www\.midscenejs\.com\/favicon\.png\?v=20260929">/,
     `${relativePath} must declare the production square favicon`,
   );
   const iconLinks = [...html.matchAll(/<link\b[^>]*>/g)]
@@ -67,7 +67,7 @@ for (const relativePath of ['index.html', 'zh/index.html']) {
   );
   assert.equal(
     website.publisher['@id'],
-    'https://midscenejs.com/#organization',
+    'https://www.midscenejs.com/#organization',
     `${relativePath} must connect the website to its publisher`,
   );
 }
@@ -121,7 +121,7 @@ assert.match(
 );
 assert.match(
   robots,
-  /^Sitemap: https:\/\/midscenejs\.com\/sitemap\.xml$/m,
+  /^Sitemap: https:\/\/www\.midscenejs\.com\/sitemap\.xml$/m,
   'robots.txt must reference the production sitemap',
 );
 assert.doesNotMatch(

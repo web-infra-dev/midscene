@@ -38,7 +38,7 @@ export async function getCredentialStorage(): Promise<{
   if (chrome?.runtime?.id && chrome.storage?.local) {
     const storage = chrome.storage.local;
     const reauthorizationHint =
-      'Open Model Env Config and select "Use your ChatGPT plan" to sign in again. See https://midscenejs.com/chatgpt-subscription.html';
+      'Open Model Env Config and select "Use your ChatGPT plan" to sign in again. See https://www.midscenejs.com/chatgpt-subscription.html';
     return {
       read: async () => {
         const saved = await storage.get(SIWC_AUTH_STORAGE_KEY);
@@ -71,7 +71,7 @@ export async function getCredentialStorage(): Promise<{
   const { join } = await import(pathModule);
   const credentialsPath = join(homedir(), '.midscene', 'siwc.json');
   const reauthorizationHint =
-    'Run "midscene model siwc login" to sign in again. See https://midscenejs.com/chatgpt-subscription.html';
+    'Run "midscene model siwc login" to sign in again. See https://www.midscenejs.com/chatgpt-subscription.html';
   return {
     read: async () => {
       const content = await readFile(credentialsPath, 'utf8').catch(
