@@ -20,6 +20,18 @@ import type {
 } from '../types';
 import { type InputStrategy, inputStrategies } from './input-strategy';
 
+/** Numeric native-layout observations in interface logical coordinates. Not scroll offsets/ranges. */
+export interface ScrollGeometry {
+  targetId: string;
+  viewport: { x: number; y: number; width: number; height: number };
+  offscreenDirections: ('up' | 'down' | 'left' | 'right')[];
+  /** Opaque, unique child identities. Never include native labels in these keys. */
+  anchors: Record<
+    string,
+    { x: number; y: number; width: number; height: number }
+  >;
+}
+
 export interface FileChooserHandler {
   accept(files: string[]): Promise<void>;
 }
@@ -248,6 +260,9 @@ export abstract class AbstractInterface {
     _param: any,
     _signal?: AbortSignal,
   ): Promise<void> {}
+
+  /** Optional read-only evidence. Return undefined for ambiguous or unsupported targets. */
+  captureScrollGeometry?(): Promise<ScrollGeometry | undefined>;
 
   // for web only
   registerFileChooserListener?(

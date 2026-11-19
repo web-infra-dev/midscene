@@ -56,6 +56,7 @@ import {
   errorMessageForAiAct,
 } from './progress';
 import { renderAIContext } from './prompt-context';
+import { ScrollGeometryObserver } from './scroll-geometry-observer';
 import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
@@ -611,6 +612,14 @@ export class TaskExecutor {
       return session.appendErrorPlan(errorMsg);
     };
 
+    const scrollObserver =
+      planningModel.adapter.planning.kind === 'standard' &&
+      this.interface.captureScrollGeometry
+        ? new ScrollGeometryObserver(
+            this.interface.captureScrollGeometry.bind(this.interface),
+          )
+        : undefined;
+
     let errorCountInOnePlanningLoop = 0; // count the number of errors in one planning loop
     let outputString: string | undefined;
     let latestPlanResult: PlanningAIResponse | undefined;
@@ -726,6 +735,18 @@ export class TaskExecutor {
             let planResult: Awaited<ReturnType<typeof planImpl>>;
             try {
               const preparedUserPrompt = await getPreparedUserPrompt();
+              const executionFeedback = !delegation
+                ? await scrollObserver?.feedback(
+                    session.getRunner().tasks,
+                    planningUiContext,
+                  )
+                : undefined;
+              if (executionFeedback) {
+                executorContext.task.param = {
+                  ...executorContext.task.param,
+                  executionFeedback,
+                };
+              }
 
               setTimingFieldOnce(timing, 'callAiStart');
               planResult = await planImpl(preparedUserPrompt, {
@@ -734,6 +755,7 @@ export class TaskExecutor {
                 actionSpace,
                 modelRuntime,
                 planningAdvice,
+                executionFeedback,
                 getDefaultModelRuntime: this.getDefaultModelRuntime,
                 conversationHistory,
                 includeLocateInPlanning: !delegation && includeLocateInPlanning,
