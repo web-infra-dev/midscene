@@ -28,8 +28,11 @@ export async function callSystemOne(
     const http = { status: response.status, ok: response.ok, body };
     context.recordEvent?.({ type: 'http-response', http });
     if (!response.ok) {
-      throw new Error(
-        `Jev request failed (${response.status}): ${body.slice(0, 4000)}`,
+      throw Object.assign(
+        new Error(
+          `Jev request failed (${response.status}): ${body.slice(0, 4000)}`,
+        ),
+        { status: response.status },
       );
     }
     const result = (() => {

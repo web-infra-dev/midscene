@@ -110,17 +110,21 @@ interface BuildOptions {
   multimodalPrompt?: TMultimodalPrompt;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
+  skipDefaultWait?: boolean;
 }
+
+export type ModelRuntimeSource = ModelRuntime | (() => ModelRuntime);
 
 interface PlanBuildContext {
   distanceUnit?: DistanceUnit;
   tasks: ExecutionTaskApply[];
-  planningModel: ModelRuntime;
-  locateModel: ModelRuntime;
+  planningModel: ModelRuntimeSource;
+  locateModel: ModelRuntimeSource;
   cacheable?: boolean;
   multimodalPrompt?: TMultimodalPrompt;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
+  skipDefaultWait?: boolean;
 }
 
 export class TaskBuilder {
@@ -159,8 +163,8 @@ export class TaskBuilder {
 
   public async build(
     plans: PlanningAction[],
-    planningModel: ModelRuntime,
-    locateModel: ModelRuntime,
+    planningModel: ModelRuntimeSource,
+    locateModel: ModelRuntimeSource,
     options?: BuildOptions,
   ): Promise<{ tasks: ExecutionTaskApply[] }> {
     const tasks: ExecutionTaskApply[] = [];
@@ -175,6 +179,7 @@ export class TaskBuilder {
       multimodalPrompt: options?.multimodalPrompt,
       deepLocate: options?.deepLocate,
       abortSignal: options?.abortSignal,
+      skipDefaultWait: options?.skipDefaultWait,
     };
 
     type PlanHandler = (plan: PlanningAction) => Promise<void> | void;
@@ -314,10 +319,13 @@ export class TaskBuilder {
           }
         })();
 
-        const useDefaultWait = !this.actionReadiness;
-        taskContext.task.actionReadiness = useDefaultWait
-          ? 'default'
-          : 'custom';
+        const useDefaultWait =
+          !this.actionReadiness && !context.skipDefaultWait;
+        taskContext.task.actionReadiness = this.actionReadiness
+          ? 'custom'
+          : useDefaultWait
+            ? 'default'
+            : 'none';
         abortSignal?.throwIfAborted();
 
         setTimingFieldOnce(timing, 'beforeInvokeActionHookStart');
@@ -379,8 +387,8 @@ export class TaskBuilder {
               parsedParam,
               abortSignal,
             );
-          } else {
-            await this.actionReadiness!.wait(
+          } else if (this.actionReadiness) {
+            await this.actionReadiness.wait(
               {
                 id: taskContext.task.taskId,
                 name: action.name,
@@ -610,7 +618,7 @@ export class TaskBuilder {
                 uiContext,
                 planLocatedElement,
               },
-              locateModel,
+              typeof locateModel === 'function' ? locateModel() : locateModel,
               abortSignal,
             );
             applyDump(locateResult.dump);
@@ -679,7 +687,10 @@ export class TaskBuilder {
                       : locateParam.prompt?.prompt,
                   modelRuntime: {
                     ...defaultModel,
-                    executionId: locateModel.executionId,
+                    executionId:
+                      typeof locateModel === 'function'
+                        ? locateModel().executionId
+                        : locateModel.executionId,
                   },
                 },
               );

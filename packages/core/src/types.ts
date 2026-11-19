@@ -603,13 +603,24 @@ export interface RecordToReportOptions {
 
 export type ExecutionTaskType = 'Planning' | 'Insight' | 'Action Space' | 'Log';
 
+export interface ActionExecutionOptions {
+  /**
+   * Skip default action delays and optional platform settling for this call.
+   * Explicit host waitForActionReady and lifecycle hooks still run.
+   * Input/gesture duration and explicit Sleep actions are unaffected.
+   */
+  skipDefaultWait?: boolean;
+  /** Resolve model configuration only if this action actually needs it. */
+  deferModelResolution?: boolean;
+}
+
 export interface ExecutorContext {
   /** Cancellation of this execution; adapters may forward it to cancellable I/O. */
   signal?: AbortSignal;
   task: ExecutionTask;
   element?: LocateResultElement | null;
   uiContext?: UIContext;
-  /** Custom readiness owns optional post-action settling, not input/gesture timing. */
+  /** Skip optional settling when custom readiness or the caller owns it. */
   skipDefaultWait?: boolean;
 }
 
@@ -667,7 +678,7 @@ export type ExecutionTask<
     taskId: string;
     status: 'pending' | 'running' | 'finished' | 'failed' | 'cancelled';
     /** Readiness strategy selected for this atomic action execution. */
-    actionReadiness?: 'default' | 'custom';
+    actionReadiness?: 'default' | 'custom' | 'none';
     /**
      * Optional feedback produced by a task for the next planning round.
      * This is execution metadata, not part of the action return value.
