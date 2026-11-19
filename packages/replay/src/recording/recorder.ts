@@ -3,7 +3,6 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import type { CDPSession, Dialog, Disposable, Frame, Page } from 'playwright';
 import { writeJsonFile } from '../io';
-import type { StateSample, TargetSample } from './platform';
 import { domProbeSource } from './probe';
 import {
   TRACE_VERSION,
@@ -16,8 +15,6 @@ export interface WebRecorderOptions {
   captureAncestors?: boolean;
   /** Pixel budget for locator generation per sampling point. */
   budgetMs?: number;
-  /** Extra CSS selectors whose values are treated as secrets. */
-  secretSelectors?: string[];
   /** Maximum frames kept in memory and written. */
   maxFrames?: number;
   /** Answer for dialogs raised while recording. */
@@ -27,36 +24,19 @@ export interface WebRecorderOptions {
   }>;
 }
 
-type Rect = { x: number; y: number; width: number; height: number };
-type Viewport = {
-  width: number;
-  height: number;
-  scrollX: number;
-  scrollY: number;
-};
-type RedactionGeometry = Viewport & { documentStart: number };
-type RedactionSample = RedactionGeometry & { at: number; rects: Rect[] };
-
 interface FrameRef {
   page: Page;
   id: string;
   at: number;
   hasCaptureTimestamp?: boolean;
-  data: string;
-  viewport: Viewport;
-  compatibleViewport: boolean;
-  exactMasks?: Rect[] | null;
+  data: string | Buffer;
 }
 
-/** Raw probe payload: events plus optional sampled target/state and a frame request. */
-type ProbeEvent = Record<string, unknown> & {
-  id: string;
-  t: number;
-  type: string;
+/** Browser events with recorder-only frame metadata. */
+type ProbeEvent = TraceEvent & {
   frame?: boolean;
   probeStartedAt?: number;
   settle?: boolean;
-  redactionGeometry?: RedactionGeometry;
 };
 
 /**
@@ -69,9 +49,6 @@ export class WebRecorder {
   private readonly eventPages = new Map<string, Page>();
   private readonly frames: FrameRef[] = [];
   private readonly keep = new Set<string>();
-  private readonly redactions = new Map<Page, RedactionSample[]>();
-  private readonly pendingRedactions = new Set<Promise<void>>();
-  private readonly secretNames = new Map<string, string>();
   private latest?: FrameRef;
   private frameSequence = 0;
   private readonly cdps: CDPSession[] = [];
@@ -112,7 +89,6 @@ export class WebRecorder {
       dwellMs: 300,
       scrollSettleMs: 150,
       effectWindowMs: 500,
-      secretSelectors: this.options.secretSelectors ?? [],
     });
     const instrument = async (page: Page) => {
       // A real browser context may contain unrelated, signed-in tabs.
@@ -126,7 +102,6 @@ export class WebRecorder {
       );
       this.instrumentation.push(await page.addInitScript(probe));
       await page.evaluate(probe);
-      await this.observeRedaction(page);
       await this.startFrames(page);
     };
     const recordDialog = async (page: Page, dialog: Dialog) => {
@@ -156,10 +131,6 @@ export class WebRecorder {
       const onNavigated = (frame: Frame) => {
         if (frame.parentFrame() || this.stopped) return;
         this.recordScreen(frame.url(), 'navigation', page);
-        const observation = this.observeRedaction(page).finally(() =>
-          this.pendingRedactions.delete(observation),
-        );
-        this.pendingRedactions.add(observation);
       };
       const onDialog = (dialog: Dialog) => recordDialog(page, dialog);
       const onPopup = (popup: Page) => {
@@ -220,16 +191,6 @@ export class WebRecorder {
           at: timestamp === undefined ? Date.now() : timestamp * 1000,
           hasCaptureTimestamp: timestamp !== undefined,
           data: frame.data,
-          viewport: {
-            width: frame.metadata.deviceWidth,
-            height: frame.metadata.deviceHeight,
-            scrollX: frame.metadata.scrollOffsetX,
-            scrollY: frame.metadata.scrollOffsetY,
-          },
-          compatibleViewport:
-            frame.metadata.offsetTop === 0 &&
-            frame.metadata.pageScaleFactor === 1 &&
-            timestamp !== undefined,
         };
         this.latest = ref;
         this.frames.push(ref);
@@ -297,35 +258,11 @@ export class WebRecorder {
   }
 
   private accept(raw: ProbeEvent, page: Page) {
-    const { frame, probeStartedAt, settle, redactionGeometry, ...event } = raw;
-    const sample: {
-      target?: TargetSample;
-      state?: StateSample & { secret?: boolean };
-    } = {
-      target: event.target as TargetSample | undefined,
-      state: event.state as StateSample | undefined,
-    };
-    if (sample.state?.secret || sample.target?.secret) {
-      // Replace secret values with a parameter placeholder; keep the original only locally.
-      const name = this.secretName(sample.target?.key ?? event.id);
-      if (sample.state) {
-        sample.state.value = `{{${name}}}`;
-      }
-      if (sample.target) sample.target.secret = true;
-    }
-    const traced = {
-      ...event,
-      ...(sample.target ? { target: sample.target } : {}),
-      ...(sample.state ? { state: sample.state } : {}),
-    } as TraceEvent;
+    const { frame, probeStartedAt, settle, ...traced } = raw;
     // The browser may deliver the input before a frame from the new
     // document. Keep the action even when its pre-action image is unavailable.
     if (frame && probeStartedAt !== undefined)
-      (traced as { before?: string }).before = this.frameBefore(
-        event.t,
-        page,
-        probeStartedAt,
-      );
+      traced.before = this.frameBefore(traced.t, page, probeStartedAt);
     if (
       (traced.type === 'pointer' && traced.phase === 'down') ||
       traced.type === 'key'
@@ -336,92 +273,10 @@ export class WebRecorder {
     if (settle && traced.type === 'effect') {
       // Pin the image at effect close while the short screencast buffer is live.
       // stop() bounds it against subsequent inputs, including batched probe events.
-      traced.after = this.frameBefore(event.t, page);
+      traced.after = this.frameBefore(traced.t, page);
     }
-    if (sample.target?.secret && sample.target.rect && redactionGeometry)
-      this.addRedaction(page, {
-        ...redactionGeometry,
-        at: event.t,
-        rects: [sample.target.rect],
-      });
     this.events.push(traced);
     this.eventPages.set(traced.id, page);
-  }
-
-  private addRedaction(page: Page, sample: RedactionSample) {
-    let samples = this.redactions.get(page);
-    if (!samples) {
-      samples = [];
-      this.redactions.set(page, samples);
-    }
-    samples.push(sample);
-  }
-
-  private redactionSnapshot(page: Page) {
-    return page.evaluate(
-      /* istanbul ignore next -- browser realm has no host coverage counters */
-      (key) => {
-        const probe = (
-          window as never as Record<string, { secretRects(): Rect[] }>
-        )[key];
-        if (!probe) return undefined;
-        return {
-          documentStart: performance.timeOrigin,
-          at: performance.timeOrigin + performance.now(),
-          width: innerWidth,
-          height: innerHeight,
-          scrollX,
-          scrollY,
-          rects: probe.secretRects(),
-          visualScale: visualViewport?.scale ?? 1,
-        };
-      },
-      this.key,
-    );
-  }
-
-  private async observeRedaction(page: Page) {
-    // A navigation or popup close can destroy the just-observed document.
-    // Historical samples still protect its frames through the transition.
-    const sample = await this.redactionSnapshot(page).catch(() => undefined);
-    if (sample) this.addRedaction(page, sample);
-  }
-
-  private frameMasks(frame: FrameRef): Rect[] | null {
-    if (frame.exactMasks !== undefined) return frame.exactMasks;
-    const samples = this.redactions.get(frame.page);
-    if (!samples?.length) return [];
-    const active = samples.findLast((sample) => sample.at <= frame.at);
-    const next = samples.find((sample) => sample.at > frame.at);
-    // The document can appear in a screencast before its first observation.
-    // Cover both possibilities during the navigation interval.
-    const possible = new Set([active?.documentStart]);
-    if (next && (!active || next.documentStart <= frame.at))
-      possible.add(next.documentStart);
-    const masks = samples.filter(
-      (sample) =>
-        sample.rects.length &&
-        (!frame.compatibleViewport || possible.has(sample.documentStart)),
-    );
-    if (
-      masks.some(
-        (sample) =>
-          !frame.compatibleViewport || !sameViewport(sample, frame.viewport),
-      )
-    )
-      return null; // Geometry is uncertain, so redact the entire frame.
-    return masks.flatMap((sample) => sample.rects);
-  }
-
-  private secretName(key: string) {
-    let name = this.secretNames.get(key);
-    if (!name) {
-      name = this.secretNames.size
-        ? `secret${this.secretNames.size + 1}`
-        : 'secret';
-      this.secretNames.set(key, name);
-    }
-    return name;
   }
 
   private activate(page: Page, at: number) {
@@ -465,7 +320,6 @@ export class WebRecorder {
     this.stopped = true;
     for (const off of this.listeners) off();
     await Promise.allSettled(this.pendingPages);
-    await Promise.allSettled(this.pendingRedactions);
     // Remove future-document hooks before clearing probes in current documents.
     await Promise.allSettled(
       this.instrumentation.map((handle) => handle.dispose()),
@@ -494,49 +348,19 @@ export class WebRecorder {
       const at = Date.now();
       const screen = page.url();
       try {
-        const before = await this.redactionSnapshot(page);
-        const data = (
-          await page.screenshot({ type: 'jpeg', quality: 80 })
-        ).toString('base64');
-        const after = await this.redactionSnapshot(page);
+        const documentStart = await page.evaluate('performance.timeOrigin');
+        const data = await page.screenshot({ type: 'jpeg', quality: 80 });
+        const currentDocumentStart = await page.evaluate(
+          'performance.timeOrigin',
+        );
         if (page.isClosed()) continue;
-        // A field may be populated without an input event (for example,
-        // autofill). Its terminal viewport rectangles also cover compatible
-        // historical frames in this same document.
-        if (before) this.addRedaction(page, before);
-        if (after) this.addRedaction(page, after);
-        if (
-          page.url() !== screen ||
-          (before && after && before.documentStart !== after.documentStart)
-        )
+        if (page.url() !== screen || documentStart !== currentDocumentStart)
           throw new Error(
             'Navigation changed during final capture; finish recording after navigation settles',
           );
         if (this.page !== page) continue;
         const frame = `f${++this.frameSequence}`;
-        const stable =
-          before &&
-          after &&
-          before.visualScale === 1 &&
-          after.visualScale === 1 &&
-          sameViewport(before, after);
-        const viewport = before ?? {
-          width: 0,
-          height: 0,
-          scrollX: 0,
-          scrollY: 0,
-        };
-        this.frames.push({
-          page,
-          id: frame,
-          at,
-          data,
-          viewport,
-          compatibleViewport: !!stable,
-          // A terminal sample with no reliable geometry must be covered even
-          // when there were no earlier secret events on this page.
-          exactMasks: stable ? [...before.rects, ...after.rects] : null,
-        });
+        this.frames.push({ page, id: frame, at, data });
         this.keep.add(frame);
         return { screen, frame, at };
       } catch (error) {
@@ -570,8 +394,6 @@ export class WebRecorder {
     await new Promise((done) => setTimeout(done, 200));
     const end = await this.captureEnd();
     await this.dispose();
-    for (const samples of this.redactions.values())
-      samples.sort((a, b) => a.at - b.at);
     const root = resolve(directory);
     mkdirSync(join(root, 'frames'), { recursive: true });
     const frames: Record<string, string> = {};
@@ -619,11 +441,7 @@ export class WebRecorder {
     for (const frame of this.frames) {
       if (!referenced.has(frame.id)) continue;
       const path = `frames/${frame.id}.jpg`;
-      const bytes = Buffer.from(frame.data, 'base64');
-      writeFileSync(
-        join(root, path),
-        await maskSecrets(bytes, this.frameMasks(frame), frame.viewport),
-      );
+      writeFileSync(join(root, path), frame.data, 'base64');
       frames[frame.id] = path;
       frameTimes[frame.id] = frame.at;
     }
@@ -650,53 +468,4 @@ export class WebRecorder {
     writeJsonFile(join(root, 'frames.json'), frames);
     return root;
   }
-}
-
-function sameViewport(a: Viewport, b: Viewport) {
-  return (
-    a.width === b.width &&
-    a.height === b.height &&
-    Math.abs(a.scrollX - b.scrollX) < 1 &&
-    Math.abs(a.scrollY - b.scrollY) < 1
-  );
-}
-
-/** Mask secret field areas in the captured frame. */
-async function maskSecrets(
-  bytes: Buffer,
-  rects: Rect[] | null,
-  viewport: Viewport,
-): Promise<Buffer> {
-  if (rects?.length === 0) return bytes;
-  const { default: sharp } = await import('sharp');
-  const image = sharp(bytes);
-  const { width, height } = await image.metadata();
-  const scaleX = width / viewport.width;
-  const scaleY = height / viewport.height;
-  const rectsInPixels =
-    !rects || !Number.isFinite(scaleX) || !Number.isFinite(scaleY)
-      ? [{ x: 0, y: 0, width, height }]
-      : rects.map((rect) => {
-          const x = Math.max(0, Math.floor(rect.x * scaleX));
-          const y = Math.max(0, Math.floor(rect.y * scaleY));
-          return {
-            x,
-            y,
-            width:
-              Math.min(width, Math.ceil((rect.x + rect.width) * scaleX)) - x,
-            height:
-              Math.min(height, Math.ceil((rect.y + rect.height) * scaleY)) - y,
-          };
-        });
-  const overlays = rectsInPixels
-    .filter((rect) => rect.width > 0 && rect.height > 0)
-    .map(({ x, y, width, height }) => ({
-      input: {
-        create: { width, height, channels: 3 as const, background: '#808080' },
-      },
-      left: x,
-      top: y,
-    }));
-  if (!overlays.length) return bytes;
-  return image.composite(overlays).jpeg().toBuffer();
 }

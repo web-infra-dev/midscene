@@ -12,7 +12,6 @@ export interface ProbeOptions {
   dwellMs: number;
   scrollSettleMs: number;
   effectWindowMs: number;
-  secretSelectors: string[];
 }
 
 /**
@@ -53,17 +52,6 @@ function installDomProbe(
   };
   const push = (event: Record<string, unknown>) => {
     if (event.frame) event.probeStartedAt = probeStartedAt;
-    if (
-      (event.target as { secret?: boolean } | undefined)?.secret ||
-      (event.state as { secret?: boolean } | undefined)?.secret
-    )
-      event.redactionGeometry = {
-        documentStart: performance.timeOrigin,
-        width: innerWidth,
-        height: innerHeight,
-        scrollX,
-        scrollY,
-      };
     buffer.push(event);
     // Actions are sent at once: a navigation they cause may unload the page before a timer fires.
     if (event.type === 'pointer' || event.type === 'key') flush();
@@ -87,10 +75,8 @@ function installDomProbe(
     keyOf,
     receiverOf,
     sampleTarget,
-    rectOf,
     editableOf,
     checkableOf,
-    secretOf,
     fieldValue,
     stateOf,
   } = targets;
@@ -120,9 +106,7 @@ function installDomProbe(
     const target = effect.target;
     // After-state is a sampling point too: it grounds assertions (value cleared, box checked).
     const after =
-      target?.isConnected &&
-      !secretOf(target) &&
-      (editableOf(target) || checkableOf(target))
+      target?.isConnected && (editableOf(target) || checkableOf(target))
         ? stateOf(target)
         : undefined;
     push({
@@ -394,9 +378,7 @@ function installDomProbe(
         ) ||
         e.isComposing)
     ) {
-      // Secret fields and IME composition contribute only their redacted edit.
       if (
-        !secretOf(editor) &&
         !e.isComposing &&
         !['Process', 'Dead', 'Unidentified'].includes(e.key)
       )
@@ -454,12 +436,6 @@ function installDomProbe(
       closeEffect();
       const events = buffer.splice(0, buffer.length);
       return events;
-    },
-    secretRects() {
-      return Array.from(document.querySelectorAll('input,textarea'))
-        .filter((element) => secretOf(element))
-        .map(rectOf)
-        .filter((rect) => rect.width > 0 && rect.height > 0);
     },
   };
 }

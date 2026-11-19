@@ -22,6 +22,7 @@ The CLI is `../../scripts/cli.mjs` relative to this skill. Commands load `.env` 
 9. Keep failed trials and evidence.
 10. Ask the user only for material ambiguity or business-scope changes.
 11. Before a run that writes to an external system, show the environment, account, target, affected steps and planned number of writes across all runs. Record the user's confirmation and its scope in `acceptance.md`. Reuse explicit authorization for the same scope. A plan marked **shown** does not authorize writes.
+12. Before starting recording or executing a replay or trial, post a standalone, bold **Recording data risk** notice in chat in the user's language. Explain that recording can save unmasked screenshots, sampled form values, page content and URLs, including passwords, one-time codes and private data. Replay reports can also contain sensitive screenshots. If AI or Jev checks are planned, mention that screenshots may be sent to the configured model service. Name the output location when known. Continue an authorized run immediately after showing the notice. Apply the external-write confirmation rule separately when relevant.
 
 ## Workflow
 

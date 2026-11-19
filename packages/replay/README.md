@@ -6,6 +6,8 @@ Record a Web workflow, then use your current coding Agent and the bundled [Skill
 
 ## Record and prepare
 
+> **Recording data risk.** Recordings can save unmasked screenshots, sampled form values, page content and URLs. These may include passwords, one-time codes or private data. Replay reports can also contain sensitive screenshots.
+
 Run from the repository root with workspace dependencies installed. Use fresh directories:
 
 ```sh
@@ -15,7 +17,7 @@ node packages/replay/scripts/cli.mjs record web --url https://cn.bing.com/ --out
 node packages/replay/scripts/cli.mjs prepare midscene_run/replay/my-recording --out midscene_run/replay/my-authoring
 ```
 
-`prepare` creates a source manifest and index, links existing host/tool dependencies into the new authoring directory and verifies imports. It prints the Skill path without launching another coding Agent or installing/changing host dependencies. `--goal TEXT` is optional. Commands load the calling directory's `.env` or `--env-file FILE`; credentials stay in the host. `--version` prints the Midscene SDK package version.
+`prepare` creates a source manifest and index, links existing host/tool dependencies into the new authoring directory and verifies imports. It prints the Skill path without launching another coding Agent or installing/changing host dependencies. `--goal TEXT` is optional. Commands load host configuration from the calling directory's `.env` or `--env-file FILE`. `--version` prints the Midscene SDK package version.
 
 Recording defaults to a new Chrome window with an isolated profile. Use `--browser msedge` or `--browser chromium` for another new window. On macOS, use `node packages/replay/scripts/cli.mjs browser msedge` (or `browser chrome`) to open a dedicated browser with a persistent profile. Sign in manually the first time, then pass `--cdp http://127.0.0.1:9222` to `record web`, `run`, or `trial`. The dedicated window preserves the signed-in profile. A CDP trial copies cookies for the start URL and same-origin `localStorage` into each fresh context. Use a custom session for additional origins, other auth state or a backend data reset. [Session setup](./skills/midscene-replay/references/session.md)
 
