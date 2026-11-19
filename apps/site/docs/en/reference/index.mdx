@@ -667,6 +667,8 @@ function aiInput(
       - `'typeOnly'`: Enter the text directly without clearing the field first.
       - `'clear'`: Clear the input field without entering new text.
 
+  On iOS, use a locator and `typeOnly` for an empty custom-rendered field that accepts keyboard input but exposes no native active element. Midscene checks that the software keyboard is visible and the same app is still in the foreground before typing. Clear any existing text first if you want to replace it.
+
   Platform-specific behavior under the default `inputStrategy: 'legacy'`:
 
   | Platform | `'legacy'` behavior |

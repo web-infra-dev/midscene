@@ -30,6 +30,7 @@ import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison } from '@midscene/shared/utils';
 import { WDAManager } from '@midscene/webdriver';
+import { InputFocusUnavailableError } from './input-focus';
 import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
 import { MjpegFrameSource } from './mjpeg-frame-source';
 import {
@@ -107,6 +108,15 @@ export class IOSDevice implements AbstractInterface {
         const focusRestorePoint = target
           ? { x: target.center[0], y: target.center[1] }
           : undefined;
+        // Only an explicit typeOnly operation with a located target may use
+        // keyboard delivery when WDA cannot expose an active input.
+        const typingApp =
+          target && opts?.replace === false && !opts.focusOnly && value
+            ? await this.foregroundApp().catch((error) => {
+                debugDevice(`Keyboard fallback unavailable: ${error}`);
+                return undefined;
+              })
+            : undefined;
         if (target && opts?.replace !== false) {
           await this.clearInput(target);
         } else if (target) {
@@ -122,6 +132,7 @@ export class IOSDevice implements AbstractInterface {
           opts,
           focusRestorePoint,
           resolvedInputOptions,
+          typingApp,
         );
       },
       clearInput: (target) =>
@@ -274,7 +285,7 @@ export class IOSDevice implements AbstractInterface {
     const cleared = await this.wdaBackend.clearActiveElement();
     assert(
       cleared,
-      'Cannot verify that input was cleared; refusing to append text',
+      'Cannot verify that input was cleared; refusing to append text. No text was sent. For an empty or visually cleared field, use Input mode="typeOnly" with locate pointing to that field. Do not repeat replacement while focus is unavailable.',
     );
     debugDevice('Successfully cleared input with WebDriver Clear API');
   }
@@ -289,7 +300,15 @@ export class IOSDevice implements AbstractInterface {
       },
       getDefaultAutoDismissKeyboard: () => this.options?.autoDismissKeyboard,
     };
-    const defaultActions = [...createDefaultMobileActions(mobileActionContext)];
+    const defaultActions = createDefaultMobileActions(mobileActionContext).map(
+      (action) =>
+        action.name === 'Input'
+          ? {
+              ...action,
+              description: `${action.description}. On iOS, a visually empty field may use mode="typeOnly" with locate, with a visible keyboard and unchanged foreground App when native focus is unavailable. For replacement, use the default mode or visually clear and verify the field is empty before typeOnly. Never append over text that should be replaced.`,
+            }
+          : action,
+    );
 
     const platformSpecificActions = Object.values(createPlatformActions(this));
 
@@ -660,6 +679,18 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     await this.swipePoint({ x: fromX, y: fromY }, { x: toX, y: toY }, duration);
   }
 
+  private async foregroundApp(): Promise<string> {
+    const response = await this.wdaBackend.executeRequest<{
+      value: { bundleId?: unknown };
+    }>('GET', '/wda/activeAppInfo');
+    const bundleId = response?.value?.bundleId;
+    assert(
+      typeof bundleId === 'string' && bundleId.length > 0,
+      'Invalid WDA foreground App response; no text was sent',
+    );
+    return bundleId;
+  }
+
   private async typeText(
     text: string,
     options?: IOSDeviceInputOpt & { skipDefaultWait?: boolean },
@@ -668,6 +699,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       options,
       this.options,
     ),
+    typingApp?: string,
   ): Promise<void> {
     this.invalidatePendingKeyboardFollowUp('new text input');
     if (!text) return;
@@ -680,7 +712,20 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     debugDevice(`Typing text: "${text}"`);
 
     try {
-      await this.wdaBackend.waitForInputFocus();
+      try {
+        await this.wdaBackend.waitForInputFocus();
+      } catch (error) {
+        if (!(error instanceof InputFocusUnavailableError) || !typingApp)
+          throw error;
+        assert(
+          await this.wdaBackend.isKeyboardVisible(),
+          'Keyboard is not visible; no text was sent',
+        );
+        assert(
+          (await this.foregroundApp()) === typingApp,
+          'Foreground App changed during input; no text was sent',
+        );
+      }
 
       if (inputSequentially) {
         // Type one character at a time with a delay between keystrokes.

@@ -45,14 +45,28 @@ async function activeInput(
   }
 }
 
+export class InputFocusUnavailableError extends Error {}
+
 /** Wait for a focus owner before clearing or synthesizing text events. */
 export async function waitForInputFocus(request: InputRequest): Promise<void> {
   const deadline = Date.now() + 3000;
+  let observedMissingFocus = false;
   while (Date.now() < deadline) {
-    const target = await activeInput(
-      request,
-      Math.max(1, deadline - Date.now()),
-    );
+    let target: string | undefined;
+    try {
+      target = await activeInput(request, Math.max(1, deadline - Date.now()));
+    } catch (error) {
+      // A final short poll can time out after WDA has already reported no element.
+      if (
+        observedMissingFocus &&
+        Date.now() >= deadline &&
+        error instanceof WebDriverRequestError &&
+        /^Request timeout after \d+ms$/.test(error.message)
+      )
+        break;
+      throw error;
+    }
+    observedMissingFocus = !target;
     if (Date.now() >= deadline) break;
     if (target) return;
     const remaining = deadline - Date.now();
@@ -62,7 +76,9 @@ export async function waitForInputFocus(request: InputRequest): Promise<void> {
       );
     }
   }
-  throw new Error('Timed out waiting for iOS input focus after 3000ms');
+  throw new InputFocusUnavailableError(
+    'Timed out waiting for iOS input focus after 3000ms. No text was sent. For an empty or visually cleared field, use Input mode="typeOnly" with locate pointing to that field. Do not repeat replacement while focus is unavailable.',
+  );
 }
 
 async function identifiedInputs(
