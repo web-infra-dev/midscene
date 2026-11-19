@@ -1,5 +1,5 @@
 import { createLocateResultCodec } from '@/ai-model/shared/model-locate-result';
-import { normalizePlanningActionLocateFields } from '@/ai-model/workflows/planning/locate-normalization';
+import { normalizePlanningActionFields } from '@/ai-model/workflows/planning/locate-normalization';
 import { parsePlanningActions } from '@/ai-model/workflows/planning/parse-planning-actions';
 import { getMidsceneLocationSchema } from '@/common';
 import type { DeviceAction } from '@/device';
@@ -27,7 +27,7 @@ const locateResultContext = {
   },
 };
 
-describe('normalizePlanningActionLocateFields', () => {
+describe('normalizePlanningActionFields', () => {
   it('leaves actions unchanged when the planned action is outside the action space', () => {
     const toPixelResult = rs.fn();
     const actions: PlanningAction[] = [
@@ -37,7 +37,7 @@ describe('normalizePlanningActionLocateFields', () => {
       },
     ];
 
-    normalizePlanningActionLocateFields(actions, {
+    normalizePlanningActionFields(actions, {
       actionSpace,
       includeLocateInPlanning: true,
       locateResultCodec: {
@@ -73,7 +73,7 @@ describe('normalizePlanningActionLocateFields', () => {
       },
     ];
 
-    normalizePlanningActionLocateFields(actions, {
+    normalizePlanningActionFields(actions, {
       actionSpace,
       includeLocateInPlanning: true,
       locateResultCodec: {
@@ -113,7 +113,7 @@ describe('normalizePlanningActionLocateFields', () => {
         },
       ];
 
-      normalizePlanningActionLocateFields(actions, {
+      normalizePlanningActionFields(actions, {
         actionSpace,
         includeLocateInPlanning: true,
         locateResultCodec: {
@@ -191,7 +191,7 @@ describe('normalizePlanningActionLocateFields', () => {
       },
     ];
 
-    normalizePlanningActionLocateFields(actions, {
+    normalizePlanningActionFields(actions, {
       actionSpace,
       includeLocateInPlanning: false,
       locateResultCodec: {
@@ -239,7 +239,7 @@ it.each(['bbox', 'point'] as const)(
         param: { locate: { prompt: 'target', bbox: 'model response' } },
       },
     ];
-    normalizePlanningActionLocateFields(actions, {
+    normalizePlanningActionFields(actions, {
       actionSpace,
       includeLocateInPlanning: true,
       locateResultCodec: codec,

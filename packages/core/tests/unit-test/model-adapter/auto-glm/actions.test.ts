@@ -1,4 +1,3 @@
-import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import {
   type AutoGLMParsedAction,
   type BackAction,
@@ -13,34 +12,17 @@ import {
   type WaitAction,
   transformAutoGLMAction,
 } from '@/ai-model/models/auto-glm/actions';
-import { autoGlmAdapters } from '@/ai-model/models/auto-glm/adapter';
-import { createCoordinateDistanceToPixels } from '@/ai-model/shared/model-locate-result';
 import type { DeviceAction } from '@/device';
 import { describe, expect, it } from '@rstest/core';
-
-const defaultSize = { width: 1080, height: 1920 };
-const autoGlmPlanning = new ResolvedModelAdapter(
-  autoGlmAdapters['auto-glm'],
-  'auto-glm',
-).planning;
 
 function transformAutoGLMActionForTest(
   action: AutoGLMParsedAction,
   actionSpace?: DeviceAction[],
 ) {
-  if (autoGlmPlanning.kind !== 'custom') {
-    throw new Error('Auto-GLM should use custom planning adapter');
-  }
-  const autoGlmCoordinateSystem = autoGlmPlanning.coordinateSystem;
-  if (!autoGlmCoordinateSystem) {
-    throw new Error('Auto-GLM coordinate system should be configured');
-  }
   return transformAutoGLMAction(action, {
     actionSpace,
-    coordinateDistanceToPixels: createCoordinateDistanceToPixels(
-      defaultSize,
-      autoGlmCoordinateSystem,
-    ),
+    coordinateDistanceToPixels: (delta, axis) =>
+      Math.round((Math.abs(delta) * (axis === 'x' ? 1080 : 1920)) / 1000),
   });
 }
 
@@ -126,7 +108,7 @@ describe('transformAutoGLMAction', () => {
       prompt: '',
     });
     expect((result[0].param as any).direction).toBe('right');
-    expect((result[0].param as any).distance).toBeGreaterThan(600);
+    expect((result[0].param as any).distance).toBe(648);
   });
 
   it('should transform Long Press action to LongPress PlanningAction', () => {
@@ -311,7 +293,7 @@ describe('transformAutoGLMAction', () => {
 
     const result = transformAutoGLMActionForTest(swipeAction);
     expect((result[0].param as any).direction).toBe('up');
-    expect((result[0].param as any).distance).toBeGreaterThan(1100);
+    expect((result[0].param as any).distance).toBe(1152);
   });
 
   it('should calculate up direction for swipe', () => {
@@ -324,7 +306,7 @@ describe('transformAutoGLMAction', () => {
 
     const result = transformAutoGLMActionForTest(swipeAction);
     expect((result[0].param as any).direction).toBe('down');
-    expect((result[0].param as any).distance).toBeGreaterThan(1100);
+    expect((result[0].param as any).distance).toBe(1152);
   });
 
   it('should throw error for unsupported Interact action', () => {

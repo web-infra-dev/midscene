@@ -313,7 +313,14 @@ export async function standardPlan(
 
   // YAML is derived from validated actions outside the model-response retry scope.
   // dumpActionParam omits runtime-only locatedPixelResult fields.
-  const yamlFlow = buildYamlFlowFromPlans(actions, opts.actionSpace);
+  // Replay reads distance as device-logical units, so export uses the planning
+  // screenshot ratio. The cached YAML stores only the resulting distance. If
+  // the ratio changes before live execution, its distance can differ from replay.
+  const yamlFlow = buildYamlFlowFromPlans(
+    actions,
+    opts.actionSpace,
+    context.shrunkShotToLogicalRatio,
+  );
 
   let shouldContinuePlanning = true;
 

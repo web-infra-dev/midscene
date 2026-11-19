@@ -15,7 +15,7 @@ import {
   type PreparedUserPrompt,
   preparedReferenceImagesToMessages,
 } from '../../shared/multimodal-prompt';
-import { normalizePlanningActionLocateFields } from './locate-normalization';
+import { normalizePlanningActionFields } from './locate-normalization';
 import type { PlanOptions } from './types';
 
 function appendActionContext(
@@ -134,7 +134,7 @@ export async function runCustomPlanning<TParsed>(
   try {
     parsed = config.parseResponse(content, input);
     actions = config.transformActions(parsed, input);
-    normalizePlanningActionLocateFields(actions, {
+    normalizePlanningActionFields(actions, {
       actionSpace: preparedOptions.actionSpace,
       includeLocateInPlanning: preparedOptions.includeLocateInPlanning,
       locateResultCodec: config.coordinateNormalizer,
