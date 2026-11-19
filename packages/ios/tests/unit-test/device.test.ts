@@ -4,6 +4,7 @@ import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { WDAManager } from '@midscene/webdriver';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { IOSDevice } from '../../src/device';
+import { InputFocusUnavailableError } from '../../src/input-focus';
 import { IOSWebDriverClient } from '../../src/ios-webdriver-client';
 
 // Mock dependencies
@@ -419,16 +420,16 @@ describe('IOSDevice', () => {
       expect(mockWdaClient.typeRawKeys).not.toHaveBeenCalled();
     });
 
-    it('types once without discovering accessibility focus for located typeOnly', async () => {
+    it('types once when native focus is unavailable for located typeOnly', async () => {
       mockWdaClient.waitForInputFocus.mockRejectedValue(
-        new Error('must not query active element'),
+        new InputFocusUnavailableError('no focus'),
       );
       await device.inputPrimitives.keyboard.typeText('new text', {
         target: { center: [10, 20] },
         replace: false,
         autoDismissKeyboard: false,
       });
-      expect(mockWdaClient.waitForInputFocus).not.toHaveBeenCalled();
+      expect(mockWdaClient.waitForInputFocus).toHaveBeenCalledOnce();
       expect(mockWdaClient.clearActiveElement).not.toHaveBeenCalled();
       expect(mockWdaClient.tap).toHaveBeenCalledTimes(1);
       expect(mockWdaClient.typeText).toHaveBeenCalledExactlyOnceWith(
@@ -446,6 +447,9 @@ describe('IOSDevice', () => {
       'keyboard request failed',
       'tap failed',
     ])('does not send text with %s', async (condition) => {
+      mockWdaClient.waitForInputFocus.mockRejectedValue(
+        new InputFocusUnavailableError('no focus'),
+      );
       mockWdaClient.isKeyboardVisible.mockResolvedValue(
         condition !== 'hidden keyboard',
       );
@@ -494,6 +498,30 @@ describe('IOSDevice', () => {
         expect(mockWdaClient.clearActiveElement).not.toHaveBeenCalled();
       },
     );
+
+    it('retains native typeOnly when a hardware keyboard is in use and app info is unavailable', async () => {
+      mockWdaClient.isKeyboardVisible.mockResolvedValue(false);
+      mockWdaClient.executeRequest.mockRejectedValue(new Error('unsupported'));
+      await device.inputPrimitives.keyboard.typeText('test', {
+        target: { center: [10, 20] },
+        replace: false,
+        autoDismissKeyboard: false,
+      });
+      expect(mockWdaClient.typeText).toHaveBeenCalledExactlyOnceWith('test');
+      expect(mockWdaClient.isKeyboardVisible).not.toHaveBeenCalled();
+    });
+
+    it('propagates native focus protocol failures even when the keyboard is visible', async () => {
+      const error = new Error('invalid session id');
+      mockWdaClient.waitForInputFocus.mockRejectedValue(error);
+      await expect(
+        device.inputPrimitives.keyboard.typeText('test', {
+          target: { center: [10, 20] },
+          replace: false,
+        }),
+      ).rejects.toBe(error);
+      expect(mockWdaClient.typeText).not.toHaveBeenCalled();
+    });
 
     it('never retries an ambiguous key delivery failure', async () => {
       mockWdaClient.typeText.mockRejectedValue(

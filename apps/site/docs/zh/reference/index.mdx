@@ -656,6 +656,8 @@ function aiInput(
       - `'typeOnly'`：不清空输入框，直接输入文本。
       - `'clear'`：仅清空输入框，不输入新文本。
 
+  在 iOS 上，如果自绘输入框能接收键盘输入，但 WDA 找不到原生焦点元素，可以定位该输入框并使用 `typeOnly`。Midscene 会确认软键盘可见、前台 App 与点击前一致，再输入文字。需要替换已有内容时，请先清空输入框。
+
   各平台在默认 `inputStrategy: 'legacy'` 下的具体行为如下：
 
   | 平台 | `'legacy'` 模式行为 |

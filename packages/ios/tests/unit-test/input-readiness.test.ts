@@ -1,5 +1,6 @@
 import { WebDriverRequestError } from '@midscene/webdriver';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
+import { InputFocusUnavailableError } from '../../src/input-focus';
 import { IOSWebDriverClient } from '../../src/ios-webdriver-client';
 
 const noFocus = () =>
@@ -50,6 +51,7 @@ describe('iOS input focus readiness', () => {
 
   it.each([
     new WebDriverRequestError('Connection lost'),
+    new WebDriverRequestError('Request timeout after 3000ms'),
     new WebDriverRequestError('Unsupported', 404, {
       value: { error: 'unknown command' },
     }),
@@ -60,6 +62,21 @@ describe('iOS input focus readiness', () => {
     request.mockRejectedValue(error);
     await expect(client.waitForInputFocus()).rejects.toThrow(error);
     expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it('classifies a final request timeout only after WDA reported missing focus', async () => {
+    let now = 0;
+    rs.spyOn(Date, 'now').mockImplementation(() => now);
+    request
+      .mockRejectedValueOnce(noFocus())
+      .mockImplementationOnce(async () => {
+        now = 3000;
+        throw new WebDriverRequestError('Request timeout after 59ms');
+      });
+    await expect(client.waitForInputFocus()).rejects.toBeInstanceOf(
+      InputFocusUnavailableError,
+    );
+    expect(request).toHaveBeenCalledTimes(2);
   });
 
   it('rejects malformed success responses instead of typing blindly', async () => {

@@ -30,6 +30,7 @@ import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison } from '@midscene/shared/utils';
 import { WDAManager } from '@midscene/webdriver';
+import { InputFocusUnavailableError } from './input-focus';
 import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
 import { MjpegFrameSource } from './mjpeg-frame-source';
 import {
@@ -111,7 +112,10 @@ export class IOSDevice implements AbstractInterface {
         // keyboard delivery when WDA cannot expose an active input.
         const typingApp =
           target && opts?.replace === false && !opts.focusOnly && value
-            ? await this.foregroundApp()
+            ? await this.foregroundApp().catch((error) => {
+                debugDevice(`Keyboard fallback unavailable: ${error}`);
+                return undefined;
+              })
             : undefined;
         if (target && opts?.replace !== false) {
           await this.clearInput(target);
@@ -301,7 +305,7 @@ export class IOSDevice implements AbstractInterface {
         action.name === 'Input'
           ? {
               ...action,
-              description: `${action.description}. On iOS, a visually empty field may use mode="typeOnly" with locate, requiring a visible keyboard and unchanged foreground App. For replacement, use the default mode or visually clear and verify the field is empty before typeOnly. Never append over text that should be replaced.`,
+              description: `${action.description}. On iOS, a visually empty field may use mode="typeOnly" with locate, with a visible keyboard and unchanged foreground App when native focus is unavailable. For replacement, use the default mode or visually clear and verify the field is empty before typeOnly. Never append over text that should be replaced.`,
             }
           : action,
     );
@@ -708,9 +712,11 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     debugDevice(`Typing text: "${text}"`);
 
     try {
-      if (typingApp) {
-        // Explicit typeOnly with a located target does not require an
-        // accessibility focus owner: some custom inputs accept keys without one.
+      try {
+        await this.wdaBackend.waitForInputFocus();
+      } catch (error) {
+        if (!(error instanceof InputFocusUnavailableError) || !typingApp)
+          throw error;
         assert(
           await this.wdaBackend.isKeyboardVisible(),
           'Keyboard is not visible; no text was sent',
@@ -719,8 +725,6 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
           (await this.foregroundApp()) === typingApp,
           'Foreground App changed during input; no text was sent',
         );
-      } else {
-        await this.wdaBackend.waitForInputFocus();
       }
 
       if (inputSequentially) {
