@@ -126,6 +126,24 @@ jobs:
     - name: Setup Puppeteer browser
       uses: ./.github/actions/setup-puppeteer-browser
 
+    - name: Restore Chromium for Replay tests
+      id: replay-chromium
+      uses: ./.github/actions/cache/restore
+      with:
+        path: ~/.cache/ms-playwright
+        key: midscene-replay-chromium-ubuntu22-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+    - name: Install Chromium for Replay tests
+      if: steps.replay-chromium.outputs.cache-hit != 'true'
+      run: pnpm --dir packages/replay exec playwright install --with-deps chromium
+
+    - name: Save Chromium for Replay tests
+      if: steps.replay-chromium.outputs.cache-hit != 'true'
+      uses: ./.github/actions/cache/save
+      with:
+        path: ~/.cache/ms-playwright
+        key: midscene-replay-chromium-ubuntu22-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+
     - name: Check tsconfig references
       run: pnpm run check:references
 
