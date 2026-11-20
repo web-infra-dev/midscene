@@ -45,8 +45,11 @@ async function activeInput(
   }
 }
 
-/** Wait for a focus owner before clearing or synthesizing text events. */
-export async function waitForInputFocus(request: InputRequest): Promise<void> {
+/** Return the active element ID, or undefined when only keyboard visibility proves focus. */
+export async function waitForInputFocus(
+  request: InputRequest,
+  findVisibleKeyboardIds?: (deadline: number) => Promise<string[]>,
+): Promise<string | undefined> {
   const deadline = Date.now() + 3000;
   while (Date.now() < deadline) {
     const target = await activeInput(
@@ -54,7 +57,13 @@ export async function waitForInputFocus(request: InputRequest): Promise<void> {
       Math.max(1, deadline - Date.now()),
     );
     if (Date.now() >= deadline) break;
-    if (target) return;
+    if (target) return target;
+    if (
+      findVisibleKeyboardIds &&
+      (await findVisibleKeyboardIds(deadline)).length > 0 &&
+      Date.now() < deadline
+    )
+      return undefined;
     const remaining = deadline - Date.now();
     if (remaining > 0) {
       await new Promise((resolve) =>

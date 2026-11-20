@@ -23,6 +23,71 @@ const WDA_MJPEG_SCALING_FACTOR = 50;
 const w3cElementId = 'element-6066-11e4-a52e-4f735466cecf';
 const keyboardDismissDeadlineMs = 5000;
 const keyboardDismissPollIntervalMs = 100;
+const editMenuTimeoutMs = 5000;
+const editControl =
+  'type IN {"XCUIElementTypeMenuItem", "XCUIElementTypeButton"} AND visible == true';
+const editTitles =
+  '{"Cut", "Copy", "Paste", "Select", "剪切", "剪下", "拷贝", "复制", "拷貝", "複製", "粘贴", "貼上", "选择", "選取", "選擇"}';
+const selectAllTitles = '{"Select All", "全选", "全選"}';
+// UIKit exposes edit menu items in a collection view. Custom menus can expose buttons.
+// Require another text editing command in the same container to exclude page-wide Select All actions.
+const selectAllControl = `${editControl} AND enabled == true AND (name IN[c] ${selectAllTitles} OR label IN[c] ${selectAllTitles})`;
+const editMenuQuery = [
+  '**/XCUIElementTypeAny[`type IN {"XCUIElementTypeMenu", "XCUIElementTypeCollectionView", "XCUIElementTypeToolbar"}`]',
+  `[$${editControl} AND (name IN[c] ${editTitles} OR label IN[c] ${editTitles})$]`,
+  `[$${selectAllControl}$]`,
+].join('');
+
+type EditAction = { id: string; menu: WebDriverElementRect };
+
+function containsPoint(rect: WebDriverElementRect, x: number, y: number) {
+  return (
+    x >= rect.x &&
+    y >= rect.y &&
+    x < rect.x + rect.width &&
+    y < rect.y + rect.height
+  );
+}
+
+export type ReplacementPreparation =
+  | 'native'
+  | 'selected'
+  | { emptyFieldId: string };
+
+const editMenuMaxGap = 88; // Two standard iOS edit-menu rows.
+function newlyOpenedActions(
+  current: EditAction[],
+  previous: EditAction[],
+  target: WebDriverElementRect,
+) {
+  const ids = new Set<string>();
+  for (const { id, menu } of current) {
+    // A keyboard transition can recreate an existing toolbar with fresh WDA IDs.
+    if (
+      previous.some(
+        (old) =>
+          old.id === id ||
+          (old.menu.x === menu.x &&
+            old.menu.y === menu.y &&
+            old.menu.width === menu.width &&
+            old.menu.height === menu.height),
+      )
+    )
+      continue;
+    const gap = Math.max(
+      target.y - (menu.y + menu.height),
+      menu.y - (target.y + target.height),
+      0,
+    );
+    if (
+      menu.x <= target.x + target.width &&
+      menu.x + menu.width >= target.x &&
+      gap <= editMenuMaxGap
+    )
+      ids.add(id);
+  }
+  return [...ids];
+}
 
 type FindElementIdsOptions = {
   rootElementId?: string;
@@ -306,8 +371,168 @@ export class IOSWebDriverClient extends WebDriverClient {
   }
 
   /** Wait for keyboard focus before attempting to clear or type text. */
-  async waitForInputFocus(): Promise<void> {
-    await waitForInputFocus(this.requestInput);
+  async waitForInputFocus({
+    allowVisibleKeyboard = false,
+  } = {}): Promise<void> {
+    await waitForInputFocus(
+      this.requestInput,
+      allowVisibleKeyboard
+        ? (deadline) => this.findVisibleKeyboardIds(deadline)
+        : undefined,
+    );
+  }
+
+  private async findSelectAllActions(deadline: number): Promise<EditAction[]> {
+    const menus = await this.findElementIds('class chain', editMenuQuery, {
+      deadline,
+    });
+    const actions: EditAction[] = [];
+    for (const rootElementId of menus) {
+      const menu = await this.getElementRect(rootElementId, deadline);
+      const ids = await this.findElementIds(
+        'predicate string',
+        selectAllControl,
+        { rootElementId, deadline },
+      );
+      for (const id of ids) actions.push({ id, menu });
+    }
+    return actions;
+  }
+
+  private async findEmptyCaretMenus(deadline: number): Promise<EditAction[]> {
+    // UIKit's empty text field offers AutoFill/Paste, with no selection commands.
+    // Only accept native menu items in a contextual collection view, never app toolbar buttons.
+    const nativeItem = 'type == "XCUIElementTypeMenuItem" AND visible == true';
+    const titles =
+      '{"AutoFill", "Auto Fill", "自动填充", "自動填寫", "自動填充", "Paste", "粘贴", "黏貼", "貼上"}';
+    const allowed = `(name IN[c] ${titles} OR label IN[c] ${titles})`;
+    const menus = await this.findElementIds(
+      'class chain',
+      `**/XCUIElementTypeCollectionView[$${nativeItem} AND enabled == true AND ${allowed}$]`,
+      { deadline },
+    );
+    const result: EditAction[] = [];
+    for (const id of menus) {
+      const other = await this.findElementIds(
+        'predicate string',
+        `${editControl} AND NOT (type == "XCUIElementTypeMenuItem" AND ${allowed})`,
+        { rootElementId: id, deadline },
+      );
+      if (!other.length)
+        result.push({ id, menu: await this.getElementRect(id, deadline) });
+    }
+    return result;
+  }
+
+  async verifyReplacedValue(id: string, expected: string) {
+    const { value } = await this.requestInput(
+      'GET',
+      `/element/${id}/attribute/value`,
+    );
+    if (value !== expected)
+      throw new Error(
+        'Could not verify the replacement text in the focused iOS field',
+      );
+  }
+
+  /** Bind an edit command to the gesture on this field before replacing its contents. */
+  async tapAndPrepareReplacement(
+    x: number,
+    y: number,
+  ): Promise<ReplacementPreparation> {
+    const beforeTap = await this.findSelectAllActions(
+      Date.now() + editMenuTimeoutMs,
+    );
+    await this.tap(x, y);
+    const activeId = await waitForInputFocus(this.requestInput, (deadline) =>
+      this.findVisibleKeyboardIds(deadline),
+    );
+    let mayBeEmptyNativeField = false;
+    if (activeId) {
+      // An accessible UIKeyInput can still hide its text. WDA's native clear
+      // acknowledges an absent snapshot value without deleting anything.
+      const { value } = await this.requestInput(
+        'GET',
+        `/element/${activeId}/attribute/value`,
+      );
+      const { value: placeholder } = await this.requestInput(
+        'GET',
+        `/element/${activeId}/attribute/placeholderValue`,
+      );
+      if (
+        typeof value === 'string' &&
+        value.length > 0 &&
+        value !== placeholder
+      )
+        return 'native';
+      // UIKit may normalize an empty string to null or report the placeholder.
+      // Require an independent, field-local empty caret menu before typing in this case.
+      if (typeof placeholder === 'string') {
+        const { value: type } = await this.requestInput(
+          'GET',
+          `/element/${activeId}/attribute/type`,
+        );
+        mayBeEmptyNativeField = [
+          'XCUIElementTypeTextField',
+          'XCUIElementTypeSearchField',
+          'XCUIElementTypeSecureTextField',
+          'XCUIElementTypeTextView',
+        ].includes(String(type));
+      }
+    }
+    const deadline = Date.now() + editMenuTimeoutMs;
+    const target = activeId
+      ? await this.getElementRect(activeId, deadline)
+      : { x, y, width: 1, height: 1 };
+    if (!containsPoint(target, x, y))
+      throw new Error('The active input does not contain the tap location');
+    const afterTap = await this.findSelectAllActions(deadline);
+    let matches = newlyOpenedActions(afterTap, beforeTap, target);
+    // A keyboard accessory toolbar can appear on focus too. Only a native
+    // contextual menu item can be used immediately after the tap. For custom
+    // buttons require a menu that opens in response to the targeted long press.
+    const openedSystemItem =
+      matches.length === 1 &&
+      (await this.requestInput('GET', `/element/${matches[0]}/attribute/type`))
+        .value === 'XCUIElementTypeMenuItem';
+    if (!openedSystemItem) {
+      const keyboard = await this.getVisibleKeyboardRect(deadline);
+      if (keyboard ? containsPoint(keyboard, x, y) : !activeId) {
+        throw new Error('Cannot open the edit menu at the input location');
+      }
+      const emptyMenusBefore = mayBeEmptyNativeField
+        ? await this.findEmptyCaretMenus(deadline)
+        : [];
+      await this.longPress(x, y);
+      const menuDeadline = Date.now() + editMenuTimeoutMs;
+      const previous = [...beforeTap, ...afterTap];
+      while (Date.now() < menuDeadline) {
+        const current = await this.findSelectAllActions(menuDeadline);
+        matches = newlyOpenedActions(current, previous, target);
+        if (matches.length) break;
+        if (mayBeEmptyNativeField && activeId) {
+          const emptyMenus = newlyOpenedActions(
+            await this.findEmptyCaretMenus(menuDeadline),
+            emptyMenusBefore,
+            target,
+          );
+          if (
+            emptyMenus.length === 1 &&
+            activeId === (await waitForInputFocus(this.requestInput))
+          ) {
+            return { emptyFieldId: activeId };
+          }
+        }
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
+    if (matches.length !== 1) {
+      throw new Error(
+        'Cannot uniquely locate Select All in the input edit menu; refusing to append text',
+      );
+    }
+    await this.clickElement(matches[0]);
+    return 'selected';
   }
 
   private requestInput: InputRequest = (method, path, data, options) => {
@@ -361,17 +586,7 @@ export class IOSWebDriverClient extends WebDriverClient {
     });
   }
 
-  private remainingKeyboardDismissTimeout(deadline: number): number {
-    const remainingTimeout = deadline - Date.now();
-    if (remainingTimeout <= 0) {
-      throw new Error(
-        `iOS keyboard dismissal exceeded its ${keyboardDismissDeadlineMs}ms deadline`,
-      );
-    }
-    return Math.max(1, Math.ceil(remainingTimeout));
-  }
-
-  private async makeKeyboardDismissRequest(
+  private async makeKeyboardRequest(
     method: 'GET' | 'POST',
     endpoint: string,
     data: unknown,
@@ -380,9 +595,10 @@ export class IOSWebDriverClient extends WebDriverClient {
     if (deadline === undefined) {
       return await this.makeRequest(method, endpoint, data);
     }
-    return await this.makeRequest(method, endpoint, data, {
-      timeout: this.remainingKeyboardDismissTimeout(deadline),
-    });
+    const timeout = deadline - Date.now();
+    if (timeout <= 0)
+      throw new Error('iOS keyboard request exceeded its deadline');
+    return await this.makeRequest(method, endpoint, data, { timeout });
   }
 
   private async findElementIds(
@@ -393,7 +609,7 @@ export class IOSWebDriverClient extends WebDriverClient {
     const endpoint = options.rootElementId
       ? `/session/${this.sessionId}/element/${options.rootElementId}/elements`
       : `/session/${this.sessionId}/elements`;
-    const response = await this.makeKeyboardDismissRequest(
+    const response = await this.makeKeyboardRequest(
       'POST',
       endpoint,
       { using, value },
@@ -406,7 +622,7 @@ export class IOSWebDriverClient extends WebDriverClient {
     elementId: string,
     deadline?: number,
   ): Promise<WebDriverElementRect> {
-    const response = await this.makeKeyboardDismissRequest(
+    const response = await this.makeKeyboardRequest(
       'GET',
       `/session/${this.sessionId}/element/${elementId}/rect`,
       undefined,
@@ -437,7 +653,7 @@ export class IOSWebDriverClient extends WebDriverClient {
     elementId: string,
     deadline?: number,
   ): Promise<void> {
-    await this.makeKeyboardDismissRequest(
+    await this.makeKeyboardRequest(
       'POST',
       `/session/${this.sessionId}/element/${elementId}/click`,
       undefined,

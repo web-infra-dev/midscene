@@ -193,6 +193,16 @@ On iOS, `device.destroy()` stops the MJPEG frame source, deletes the WDA session
 
 ## Troubleshooting
 
+### How do I type into a custom-rendered field?
+
+Use a locator and `replace` to overwrite a custom-rendered field, including one whose focused element or text value is hidden from WebDriverAgent.
+
+```sh
+midscene-ios input --locate '{"prompt":"Nickname field"}' --mode replace --value "test"
+```
+
+For a field with unreadable text, Midscene looks for a contextual **Select All** command opened by the tap or long press on that field. It recognizes English, Simplified Chinese, and Traditional Chinese edit commands. Existing page toolbars are excluded. If WDA cannot identify the field’s edit command, the action stops before typing. UIKit empty fields can also expose a caret menu containing only AutoFill or Paste. In that case Midscene checks the resulting field value after typing.
+
 <a id="how-to-use-custom-webdriveragent-port-and-host"></a>
 
 ### How do I customize the WebDriverAgent port and host?

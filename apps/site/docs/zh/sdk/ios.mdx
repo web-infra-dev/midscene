@@ -193,6 +193,16 @@ agent.destroy(): Promise<void>
 
 ## 问题排查
 
+### 如何在自绘输入框中输入文字？
+
+指定目标输入框并使用 `replace`，可以替换自绘输入框里的已有文字。WebDriverAgent 可能找不到活动元素，也可能找到元素却读不到它的文本。
+
+```sh
+midscene-ios input --locate '{"prompt":"昵称输入框"}' --mode replace --value "test"
+```
+
+对于读不到文本的输入框，Midscene 会查找点击或长按该输入框后出现的“全选”命令，支持英文、简体中文和繁体中文。页面上原本就显示的工具栏会被排除。无法确认输入框的编辑命令时，操作会在输入前停止。UIKit 空输入框有时会显示只包含“自动填充”或“粘贴”的光标菜单，此时 Midscene 会在输入后读回字段值，核对是否与请求一致。
+
 <a id="如何自定义-webdriveragent-的端口和-host"></a>
 
 ### 如何自定义 WebDriverAgent 的端口和主机地址？

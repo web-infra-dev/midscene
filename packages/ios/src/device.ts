@@ -30,7 +30,10 @@ import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison } from '@midscene/shared/utils';
 import { WDAManager } from '@midscene/webdriver';
-import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
+import {
+  type ReplacementPreparation,
+  IOSWebDriverClient as WebDriverAgentBackend,
+} from './ios-webdriver-client';
 import { MjpegFrameSource } from './mjpeg-frame-source';
 import {
   assertWdaConnectionOptions,
@@ -107,10 +110,14 @@ export class IOSDevice implements AbstractInterface {
         const focusRestorePoint = target
           ? { x: target.center[0], y: target.center[1] }
           : undefined;
-        if (target && opts?.replace !== false) {
-          await this.clearInput(target);
-        } else if (target) {
-          await this.tapPoint({ x: target.center[0], y: target.center[1] });
+        let preparation: ReplacementPreparation = 'native';
+        if (focusRestorePoint && opts?.replace !== false) {
+          preparation = await this.clearOrSelectInput(
+            focusRestorePoint,
+            Boolean(value) && !opts?.focusOnly,
+          );
+        } else if (focusRestorePoint) {
+          await this.tapPoint(focusRestorePoint);
         }
 
         if (opts?.focusOnly) {
@@ -122,6 +129,7 @@ export class IOSDevice implements AbstractInterface {
           opts,
           focusRestorePoint,
           resolvedInputOptions,
+          preparation,
         );
       },
       clearInput: (target) =>
@@ -263,13 +271,21 @@ export class IOSDevice implements AbstractInterface {
     );
   }
 
-  private async clearInputAt(point?: PointerPoint): Promise<void> {
+  private async clearOrSelectInput(
+    point?: PointerPoint,
+    allowSelection = false,
+  ): Promise<ReplacementPreparation> {
     this.invalidatePendingKeyboardFollowUp('clear input');
-    if (point) {
-      await this.tapPoint(point);
+    if (allowSelection && point) {
+      const preparation = await this.wdaBackend.tapAndPrepareReplacement(
+        Math.round(point.x),
+        Math.round(point.y),
+      );
+      if (preparation !== 'native') return preparation;
+    } else {
+      if (point) await this.tapPoint(point);
+      await this.wdaBackend.waitForInputFocus();
     }
-
-    await this.wdaBackend.waitForInputFocus();
     debugDevice('Attempting to clear input with WebDriver Clear API');
     const cleared = await this.wdaBackend.clearActiveElement();
     assert(
@@ -277,6 +293,7 @@ export class IOSDevice implements AbstractInterface {
       'Cannot verify that input was cleared; refusing to append text',
     );
     debugDevice('Successfully cleared input with WebDriver Clear API');
+    return 'native';
   }
 
   actionSpace(): DeviceAction<any>[] {
@@ -627,7 +644,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   async clearInput(element?: ElementInfo): Promise<void> {
-    await this.clearInputAt(
+    await this.clearOrSelectInput(
       element ? { x: element.center[0], y: element.center[1] } : undefined,
     );
   }
@@ -662,12 +679,16 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   private async typeText(
     text: string,
-    options?: IOSDeviceInputOpt & { skipDefaultWait?: boolean },
+    options?: IOSDeviceInputOpt & {
+      replace?: boolean;
+      skipDefaultWait?: boolean;
+    },
     focusRestorePoint?: PointerPoint,
     resolvedInputOptions: ResolvedTextInputOptions = resolveTextInputOptions(
       options,
       this.options,
     ),
+    preparation: ReplacementPreparation = 'native',
   ): Promise<void> {
     this.invalidatePendingKeyboardFollowUp('new text input');
     if (!text) return;
@@ -680,7 +701,12 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     debugDevice(`Typing text: "${text}"`);
 
     try {
-      await this.wdaBackend.waitForInputFocus();
+      if (preparation === 'native') {
+        await this.wdaBackend.waitForInputFocus({
+          allowVisibleKeyboard:
+            !!focusRestorePoint && options?.replace === false,
+        });
+      }
 
       if (inputSequentially) {
         // Type one character at a time with a delay between keystrokes.
@@ -698,8 +724,17 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
             delayAfterLast: resolvedInputOptions.inputStrategy === 'legacy',
           },
         );
+      } else if (preparation !== 'native') {
+        await this.wdaBackend.typeRawKeys([text]);
       } else {
         await this.wdaBackend.typeText(text);
+      }
+
+      if (typeof preparation === 'object') {
+        await this.wdaBackend.verifyReplacedValue(
+          preparation.emptyFieldId,
+          text,
+        );
       }
 
       // Optional settling is owned by a custom action waiter when configured.
