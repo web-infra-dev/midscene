@@ -309,6 +309,34 @@ beforeEach:
 - 相对路径的 `storageStatePath` 默认相对于当前工作目录解析。如需自定义环境变量读取、Profile 映射或路径解析逻辑，可在实例化 Agent 时通过 `testRunner` 选项传入 `getEnv`、`getCookieProfile` 或 `resolveStorageStatePath` 回调（回调中的 `context` 为当前 Agent 实例）。
 - 请妥善保管环境变量、Profile 和 `storageState` 文件，切勿将包含真实 Cookie 的文件提交到代码仓库。
 
+#### 使用 WebMCP 工具
+
+要让 YAML 用例中的 `aiAct` 调用网页提供的 WebMCP 工具，在 `midscene.config.ts` 中做以下两处设置。下面以本地已安装的 Chrome 为例：
+
+1. 在 `setup` 中，启动 Chrome 时添加 WebMCP 启动参数：
+
+   ```ts
+   const browser = await chromium.launch({
+     channel: 'chrome',
+     headless: true,
+     args: ['--enable-features=WebMCP'],
+   });
+   ```
+
+2. 在 `createMidsceneNodes()` 的 `getAgent` 中，首次创建 Playwright Agent 时传入 `enableWebMCP: true`，允许 `aiAct` 调用页面的 WebMCP 工具：
+
+   ```ts
+   const midsceneNodes = createMidsceneNodes<ProjectContext>({
+     agentClass: PlaywrightAgent,
+     getAgent: ({ context }) => {
+       context.agent ??= new PlaywrightAgent(context.page, { enableWebMCP: true });
+       return context.agent;
+     },
+   });
+   ```
+
+页面没有 WebMCP 工具时，`aiAct` 会继续使用视觉操作。
+
 ### Puppeteer
 
 Puppeteer 同样提供同名的 `gotoUrl`、`setCookies`、`clearCookies` 和 `setViewportSize` Node，参数结构与 Cookie 引用方式与 Playwright 完全一致。使用时需安装 `puppeteer` 并将 `PuppeteerAgent`（或 `PuppeteerBrowserAgent`）传给 `createMidsceneNodes()`：

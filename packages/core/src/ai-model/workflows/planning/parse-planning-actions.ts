@@ -3,6 +3,7 @@ import {
   findActionInActionSpaceOrThrow,
   findAllMidsceneLocatorField,
   parseActionParam,
+  validateJsonSchemaParam,
   validateRequiredLocateFields,
 } from '@/common';
 import type { DeviceAction, PlanningAction } from '@/types';
@@ -29,12 +30,18 @@ export function parsePlanningActions(
 ): void {
   for (const action of actions) {
     const definition = findActionInActionSpaceOrThrow(action.type, actionSpace);
-    if (!definition.paramSchema) {
+    if (!definition.paramSchema && !definition.paramJsonSchema) {
       continue;
     }
 
-    const locateFields = findAllMidsceneLocatorField(definition.paramSchema);
+    const locateFields = definition.paramSchema
+      ? findAllMidsceneLocatorField(definition.paramSchema)
+      : [];
     try {
+      if (!definition.paramSchema && definition.paramJsonSchema) {
+        validateJsonSchemaParam(action.param, definition.paramJsonSchema);
+        continue;
+      }
       for (const field of locateFields) {
         const rawLocate = action.param?.[field];
         if (rawLocate !== undefined && rawLocate !== null) {

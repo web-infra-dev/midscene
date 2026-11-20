@@ -62,6 +62,10 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 
 You can also pass other Agent options such as `waitAfterAction` and `modelConfig`. Test and report metadata (`testId`, `reportFileName`, `groupName`, and `groupDescription`) are automatically derived from the current test info and do not need to be set manually. See [Playwright SDK configuration](./sdk/playwright#web-options) for platform options and [shared Agent options](./reference/#agent-options) for common settings.
 
+### Use WebMCP tools
+
+For Playwright tests using the Midscene fixture, set `PlaywrightAiFixture({ enableWebMCP: true })` in `fixture.ts`. The fixture passes this option when it first creates an Agent for the page. See [WebMCP tool support](./sdk/playwright#webmcp-tools) for browser requirements.
+
 ### Work with a specific page
 
 The AI methods injected by the fixture operate on Playwright's default `page` fixture. To interact with another `Page` instance in the same test (such as one created via `context.newPage()`), use `agentForPage` to get the corresponding Agent:

@@ -166,6 +166,19 @@ Both Agents also accept [shared Agent options](../reference/#agent-options), inc
 
 `inputStrategy: 'bulk'` requires `keyboardTypeDelay` to be omitted or set to `0`. Use `'sequential'` for delayed input. To wait for application readiness, use `aiWaitFor()` or Playwright’s own waiting APIs.
 
+### Use WebMCP tools {#webmcp-tools}
+
+Pass `enableWebMCP: true` to `PlaywrightPageAgent` or `PlaywrightBrowserAgent` to let `aiAct` call WebMCP tools exposed by the current page, including tools that change data. This option is off by default.
+
+```typescript
+const agent = new PlaywrightPageAgent(page, { enableWebMCP: true });
+await agent.aiAct('Save the note as a draft');
+```
+
+Midscene reads the current page's same-origin tools before each planning step and checks that a tool still exists before calling it. If the browser does not expose `document.modelContext` or the page has no tools, `aiAct` continues with visual actions.
+
+WebMCP is experimental and requires a Chrome version with WebMCP enabled. For local testing, enable `chrome://flags/#enable-webmcp-testing` and relaunch Chrome. Websites can also enable WebMCP through an origin trial.
+
 ## Lifecycle {#lifecycle}
 
 ```typescript

@@ -952,6 +952,7 @@ export interface DeviceAction<TParam = any, TReturn = any> {
   description?: string;
   interfaceAlias?: string;
   paramSchema?: z.ZodType<TParam>;
+  paramJsonSchema?: Record<string, unknown>;
   /**
    * Maximum number of characters from planningFeedback sent to the next
    * planning round. Omit to use the core default, or set to 'unlimited' to
