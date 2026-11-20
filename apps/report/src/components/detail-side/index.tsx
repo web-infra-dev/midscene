@@ -435,6 +435,14 @@ const DetailSide = ({ onClose }: { onClose?: () => void }): JSX.Element => {
             },
           ]
         : []),
+      ...(
+        [
+          ['request retries (this call)', task?.usage?.request_retry_count],
+          ['parse retries', task?.usage?.parse_retry_count],
+        ] as const
+      ).flatMap(([key, count]) =>
+        count === undefined ? [] : [{ key, content: <pre>{count}</pre> }],
+      ),
       ...(task?.hitBy
         ? [
             {

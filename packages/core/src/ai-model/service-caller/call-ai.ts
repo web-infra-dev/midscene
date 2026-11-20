@@ -134,7 +134,7 @@ async function executeModelCall(
     rawUsage,
     timeCost,
     totalTimeCost,
-    retryCount,
+    requestRetryCount,
     requestId,
     responseModelName,
     ...response
@@ -146,7 +146,8 @@ async function executeModelCall(
     usageData: rawUsage,
     timeCost,
     totalTimeCost,
-    retryCount,
+    requestRetryCount,
+    parseRetryCount: options?.semanticRetryAttempt ?? 0,
     requestId,
     responseModelName,
     modelName: modelConfig.modelName,
@@ -200,7 +201,9 @@ class NonRetryableModelCallError extends Error {
 
 async function callModelWithRetry(
   input: ModelCallInput,
-): Promise<ModelCallResult & { totalTimeCost: number; retryCount: number }> {
+): Promise<
+  ModelCallResult & { totalTimeCost: number; requestRetryCount: number }
+> {
   const startTime = Date.now();
   const {
     modelRuntime: { config },
@@ -217,7 +220,7 @@ async function callModelWithRetry(
       return {
         ...result,
         totalTimeCost: Date.now() - startTime,
-        retryCount: attempt - 1,
+        requestRetryCount: attempt - 1,
       };
     } catch (error) {
       options?.abortSignal?.throwIfAborted();
@@ -225,7 +228,7 @@ async function callModelWithRetry(
         throw error.cause;
       }
       // A rejected SIWC token gets one authentication retry, independently of
-      // normal retryCount. Delivered chunks are rejected above before refreshing.
+      // configured retry limit. Delivered chunks are rejected above before refreshing.
       if (error instanceof SiwcTokenExpiredError) {
         const refresh = async () => {
           assert(config.openaiApiKey, 'Missing rejected SIWC access token');
@@ -248,7 +251,7 @@ async function callModelWithRetry(
           return {
             ...result,
             totalTimeCost: Date.now() - startTime,
-            retryCount: attempt,
+            requestRetryCount: attempt,
           };
         } catch (retryError) {
           // Do not re-enter either retry path after the refreshed request fails.
