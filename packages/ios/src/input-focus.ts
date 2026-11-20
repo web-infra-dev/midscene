@@ -77,7 +77,7 @@ export async function waitForInputFocus(request: InputRequest): Promise<void> {
     }
   }
   throw new InputFocusUnavailableError(
-    'Timed out waiting for iOS input focus after 3000ms. No text was sent. For an empty or visually cleared field, use Input mode="typeOnly" with locate pointing to that field. Do not repeat replacement while focus is unavailable.',
+    'Timed out waiting for iOS input focus after 3000ms.',
   );
 }
 

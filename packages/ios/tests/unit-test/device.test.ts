@@ -408,35 +408,49 @@ describe('IOSDevice', () => {
       expect(mockWdaClient.typeText).toHaveBeenCalledTimes(1);
     });
 
-    it('does not type after an unconfirmed clear', async () => {
+    it('continues when the clear lookup finds no active element', async () => {
       mockWdaClient.clearActiveElement.mockResolvedValue(false);
-      await expect(
-        device.inputPrimitives.keyboard.typeText('new text', {
-          target: { center: [10, 20] },
-          replace: true,
-        }),
-      ).rejects.toThrow('refusing to append text');
-      expect(mockWdaClient.typeText).not.toHaveBeenCalled();
-      expect(mockWdaClient.typeRawKeys).not.toHaveBeenCalled();
-    });
-
-    it('types once when native focus is unavailable for located typeOnly', async () => {
-      mockWdaClient.waitForInputFocus.mockRejectedValue(
-        new InputFocusUnavailableError('no focus'),
-      );
       await device.inputPrimitives.keyboard.typeText('new text', {
         target: { center: [10, 20] },
-        replace: false,
         autoDismissKeyboard: false,
       });
-      expect(mockWdaClient.waitForInputFocus).toHaveBeenCalledOnce();
-      expect(mockWdaClient.clearActiveElement).not.toHaveBeenCalled();
-      expect(mockWdaClient.tap).toHaveBeenCalledTimes(1);
       expect(mockWdaClient.typeText).toHaveBeenCalledExactlyOnceWith(
         'new text',
       );
-      expect(mockWdaClient.executeRequest).toHaveBeenCalledTimes(2);
     });
+
+    it('propagates a failed native clear without typing', async () => {
+      mockWdaClient.clearActiveElement.mockRejectedValue(
+        new Error('stale clear'),
+      );
+      await expect(
+        device.inputPrimitives.keyboard.typeText('new text', {
+          target: { center: [10, 20] },
+        }),
+      ).rejects.toThrow('stale clear');
+      expect(mockWdaClient.typeText).not.toHaveBeenCalled();
+    });
+
+    it.each([true, false])(
+      'types once when native focus is unavailable for a located input (replace=%s)',
+      async (replace) => {
+        mockWdaClient.waitForInputFocus.mockRejectedValue(
+          new InputFocusUnavailableError('no focus'),
+        );
+        await device.inputPrimitives.keyboard.typeText('new text', {
+          target: { center: [10, 20] },
+          replace,
+          autoDismissKeyboard: false,
+        });
+        expect(mockWdaClient.waitForInputFocus).toHaveBeenCalledOnce();
+        expect(mockWdaClient.clearActiveElement).not.toHaveBeenCalled();
+        expect(mockWdaClient.tap).toHaveBeenCalledTimes(1);
+        expect(mockWdaClient.typeText).toHaveBeenCalledExactlyOnceWith(
+          'new text',
+        );
+        expect(mockWdaClient.executeRequest).toHaveBeenCalledTimes(2);
+      },
+    );
 
     it.each([
       'hidden keyboard',
@@ -486,16 +500,37 @@ describe('IOSDevice', () => {
       { replace: false },
       { target: { center: [10, 20] }, replace: true },
     ])(
-      'preserves native focus requirements outside located typeOnly (%j)',
+      'preserves native focus requirements after a protocol error (%j)',
       async (options) => {
         const error = new Error('focus timed out');
         mockWdaClient.waitForInputFocus.mockRejectedValue(error);
         await expect(
           device.inputPrimitives.keyboard.typeText('new text', options),
         ).rejects.toBe(error);
-        expect(mockWdaClient.executeRequest).not.toHaveBeenCalled();
+        expect(mockWdaClient.isKeyboardVisible).not.toHaveBeenCalled();
         expect(mockWdaClient.typeText).not.toHaveBeenCalled();
         expect(mockWdaClient.clearActiveElement).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(['hidden keyboard', 'changed app'])(
+      'stops default replacement on %s when native focus is missing',
+      async (condition) => {
+        mockWdaClient.waitForInputFocus.mockRejectedValue(
+          new InputFocusUnavailableError('no focus'),
+        );
+        if (condition === 'hidden keyboard')
+          mockWdaClient.isKeyboardVisible.mockResolvedValue(false);
+        else
+          mockWdaClient.executeRequest.mockResolvedValueOnce({
+            value: { bundleId: 'old.app' },
+          });
+        await expect(
+          device.inputPrimitives.keyboard.typeText('new', {
+            target: { center: [10, 20] },
+          }),
+        ).rejects.toThrow();
+        expect(mockWdaClient.typeText).not.toHaveBeenCalled();
       },
     );
 
