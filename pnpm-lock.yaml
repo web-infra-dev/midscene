@@ -1077,6 +1077,9 @@ importers:
       openai:
         specifier: 6.3.0
         version: 6.3.0(ws@8.22.1)(zod@3.25.76)
+      p-limit:
+        specifier: 6.2.0
+        version: 6.2.0
       semver:
         specifier: 7.8.6
         version: 7.8.6
