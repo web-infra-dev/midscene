@@ -48,13 +48,22 @@ async function activeInput(
 /** Wait for a focus owner before clearing or synthesizing text events. */
 export async function waitForInputFocus(request: InputRequest): Promise<void> {
   const deadline = Date.now() + 3000;
+  let observedMissingFocus = false;
   while (Date.now() < deadline) {
-    const target = await activeInput(
-      request,
-      Math.max(1, deadline - Date.now()),
-    );
-    if (Date.now() >= deadline) break;
+    const remainingBudget = deadline - Date.now();
+    // Do not turn repeated, valid "no active element" responses into a
+    // transport error by starting another request with a tiny final timeout.
+    // Real request errors still propagate; none are treated as missing focus.
+    if (observedMissingFocus && remainingBudget < 500) {
+      if (remainingBudget > 0) {
+        await new Promise((resolve) => setTimeout(resolve, remainingBudget));
+      }
+      break;
+    }
+    const target = await activeInput(request, Math.max(1, remainingBudget));
     if (target) return;
+    observedMissingFocus = true;
+    if (Date.now() >= deadline) break;
     const remaining = deadline - Date.now();
     if (remaining > 0) {
       await new Promise((resolve) =>
