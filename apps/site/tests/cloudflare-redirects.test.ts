@@ -1,9 +1,26 @@
-import { describe, expect, it, rs } from '@rstest/core';
-import { deploy } from '../cloudflare/deploy.mjs';
-import { rules } from '../cloudflare/redirects.mjs';
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from '@rstest/core';
+
+const { rules } = JSON.parse(
+  readFileSync(
+    new URL('../cloudflare/redirects.json', import.meta.url),
+    'utf8',
+  ),
+) as {
+  rules: {
+    expression: string;
+    action_parameters: {
+      from_value: {
+        target_url: { expression: string };
+        status_code: number;
+        preserve_query_string: boolean;
+      };
+    };
+  }[];
+};
 
 // Evaluate the limited Cloudflare expression subset used by this config, so
-// cases exercise the actual deployed predicates, targets, and rule ordering.
+// cases exercise the actual configured predicates, targets, and rule ordering.
 function evaluate(expression: string, url: URL, country: string) {
   const translated = expression
     .replace(/http\.request\.uri\.path/g, 'path')
@@ -108,95 +125,5 @@ describe('Cloudflare apex redirects', () => {
     ]) {
       expect(redirect(`https://${host}/`, 'CN')).toBeUndefined();
     }
-  });
-});
-
-function cloudflare(initial?: Record<string, unknown>[]) {
-  let saved = initial;
-  const request = rs.fn(async (_url: string, options: RequestInit) => {
-    const url = new URL(_url);
-    const body = options.body ? JSON.parse(options.body as string) : undefined;
-    let result: unknown;
-    if (options.method === 'GET' && url.pathname.endsWith('/rulesets')) {
-      result = saved
-        ? [
-            {
-              id: 'entry',
-              kind: 'zone',
-              phase: 'http_request_dynamic_redirect',
-            },
-          ]
-        : [];
-    } else if (options.method === 'GET') {
-      result = { id: 'entry', rules: saved };
-    } else if (url.pathname.endsWith('/rulesets')) {
-      saved = body.rules;
-      result = { id: 'entry', rules: saved };
-    } else {
-      const { position, ...rule } = body;
-      expect(position).toEqual({ before: '' });
-      const id =
-        options.method === 'PATCH' ? url.pathname.split('/').at(-1) : rule.ref;
-      saved = [{ ...rule, id }, ...saved!.filter((item) => item.id !== id)];
-      result = { id: 'entry', rules: saved };
-    }
-    return {
-      ok: true,
-      json: async () => ({ success: true, result }),
-    } as Response;
-  });
-  return { request, saved: () => saved };
-}
-
-describe('Cloudflare deployment', () => {
-  it('creates a missing entry point and verifies the saved rules', async () => {
-    const api = cloudflare();
-    await deploy({ token: 'test', zone: 'zone', fetch: api.request });
-    expect(api.saved()).toEqual(rules);
-    expect(api.request).toHaveBeenCalledTimes(3);
-  });
-
-  it('updates only owned refs, orders ahead of geo rules and is repeatable', async () => {
-    const geo = {
-      id: 'geo',
-      ref: 'existing_geo',
-      expression: 'existing geo rule',
-    };
-    const api = cloudflare([geo, { ...rules[2], id: 'www', enabled: false }]);
-    for (let attempt = 0; attempt < 2; attempt++) {
-      await deploy({ token: 'test', zone: 'zone', fetch: api.request });
-      expect(api.saved()!.map((rule) => rule.ref)).toEqual([
-        ...rules.map((rule) => rule.ref),
-        'existing_geo',
-      ]);
-      expect(api.saved()!.at(-1)).toEqual(geo);
-      expect(api.saved()![2].id).toBe('www');
-    }
-  });
-
-  it('fails on API errors without attempting writes', async () => {
-    const request = rs.fn(
-      async () =>
-        ({
-          ok: false,
-          status: 403,
-          json: async () => ({
-            success: false,
-            errors: [{ message: 'Forbidden' }],
-          }),
-        }) as Response,
-    );
-    await expect(
-      deploy({ token: 'test', zone: 'zone', fetch: request }),
-    ).rejects.toThrow('403');
-    expect(request).toHaveBeenCalledTimes(1);
-  });
-
-  it('requires credentials before requesting anything', async () => {
-    const request = rs.fn();
-    await expect(
-      deploy({ token: '', zone: '', fetch: request }),
-    ).rejects.toThrow('required');
-    expect(request).not.toHaveBeenCalled();
   });
 });

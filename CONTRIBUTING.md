@@ -385,6 +385,38 @@ GITHUB_TOKEN=$(gh auth token) pnpm --filter doc build
 The site development server does not require a token. If GitHub is unavailable,
 it renders a non-numeric placeholder instead of a stale star count.
 
+### Cloudflare domain redirects / Cloudflare 域名跳转
+
+[`apps/site/cloudflare/redirects.json`](./apps/site/cloudflare/redirects.json)
+records the apex redirect settings. Apply the three rules in array order in
+Cloudflare Dashboard → `midscenejs.com` → Rules → Redirect Rules → Single
+Redirects, **before existing geo redirects**. For each rule, copy `expression`
+into the custom filter, choose a dynamic target using `target_url.expression`,
+set status to `301`, and enable **Preserve query string**. Keep unrelated rules.
+The apex DNS record must be proxied through Cloudflare.
+
+Mainland China (`CN`) requests go straight to HTTPS `www.midscenejs.com` with
+the corresponding `/zh/` path; shared assets keep their paths. Other regions
+keep the original path. `/zh` goes directly to `/zh/` in every region.
+The configuration is a reference for the dashboard; merging it does not apply
+live rules. No deployment scripts, workflows, or additional secrets are needed.
+Pages' `_redirects` cannot match hostnames or countries. Existing retired-page
+redirects remain separate and may add another hop.
+
+此文件记录根域名跳转配置。请在 Cloudflare 控制台的 `midscenejs.com` → Rules →
+Redirect Rules → Single Redirects 中，按数组顺序配置三条规则，**放在现有地区跳转规则之前**。
+每条规则的自定义匹配条件使用 `expression`，动态目标使用 `target_url.expression`，
+状态码设为 `301`，开启 **Preserve query string**，保留其他已有规则。
+根域名 DNS 记录需开启 Cloudflare 代理。
+
+中国大陆（`CN`）请求直接跳到 HTTPS `www.midscenejs.com` 下对应的 `/zh/` 路径；
+共享资源保留原路径，其他地区也保留原路径。所有地区的 `/zh` 直接跳到 `/zh/`。
+此文件供控制台配置参考，合入不会自动修改线上规则，无需部署脚本、工作流或额外 Secret。
+Pages 的 `_redirects` 不支持按域名或国家匹配。已有旧页面跳转仍独立执行，可能增加一次跳转。
+
+See [Cloudflare Single Redirects](https://developers.cloudflare.com/rules/url-forwarding/single-redirects/create-dashboard/)
+and [Pages redirect limitations](https://developers.cloudflare.com/pages/configuration/redirects/).
+
 ---
 
 ## Submitting Changes
