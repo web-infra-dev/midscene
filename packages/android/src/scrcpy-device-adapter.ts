@@ -9,6 +9,7 @@ import {
   DEFAULT_SCRCPY_CONFIG,
   type ScrcpyFreshFrameUnavailableError,
   isScrcpyFreshFrameUnavailableError,
+  resolveScrcpyFrameRate,
 } from './scrcpy-manager';
 
 const debugAdapter = getDebug('android:scrcpy-adapter');
@@ -181,6 +182,7 @@ export class ScrcpyDeviceAdapter {
     }
 
     this.resolvedConfig = {
+      frameRate: resolveScrcpyFrameRate(config?.frameRate),
       enabled: this.isConfigured(),
       maxSize,
       idleTimeoutMs:
@@ -235,6 +237,7 @@ export class ScrcpyDeviceAdapter {
             await adbBackend.push(localPath, remotePath);
           },
           {
+            frameRate: config.frameRate,
             maxSize: config.maxSize,
             videoBitRate: config.videoBitRate,
             idleTimeoutMs: config.idleTimeoutMs,

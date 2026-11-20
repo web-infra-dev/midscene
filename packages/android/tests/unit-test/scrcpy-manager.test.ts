@@ -198,6 +198,35 @@ describe('ScrcpyScreenshotManager', () => {
   });
 
   describe('ensureConnected', () => {
+    it('aligns the default encoder hint with maxFps and preserves codec defaults', async () => {
+      const options = await (
+        createManager({} as any) as any
+      ).createScrcpyOptions();
+      expect(options.value.videoCodecOptions).toBe(
+        `i-frame-interval=0,bitrate-mode=2,repeat-previous-frame-after=0,frame-rate=${options.value.maxFps}`,
+      );
+      const custom = await (
+        createManager({} as any, { frameRate: 30 }) as any
+      ).createScrcpyOptions();
+      expect(custom.value.videoCodecOptions).toBe(
+        'i-frame-interval=0,bitrate-mode=2,repeat-previous-frame-after=0,frame-rate=30',
+      );
+      expect(custom.value.maxFps).toBe(options.value.maxFps);
+    });
+    it.each([
+      0,
+      -1,
+      1.5,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      2147483648,
+      '10',
+    ])('rejects invalid frameRate %s', (frameRate) => {
+      expect(() =>
+        createManager({} as any, { frameRate: frameRate as number }),
+      ).toThrow('Invalid scrcpyConfig.frameRate');
+    });
+
     it('should use a forward tunnel with a fresh scrcpy instance id', async () => {
       const manager = createManager({} as any, {
         maxSize: 1024,

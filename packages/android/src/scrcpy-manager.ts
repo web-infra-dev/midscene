@@ -46,7 +46,25 @@ const BUSY_LOOP_COOLDOWN_MS = 50; // Throttle delay when busy-loop detected
 const BUSY_LOOP_WARN_INTERVAL_MS = 5_000; // Min interval between busy-loop warnings
 
 // Scrcpy default configuration (disabled by default, opt-in via scrcpyConfig.enabled)
+export const DEFAULT_MAX_FPS = 10;
+
+export function resolveScrcpyFrameRate(
+  frameRate: number = DEFAULT_MAX_FPS,
+): number {
+  if (
+    !Number.isSafeInteger(frameRate) ||
+    frameRate <= 0 ||
+    frameRate > 2147483647
+  ) {
+    throw new Error(
+      `Invalid scrcpyConfig.frameRate: expected a positive 32-bit integer, received ${frameRate}`,
+    );
+  }
+  return frameRate;
+}
+
 export const DEFAULT_SCRCPY_CONFIG = {
+  frameRate: DEFAULT_MAX_FPS,
   enabled: false,
   maxSize: DEFAULT_MAX_SIZE,
   idleTimeoutMs: DEFAULT_IDLE_TIMEOUT_MS,
@@ -55,6 +73,7 @@ export const DEFAULT_SCRCPY_CONFIG = {
 } as const;
 
 export interface ScrcpyScreenshotOptions {
+  frameRate?: number;
   maxSize?: number;
   videoBitRate?: number;
   idleTimeoutMs?: number;
@@ -224,6 +243,7 @@ function detectH264KeyFrame(buffer: Buffer): boolean {
  * Required options after applying defaults
  */
 interface ResolvedScrcpyOptions {
+  frameRate: number;
   maxSize: number;
   videoBitRate: number;
   idleTimeoutMs: number;
@@ -301,6 +321,7 @@ export class ScrcpyScreenshotManager {
       );
     }
     this.options = {
+      frameRate: resolveScrcpyFrameRate(options.frameRate),
       maxSize: options.maxSize ?? DEFAULT_MAX_SIZE,
       videoBitRate: clampedBitRate,
       idleTimeoutMs: options.idleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS,
@@ -437,13 +458,12 @@ export class ScrcpyScreenshotManager {
       scid: ScrcpyInstanceId.random(),
       maxSize: this.options.maxSize,
       videoBitRate: this.options.videoBitRate,
-      maxFps: 10,
+      maxFps: DEFAULT_MAX_FPS,
       sendFrameMeta: true,
       // scrcpy otherwise asks MediaCodec to repeat the previous frame every
       // 100ms. Such a packet has a newer PTS but unchanged pixels, so neither
       // a PTS barrier nor an age check could detect that the image is stale.
-      videoCodecOptions:
-        'i-frame-interval=0,bitrate-mode=2,repeat-previous-frame-after=0',
+      videoCodecOptions: `i-frame-interval=0,bitrate-mode=2,repeat-previous-frame-after=0,frame-rate=${this.options.frameRate}`,
     });
   }
 
