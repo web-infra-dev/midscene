@@ -1,3 +1,4 @@
+import type { TUserPrompt } from '@/common';
 import type {
   MidsceneYamlFlowItem,
   MidsceneYamlScript,
@@ -77,10 +78,72 @@ const buildShortcutActionParam = (
   return undefined;
 };
 
+class DuplicateImageFieldError extends Error {}
+
+function assertNoDuplicateImageFields(
+  prompt: Record<string, any>,
+  options: Record<string, any>,
+) {
+  for (const field of ['images', 'convertHttpImage2Base64']) {
+    if (prompt[field] !== undefined && options[field] !== undefined) {
+      throw new DuplicateImageFieldError(
+        `Duplicate ${field} in YAML locate input. Specify it in only one place.`,
+      );
+    }
+  }
+}
+
+// Older YAML steps can carry reference images alongside the locate prompt.
+function normalizeLegacyLocateInput(
+  prompt: TUserPrompt | undefined,
+  rawOptions: Record<string, any>,
+) {
+  const { images, convertHttpImage2Base64, ...options } = rawOptions;
+  // Targetless actions used to ignore image fields. Do not pass them through
+  // to the SDK, where image fields in locate options are now rejected.
+  if (!prompt) {
+    return { prompt, options };
+  }
+  if (typeof prompt === 'object') {
+    assertNoDuplicateImageFields(prompt, rawOptions);
+  }
+  if (images === undefined && convertHttpImage2Base64 === undefined) {
+    return { prompt, options };
+  }
+  return {
+    prompt: {
+      ...(typeof prompt === 'string' ? { prompt } : prompt),
+      ...(images !== undefined && { images }),
+      ...(convertHttpImage2Base64 !== undefined && { convertHttpImage2Base64 }),
+    },
+    options,
+  };
+}
+
 /** Translate known syntax; defer ActionSpace-dependent grammar to the YAML host. */
 export function compileLegacyFlowItem(
   flowItem: MidsceneYamlFlowItem,
   actionSpace: readonly LegacyYamlActionIdentity[] = [],
+): NormalizedStep {
+  try {
+    return compileLegacyFlowItemInternal(flowItem, actionSpace);
+  } catch (error) {
+    if (!(error instanceof DuplicateImageFieldError)) {
+      throw error;
+    }
+    // Reject duplicate fields at Step execution, preserving task continuation
+    // and reporting instead of aborting document collection or Agent setup.
+    return {
+      node: 'legacyValidationError',
+      input: { message: error.message },
+      meta: { continueOnError: false },
+    };
+  }
+}
+
+function compileLegacyFlowItemInternal(
+  flowItem: MidsceneYamlFlowItem,
+  actionSpace: readonly LegacyYamlActionIdentity[],
 ): NormalizedStep {
   if (
     typeof flowItem !== 'object' ||
@@ -174,6 +237,9 @@ export function compileLegacyFlowItem(
         return invalid(
           '`observe` is not supported in YAML flow items. Use agent.startObserving() from code instead.',
         );
+      if (node === 'aiLocate') {
+        return step(node, normalizeLegacyLocateInput(prompt, options), true);
+      }
       return step(node, { prompt, options }, true);
     }
   }
@@ -212,13 +278,14 @@ export function compileLegacyFlowItem(
     const { aiInput, value: rawValue, ...options } = raw;
     const prompt = options.locate || aiInput || '';
     const value = options.locate ? aiInput || rawValue : rawValue;
+    const input = normalizeLegacyLocateInput(prompt, options);
     return step('action', {
       name: 'Input',
       params: {
-        ...options,
+        ...input.options,
         ...(value === undefined ? {} : { value: String(value) }),
-        ...(prompt
-          ? { locate: buildDetailedLocateParam(prompt, options) }
+        ...(input.prompt
+          ? { locate: buildDetailedLocateParam(input.prompt, input.options) }
           : {}),
       },
     });
@@ -233,57 +300,79 @@ export function compileLegacyFlowItem(
     const keyName = options.locate
       ? aiKeyboardPress
       : options.keyName || aiKeyboardPress;
+    const input = normalizeLegacyLocateInput(prompt, options);
     return step('action', {
       name: 'KeyboardPress',
       params: {
-        ...options,
+        ...input.options,
         ...(keyName ? { keyName } : {}),
-        ...(prompt
-          ? { locate: buildDetailedLocateParam(prompt, options) }
+        ...(input.prompt
+          ? { locate: buildDetailedLocateParam(input.prompt, input.options) }
           : {}),
       },
     });
   }
   if ('aiScroll' in flow) {
-    const { aiScroll, locate, ...options } = raw;
-    return step('aiScroll', {
-      prompt: locate ?? aiScroll ?? undefined,
-      options,
-    });
+    const { aiScroll, locate, prompt, ...options } = raw;
+    return step(
+      'aiScroll',
+      normalizeLegacyLocateInput(
+        (locate ?? aiScroll) || prompt || undefined,
+        options,
+      ),
+    );
   }
   if ('aiTap' in flow) {
     const { aiTap, prompt, locate, ...tapOptions } = raw;
     const nested =
       locate ??
       (typeof aiTap === 'object' && aiTap !== null ? aiTap.locate : undefined);
-    let locatePrompt: any;
-    let options = tapOptions;
-    if (typeof aiTap === 'string' && aiTap) {
-      locatePrompt = aiTap;
-    } else if (nested && typeof nested === 'object' && nested.prompt) {
-      const { prompt: nestedPrompt, ...nestedOptions } = nested;
-      locatePrompt = nestedPrompt;
-      options = { ...nestedOptions, ...tapOptions };
-    } else if (
-      aiTap &&
-      typeof aiTap === 'object' &&
-      typeof aiTap.prompt === 'string' &&
-      aiTap.prompt
+    if (
+      !(typeof aiTap === 'string' && aiTap) &&
+      nested &&
+      typeof nested === 'object' &&
+      nested.prompt &&
+      typeof nested.prompt !== 'string'
     ) {
-      // Keep structured prompt data such as images inside the private YAML
-      // adapter. A prompt-only object retains the existing normalized string
-      // form used by cached-plan and variable-like legacy inputs.
-      locatePrompt =
-        Object.hasOwn(aiTap, 'images') ||
-        Object.hasOwn(aiTap, 'convertHttpImage2Base64')
-          ? aiTap
-          : aiTap.prompt;
-    } else {
-      locatePrompt = prompt || nested;
+      return invalid(
+        'aiTap locate.prompt must be a string. Put images alongside locate.prompt, not inside another prompt object.',
+      );
     }
-    return locatePrompt
-      ? step('aiTap', { prompt: locatePrompt, options })
-      : invalid('missing prompt for aiTap');
+    const { prompt: locatePrompt, options } = (() => {
+      if (typeof aiTap === 'string' && aiTap) {
+        return { prompt: aiTap, options: tapOptions };
+      }
+      if (nested && typeof nested === 'object' && nested.prompt) {
+        const { prompt: nestedPrompt, ...nestedOptions } = nested;
+        assertNoDuplicateImageFields(nestedOptions, tapOptions);
+        return normalizeLegacyLocateInput(nestedPrompt, {
+          ...nestedOptions,
+          ...tapOptions,
+        });
+      }
+      if (
+        aiTap &&
+        typeof aiTap === 'object' &&
+        typeof aiTap.prompt === 'string' &&
+        aiTap.prompt
+      ) {
+        // Keep structured image prompts intact; prompt-only objects retain
+        // the normalized string form used by cached-plan inputs.
+        return {
+          prompt:
+            Object.hasOwn(aiTap, 'images') ||
+            Object.hasOwn(aiTap, 'convertHttpImage2Base64')
+              ? aiTap
+              : aiTap.prompt,
+          options: tapOptions,
+        };
+      }
+      return { prompt: prompt || nested, options: tapOptions };
+    })();
+    if (!locatePrompt) {
+      return invalid('missing prompt for aiTap');
+    }
+    return step('aiTap', normalizeLegacyLocateInput(locatePrompt, options));
   }
   if (typeof flow.runAdbShell === 'string' && typeof flow.timeout === 'number')
     return step(
@@ -320,15 +409,14 @@ export function compileLegacyFlowItem(
     if (isStringParamSchema(action.paramSchema))
       return step('action', { name: action.name, params: value }, true);
   }
-  const prompt = typeof value === 'string' ? value : '';
-  const source = prompt
-    ? { ...flow, prompt }
-    : value && typeof value === 'object'
-      ? value
-      : flow;
+  const { prompt, ...options } =
+    value && typeof value === 'object' ? value : flow;
+  const locatePrompt =
+    typeof value === 'string' && value ? value : prompt || options.locate;
+  const input = normalizeLegacyLocateInput(locatePrompt, options);
   const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
-    prompt,
-    source,
+    input.prompt ?? '',
+    input.options,
     [action.name, action.interfaceAlias ?? ''],
   );
   return step(

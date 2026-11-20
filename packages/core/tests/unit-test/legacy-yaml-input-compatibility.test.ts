@@ -76,8 +76,8 @@ const accepted = [
     id: 'empty images in tap options',
     input: { aiTap: 'button', images: [] },
     method: 'aiTap',
-    prompt: 'button',
-    options: { images: [] },
+    prompt: { prompt: 'button', images: [] },
+    options: {},
   },
   {
     id: 'empty images in structured act prompt',
@@ -119,8 +119,8 @@ const accepted = [
       cacheable: true,
     },
     method: 'aiTap',
-    prompt: 'preferred',
-    options: { images: [], cacheable: true },
+    prompt: { prompt: 'preferred', images: [] },
+    options: { cacheable: true },
   },
   {
     id: 'assert keeps structured prompt separate from options',

@@ -304,17 +304,22 @@ describe('buildDetailedLocateParam', () => {
     expect(locateParamStr(result)).toBe('Click the checkout button');
   });
 
-  it('merges multimodal locate options into the prompt object', () => {
-    const result = buildDetailedLocateParam('Click the icon', {
-      images: [
-        {
-          name: 'target icon',
-          url: 'https://example.com/icon.png',
-        },
-      ],
-      convertHttpImage2Base64: true,
-      cacheable: false,
-    });
+  it('preserves the multimodal locate prompt', () => {
+    const result = buildDetailedLocateParam(
+      {
+        prompt: 'Click the icon',
+        images: [
+          {
+            name: 'target icon',
+            url: 'https://example.com/icon.png',
+          },
+        ],
+        convertHttpImage2Base64: true,
+      },
+      {
+        cacheable: false,
+      },
+    );
 
     expect(result).toEqual({
       prompt: {
@@ -359,17 +364,22 @@ describe('buildDetailedLocateParamAndRestParams', () => {
       shrunkShotToLogicalRatio: 1,
     } as any;
 
-    const result = buildDetailedLocateParamAndRestParams('Click the icon', {
-      images: [
-        {
-          name: 'target icon',
-          url: 'https://example.com/icon.png',
-        },
-      ],
-      convertHttpImage2Base64: true,
-      cacheable: false,
-      uiContext,
-    });
+    const result = buildDetailedLocateParamAndRestParams(
+      {
+        prompt: 'Click the icon',
+        images: [
+          {
+            name: 'target icon',
+            url: 'https://example.com/icon.png',
+          },
+        ],
+        convertHttpImage2Base64: true,
+      },
+      {
+        cacheable: false,
+        uiContext,
+      },
+    );
 
     expect(result.locateParam).toEqual({
       prompt: {
