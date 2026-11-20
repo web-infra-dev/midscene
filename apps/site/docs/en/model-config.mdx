@@ -144,6 +144,7 @@ To configure a separate model for Planning, Locate, or Insight, use the correspo
 
 | Name | Description |
 |------|-------------|
+| `MIDSCENE_MODEL_PROVIDER` | Model provider. Accepted values are `openrouter` and `official`, which use OpenRouter’s and the model’s official parameter mappings, respectively. By default, Midscene detects the provider from the Base URL: `https://openrouter.ai/api/v1` selects OpenRouter mappings; other URLs use the model’s official API mappings. If you use a custom proxy or relay server backed by OpenRouter, explicitly set this to `openrouter`. |
 | `MIDSCENE_MODEL_ENDPOINT` | Full request URL for the System One API. Supported only by System One models (currently Jev). Takes precedence over the model's `BASE_URL` and is used as-is, without appending a path; `BASE_URL` is optional when this is set. For example, `https://api.typesafe.ai/v1/systemone`. When unset, Midscene continues to append `/systemone` to the Base URL. |
 | `MIDSCENE_MODEL_TIMEOUT` | Timeout per model request in milliseconds, including reading the response body. Defaults to `180000` (180 seconds). Set to `0` to disable this timeout. |
 | `MIDSCENE_MODEL_TEMPERATURE` | Model sampling temperature. Set to `unset` to omit the temperature parameter. |
@@ -204,17 +205,13 @@ The code implementation is the source of truth for specific model support and pa
 
 Parameter support varies by model provider. Refer to the provider's official documentation for accepted values. For official model endpoints, Midscene ignores explicit settings that the current adapter does not support.
 
-OpenRouter provides [unified reasoning parameters](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens). When `MIDSCENE_MODEL_BASE_URL` is set to `https://openrouter.ai/api/v1`, Midscene uses the following mappings for adapted models:
+OpenRouter provides [unified reasoning parameters](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens). When `MIDSCENE_MODEL_PROVIDER=openrouter`, or when `MIDSCENE_MODEL_BASE_URL` is `https://openrouter.ai/api/v1`, Midscene uses the following mappings for adapted models:
 
 - Thinking switch `MIDSCENE_MODEL_REASONING_ENABLED` → `reasoning.enabled` (GPT models use `reasoning.effort` instead).
 - Thinking effort `MIDSCENE_MODEL_REASONING_EFFORT` → `reasoning.effort` (support depends on the specific model).
 - Thinking budget `MIDSCENE_MODEL_REASONING_BUDGET` → `reasoning.max_tokens` (support depends on the specific model).
 
-If your model provider requires additional parameters, use `MIDSCENE_MODEL_EXTRA_BODY_JSON`. For example, to request disabled thinking when calling OpenRouter through a custom proxy:
-
-```bash
-MIDSCENE_MODEL_EXTRA_BODY_JSON='{"reasoning":{"enabled":false}}'
-```
+If your model provider requires additional parameters, use `MIDSCENE_MODEL_EXTRA_BODY_JSON`.
 
 Extra JSON is merged after adapter parameters. Matching top-level fields are replaced in full, not deep-merged. Whether parameters take effect depends on endpoint and model support.
 

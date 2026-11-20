@@ -65,6 +65,8 @@ export interface ModelRequestUserConfig extends ReasoningInput {
 export interface ModelRequestConfigInput {
   /** API endpoint configured for this model request. */
   baseURL?: string;
+  /** Explicit parameter mapping provider, overriding URL detection. */
+  provider?: IModelConfig['provider'];
   intent?: TIntent;
   userConfig?: ModelRequestUserConfig;
   /**

@@ -61,7 +61,7 @@ function parseDeepSeekBboxLocateValue(input: unknown): LocateResultValue {
 const buildDeepSeekChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
-  const { baseURL, midsceneDefaults, userConfig } = input;
+  const { baseURL, provider, midsceneDefaults, userConfig } = input;
   const { reasoningEnabled = false, reasoningEffort } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
   const isThinkingMode =
@@ -86,7 +86,7 @@ const buildDeepSeekChatCompletionParams = (
   }
 
   const modelSpecificConfig: Record<string, unknown> = {};
-  if (isOpenRouter(baseURL)) {
+  if (isOpenRouter(baseURL, provider)) {
     Object.assign(
       modelSpecificConfig,
       buildOpenRouterReasoningParams(userConfig),

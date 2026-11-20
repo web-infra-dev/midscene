@@ -88,7 +88,7 @@ const buildQwen3VlChatCompletionParams = (
 const buildQwen3ChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
-  const { baseURL, midsceneDefaults, userConfig } = input;
+  const { baseURL, provider, midsceneDefaults, userConfig } = input;
   const { reasoningEnabled = false, reasoningBudget } = userConfig;
 
   const commonOverrideConfig: Record<string, unknown> = {};
@@ -107,7 +107,7 @@ const buildQwen3ChatCompletionParams = (
 
   const modelSpecificConfig: Record<string, unknown> = {};
 
-  if (isOpenRouter(baseURL)) {
+  if (isOpenRouter(baseURL, provider)) {
     Object.assign(
       modelSpecificConfig,
       buildOpenRouterReasoningParams(userConfig),
@@ -135,7 +135,7 @@ const buildQwen3ChatCompletionParams = (
 const buildQwen4ChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
-  const { baseURL, midsceneDefaults, userConfig } = input;
+  const { baseURL, provider, midsceneDefaults, userConfig } = input;
   const {
     reasoningEnabled = false,
     reasoningEffort,
@@ -157,7 +157,7 @@ const buildQwen4ChatCompletionParams = (
 
   const modelSpecificConfig: Record<string, unknown> = {};
 
-  if (isOpenRouter(baseURL)) {
+  if (isOpenRouter(baseURL, provider)) {
     Object.assign(
       modelSpecificConfig,
       buildOpenRouterReasoningParams(userConfig),

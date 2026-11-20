@@ -234,3 +234,31 @@ describe.each([
     },
   );
 });
+
+describe.each([
+  DEFAULT_MODEL_CONFIG_KEYS,
+  PLANNING_MODEL_CONFIG_KEYS,
+  LOCATE_MODEL_CONFIG_KEYS,
+  INSIGHT_MODEL_CONFIG_KEYS,
+])('provider configuration for $provider', (keys) => {
+  it.each(['openrouter', 'official'] as const)('parses %s', (value) => {
+    expect(
+      parseOpenaiSdkConfig({ keys, provider: { [keys.provider]: value } })
+        .provider,
+    ).toBe(value);
+  });
+  it.each([undefined, '', '   '])(
+    'leaves %s unspecified for URL detection',
+    (value) => {
+      expect(
+        parseOpenaiSdkConfig({ keys, provider: { [keys.provider]: value } })
+          .provider,
+      ).toBeUndefined();
+    },
+  );
+  it('rejects unsupported providers', () => {
+    expect(() =>
+      parseOpenaiSdkConfig({ keys, provider: { [keys.provider]: 'unknown' } }),
+    ).toThrow(`Invalid ${keys.provider}`);
+  });
+});

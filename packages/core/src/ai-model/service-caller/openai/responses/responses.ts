@@ -24,6 +24,7 @@ export async function prepareResponses({
   const { config: modelConfig, adapter } = modelRuntime;
   const modelCallInput: ModelRequestConfigInput = {
     baseURL: modelConfig.openaiBaseURL,
+    provider: modelConfig.provider,
     intent: modelConfig.intent,
     userConfig: {
       temperature:
