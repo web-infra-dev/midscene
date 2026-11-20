@@ -18,9 +18,9 @@
     "recordId": "screenspot_web_v2.json#70",
     "image": {
       "format": "png",
-      "sha256": "81d4a9c66018468f845c25ff2771946b204d3ad31ebb4b7b462e4c6497f5d041"
+      "sha256": "4c2986aa827990ad974e4efce9725fda7fe893b7f9659c3021f3b8b0ebd48aa6"
     },
-    "patch": "Replaced the original instruction “open the file in web ide” with a request to locate the second code line related to PNG file configuration, and added a corresponding Chinese instruction. Changed groundTruth from [526, 1992, 598, 1660] to [1147.0, 1695.0, 1180.0, 685.0] in [top, right, bottom, left] pixel coordinates, moving the target from the Web IDE button to the relevant code line, including its line number. Classified category.item as Relative Position and updated category.reason to describe identifying and ordering the matching code lines.",
+    "patch": "Replaced the original instruction “open the file in web ide” with a request to locate the second code line related to PNG file configuration, and added a corresponding Chinese instruction. Changed groundTruth from [526, 1992, 598, 1660] to [1147.0, 1695.0, 1180.0, 685.0] in [top, right, bottom, left] pixel coordinates, moving the target from the Web IDE button to the relevant code line, including its line number. Classified category.item as Relative Position and updated category.reason to describe identifying and ordering the matching code lines. Removed embedded EXIF and XMP metadata and non-color metadata in the PNG screenshot's ICC profile. Decoded pixels and color rendering are unchanged.",
     "collectedAt": 1794363025683
   }
 }

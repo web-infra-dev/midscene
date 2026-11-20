@@ -18,9 +18,9 @@
     "recordId": "screenspot_web_v2.json#365",
     "image": {
       "format": "png",
-      "sha256": "cc120f6c35eaa5a86e97db1ee410f91f1ecbbdbf0d94d08c0f104af67b5c8998"
+      "sha256": "cc593a61cafe4a20260bcd6710bd8459055f4edd11d2cb6fcab42787c90f39aa"
     },
-    "patch": "Standardized the capitalization and punctuation of the original English instruction. Added instruction.zh by translating it. Classified category.item as Reasoning.",
+    "patch": "Standardized the capitalization and punctuation of the original English instruction. Added instruction.zh by translating it. Classified category.item as Reasoning. Removed embedded EXIF and XMP metadata and non-color metadata in the PNG screenshot's ICC profile. Decoded pixels and color rendering are unchanged.",
     "collectedAt": 1793776824833
   }
 }

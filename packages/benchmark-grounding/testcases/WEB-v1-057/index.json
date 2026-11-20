@@ -18,7 +18,7 @@
     "recordId": "instruction/refusal_grounding.json#53",
     "image": {
       "format": "png",
-      "sha256": "20c00822731eb2210cfc49ba0ccfb7f183aa870609af48b030cd081969459de6"
+      "sha256": "ef6e87a6a4db7c2c7d61ffca1848cb3dd3823946c1ca111380696fc4ae6c71f6"
     },
     "patch": "Selected this VenusBench-GD record and recorded its screenshot hash, bilingual instructions, and ground truth in the Midscene testcase format.",
     "collectedAt": 1792485870907

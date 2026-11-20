@@ -18,9 +18,9 @@
     "recordId": "screenspot_mobile_v2.json#129",
     "image": {
       "format": "jpeg",
-      "sha256": "40ad28585f0e84a0eeb450fe9f53e7cfb7588c161efc7eed4075ca9140cc6a25"
+      "sha256": "1259fce94e9f0cf5c0224fa7506d910955888b5a4c8692998204227d4cd16836"
     },
-    "patch": "Replaced the original instruction “customize focus time” with a request for a focus session lasting exactly 34 minutes, and added instruction.zh by translating the revised English instruction. Updated category.reason to explain why the custom-duration control is needed; groundTruth remains on the same control.",
+    "patch": "Replaced the original instruction “customize focus time” with a request for a focus session lasting exactly 34 minutes, and added instruction.zh by translating the revised English instruction. Updated category.reason to explain why the custom-duration control is needed; groundTruth remains on the same control. Removed 24 bytes of trailing data after the JPEG end-of-image marker. The encoded image is unchanged.",
     "collectedAt": 1793867704139
   }
 }

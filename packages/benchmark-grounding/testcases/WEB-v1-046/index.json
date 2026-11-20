@@ -18,7 +18,7 @@
     "recordId": "instruction/functional_grounding.json#89",
     "image": {
       "format": "png",
-      "sha256": "7d5ae3bb4531745c63876871290ff8f26af483109f72457e1aa61c3600423fff"
+      "sha256": "07587ede72207eccc639fa41f7fb13aa055301532a0bf68e7db01e43ab723e75"
     },
     "patch": "Updated category.reason to describe the night-mode function.",
     "collectedAt": 1792485870841

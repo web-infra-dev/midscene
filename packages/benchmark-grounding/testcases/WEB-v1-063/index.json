@@ -18,7 +18,7 @@
     "recordId": "instruction/functional_grounding.json#567",
     "image": {
       "format": "png",
-      "sha256": "9ed320fd18a06b61c252be6d623638c79a52fe5668827e05607be5fdf9a5ec3b"
+      "sha256": "f6b9a05562bdd222fd4458120ee23563189769e9b1adcb3d2839d384a925b8c6"
     },
     "patch": "Revised category.reason to explain the testcase-specific localization basis: The task requires identifying the application-installation function associated with obtaining the desktop client.",
     "collectedAt": 1792485870930

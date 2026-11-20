@@ -1,8 +1,18 @@
 Licensing of @midscene/benchmark-grounding
 
-This file contains the complete license texts and the source attribution
-for the dataset. The source attribution section identifies the applicable
-license for each source.
+This file contains the complete MIT and Apache-2.0 license texts for the
+dataset, along with attribution and license links for third-party materials.
+For imported records, it identifies each direct source dataset, the release
+used, and the license declared by its publisher.
+
+Scope of source attribution and disclaimer
+------------------------------------------
+Midscene follows the license terms applicable to the dataset releases from
+which it directly imports records. The testcase source fields identify those
+releases. This file also retains applicable license and copyright notices
+for material included in those releases. To the extent permitted by applicable
+law and license terms, Midscene makes no representations or warranties about
+third-party rights in that material.
 
 
                                  Apache License
@@ -211,6 +221,8 @@ MIT License
 
 Copyright (c) 2024-present Bytedance, Inc. and its affiliates.
 Copyright (c) 2025 inclusionAI
+Copyright (c) 2023 Eric Bailey
+Copyright (c) 2018 web-ext-labs
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -239,12 +251,27 @@ Copyright (c) 2024-present Bytedance, Inc. and its affiliates.
 License: MIT, to the extent of Midscene's rights in its testcases,
 annotations, translations, documentation and compilation.
 https://github.com/web-infra-dev/midscene/blob/72580c6fd596ad20ba6a4ab76cd106e6e7df1bfb/LICENSE
-The independently authored testcases are WEB-v1-019, WEB-v1-020, WEB-v1-021,
-WEB-v1-043, WEB-v1-090, MOBILE-v1-008, MOBILE-v1-018, MOBILE-v1-019,
-MOBILE-v1-020, MOBILE-v1-095, MOBILE-v1-096 and MOBILE-v1-097.
-MOBILE-v1-018, MOBILE-v1-019, MOBILE-v1-020, MOBILE-v1-095, MOBILE-v1-096,
-WEB-v1-019, WEB-v1-021 and WEB-v1-043 use contributor-provided screenshots.
-Each testcase's reference.patch describes its screenshot and annotation changes.
+Midscene authored the tasks and annotations for WEB-v1-019, WEB-v1-020,
+WEB-v1-021, WEB-v1-027, WEB-v1-028, WEB-v1-043, WEB-v1-075, WEB-v1-087,
+WEB-v1-090, WEB-v1-097, MOBILE-v1-004, MOBILE-v1-008, MOBILE-v1-009,
+MOBILE-v1-018, MOBILE-v1-019, MOBILE-v1-020,
+MOBILE-v1-029, MOBILE-v1-033, MOBILE-v1-072, MOBILE-v1-073, MOBILE-v1-095,
+MOBILE-v1-096, MOBILE-v1-097 and MOBILE-v1-099.
+MOBILE-v1-004 shows a browser-rendered fictional clip catalog built from
+mock records, programmatic cover illustrations, and generated cover art
+and photorealistic thumbnails. MOBILE-v1-072 and
+MOBILE-v1-099 use AI-generated mockups of fictional apps.
+WEB-v1-027 and WEB-v1-028 show distinct Midscene-authored equity interfaces
+with fictitious companies and simulated market data. WEB-v1-097 shows a
+Midscene-authored ETF news page with simulated quotes and fictional articles.
+MOBILE-v1-009, MOBILE-v1-018, MOBILE-v1-019, MOBILE-v1-020, MOBILE-v1-029,
+MOBILE-v1-033, MOBILE-v1-073, MOBILE-v1-095, MOBILE-v1-096, WEB-v1-019,
+WEB-v1-021, WEB-v1-043, WEB-v1-075 and WEB-v1-087 use contributor-provided
+screenshots.
+MOBILE-v1-018 omits the angle readout shown in the supplied screenshot, and
+MOBILE-v1-020 masks a chat participant's nickname. WEB-v1-021 shows a Figma
+file owned by the contributor who supplied the screenshot. WEB-v1-075 shows
+the release assets for Midscene's own repository.
 
 VenusBench-GD
 -------------
@@ -253,7 +280,6 @@ Copyright (c) 2025 inclusionAI.
 Source release: 7e5714566f912203c9989b06ef4c08bdf913e3fa.
 License: MIT, declared by the official dataset release.
 https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/README.md
-https://github.com/inclusionAI/UI-Venus/blob/56b1005aaf7675fc516c0d58a2dc4640e197e091/LICENSE
 
 ScreenSpot-v2
 ------------
@@ -282,16 +308,14 @@ Publisher: vaundys; UI-I2E-Bench contributors.
 Source release: ecfcc016d92c87ce6c194dba1b3faffabf7db51d.
 License: Apache-2.0, declared in the dataset card.
 https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/README.md
-All included Web and Mobile records use the official Apache-2.0 dataset
-release. Earlier source ancestry, including AndroidControl, is retained as
-provenance without adding conditions to the official release license.
-AndroidControl provenance (Apache-2.0): Google Research.
+
+AndroidControl screenshots included via UI-I2E-Bench
 Copyright 2024 The Google Research Authors.
+License: Apache-2.0. The full license text appears above.
 https://github.com/google-research/google-research/blob/master/android_control/README.md#license
-The AndroidControl-derived cases are MOBILE-v1-001, MOBILE-v1-002,
-MOBILE-v1-007, MOBILE-v1-022, MOBILE-v1-023, MOBILE-v1-035, MOBILE-v1-037,
-MOBILE-v1-040, MOBILE-v1-041, MOBILE-v1-042, MOBILE-v1-062, MOBILE-v1-063,
-MOBILE-v1-064 and MOBILE-v1-066.
+Applies to MOBILE-v1-001, MOBILE-v1-002, MOBILE-v1-007, MOBILE-v1-022,
+MOBILE-v1-023, MOBILE-v1-035, MOBILE-v1-037, MOBILE-v1-040, MOBILE-v1-041,
+MOBILE-v1-042, MOBILE-v1-062, MOBILE-v1-063, MOBILE-v1-064 and MOBILE-v1-066.
 
 OSWorld-G
 ---------
@@ -314,56 +338,208 @@ https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b
 https://huggingface.co/datasets/agent-studio/GroundUI-18K/blob/f061eba2b7e3fffcf511694f15ad3ca38898ab9e/README.md
 The source cards ask users to keep these test sets out of training.
 
-ScreenSpot provenance (Apache-2.0): OS-Copilot/ScreenSpot-v2.
-The original screenshot bytes for MOBILE-v1-072 and MOBILE-v1-099 match
-images in the ScreenSpot-v2 release identified above. These GroundUI
-records use their official GroundUI MIT release license. MOBILE-v1-072
-has subsequent Midscene image edits recorded in its reference.patch.
-The ScreenSpot-v2 annotations below use zero-based record numbers. The
-original PNGs are stored in the release archive.
-https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/resolve/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspotv2_image.zip
-MOBILE-v1-072: #320, mobile_97ca06a1-8d37-4ece-b7ed-79517c61da2f.png
-Original SHA-256: 5ef7f6467f557c5e6e5b040f44c08219f0f7ba81f95037c34acc807ff2e28a80
-https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L3842
-MOBILE-v1-099: #284, mobile_d3865883-8214-4bff-9834-13987580abe8.png
-Original SHA-256: 7303f569579000423865527f10ec41f11ccb8fccb0ca977b970aef0b30f8ef07
-https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L3410
-
-Other included GroundUI source provenance: MoTIF (aburns4/MoTIF).
-The authors are Andrea Burns, Deniz Arsan, Sanjna Agrawal, Ranjitha Kumar,
-Kate Saenko and Bryan A. Plummer.
-https://github.com/aburns4/MoTIF
-The affected cases are MOBILE-v1-004, MOBILE-v1-009, MOBILE-v1-029,
-MOBILE-v1-073 and MOBILE-v1-082. These use the GroundUI-1K MIT release.
-MoTIF's original license remains unverified.
-
-Underlying dataset: OmniACT, published by Writer.
-WEB-v1-073 comes from GroundUI-1K and WEB-v1-017 comes from GroundUI-18K.
-Authors credited by the dataset: Raghav Kapoor, Yash Parag Butala,
-Melisa Russak, Jing Yu Koh, Kiran Kamble, Waseem Alshikh and
-Ruslan Salakhutdinov.
-License: MIT, declared in the OmniACT dataset card.
-License evidence reviewed at revision 5e4bcb26745afc8d58ba9519ea9c9fb832386d26:
-https://huggingface.co/datasets/Writer/omniact/blob/5e4bcb26745afc8d58ba9519ea9c9fb832386d26/README.md
-The OmniACT revision identifies the license evidence. The GroundUI revisions
-above identify the imported releases.
-
 Modifications in this distribution
 ---------------------------------
 Midscene selected source records, converted their annotations to the local
 testcase format, and supplied bilingual instructions and category explanations.
-Each imported testcase's index.json records its upstream dataset, record ID
-and source URL. Each testcase records individual changes in reference.patch.
+Each imported testcase's index.json records its direct source dataset, record
+ID and source URL. The reference.patch field describes changes to imported
+records. Midscene-authored testcases have a null reference.patch.
+Midscene removed embedded device and timestamp metadata where present while
+preserving decoded pixels and color rendering. For each Apache-2.0 screenshot
+modified by Midscene, see the file-specific notice in the reference.patch field
+of the accompanying index.json.
 
-Excluded records and third-party materials
------------------------------------------
-The distribution uses sources with an explicit MIT or Apache-2.0 license
-declared by their publishers. The exclusion policy covers records without
-verified source authorization and original Mind2Web screenshots and
-annotations. All 200 testcase IDs have versions in this dataset.
-
+Third-party materials depicted in screenshots
+---------------------------------------------
 Depicted interfaces, logos, product names, trademarks and other third-party
 content remain subject to their owners' rights. This package supplies no
 additional permission or endorsement on their behalf.
 WEB-v1-013 (Reddit), WEB-v1-031 (Yahoo Finance), WEB-v1-037 (JD.com) and
 WEB-v1-046 (Weibo) preserve copyright notices visible in the page footers.
+
+MOBILE-v1-034 (Windy.com)
+------------------------
+The screenshot shows Windy.com's ground-level wind visualization based on
+ECMWF forecast data. The original Windy.com mark and the ECMWF source label
+remain visible. Windy permits use and distribution within projects under the
+conditions in Section 8 of its General Terms of Use, including attribution and
+restrictions on modifying the visualization. Those terms apply to the Windy
+screenshot in this package.
+https://www.windy.com/
+https://account.windy.com/agreements/windy-terms-of-use#use-of-the-services-and-content-visualizations-by-users-and-media-publishers
+
+WEB-v1-002 (a11y-webring.club)
+----------------------------
+The visible .eleventy.js excerpt is from a11y-webring.club at revision
+9547cc79fced92fbf0db7d771901eacd817f97c7, under the MIT license above.
+Copyright (c) 2023 Eric Bailey.
+https://github.com/ericwbailey/a11y-webring.club/blob/9547cc79fced92fbf0db7d771901eacd817f97c7/.eleventy.js
+https://github.com/ericwbailey/a11y-webring.club/blob/9547cc79fced92fbf0db7d771901eacd817f97c7/LICENSE
+
+WEB-v1-007 (Hangzhou Metro Network)
+----------------------------------
+“Hangzhou Metro Network” by Alan Fan Pei, published on Wikimedia Commons
+on January 1, 2026, under CC BY-SA 4.0. The full map image is reproduced
+without modification.
+https://commons.wikimedia.org/wiki/File:Hangzhou_Metro_Network.png
+https://creativecommons.org/licenses/by-sa/4.0/
+
+WEB-v1-011 (webext.eu)
+----------------------
+The screenshot shows the web-ext-labs UI tool at webext.eu. The page's source
+is available under the MIT license above. Copyright (c) 2018 web-ext-labs.
+The Mozilla logo is shown as part of the source page and remains a trademark
+of Mozilla.
+https://github.com/web-ext-labs/ui-tool/blob/2ad27ac3c2913d4b572d785cb1640406f2834684/public/index.html
+https://github.com/web-ext-labs/ui-tool/blob/2ad27ac3c2913d4b572d785cb1640406f2834684/LICENSE
+https://www.mozilla.org/foundation/trademarks/policy/
+
+WEB-v1-036 (Midscene task using OpenStreetMap data)
+--------------------------------------------------
+Midscene authored the bilingual task and ground-truth annotation.
+Midscene rendered the map of the Sydney Opera House, Circular Quay, and
+the surrounding city centre from data © OpenStreetMap contributors under
+the Open Data Commons Open Database License (ODbL) 1.0. The machine-readable
+map geometry and labels are available under ODbL 1.0 in the testcase at
+testcases/WEB-v1-036/map-source.json. The Sydney Opera House marker is
+centered on its OpenStreetMap building footprint. Hotel rates, availability,
+and cancellation terms shown in this testcase were simulated.
+https://www.openstreetmap.org/#map=18/-33.86095/151.21093
+https://www.openstreetmap.org/relation/9596872
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/
+
+WEB-v1-039 (Midscene task using OpenStreetMap data)
+--------------------------------------------------
+Midscene authored the bilingual task and ground-truth annotation.
+Midscene rendered the Paris Gare de Lyon area map from data
+© OpenStreetMap contributors under the Open Data Commons Open Database
+License (ODbL) 1.0. The machine-readable map geometry and labels used to
+render the image are available under ODbL 1.0 in the testcase directory at
+testcases/WEB-v1-039/map-source.json. The station center marker uses the
+station location published by SNCF Gares & Connexions.
+https://www.openstreetmap.org/#map=19/48.84489/2.37352
+https://www.garesetconnexions.sncf/fr/paris-gare-lyon
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/
+
+Additional Midscene testcases using OpenStreetMap data
+------------------------------------------------------
+Midscene authored the interfaces, bilingual tasks, and ground-truth
+annotations for the six testcases below. The basemap data is
+© OpenStreetMap contributors and available under ODbL 1.0. Each testcase
+includes a map-source.json with the machine-readable geometry and labels
+used to render its map. The route-planning scenarios, travel estimates,
+user location, and parking booking controls are benchmark examples.
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/
+
+MOBILE-v1-030 shows a walking route and entrances near Jardin des Plantes.
+https://www.openstreetmap.org/#map=17/48.84382/2.36500
+MOBILE-v1-078 shows Paris Métro lines including Lines 1 and 11, with a
+simulated user location. The task asks for the nearest Line 1 station.
+https://www.openstreetmap.org/relation/123784
+https://www.openstreetmap.org/relation/123792
+MOBILE-v1-082 shows streets near Rua da Madalena, Lisbon.
+https://www.openstreetmap.org/#map=17/38.71305/-9.1368
+WEB-v1-068 shows routes between Place de la Nation and Parc de Bercy.
+https://www.openstreetmap.org/#map=15/48.84190/2.38900
+WEB-v1-070 shows fuel stations in San Francisco's Mission District.
+https://www.openstreetmap.org/way/224920136
+WEB-v1-086 shows parking locations near the Brooklyn Bridge.
+https://www.openstreetmap.org/#map=17/40.70015/-73.9924
+
+WEB-v1-048 (The Weather Company)
+--------------------------------
+The source image is the weather.com screenshot in ScreenSpot-v2 record 385.
+Midscene cropped the screenshot to its top navigation bar (1920 × 162 pixels).
+The crop retains the temperature-unit control and The Weather Channel
+wordmark as shown on the source page, and removes the page body and ads.
+https://trust.weather.com/privacy/terms-of-use
+
+WEB-v1-052 (Chinese Wikipedia)
+------------------------------
+Text from the SOLRAD 1 article and its 1960 orbital launches navigation box
+by Chinese Wikipedia contributors, under CC BY-SA 4.0.
+https://zh.wikipedia.org/wiki/太阳辐射监测卫星一号
+https://zh.wikipedia.org/wiki/Template:1960年轨道发射
+https://creativecommons.org/licenses/by-sa/4.0/
+The portal icon RocketSunIcon.svg by GW Simulations may be freely redistributed.
+https://commons.wikimedia.org/wiki/File:RocketSunIcon.svg
+The access icon Lock-red-alt.svg by Headbomb is dedicated under CC0 1.0.
+https://commons.wikimedia.org/wiki/File:Lock-red-alt.svg
+https://creativecommons.org/publicdomain/zero/1.0/
+The reference icon PD-icon.svg is in the public domain.
+https://commons.wikimedia.org/wiki/File:PD-icon.svg
+The footer badges “A Wikimedia project” by Minh Nguyen, based on work by
+Neolux, Kevin Ingersoll and GabbielSan, and “Powered by MediaWiki” by the
+Wikimedia Foundation, are available under CC BY-SA 3.0.
+https://commons.wikimedia.org/wiki/File:A_Wikimedia_project.svg
+https://commons.wikimedia.org/wiki/File:Poweredby_MediaWiki_2025.svg
+https://creativecommons.org/licenses/by-sa/3.0/
+
+WEB-v1-058 (English Wikipedia)
+------------------------------
+Text from “Automation” and the “Paradox” preview by English Wikipedia
+contributors, under CC BY-SA 4.0.
+https://en.wikipedia.org/wiki/Automation#Paradox_of_automation
+https://en.wikipedia.org/wiki/Paradox
+https://creativecommons.org/licenses/by-sa/4.0/
+The citation warning icon “Question book-new.svg” by Saranphat.cha, based on
+Equazcion's “Question book.png”, with the 2021 redesign by John M Wolfson,
+under CC BY-SA 3.0.
+https://commons.wikimedia.org/wiki/File:Question_book-new.svg
+https://creativecommons.org/licenses/by-sa/3.0/
+
+WEB-v1-074 (English Wikipedia)
+------------------------------
+The September 1, 2025 Picture of the Day caption and “Other areas of
+Wikipedia” text by English Wikipedia contributors, under CC BY-SA 4.0.
+https://en.wikipedia.org/wiki/Wikipedia:Picture_of_the_day/September_2025#1
+https://en.wikipedia.org/wiki/Template:Other_areas_of_Wikipedia
+The photograph “Castle Square (22346p).jpg” by Rhododendrites, under
+CC BY-SA 4.0.
+https://commons.wikimedia.org/wiki/File:Castle_Square_(22346p).jpg
+https://creativecommons.org/licenses/by-sa/4.0/
+
+WEB-v1-082 (Wikidata)
+---------------------
+English Main Page text by Wikidata contributors, under CC BY-SA 4.0.
+https://www.wikidata.org/wiki/Wikidata:Main_Page/Content/en
+The Main Page banner “Wikidata nodes in white.svg” by Thepwnco, under
+CC BY-SA 4.0.
+https://commons.wikimedia.org/wiki/File:Wikidata_nodes_in_white.svg
+https://creativecommons.org/licenses/by-sa/4.0/
+The section icon “Wikidata-logo white.svg” by TMg, under CC BY-SA 3.0 Germany.
+https://commons.wikimedia.org/wiki/File:Wikidata-logo_white.svg
+https://creativecommons.org/licenses/by-sa/3.0/de/
+“The Earth seen from Apollo 17.jpg” (The Blue Marble) by the NASA Apollo 17
+crew, in the U.S. public domain.
+https://commons.wikimedia.org/wiki/File:The_Earth_seen_from_Apollo_17.jpg
+“Ruler image.jpg” by Goele, cropped from “Folding Rules 2.jpg”, under CC0 1.0.
+https://commons.wikimedia.org/wiki/File:Ruler_image.jpg
+https://creativecommons.org/publicdomain/zero/1.0/
+“Everest North Face toward Base Camp Tibet Luca Galuzzi 2006 (square).jpg”
+credited as “Luca Galuzzi - www.galuzzi.it”, square crop by Entbert, under
+CC BY-SA 2.5.
+https://commons.wikimedia.org/wiki/File:Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006_(square).jpg
+https://creativecommons.org/licenses/by-sa/2.5/
+The photographer requests that the credit appear next to the displayed image.
+
+WEB-v1-084 (CyclOSM)
+-------------------
+Basemap by OpenStreetMap France using the CyclOSM style, under CC BY-SA 2.0.
+https://www.openstreetmap.fr/fonds-de-carte/
+https://creativecommons.org/licenses/by-sa/2.0/
+Map data © OpenStreetMap contributors, under the Open Data Commons Open
+Database License (ODbL) 1.0.
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/
+
+WEB-v1-085 (English Wikipedia)
+------------------------------
+Text from the “Software” section of “Machine learning” by English Wikipedia
+contributors, under CC BY-SA 4.0.
+https://en.wikipedia.org/wiki/Machine_learning#Software
+https://creativecommons.org/licenses/by-sa/4.0/

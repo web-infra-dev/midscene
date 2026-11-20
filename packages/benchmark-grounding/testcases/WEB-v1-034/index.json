@@ -18,7 +18,7 @@
     "recordId": "instruction/reason_grounding.json#297",
     "image": {
       "format": "png",
-      "sha256": "7d300f81422d1f2496e6bd3871cd7759a892caf2f19f81065c7a8aa0067341cb"
+      "sha256": "cf27b4aa4227402b9cc7decd739ab4890b903cbbefb0a73205f2070370446bfb"
     },
     "patch": "Reworded the English and Chinese instructions to clearly describe the number of paying customers, preserving the original numerical conditions and target.",
     "collectedAt": 1792485870768

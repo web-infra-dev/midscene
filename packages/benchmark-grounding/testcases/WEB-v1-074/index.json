@@ -18,7 +18,7 @@
     "recordId": "instruction/element_grounding.json#951",
     "image": {
       "format": "png",
-      "sha256": "30dc997b34e538c96c07e708c72646639eb55affdf12543aab1393415f04dfa7"
+      "sha256": "22063795b7c929e794fb3886e4924c7175f675a044154e7157b7062172ce8980"
     },
     "patch": "Replaced the translated settings, section and option names in instruction.zh with their exact on-screen text 'Appearance', 'Text' and 'Standard', quoted the settings name in instruction.en, and corrected both instructions to describe the target as a radio button rather than a checkbox. Changed category.item from Small Target to Basic Element and updated category.reason to describe the named control.",
     "collectedAt": 1792485870966

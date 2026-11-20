@@ -18,7 +18,7 @@
     "recordId": "instruction/spatial_grounding.json#604",
     "image": {
       "format": "png",
-      "sha256": "3705bb484818736684c329c1dd9f4f904c6c21cb72276cbf6e87104935bd3d82"
+      "sha256": "87f728b78ee12761af60f41b6722c8d6c5c0b99226a1990bab2ff67638581fae"
     },
     "patch": "Changed the instruction to locate the More button on the second comment instead of the icon above the first comment, and moved the ground truth to the second comment's More button.",
     "collectedAt": 1792485870646

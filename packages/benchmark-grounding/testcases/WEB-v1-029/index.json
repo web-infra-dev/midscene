@@ -18,7 +18,7 @@
     "recordId": "instruction/reason_grounding.json#1087",
     "image": {
       "format": "png",
-      "sha256": "57a419a264f2eefdfea2389dbb0088a38275a08de920c0eec88b7d0da652d361"
+      "sha256": "2438d9807a273d6eb4f4e422c8f5814d2290fa896777b8ce8a7e07a5b5122238"
     },
     "patch": "Added an explanation in both instructions that the tag in the lower-right corner of each task card indicates its subtasks; the target and ground truth are unchanged. Classified category.item as Small Target and updated category.reason to describe the small completion control.",
     "collectedAt": 1792485870704

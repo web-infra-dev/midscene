@@ -18,7 +18,7 @@
     "recordId": "instruction/element_grounding.json#449",
     "image": {
       "format": "png",
-      "sha256": "3a777974699bd599703129c081f1bd90765c83a79852d111faec90aff9a97f48"
+      "sha256": "d370a06623549b864f53dd7ceebf7ee771e7d244b69f029e683de79089631a18"
     },
     "patch": "Replaced the translated label 'Gift Card' in instruction.en with the exact text '礼品卡' shown in the screenshot; the Chinese instruction and ground truth remain unchanged. Updated category.reason to explain the direct text-matching task.",
     "collectedAt": 1792485870939

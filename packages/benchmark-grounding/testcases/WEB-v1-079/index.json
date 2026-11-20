@@ -18,7 +18,7 @@
     "recordId": "instruction/element_grounding.json#1444",
     "image": {
       "format": "png",
-      "sha256": "ebb1fad12e5c2c390ded44415075c3e2cca0e6e499d700489ec0e451a528466a"
+      "sha256": "642bc03e20606649935d46cdf716925a687b2610e303ecf5c96484104d368200"
     },
     "patch": "Replaced the Chinese translation of the menu option with the exact label 'Best' shown in the screenshot. Updated category.reason to describe direct matching of the option in the sorting menu.",
     "collectedAt": 1792485870976

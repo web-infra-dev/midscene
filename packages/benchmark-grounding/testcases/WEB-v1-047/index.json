@@ -18,7 +18,7 @@
     "recordId": "instruction/functional_grounding.json#95",
     "image": {
       "format": "png",
-      "sha256": "548d8f303df9c697d9f876619a51ef95f7cbcfb2a9af038e33c8c4bf7f3c8197"
+      "sha256": "3901dffe83363bf6e8eeadf143b5a4d1ea9ae0eff1a9a6d6b73cb66ca166e693"
     },
     "patch": "Changed both instructions to locate the maximum-price slider handle rather than the price-range slider generally. Narrowed the ground truth from the whole slider to the right-hand handle and updated category.reason to describe its upper-bound function.",
     "collectedAt": 1792485870844

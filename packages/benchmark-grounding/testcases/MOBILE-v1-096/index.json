@@ -25,7 +25,7 @@
       "format": "jpeg",
       "sha256": "1d6e299cf9c005d5e8ad0a6639cf336b24ea0cc741f63ffabeedd26c63dad6ea"
     },
-    "patch": "Created a Midscene-authored testcase from a contributor-provided 1260 × 2844 JPEG screenshot of the annual step count chart. Preserved the screenshot bytes unchanged. Wrote bilingual instructions for the top of the September bar and annotated its top segment at [1036, 811, 1076, 781] in [top, right, bottom, left] pixels.",
+    "patch": null,
     "collectedAt": 1794973313368
   }
 }

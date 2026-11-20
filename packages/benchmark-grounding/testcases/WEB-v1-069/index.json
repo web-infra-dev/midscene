@@ -18,7 +18,7 @@
     "recordId": "instruction/element_grounding.json#396",
     "image": {
       "format": "png",
-      "sha256": "6163ed3d858e7121bd187d5fc83dd732063990856c6246bfa6a8dde35b92dc62"
+      "sha256": "4bf0f43f4f7df9e7594fb335b6ce27a79cdcd11298b2781c50a26548da7876f5"
     },
     "patch": "Classified category.item as Reasoning.",
     "collectedAt": 1792485870951

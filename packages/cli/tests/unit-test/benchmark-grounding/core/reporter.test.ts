@@ -96,6 +96,7 @@ const capturedMeta: ReportMeta = {
         source: 'Snapshot source',
         url: 'https://example.com/reference',
         observedAt: '2026-11-12',
+        note: 'P50 reference metrics sampled over 30 minutes with no cache hits.',
         pricing: { currency: 'USD', inputPerToken: 1, outputPerToken: 2 },
       },
     },

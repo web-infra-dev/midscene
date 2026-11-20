@@ -18,7 +18,7 @@
     "recordId": "instruction/reason_grounding.json#322",
     "image": {
       "format": "png",
-      "sha256": "b872d125f50f68b0ab16cb83c45f0a3a076cbc5cb733c8608e14dd39ecc0ef12"
+      "sha256": "4bddcc1d5e4373e062f6455a58248eb084eb0e484bb6a56f2e1b206fd7977ce7"
     },
     "patch": "Changed both instructions to select the booking button for the latest-departing train among those departing at or after 14:15 and arriving at or before 20:30, instead of the train departing at 14:00 and arriving before 20:00. Moved the ground truth from the G18 booking button to the G20 booking button and updated category.reason to describe the time filtering and comparison.",
     "collectedAt": 1792485870686

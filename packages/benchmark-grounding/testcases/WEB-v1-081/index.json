@@ -18,9 +18,9 @@
     "recordId": "screenspot_web_v2_243",
     "image": {
       "format": "png",
-      "sha256": "ea487493e4ed4807556b680b8b36e25d6490f480fac16de62fd46fe8adcdfdc9"
+      "sha256": "c168850ca37f8a7ee8d45979f04878e23728aaebad37d55cc5c890b4fa6e0027"
     },
-    "patch": "Reworded the English instruction to locate the checkbox for the Remember me option and added instruction.zh by translating it, preserving the displayed label capitalization. Shifted the ground truth 2 pixels right and 1 pixel down to center the checkbox.",
+    "patch": "Reworded the English instruction to locate the checkbox for the Remember me option and added instruction.zh by translating it, preserving the displayed label capitalization. Shifted the ground truth 2 pixels right and 1 pixel down to center the checkbox. Removed embedded EXIF and XMP metadata and non-color metadata in the PNG screenshot's ICC profile. Decoded pixels and color rendering are unchanged.",
     "collectedAt": 1792485870979
   }
 }

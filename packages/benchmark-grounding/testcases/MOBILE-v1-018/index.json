@@ -23,9 +23,9 @@
     "recordId": "",
     "image": {
       "format": "png",
-      "sha256": "644ffce5f893191985513d45edd760478e2f654f1a68b55822e68fa293aab2b3"
+      "sha256": "200accb876ec3580fa6c363598ac41812d0b2f9a9f55209dc0aa6e50361d4c50"
     },
-    "patch": "Created a Midscene-authored testcase from a contributor-provided 1260 × 2844 JPEG screenshot of a photo rotation editor. Used the built-in imagegen tool to composite out the “-8.0” numeric readout below the rotation-angle ruler, removing the text-based positioning clue while retaining the ruler and its current-angle tick. The generated screenshot is an 835 × 1884 PNG. Authored new English and Chinese instructions to locate the current rotation-angle tick, classified the task as Small Target, and annotated groundTruth as [1472, 421, 1524, 415] in [top, right, bottom, left] pixels on the generated image.",
+    "patch": null,
     "collectedAt": 1794908290996
   }
 }

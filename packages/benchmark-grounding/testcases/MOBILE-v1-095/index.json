@@ -25,7 +25,7 @@
       "format": "jpeg",
       "sha256": "f1daed07601599ff424d0fab16119664d2ad76729dc8d8cc5494dc7879b83e94"
     },
-    "patch": "Created a Midscene-authored testcase from a contributor-provided 1260 × 2844 JPEG screenshot of a market price chart. Preserved the screenshot bytes unchanged. Authored new English and Chinese instructions to select the intersection of the black vertical crosshair line and the blue price curve. Annotated groundTruth as [1196, 668, 1216, 648] in [top, right, bottom, left] pixels around that intersection and classified the task as Small Target.",
+    "patch": null,
     "collectedAt": 1794908629643
   }
 }

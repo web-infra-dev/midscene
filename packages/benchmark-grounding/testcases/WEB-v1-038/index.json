@@ -18,7 +18,7 @@
     "recordId": "instruction/functional_grounding.json#33",
     "image": {
       "format": "png",
-      "sha256": "68ad8b7bdee915fd668f4c0a7cddc08f8eacb25522fca308d5f7781191919471"
+      "sha256": "e0f5c135c2e503f609d4effcbf0fd839bb440c3da8c0f70054e7406b4e299674"
     },
     "patch": "Replaced the original English and Chinese instructions to submit the current question with conditional rules that map the question's topic to one of three actions. Changed category.item from Functional to Reasoning and updated category.reason to describe the conditional decision.",
     "collectedAt": 1792485870802

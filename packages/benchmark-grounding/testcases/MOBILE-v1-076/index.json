@@ -18,9 +18,9 @@
     "recordId": "screenspot_mobile_v2.json#50",
     "image": {
       "format": "png",
-      "sha256": "25726b347bb5c99a736c9874dd30695a7b944a4134372f18c4f80aee54194e6b"
+      "sha256": "f5cc7fbe39ea92f8f197a9450e8b9945500ed52b75b8a2c81704505242f6f178"
     },
-    "patch": "Added instruction.zh by translating the original English instruction. Updated category.reason to explain direct identification by a visible option label.",
+    "patch": "Added instruction.zh by translating the original English instruction. Updated category.reason to explain direct identification by a visible option label. Removed embedded EXIF and XMP metadata from the PNG screenshot. Decoded pixels and color rendering are unchanged.",
     "collectedAt": 1792485870429
   }
 }

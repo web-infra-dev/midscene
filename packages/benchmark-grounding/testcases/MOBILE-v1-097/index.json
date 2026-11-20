@@ -25,7 +25,7 @@
       "format": "png",
       "sha256": "89af51732d25fdb076fddcbaac219d62118f5fbacc761e19df3f431bb0128ffb"
     },
-    "patch": "Independently designed and rendered a 1170 × 2532 mobile inbox using original HTML and CSS, fictional senders, and fictional messages. Wrote bilingual instructions to locate the unchecked message from 栖岛账号团队. Annotated its checkbox from the rendered element bounds as [1740, 1086, 1800, 1026] in [top, right, bottom, left] pixels.",
+    "patch": null,
     "collectedAt": 1794973486797
   }
 }

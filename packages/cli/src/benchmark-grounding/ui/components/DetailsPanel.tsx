@@ -99,15 +99,12 @@ export function DetailsPanel({
               <code id="testcase-sha">{testcase.testcaseSha256}</code>
             </dd>
           </div>
-          <div>
-            <dt>Revisions</dt>
-            <dd
-              id="reference-patch"
-              className={reference.patch === null ? 'no-patch' : undefined}
-            >
-              {reference.patch ?? 'No revisions'}
-            </dd>
-          </div>
+          {reference.patch && (
+            <div>
+              <dt>Revisions</dt>
+              <dd id="reference-patch">{reference.patch}</dd>
+            </div>
+          )}
           <div>
             <dt>Collected At</dt>
             <dd>

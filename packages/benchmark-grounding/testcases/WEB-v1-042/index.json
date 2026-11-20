@@ -18,7 +18,7 @@
     "recordId": "instruction/functional_grounding.json#624",
     "image": {
       "format": "png",
-      "sha256": "6d3d7202ae57e84e54ac715f9ffa0965b8c5f1bbc6ebf48a28daa20abace7e4d"
+      "sha256": "1e75b038c4261b4bb4f72d3058a90c336962769a468e82ffe09060087430e3e3"
     },
     "patch": "The original instruction asked to click to select Alipay payment, but the screenshot already shows the Alipay checkbox selected with an orange check mark. The requested state was therefore already satisfied, and another click could instead deselect the option if the control toggles its state. Rewrote both instructions to locate the already selected Alipay checkbox rather than request a selection action. The target remains the same small checkbox, with the existing groundTruth and Small Target category.",
     "collectedAt": 1792485870821

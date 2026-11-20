@@ -18,7 +18,7 @@
     "recordId": "instruction/functional_grounding.json#569",
     "image": {
       "format": "png",
-      "sha256": "6c93049abaa30b38e3928dd56e60c5947eb2382d75d2d632f3f3fe47102cc923"
+      "sha256": "c7ec9fee45ca2b1a88181921572ec8ba77402ae122e36f0925173b87c18be4bb"
     },
     "patch": "Expanded groundTruth from [739.0, 2967.0, 774.0, 2933.0] to [738.0, 3038.0, 776.0, 2932.0] in [top, right, bottom, left] pixel coordinates to include both the radio button and the 自动 label. Revised category.reason to explain how the target is identified by its automatic theme-switching function.",
     "collectedAt": 1792485870880

@@ -18,7 +18,7 @@
     "recordId": "instruction/element_grounding.json#1222",
     "image": {
       "format": "png",
-      "sha256": "97e12b08735c4da01a739ee3b7aca79acb0a6cb7531f2bbdbedf7af9b4a68ca1"
+      "sha256": "bbd46f9d3df757cd49454711d77310b9b0d46fe3879da3295c7fa9ebf94cd48e"
     },
     "patch": "Replaced the translated label \"Forward simultaneously\" in instruction.en with the exact on-screen text \"同时转发\".",
     "collectedAt": 1792485870974

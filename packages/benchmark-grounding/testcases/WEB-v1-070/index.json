@@ -4,23 +4,23 @@
   "platform": "web",
   "category": {
     "item": "Basic Element",
-    "reason": "The task names a specific gas station, so locating its displayed text is a direct label-matching task."
+    "reason": "The task quotes the exact name of a gas station shown in the search results, so the target can be located by direct text matching."
   },
   "instruction": {
-    "en": "Find the text \"中国海油加油站(长运站)\".",
-    "zh": "找到文本“中国海油加油站(长运站)”。"
+    "en": "Find the text “Gas & Shop” in the search results.",
+    "zh": "在搜索结果中找到 “Gas & Shop” 这行文字。"
   },
-  "instructionLanguage": "en",
-  "groundTruth": [598.0, 410.0, 634.0, 106.0],
+  "instructionLanguage": "zh",
+  "groundTruth": [415.0, 164.0, 436.0, 68.0],
   "reference": {
-    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L6050",
-    "dataset": "VenusBench-GD",
-    "recordId": "instruction/element_grounding.json#432",
+    "url": "",
+    "dataset": "",
+    "recordId": "",
     "image": {
       "format": "png",
-      "sha256": "adcf77331df5b872db8cf10972853886493e510a8caeac8481d37b43d1e11cd8"
+      "sha256": "771d7f4859d42f670ff38d323ce1d450a0f4a5ef553c8cd5b65bc45e940e7403"
     },
-    "patch": "Replaced the translated gas station name in instruction.en with the exact on-screen text '中国海油加油站(长运站)'. Updated category.reason to describe direct matching of the visible station label.",
-    "collectedAt": 1792485870953
+    "patch": null,
+    "collectedAt": 1795082162189
   }
 }

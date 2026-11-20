@@ -18,9 +18,9 @@
     "recordId": "screenspot_mobile_v2.json#238",
     "image": {
       "format": "jpeg",
-      "sha256": "187ee65f95f2e0066fa9d8673e3518e1879dcf2e992c9c2d53c345e3c2fe581a"
+      "sha256": "7fc0fc2a0fcffb193562aeb2c86d1245d8395acd8efda8cca9c790cc42466a38"
     },
-    "patch": "Standardized the original English instruction “turn off wifi” as “Turn off Wi-Fi.” and added instruction.zh by translating it. Expanded the right edge of groundTruth from 528 to 540 pixels, changing the box from [423, 528, 708, 68] to [423, 540, 708, 68] in [top, right, bottom, left] pixel coordinates to encompass the Wi-Fi control.",
+    "patch": "Standardized the original English instruction “turn off wifi” as “Turn off Wi-Fi.” and added instruction.zh by translating it. Expanded the right edge of groundTruth from 528 to 540 pixels, changing the box from [423, 528, 708, 68] to [423, 540, 708, 68] in [top, right, bottom, left] pixel coordinates to encompass the Wi-Fi control. Removed 24 bytes of trailing data after the JPEG end-of-image marker. The encoded image is unchanged.",
     "collectedAt": 1793776824833
   }
 }

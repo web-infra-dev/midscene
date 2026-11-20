@@ -18,7 +18,7 @@
     "recordId": "instruction/reason_grounding.json#822",
     "image": {
       "format": "png",
-      "sha256": "b2cd665cfc5ce62a674211759b7d8d1d427d3afca57540680eb4dc73e3b883cf"
+      "sha256": "a50a87ce53c0b0a4d5b3cede4f2a00a47aaddd93bd0dd434d149becd681b8038"
     },
     "patch": "Changed both instructions from clicking the footwear product image to clicking its red color swatch to view the red version. Moved the ground truth from the shoe image to the red swatch and updated category.reason to reflect product identification and color selection.",
     "collectedAt": 1792485870777

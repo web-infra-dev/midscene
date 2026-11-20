@@ -18,9 +18,9 @@
     "recordId": "screenspot_mobile_v2.json#435",
     "image": {
       "format": "png",
-      "sha256": "94a980d05554db0b3e194a760835b6fbe7145ebaa73898c3b18980c358cf9d40"
+      "sha256": "6930ba6413446c76d684188cb0811f48664fb4a13c3767d9447a7faf9b20f422"
     },
-    "patch": "Replaced the original instruction “play this album” with a request to find text containing “into the bliss” on a predominantly purple background, regardless of case, and added a corresponding Chinese instruction. Changed groundTruth from [1330, 555, 1488, 51] to [635, 790, 685, 369] in [top, right, bottom, left] pixel coordinates, moving the target from the Play button to the text on the album artwork. Changed category.item from Functional to Color Recognition and updated category.reason to explain the use of background color.",
+    "patch": "Replaced the original instruction “play this album” with a request to find text containing “into the bliss” on a predominantly purple background, regardless of case, and added a corresponding Chinese instruction. Changed groundTruth from [1330, 555, 1488, 51] to [635, 790, 685, 369] in [top, right, bottom, left] pixel coordinates, moving the target from the Play button to the text on the album artwork. Changed category.item from Functional to Color Recognition and updated category.reason to explain the use of background color. Removed embedded EXIF and XMP metadata from the PNG screenshot. Decoded pixels and color rendering are unchanged.",
     "collectedAt": 1793870312267
   }
 }

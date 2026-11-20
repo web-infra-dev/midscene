@@ -18,9 +18,9 @@
     "recordId": "screenspot_web_v2_27",
     "image": {
       "format": "png",
-      "sha256": "a94884520f0e18f556f5b6256eb6016a22df0c54f0ae8891f91631ef2171c894"
+      "sha256": "efcaab11a54827e0d8de13c4433c9eca9ce892687db8308f65a0f2ec01c827e0"
     },
-    "patch": "Changed the original instruction from explicitly naming the thumbs-up icon to requesting the action of liking the issue, and added instruction.zh by translating the revised English instruction. Changed category.item from Basic Element to Functional and updated category.reason to describe the requested function.",
+    "patch": "Changed the original instruction from explicitly naming the thumbs-up icon to requesting the action of liking the issue, and added instruction.zh by translating the revised English instruction. Changed category.item from Basic Element to Functional and updated category.reason to describe the requested function. Removed embedded EXIF and XMP metadata and non-color metadata in the PNG screenshot's ICC profile. Decoded pixels and color rendering are unchanged.",
     "collectedAt": 1792485870978
   }
 }

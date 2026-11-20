@@ -25,7 +25,7 @@
       "format": "jpeg",
       "sha256": "6568264ee96e813fe9543b2c50fd77891aee2c5f9fb1e5bdde5144e1f3646607"
     },
-    "patch": "Created a Midscene-authored testcase using a user-provided 1260 × 2844 JPEG screenshot, with newly authored bilingual instructions and ground-truth annotations. The target is the left circular handle that sets the minimum price in the price-range filter. The screenshot bytes are preserved unchanged as provided.",
+    "patch": null,
     "collectedAt": 1794906284564
   }
 }

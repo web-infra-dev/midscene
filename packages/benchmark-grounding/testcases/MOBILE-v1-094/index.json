@@ -18,9 +18,9 @@
     "recordId": "screenspot_mobile_v2.json#89",
     "image": {
       "format": "png",
-      "sha256": "427923e422b581e0f939e9969bf70eb7174ebcccc635cce2203f7d013e946d2d"
+      "sha256": "f03a09828367745ee6d76ca3b3e33b6c8b73b5904b55e97ecc9ffc6a1921dd1c"
     },
-    "patch": "Replaced the original instruction “view more information” with a request to find the displayed text “Classical Christmas” and added instruction.zh by translating the revised English instruction. Changed groundTruth from [164, 1121, 250, 1035] to [1092.0, 858.0, 1150.0, 310.0] in [top, right, bottom, left] pixel coordinates to cover the specified text.",
+    "patch": "Replaced the original instruction “view more information” with a request to find the displayed text “Classical Christmas” and added instruction.zh by translating the revised English instruction. Changed groundTruth from [164, 1121, 250, 1035] to [1092.0, 858.0, 1150.0, 310.0] in [top, right, bottom, left] pixel coordinates to cover the specified text. Removed embedded EXIF and XMP metadata from the PNG screenshot. Decoded pixels and color rendering are unchanged.",
     "collectedAt": 1793776824833
   }
 }

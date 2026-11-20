@@ -4,23 +4,23 @@
   "platform": "web",
   "category": {
     "item": "Basic Element",
-    "reason": "The target is the Automatic radio button in the Distance units section."
+    "reason": "The task explicitly names a radio button and its settings group, so it requires directly identifying a labeled interface element."
   },
   "instruction": {
-    "en": "Locate the \"Automatic\" radio button under the \"Distance units\" section.",
-    "zh": "找到“Distance units”部分下的“Automatic”单选按钮。"
+    "en": "Locate the “Automatic” radio button under “Distance units”.",
+    "zh": "找到 “Distance units” 部分下的 “Automatic” 单选按钮。"
   },
-  "instructionLanguage": "en",
-  "groundTruth": [700.0, 674.0, 746.0, 630.0],
+  "instructionLanguage": "zh",
+  "groundTruth": [340.0, 251.0, 356.0, 235.0],
   "reference": {
-    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L5952",
-    "dataset": "VenusBench-GD",
-    "recordId": "instruction/element_grounding.json#425",
+    "url": "",
+    "dataset": "",
+    "recordId": "",
     "image": {
       "format": "png",
-      "sha256": "2fd38f5bec94ed2ea1701c7333623e367155042329be804b1d3f5d6b01b219ae"
+      "sha256": "16dee247e95b3588be811cdc0dd1b4f31ada726ce695b4b0e023f947cc0cbe98"
     },
-    "patch": "The original instructions called the Automatic control under Distance units a checkbox. The screenshot instead shows circular radio buttons for Automatic, miles, and km, with a dot indicating the selected Automatic option; the square checkboxes belong to the separate Avoid section. Corrected both instructions to call the target a radio button and updated category.reason to use the same control type. The target and groundTruth remain unchanged. Changed category.item from Small Target to Basic Element and updated category.reason to describe the named control.",
-    "collectedAt": 1792485870946
+    "patch": null,
+    "collectedAt": 1795082170896
   }
 }

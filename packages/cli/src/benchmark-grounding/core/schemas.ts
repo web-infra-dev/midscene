@@ -101,7 +101,6 @@ const performanceSchema = z.union([
       outputTokensPerSecond: finite.positive(),
       url: text.url().optional(),
       observedAt: text.optional(),
-      conditions: text.optional(),
       timeToFirstTokenUrl: text.url().optional(),
     })
     .strict(),

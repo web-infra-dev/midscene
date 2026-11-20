@@ -18,7 +18,7 @@
     "recordId": "instruction/functional_grounding.json#16",
     "image": {
       "format": "png",
-      "sha256": "21231834b77dd49047bda820a1a87a0661c428cc9d01e2264120a34be1d3d442"
+      "sha256": "d5b98641518691db366715a06980fcdb9fdcbb0bec182eca5f0e04323df498f8"
     },
     "patch": "Replaced the original instruction describing a link to refund details with an instruction to follow the latest customer service message, which directs the user to the same refund button. Updated category.reason to describe the requested refund action; the ground truth remains unchanged.",
     "collectedAt": 1792485870798

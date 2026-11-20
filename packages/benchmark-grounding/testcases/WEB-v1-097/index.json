@@ -13,14 +13,14 @@
   "instructionLanguage": "en",
   "groundTruth": [1523.0, 1777.0, 1626.0, 950.0],
   "reference": {
-    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L13470",
-    "dataset": "VenusBench-GD",
-    "recordId": "instruction/reason_grounding.json#962",
+    "url": "",
+    "dataset": "",
+    "recordId": "",
     "image": {
       "format": "png",
-      "sha256": "b53b191b8cd21c3a17b5abddfde50806d371e8282f60d021dadcba51fa167e1d"
+      "sha256": "46b9714d6d991d2e647760b37b63819c9741e2794b79574ef636df796d524e24"
     },
-    "patch": "Removed the request to view details from both instructions, leaving the task as locating the headline posted 13 hours ago. Classified category.item as Reasoning.",
-    "collectedAt": 1792485871023
+    "patch": null,
+    "collectedAt": 1795144313039
   }
 }

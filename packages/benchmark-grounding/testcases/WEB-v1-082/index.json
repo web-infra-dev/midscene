@@ -18,9 +18,9 @@
     "recordId": "screenspot_web_v2_278",
     "image": {
       "format": "png",
-      "sha256": "0232d6e1e7a0c24c89c53a7388f205176ae0519b5e02dc5b9d2c9f8e4482c63b"
+      "sha256": "38334cdf6191f8aa6ceac342f6813bc05197c5e81031a155bee35535f334d874"
     },
-    "patch": "Rephrased the original request to open the picture of Earth as an explicit request to click the image, and added instruction.zh by translating the revised English instruction. Updated category.reason to describe direct identification of the image.",
+    "patch": "Rephrased the original request to open the picture of Earth as an explicit request to click the image, and added instruction.zh by translating the revised English instruction. Updated category.reason to describe direct identification of the image. Removed embedded EXIF and XMP metadata and non-color metadata in the PNG screenshot's ICC profile. Decoded pixels and color rendering are unchanged.",
     "collectedAt": 1792485870981
   }
 }

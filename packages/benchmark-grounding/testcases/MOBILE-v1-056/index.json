@@ -18,9 +18,9 @@
     "recordId": "instruction/refusal_grounding.json#row=837",
     "image": {
       "format": "png",
-      "sha256": "4d054894b7c274c37c1c6ae299f87e8ccde2e733379433ff8e28055ca1a265db"
+      "sha256": "edf9e227118a4d61bb9bc00f16caf523425ff2935621b5e3062a023ca457508a"
     },
-    "patch": "Revised both instructions to ask for a light-blue rounded rectangular button labeled ‘Go’ in the lower-left corner instead of a red ‘Save’ button, and updated category.reason to describe the absence of the specified label.",
+    "patch": "Revised both instructions to ask for a light-blue rounded rectangular button labeled ‘Go’ in the lower-left corner instead of a red ‘Save’ button, and updated category.reason to describe the absence of the specified label. Covered the exposed basemap along the rounded top edge of the transit panel with an opaque solid fill while preserving the original dimensions and all other pixels.",
     "collectedAt": 1792485870330
   }
 }

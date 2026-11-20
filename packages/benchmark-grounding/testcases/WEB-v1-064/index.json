@@ -18,7 +18,7 @@
     "recordId": "instruction/functional_grounding.json#556",
     "image": {
       "format": "png",
-      "sha256": "d30a753d9f07eea536506f17573d99c7ff7c7f278e2f3d61bf963c7ea62b331f"
+      "sha256": "60b7f82d68860f7d04caedf3985062c850003072e2d79117b455970ae4af9cc3"
     },
     "patch": "Revised category.reason to explain the testcase-specific localization basis: The task requires mapping the request to clear filter criteria to the control that resets them.",
     "collectedAt": 1792485870933

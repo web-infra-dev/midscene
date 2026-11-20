@@ -18,7 +18,7 @@
     "recordId": "instruction/reason_grounding.json#591",
     "image": {
       "format": "png",
-      "sha256": "c4c391c200c7c52eab9dc6581326c01065bc611642483f9fde00bfc65aba00f1"
+      "sha256": "cf8770619bc995fa2d3de65e728e63518a2b923e310f2907f653393eec805b62"
     },
     "patch": "Clarified in both instructions that the target dated December 12–14 is a subtask of a third-phase task, and updated category.reason to describe the small completion control. The ground truth remains on the same completion control. Classified category.item as Small Target.",
     "collectedAt": 1792485870709

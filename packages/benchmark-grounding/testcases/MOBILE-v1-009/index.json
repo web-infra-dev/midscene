@@ -3,24 +3,24 @@
   "name": "MOBILE-v1-009",
   "platform": "mobile",
   "category": {
-    "item": "Basic Element",
-    "reason": "The creator name identifies the corresponding lens in the visible list."
+    "item": "Reasoning",
+    "reason": "The target requires filtering for cards with visible points totals and ranking those totals."
   },
   "instruction": {
-    "en": "Use the lens created by Pedro.",
-    "zh": "使用 Pedro 创作的 lenses。"
+    "en": "Select the membership card with the second-highest points total among the cards that show points.",
+    "zh": "选择有积分信息且积分第二多的会员卡。"
   },
-  "instructionLanguage": "en",
-  "groundTruth": [752.5, 793.5, 1283.0, 546.0],
+  "instructionLanguage": "zh",
+  "groundTruth": [12566, 1204, 12904, 56],
   "reference": {
-    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
-    "dataset": "GroundUI-1K",
-    "recordId": "data/train-00001-of-00002.parquet#row=300",
+    "url": "",
+    "dataset": "",
+    "recordId": "",
     "image": {
       "format": "jpeg",
-      "sha256": "8b5e5167610dbcf60ab4668fb7786b25dc8ed197f373e7468811e2aa0fe69af5"
+      "sha256": "a4ba310dfb0973cba16c9c076110ea8b2fd32cd7cda5d3100f660791a176087e"
     },
-    "patch": "Reworded the original instruction “Click on \"Holo Mask\" by Pedro Cruz.” to request the lens created by Pedro without naming the lens, and added a corresponding Chinese instruction. Expanded groundTruth from [752.5, 793.5, 1188.2, 546.0] to [752.5, 793.5, 1283.0, 546.0] in [top, right, bottom, left] pixel coordinates to cover the complete lens item, including its preview, icon, name and creator. Updated category.reason to describe identifying the lens by its creator.",
-    "collectedAt": 1794362925640
+    "patch": null,
+    "collectedAt": 1795057342789
   }
 }

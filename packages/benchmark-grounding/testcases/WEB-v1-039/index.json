@@ -4,23 +4,23 @@
   "platform": "web",
   "category": {
     "item": "Relative Position",
-    "reason": "The target coffee shop is identified by comparing its position with the center of 杭州东站."
+    "reason": "The task requires comparing the straight-line distances from a fixed station marker to the visible café markers on the map."
   },
   "instruction": {
-    "en": "Find the coffee shop closest to the center of 杭州东站.",
-    "zh": "找到离杭州东站正中心最近的咖啡厅。"
+    "en": "On the map, find the café marker closest to the blue “Gare de Lyon” center marker by straight-line distance.",
+    "zh": "在图中找到与 “Gare de Lyon” 蓝色中心标记直线距离最近的咖啡店标记。"
   },
-  "instructionLanguage": "en",
-  "groundTruth": [1170.0, 2002.0, 1208.0, 1888.0],
+  "instructionLanguage": "zh",
+  "groundTruth": [1012.0, 1522.0, 1031.0, 1418.0],
   "reference": {
-    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L3306",
-    "dataset": "VenusBench-GD",
-    "recordId": "instruction/functional_grounding.json#236",
+    "url": "",
+    "dataset": "",
+    "recordId": "",
     "image": {
       "format": "png",
-      "sha256": "5a03736ef8cb7a4264430e4d49368acc931b6d7c21ad48c24d304728652e1839"
+      "sha256": "fc433e80d308ed19093457849965abc59852ce5d15086a822d262bc1d462ea88"
     },
-    "patch": "Replaced the original English and Chinese route-planning instructions with a bilingual request to find the coffee shop closest to the center of 杭州东站. Changed groundTruth from [388.0, 733.0, 493.0, 626.0] to [1170.0, 2002.0, 1208.0, 1888.0] in [top, right, bottom, left] pixel coordinates, moving the target from the route-planning control to the 星巴克 map marker and label. Classified category.item as Relative Position and updated category.reason to describe the relative positions.",
-    "collectedAt": 1792485870803
+    "patch": null,
+    "collectedAt": 1795080744373
   }
 }

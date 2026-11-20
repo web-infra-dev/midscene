@@ -18,9 +18,9 @@
     "recordId": "instruction/functional_grounding.json#483",
     "image": {
       "format": "png",
-      "sha256": "7c29bb3f01df0562c24f0036ae52d2daee7d9fa47384b56c9536a5a085bf4843"
+      "sha256": "128b2bd77febcc3cbd3a2399948669a73026477b61ee0b48d7b884318bf6f367"
     },
-    "patch": "Changed the instruction from displaying hotels in a card-based layout to switching to a different layout, added instruction.zh by translating the revised instruction, and updated category.reason to explain the functional basis for locating the layout-switching control.",
+    "patch": "Changed the instruction from displaying hotels in a card-based layout to switching to a different layout, added instruction.zh by translating the revised instruction, and updated category.reason to explain the functional basis for locating the layout-switching control. Replaced the basemap in the upper-left thumbnail with an opaque solid background, preserving the Show on map button. The image dimensions, pixels outside the thumbnail, and ground truth are unchanged.",
     "collectedAt": 1792485870898
   }
 }

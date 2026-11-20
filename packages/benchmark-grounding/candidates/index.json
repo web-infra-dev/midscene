@@ -1114,8 +1114,7 @@
       "name": "candidate-00180",
       "dataset": "GroundUI-1K",
       "recordId": "data/train-00001-of-00002.parquet#row=222",
-      "imageSha256": "5ef7f6467f557c5e6e5b040f44c08219f0f7ba81f95037c34acc807ff2e28a80",
-      "adoptedAs": "MOBILE-v1-072"
+      "imageSha256": "5ef7f6467f557c5e6e5b040f44c08219f0f7ba81f95037c34acc807ff2e28a80"
     },
     {
       "name": "candidate-00181",
@@ -1405,8 +1404,7 @@
       "name": "candidate-00228",
       "dataset": "GroundUI-1K",
       "recordId": "data/train-00001-of-00002.parquet#row=220",
-      "imageSha256": "7303f569579000423865527f10ec41f11ccb8fccb0ca977b970aef0b30f8ef07",
-      "adoptedAs": "MOBILE-v1-099"
+      "imageSha256": "7303f569579000423865527f10ec41f11ccb8fccb0ca977b970aef0b30f8ef07"
     },
     {
       "name": "candidate-00229",
@@ -1454,8 +1452,7 @@
       "name": "candidate-00236",
       "dataset": "GroundUI-1K",
       "recordId": "data/train-00001-of-00002.parquet#row=432",
-      "imageSha256": "70fc834ffd9b07dc72d6b6af682b7cdee133c314f99314e6d5bd4dc038fa6190",
-      "adoptedAs": "MOBILE-v1-082"
+      "imageSha256": "70fc834ffd9b07dc72d6b6af682b7cdee133c314f99314e6d5bd4dc038fa6190"
     },
     {
       "name": "candidate-00237",
@@ -1623,8 +1620,7 @@
       "name": "candidate-00264",
       "dataset": "GroundUI-1K",
       "recordId": "data/train-00001-of-00002.parquet#row=265",
-      "imageSha256": "c373e4544cac9cc9cdef2e6345e1dc6da94a50e5dfbdde343af576b0d7991a15",
-      "adoptedAs": "MOBILE-v1-004"
+      "imageSha256": "c373e4544cac9cc9cdef2e6345e1dc6da94a50e5dfbdde343af576b0d7991a15"
     },
     {
       "name": "candidate-00265",
@@ -1898,8 +1894,7 @@
       "name": "candidate-00309",
       "dataset": "GroundUI-1K",
       "recordId": "data/train-00001-of-00002.parquet#row=466",
-      "imageSha256": "ca5693c2051f2bbf06eadb906dc0b79d6cdaf206e3bf9ee8c797b2c26e9d50cf",
-      "adoptedAs": "MOBILE-v1-029"
+      "imageSha256": "ca5693c2051f2bbf06eadb906dc0b79d6cdaf206e3bf9ee8c797b2c26e9d50cf"
     },
     {
       "name": "candidate-00310",
@@ -2578,8 +2573,7 @@
       "name": "candidate-00421",
       "dataset": "GroundUI-1K",
       "recordId": "data/train-00001-of-00002.parquet#row=333",
-      "imageSha256": "e3bd17b8b9fc292bd27306a8b9dc7565a66b54399d51fa7ecd9384d1f6cea300",
-      "adoptedAs": "MOBILE-v1-073"
+      "imageSha256": "e3bd17b8b9fc292bd27306a8b9dc7565a66b54399d51fa7ecd9384d1f6cea300"
     },
     {
       "name": "candidate-00422",
@@ -7111,8 +7105,7 @@
       "name": "candidate-01173",
       "dataset": "GroundUI-1K",
       "recordId": "data/train-00001-of-00002.parquet#row=300",
-      "imageSha256": "8b5e5167610dbcf60ab4668fb7786b25dc8ed197f373e7468811e2aa0fe69af5",
-      "adoptedAs": "MOBILE-v1-009"
+      "imageSha256": "8b5e5167610dbcf60ab4668fb7786b25dc8ed197f373e7468811e2aa0fe69af5"
     },
     {
       "name": "candidate-01174",

@@ -18,7 +18,7 @@
     "recordId": "instruction/element_grounding.json#800",
     "image": {
       "format": "png",
-      "sha256": "acfca7385ced434cad5e4f92be3a72e6361de4ce3efaf22263268bda9a01dc07"
+      "sha256": "2a9ed3c645acb49ac2e6e955053f7c7d5ec8d04dc3b095ee1c3184306d348ba5"
     },
     "patch": "Revised category.reason to explain the testcase-specific localization basis: The requested navigation dropdown is identified by its visible category label and control type.",
     "collectedAt": 1792485870961

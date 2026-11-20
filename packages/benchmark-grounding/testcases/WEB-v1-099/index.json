@@ -18,7 +18,7 @@
     "recordId": "instruction/reason_grounding.json#943",
     "image": {
       "format": "png",
-      "sha256": "40a18815e216ed365bbf97452a4df486ebaf5cbb843d2126b96dc5ed70a5e135"
+      "sha256": "ab55627580529da5438c83aadecefd259271876270ecc53bac00883b8cd78013"
     },
     "patch": "Changed category.item from Reasoning to Relative Position and updated category.reason to describe the target’s position relative to the highest-priced item.",
     "collectedAt": 1792485871026

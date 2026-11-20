@@ -18,7 +18,7 @@
     "recordId": "instruction/spatial_grounding.json#397",
     "image": {
       "format": "png",
-      "sha256": "f48c441af5f1cf32e5267e02eb85e2c2d9dd064db9d247fdab31af8f50963abc"
+      "sha256": "7d6a225914a87d617c70f5b1d63f1c7ed7b17f751cca429037399d2f0ff5d2dc"
     },
     "patch": "Replaced the original instruction to locate an icon to the left of the full-screen button with an instruction to find the third control to the left of the volume control in both languages. Changed groundTruth from [1778.0, 2936.0, 1827.0, 2887.0] to [1779.0, 2476.0, 1825.0, 2432.0] to match the new target, and updated the category reason accordingly.",
     "collectedAt": 1792485870641

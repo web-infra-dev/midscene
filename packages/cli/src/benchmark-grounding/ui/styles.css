@@ -1799,9 +1799,6 @@ code,
   display: block;
   margin-top: 2px;
 }
-.no-patch {
-  color: #a1abb9 !important;
-}
 .empty-state {
   display: flex;
   height: 100%;

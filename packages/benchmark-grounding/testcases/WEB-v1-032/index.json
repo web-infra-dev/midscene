@@ -18,7 +18,7 @@
     "recordId": "instruction/reason_grounding.json#1065",
     "image": {
       "format": "png",
-      "sha256": "ec7d0d882134afe447d118603eddb4c52d869f378ba248b3a32b5acd70d715f6"
+      "sha256": "febe4bcfb552d1b661cd46af063711ffdea9b6e8b3580500b6ebb275d7546a20"
     },
     "patch": "Selected this VenusBench-GD record and recorded its screenshot hash, bilingual instructions, and ground truth in the Midscene testcase format.",
     "collectedAt": 1792485870718

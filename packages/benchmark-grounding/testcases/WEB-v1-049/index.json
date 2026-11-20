@@ -18,7 +18,7 @@
     "recordId": "instruction/functional_grounding.json#144",
     "image": {
       "format": "png",
-      "sha256": "0a1be38c10082077e35c284cc57dfcdbea1f6c8144db6c7649c656558ef8456e"
+      "sha256": "fce21e90ae870f9d45f47b491bec9e70e7136b765872496f9fcc3ac762b6f4e3"
     },
     "patch": "Rephrased the English and Chinese instructions to explicitly locate the checkbox for the No prepayment filter, and updated the category reason accordingly.",
     "collectedAt": 1792485870855

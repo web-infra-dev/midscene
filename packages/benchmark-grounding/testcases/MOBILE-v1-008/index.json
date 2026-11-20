@@ -25,7 +25,7 @@
       "format": "png",
       "sha256": "a507e13ab4c8720578816551cb1aba71240d330c7b8c7f6ed29151d28829298f"
     },
-    "patch": "Independently designed and rendered a 1170 × 2532 fictional journal theme-color editor with original HTML and CSS. The editor has a saturation and brightness spectrum, a hue slider, HEX and RGB values, opacity, and a separate 12-color preset picker with green selected. Wrote bilingual instructions to select teal for red, black for yellow, and purple when the current preset is neither black nor blue. Annotated the purple preset's rendered bounds at [2148, 232, 2274, 93] in [top, right, bottom, left] pixels.",
+    "patch": null,
     "collectedAt": 1794984378024
   }
 }

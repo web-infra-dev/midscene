@@ -18,9 +18,9 @@
     "recordId": "screenspot_mobile_v2.json#162",
     "image": {
       "format": "jpeg",
-      "sha256": "eaa9159e921929093a7133f7594480be810c446283c52cb6fbac17a46dc4cf93"
+      "sha256": "dc0763501c88e693013ea2cb2b3f1a8b6dbc7df22c66e9d37466becab3bd4392"
     },
-    "patch": "Replaced the original instruction “search in this page” with an instruction to find the folder containing the most items. Changed groundTruth from [89, 747, 219, 625] to [1825, 1030, 2170, 780] in [top, right, bottom, left] pixel coordinates, moving the target from the search icon to the DCIM folder with the highest displayed item count and covering its icon, name, date, and item count. Added instruction.zh by translating the revised English instruction.",
+    "patch": "Replaced the original instruction “search in this page” with an instruction to find the folder containing the most items. Changed groundTruth from [89, 747, 219, 625] to [1825, 1030, 2170, 780] in [top, right, bottom, left] pixel coordinates, moving the target from the search icon to the DCIM folder with the highest displayed item count and covering its icon, name, date, and item count. Added instruction.zh by translating the revised English instruction. Removed 24 bytes of trailing data after the JPEG end-of-image marker. The encoded image is unchanged.",
     "collectedAt": 1793776824833
   }
 }

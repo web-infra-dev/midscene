@@ -18,7 +18,7 @@
     "recordId": "instruction/spatial_grounding.json#914",
     "image": {
       "format": "png",
-      "sha256": "db9c578ccaf97f7fb9b9722edff3b91f61a248bd58cf5576f018878f6a547ff0"
+      "sha256": "b7d7519689f8ab192a0ef84f71816d9b6af45394cf2a71d0472ca2f284c50677"
     },
     "patch": "Reworded the English and Chinese instructions to remove redundant wording while preserving the original positional relationship.",
     "collectedAt": 1792485870651

@@ -18,7 +18,7 @@
     "recordId": "instruction/refusal_grounding.json#13",
     "image": {
       "format": "png",
-      "sha256": "5a1f20c847ca71c90d906ef6e35c08ef2847292c751fbe3f48c0b5bd3e33e12e"
+      "sha256": "2c0935626a54010dde909b20a97b627812f7d7552130e9d56b3b9b86821b0cf6"
     },
     "patch": "Reworded both instructions to specify a back button in the lower-left corner of the page, and updated category.reason to describe why the requested target is absent.",
     "collectedAt": 1792485870905

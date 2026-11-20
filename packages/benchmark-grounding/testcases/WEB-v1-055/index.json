@@ -18,7 +18,7 @@
     "recordId": "instruction/functional_grounding.json#628",
     "image": {
       "format": "png",
-      "sha256": "a01f87b020bb45e10802b67e1e526711f38c07848818923f15fccb7e2094fc98"
+      "sha256": "da85e959ce79a80c9a3f9958bf2f4274cee75ee98f9096f09467fed1a1389ccf"
     },
     "patch": "Revised category.reason to explain the testcase-specific localization basis: The request requires identifying the repository navigation function that lists contributors.",
     "collectedAt": 1792485870902

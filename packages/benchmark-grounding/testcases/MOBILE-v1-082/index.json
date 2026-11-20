@@ -4,23 +4,23 @@
   "platform": "mobile",
   "category": {
     "item": "Basic Element",
-    "reason": "The target is a specific street name that must be located among the text labels on the map."
+    "reason": "The task requires locating an exact street-name label among nearby street and place labels."
   },
   "instruction": {
-    "en": "Find the text “W Clark St”.",
-    "zh": "找到文本“W Clark St”。"
+    "en": "Find the “Rua do Regedor” street label on the map.",
+    "zh": "找到地图上的 “Rua do Regedor” 路名标签。"
   },
-  "instructionLanguage": "en",
-  "groundTruth": [770, 538, 848, 447],
+  "instructionLanguage": "zh",
+  "groundTruth": [1063.0, 597.0, 1189.0, 572.0],
   "reference": {
-    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/data/train-00001-of-00002.parquet",
-    "dataset": "GroundUI-1K",
-    "recordId": "data/train-00001-of-00002.parquet#row=432",
+    "url": "",
+    "dataset": "",
+    "recordId": "",
     "image": {
-      "format": "jpeg",
-      "sha256": "70fc834ffd9b07dc72d6b6af682b7cdee133c314f99314e6d5bd4dc038fa6190"
+      "format": "png",
+      "sha256": "a40afc540c6ccdd43b6e0d7da5093cfa029888018079da22a2a1f419beb325cc"
     },
-    "patch": "Replaced the original instruction “Click on COMPASS” with an instruction to find the text “W Clark St” and added instruction.zh by translating the revised English instruction. Changed groundTruth from [131.5, 675.8, 167.5, 538.5] to [770, 538, 848, 447] in [top, right, bottom, left] pixel coordinates, moving the target from the COMPASS tab to the street name on the map. Updated category.item and category.reason for the new text-location task.",
-    "collectedAt": 1793776824833
+    "patch": null,
+    "collectedAt": 1795082162041
   }
 }

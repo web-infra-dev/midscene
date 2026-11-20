@@ -4,23 +4,23 @@
   "platform": "web",
   "category": {
     "item": "Reasoning",
-    "reason": "The booking button is distinguished from other identical buttons by the name of the parking facility in its result listing."
+    "reason": "Several parking results use identical booking buttons. The task requires matching the requested parking facility to its listing and locating the button in that listing."
   },
   "instruction": {
-    "en": "Book online for LAZ Parking - The 1 Hotel Brooklyn Bridge Garage.",
-    "zh": "在线预订 LAZ Parking - The 1 Hotel Brooklyn Bridge Garage。"
+    "en": "Find the “Book online” button in the listing for LAZ Parking’s 1 Hotel Brooklyn Bridge Garage.",
+    "zh": "在 LAZ Parking 的 1 Hotel Brooklyn Bridge Garage 结果中，找到 “Book online” 按钮。"
   },
-  "instructionLanguage": "en",
-  "groundTruth": [388.0, 441.7, 422.0, 96.4],
+  "instructionLanguage": "zh",
+  "groundTruth": [500.0, 475.0, 535.0, 298.0],
   "reference": {
-    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
-    "dataset": "WebClick",
-    "recordId": "default/test/130",
+    "url": "",
+    "dataset": "",
+    "recordId": "",
     "image": {
       "format": "png",
-      "sha256": "052f4ffad357bc414af26d0b84382ca22d444f5f8f5c8579ffbfa35f0f11f82a"
+      "sha256": "288303d062c0cbddf875135de38a84ee76625baeae544dc2acc718c7b6f42ece"
     },
-    "patch": "Added punctuation to the original English instruction and added instruction.zh by translating it. Classified category.item as Reasoning.",
-    "collectedAt": 1793776824833
+    "patch": null,
+    "collectedAt": 1795082162041
   }
 }

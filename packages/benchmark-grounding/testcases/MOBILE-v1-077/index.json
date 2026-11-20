@@ -18,9 +18,9 @@
     "recordId": "screenspot_mobile_v2.json#64",
     "image": {
       "format": "png",
-      "sha256": "7d22eed86b5dfea33e18101fbdc132d8d5a5f4f82d024f8bfb1c56f168545122"
+      "sha256": "b6b743a6f7905da2048cef5d9216c2a6a68863971a5ae322371394ef2333e30f"
     },
-    "patch": "Added instruction.zh by translating the original English instruction",
+    "patch": "Added instruction.zh by translating the original English instruction. Removed embedded EXIF and XMP metadata from the PNG screenshot. Decoded pixels and color rendering are unchanged.",
     "collectedAt": 1792485870430
   }
 }

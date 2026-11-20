@@ -129,7 +129,7 @@ Each testcase has three files: `index.json`, `index.sha256`, and `image.png` or 
 
 ### Data licenses and redistribution
 
-The CLI code uses the MIT license. The dataset ships complete license texts, source credits, release revisions and the policy excluding original Mind2Web data in its [LICENSE](../benchmark-grounding/LICENSE). Each testcase's `index.json` records its source and local changes. Record the dataset version, selected testcase IDs and testcase hashes alongside results. Compare results over the same selection with matching testcase hashes.
+The CLI code uses the MIT license. The dataset ships complete license texts and records each direct source's attribution, release revision, and publisher-declared license in its [LICENSE](../benchmark-grounding/LICENSE). Each imported testcase's `index.json` records the direct dataset, record ID, source URL, and local changes. Record the dataset version, selected testcase IDs and testcase hashes alongside results. Compare results over the same selection with matching testcase hashes.
 
 When sharing testcase snapshots or HTML reports that embed screenshots or annotations, include the applicable dataset license and attribution materials with them. Report generation does not automatically attach these materials. Local/custom datasets require their own authorization and attribution.
 

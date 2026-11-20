@@ -18,9 +18,9 @@
     "recordId": "instruction/functional_grounding.json#row=105",
     "image": {
       "format": "png",
-      "sha256": "1afc6fb6e4c25c56001e99df59de4f686d41eda1aee444ed678d89e819d9f00d"
+      "sha256": "2dae4e69b4109562f1e77c96e4f1bfbbe3432ea49aeba1baa58bba8cec145597"
     },
-    "patch": "Revised both instructions to request a ride at 6:00 p.m., after the 5:03 p.m. time shown in the screenshot. Expanded the ground-truth box from the radio circle to the entire Later option row, including its icon and text. Updated category.reason to describe mapping the requested ride time to a scheduling function.",
+    "patch": "Revised both instructions to request a ride at 6:00 p.m., after the 5:03 p.m. time shown in the screenshot. Expanded the ground-truth box from the radio circle to the entire Later option row, including its icon and text. Updated category.reason to describe mapping the requested ride time to a scheduling function. Replaced the exposed basemap above and around the rounded ride-planning panel with an opaque solid background shaded to match the modal backdrop, and redrew the 5:03 PM clock, notification icons, and system status indicators in their original locations.",
     "collectedAt": 1792485870296
   }
 }

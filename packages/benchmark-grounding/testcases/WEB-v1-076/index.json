@@ -18,7 +18,7 @@
     "recordId": "instruction/element_grounding.json#1195",
     "image": {
       "format": "png",
-      "sha256": "23364bcd772032806326b581874de42ddc51ac8d498f132268dd8aacc632eabf"
+      "sha256": "287409db5be1e714ff530a4d10096d7c762035469e0ccac4e97125b24d587a0c"
     },
     "patch": "Replaced the original English and Chinese instructions to find the Google sign-up button with a request to locate the next action for an existing account. Changed groundTruth from [1027.0, 1836.0, 1115.0, 1187.0] to [1354.0, 1704.0, 1410.0, 1492.0] in [top, right, bottom, left] pixel coordinates, moving the target to the login link. Changed category.item from Basic Element to Functional and updated category.reason to describe recognizing the login action.",
     "collectedAt": 1792485870971

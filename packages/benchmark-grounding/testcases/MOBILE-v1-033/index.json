@@ -3,24 +3,24 @@
   "name": "MOBILE-v1-033",
   "platform": "mobile",
   "category": {
-    "item": "Functional",
-    "reason": "The task requires mapping a travel intent to the destination shortcut in the ride-hailing interface."
+    "item": "Reasoning",
+    "reason": "The target is distinguished from other text by the combination of bold, italic, and underlined styling."
   },
   "instruction": {
-    "en": "I want to go to the suggested destination.",
-    "zh": "我想去推荐的目的地。"
+    "en": "Locate the text that is bold, italicized, and underlined.",
+    "zh": "定位同时拥有加粗、斜体、下划线效果的文本。"
   },
-  "instructionLanguage": "en",
-  "groundTruth": [1130.0, 884.0, 1197.0, 504.0],
+  "instructionLanguage": "zh",
+  "groundTruth": [960, 1191, 1363, 80],
   "reference": {
-    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L8696",
-    "dataset": "VenusBench-GD",
-    "recordId": "instruction/functional_grounding.json#row=621",
+    "url": "",
+    "dataset": "",
+    "recordId": "",
     "image": {
-      "format": "png",
-      "sha256": "9a4ecfd108545e8a3d10f87d9b1386065535a47285e3265fa8de5aa3981d7ca1"
+      "format": "jpeg",
+      "sha256": "7422ea154c1fe12d51b5e6105e33ec4d439fe913264f22ab652022f035b764e7"
     },
-    "patch": "Replaced the original request to switch to driver-side functionality with a request to go to the suggested destination. Moved groundTruth from the car-owner navigation entry [2085.0, 386.0, 2206.0, 262.0] to the visible destination shortcut [1130.0, 884.0, 1197.0, 504.0] (top, right, bottom, left), and updated category.reason to describe the destination-selection function.",
-    "collectedAt": 1792485870286
+    "patch": null,
+    "collectedAt": 1795145864385
   }
 }

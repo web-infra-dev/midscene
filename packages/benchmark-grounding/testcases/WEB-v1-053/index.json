@@ -18,7 +18,7 @@
     "recordId": "instruction/functional_grounding.json#5",
     "image": {
       "format": "png",
-      "sha256": "da2d5f76fdeaec175a4fec06ab14a773cfd4bfffaec772f1680f45691e1a2108"
+      "sha256": "7fcf96465904ca3a1716aa66f5dc65fb0ebdda5f0fd2b864533ab2de7095a943"
     },
     "patch": "Expanded groundTruth from [351.0, 345.0, 396.0, 303.0] to [351.0, 435.0, 396.0, 303.0] in [top, right, bottom, left] pixel coordinates to include the select-all checkbox and its label. Revised category.reason to explain that the task requires recognizing the cart control that selects all items.",
     "collectedAt": 1792485870896

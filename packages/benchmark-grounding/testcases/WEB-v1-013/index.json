@@ -18,7 +18,7 @@
     "recordId": "instruction/spatial_grounding.json#406",
     "image": {
       "format": "png",
-      "sha256": "bc7ca7e841e8f06a7a0c01ffbd1d3691e7e2f3349587569ab2b1ba6453a34bb4"
+      "sha256": "f66580b62f6e0f4a9f005294c28a13d9053dc6ad97957782941d17c389b7bd47"
     },
     "patch": "Updated category.reason to explain the icon's position relative to the CUSTOM FEEDS heading.",
     "collectedAt": 1792485870644

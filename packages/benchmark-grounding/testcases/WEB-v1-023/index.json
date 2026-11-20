@@ -18,7 +18,7 @@
     "recordId": "instruction/reason_grounding.json#62",
     "image": {
       "format": "png",
-      "sha256": "23cb3458fa767680727cc38fd2ec5f0f4381de30da6a7ae1ff147a32a8462683"
+      "sha256": "c3403fca432c5ac32716b90164578d723b7f7dbdd82e847d384dfe3f244b3211"
     },
     "patch": "Specified in both instructions that only available Sunday dates should be considered and that gray dates are unavailable. Changed the ground truth from the gray October 5, 2025 date to September 21, 2025, the available Sunday with the second-highest price, and updated category.reason to describe the required availability and price comparisons.",
     "collectedAt": 1792485870684

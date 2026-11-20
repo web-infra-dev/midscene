@@ -18,7 +18,7 @@
     "recordId": "instruction/element_grounding.json#1432",
     "image": {
       "format": "png",
-      "sha256": "c29939081fde90466edaf7b3be314c8f21832a56a90bcfb52f99d34c1bb6625e"
+      "sha256": "11f3d3f4154489ec00d2bf2bea6b0d4db24b65c8dce98a7a0a79265383fe57d0"
     },
     "patch": "Reworded both instructions to identify the dialog's close button, and replaced the translated dialog title \"Add to Favorites\" in instruction.en with the exact on-screen title \"添加收藏\".",
     "collectedAt": 1792485870972
