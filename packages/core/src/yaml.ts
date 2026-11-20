@@ -1,4 +1,4 @@
-import type { TMultimodalPrompt, TUserPrompt } from './common';
+import type { TUserPrompt } from './common';
 import type {
   AndroidDeviceOpt,
   HarmonyDeviceOpt,
@@ -8,7 +8,7 @@ import type { WorkflowExecutionRecord } from './test-runner/execution-record';
 import type { AgentOpt, LocateResultElement, Rect } from './types';
 import type { UIContext } from './types';
 
-export interface LocateOption extends Partial<TMultimodalPrompt> {
+export interface LocateOption {
   prompt?: TUserPrompt;
   /**
    * Additional facts, rules, or constraints for this AI call. It overrides
@@ -38,10 +38,7 @@ export interface ServiceExtractOption {
 }
 
 export interface DetailedLocateParam
-  extends Omit<
-    LocateOption,
-    'context' | 'deepThink' | keyof TMultimodalPrompt
-  > {
+  extends Omit<LocateOption, 'context' | 'deepThink'> {
   prompt: TUserPrompt;
   /** Original prompt text used for user-facing reports. */
   promptDisplay?: string;

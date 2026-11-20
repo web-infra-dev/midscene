@@ -30,16 +30,17 @@ const createAgentStub = () => {
 };
 
 describe('multimodal locate prompt regression', () => {
-  it('should preserve multimodal locate options when Agent.aiTap receives a string prompt', async () => {
+  it('preserves images in the first argument to Agent.aiTap', async () => {
     const agent = createAgentStub();
     const callActionSpy = (agent as any).callActionInActionSpace as ReturnType<
       typeof rs.fn
     >;
 
-    await agent.aiTap('Click the icon', {
+    await agent.aiTap({
+      prompt: 'Click the icon',
       images: referenceImages,
       convertHttpImage2Base64: true,
-    } as any);
+    });
 
     expect(callActionSpy).toHaveBeenCalledTimes(1);
     expect(callActionSpy).toHaveBeenCalledWith('Tap', {

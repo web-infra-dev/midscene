@@ -1,4 +1,4 @@
-import type { TMultimodalPrompt, TUserPrompt } from '@/common';
+import type { TUserPrompt } from '@/common';
 import type {
   DetailedLocateParam,
   LocateOption,
@@ -183,31 +183,6 @@ function interpolateEnvVarRefs(
   return result + value.slice(lastIndex);
 }
 
-const multimodalLocateOptionFieldMap: Record<keyof TMultimodalPrompt, true> = {
-  images: true,
-  convertHttpImage2Base64: true,
-};
-
-const multimodalLocateOptionKeys = Object.keys(
-  multimodalLocateOptionFieldMap,
-) as Array<keyof TMultimodalPrompt>;
-
-function extractMultimodalPrompt(
-  opt?: LocateOption,
-): Partial<TMultimodalPrompt> | undefined {
-  if (typeof opt !== 'object' || opt === null) {
-    return undefined;
-  }
-
-  const entries = multimodalLocateOptionKeys
-    .map((key) => [key, opt[key]] as const)
-    .filter(([, value]) => value !== undefined);
-
-  return entries.length
-    ? (Object.fromEntries(entries) as Partial<TMultimodalPrompt>)
-    : undefined;
-}
-
 export function interpolateEnvVars(content: string): string {
   // Process line by line to skip commented lines
   const lines = content.split('\n');
@@ -352,20 +327,6 @@ export function buildDetailedLocateParam(
   const context = opt?.context?.trim() || undefined;
   prompt = buildLocatePromptWithContext(prompt, opt?.context);
 
-  const multimodalPrompt = extractMultimodalPrompt(opt);
-  if (multimodalPrompt) {
-    prompt =
-      typeof prompt === 'string'
-        ? {
-            prompt,
-            ...multimodalPrompt,
-          }
-        : {
-            ...prompt,
-            ...multimodalPrompt,
-          };
-  }
-
   return {
     prompt,
     ...(context ? { promptDisplay, context } : {}),
@@ -383,7 +344,6 @@ export function buildDetailedLocateParamAndRestParams(
   locateParam: DetailedLocateParam | undefined;
   restParams: Record<string, any>;
 } {
-  const multimodalPrompt = extractMultimodalPrompt(opt);
   const locateParam = buildDetailedLocateParam(locatePrompt, opt);
 
   // Extract all keys from opt except the ones already included in locateParam
@@ -395,10 +355,6 @@ export function buildDetailedLocateParamAndRestParams(
 
     // `context` has already been merged into the locate prompt.
     const locateParamKeys = Object.keys(locateParam || {});
-    const multimodalPromptKeys =
-      typeof locateParam?.prompt === 'object' && locateParam?.prompt !== null
-        ? Object.keys(multimodalPrompt || {})
-        : [];
 
     // Extract all other keys
     for (const key of allKeys) {
@@ -406,7 +362,6 @@ export function buildDetailedLocateParamAndRestParams(
         !locateParamKeys.includes(key) &&
         key !== 'context' &&
         key !== 'deepThink' &&
-        !multimodalPromptKeys.includes(key) &&
         !excludeKeys.includes(key) &&
         key !== 'locate'
       ) {

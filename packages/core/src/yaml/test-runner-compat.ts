@@ -1,3 +1,4 @@
+import type { TUserPrompt } from '@/common';
 import type {
   MidsceneYamlFlowItem,
   MidsceneYamlScript,
@@ -76,6 +77,28 @@ const buildShortcutActionParam = (
 
   return undefined;
 };
+
+// Older YAML steps can carry reference images alongside the locate prompt.
+function normalizeLegacyLocateInput(
+  prompt: TUserPrompt | undefined,
+  rawOptions: Record<string, any>,
+) {
+  if (!prompt) {
+    return { prompt, options: rawOptions };
+  }
+  const { images, convertHttpImage2Base64, ...options } = rawOptions;
+  if (images === undefined && convertHttpImage2Base64 === undefined) {
+    return { prompt, options };
+  }
+  return {
+    prompt: {
+      ...(typeof prompt === 'string' ? { prompt } : prompt),
+      ...(images !== undefined && { images }),
+      ...(convertHttpImage2Base64 !== undefined && { convertHttpImage2Base64 }),
+    },
+    options,
+  };
+}
 
 /** Translate known syntax; defer ActionSpace-dependent grammar to the YAML host. */
 export function compileLegacyFlowItem(
@@ -174,6 +197,9 @@ export function compileLegacyFlowItem(
         return invalid(
           '`observe` is not supported in YAML flow items. Use agent.startObserving() from code instead.',
         );
+      if (node === 'aiLocate') {
+        return step(node, normalizeLegacyLocateInput(prompt, options), true);
+      }
       return step(node, { prompt, options }, true);
     }
   }
@@ -212,13 +238,14 @@ export function compileLegacyFlowItem(
     const { aiInput, value: rawValue, ...options } = raw;
     const prompt = options.locate || aiInput || '';
     const value = options.locate ? aiInput || rawValue : rawValue;
+    const input = normalizeLegacyLocateInput(prompt, options);
     return step('action', {
       name: 'Input',
       params: {
-        ...options,
+        ...input.options,
         ...(value === undefined ? {} : { value: String(value) }),
-        ...(prompt
-          ? { locate: buildDetailedLocateParam(prompt, options) }
+        ...(input.prompt
+          ? { locate: buildDetailedLocateParam(input.prompt, input.options) }
           : {}),
       },
     });
@@ -233,23 +260,24 @@ export function compileLegacyFlowItem(
     const keyName = options.locate
       ? aiKeyboardPress
       : options.keyName || aiKeyboardPress;
+    const input = normalizeLegacyLocateInput(prompt, options);
     return step('action', {
       name: 'KeyboardPress',
       params: {
-        ...options,
+        ...input.options,
         ...(keyName ? { keyName } : {}),
-        ...(prompt
-          ? { locate: buildDetailedLocateParam(prompt, options) }
+        ...(input.prompt
+          ? { locate: buildDetailedLocateParam(input.prompt, input.options) }
           : {}),
       },
     });
   }
   if ('aiScroll' in flow) {
     const { aiScroll, locate, ...options } = raw;
-    return step('aiScroll', {
-      prompt: locate ?? aiScroll ?? undefined,
-      options,
-    });
+    return step(
+      'aiScroll',
+      normalizeLegacyLocateInput(locate ?? aiScroll ?? undefined, options),
+    );
   }
   if ('aiTap' in flow) {
     const { aiTap, prompt, locate, ...tapOptions } = raw;
@@ -281,9 +309,10 @@ export function compileLegacyFlowItem(
     } else {
       locatePrompt = prompt || nested;
     }
-    return locatePrompt
-      ? step('aiTap', { prompt: locatePrompt, options })
-      : invalid('missing prompt for aiTap');
+    if (!locatePrompt) {
+      return invalid('missing prompt for aiTap');
+    }
+    return step('aiTap', normalizeLegacyLocateInput(locatePrompt, options));
   }
   if (typeof flow.runAdbShell === 'string' && typeof flow.timeout === 'number')
     return step(
@@ -320,15 +349,14 @@ export function compileLegacyFlowItem(
     if (isStringParamSchema(action.paramSchema))
       return step('action', { name: action.name, params: value }, true);
   }
-  const prompt = typeof value === 'string' ? value : '';
-  const source = prompt
-    ? { ...flow, prompt }
-    : value && typeof value === 'object'
-      ? value
-      : flow;
+  const { prompt, ...options } =
+    value && typeof value === 'object' ? value : flow;
+  const locatePrompt =
+    typeof value === 'string' && value ? value : prompt || options.locate;
+  const input = normalizeLegacyLocateInput(locatePrompt, options);
   const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
-    prompt,
-    source,
+    input.prompt ?? '',
+    input.options,
     [action.name, action.interfaceAlias ?? ''],
   );
   return step(

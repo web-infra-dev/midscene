@@ -261,14 +261,14 @@ tasks:
       fileChooserAccept: ['./fixtures/image1.jpg', './fixtures/image2.png'],
     });
     expect(agent.aiTap).toHaveBeenCalledWith(
-      'Choose file button with an image prompt',
       {
+        prompt: 'Choose file button with an image prompt',
         images: [
           { name: 'Upload icon', url: 'https://example.com/upload.png' },
         ],
         convertHttpImage2Base64: true,
-        fileChooserAccept: './fixtures/document.pdf',
       },
+      { fileChooserAccept: './fixtures/document.pdf' },
     );
     expect(agent.aiScroll).toHaveBeenCalledWith('Results list', {
       scrollType: 'singleAction',
