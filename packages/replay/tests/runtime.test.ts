@@ -11,7 +11,7 @@ import {
 function fixture(states: VerdictState[] = ['pass']) {
   const point = { identity: 'a', tag: 'button', x: 32, y: 16 };
   const agent = {
-    evaluateJavaScript: rs.fn(async () => ({ point })),
+    evaluateJavaScript: rs.fn(async (_expression: string) => ({ point })),
     getUIContext: rs.fn(async () => ({ shrunkShotToLogicalRatio: 1.5 })),
     callActionInActionSpace: rs.fn(async () => undefined),
     recordToReport: rs.fn(async () => undefined),
