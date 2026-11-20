@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { channel } from 'node:diagnostics_channel';
 import {
   existsSync,
@@ -8,7 +9,16 @@ import {
   realpathSync,
   writeFileSync,
 } from 'node:fs';
-import { basename, dirname, join, relative, resolve, sep } from 'node:path';
+import {
+  basename,
+  dirname,
+  isAbsolute,
+  join,
+  relative,
+  resolve,
+  sep,
+} from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { withoutReplayFallback } from '../dist/es/experimental.mjs';
 import {
@@ -26,13 +36,46 @@ import {
   resolveReplayEntry,
   uncheckedChecks,
 } from './host.mjs';
-import { trackModelRequests, trackScreenshots } from './metrics.mjs';
+import { trackModelRequests } from './metrics.mjs';
 import {
   exportReportEvidence,
   writeReviewSheets,
   writeStepIndex,
 } from './report-evidence.mjs';
-import { trackTrialImports } from './trial-imports.mjs';
+
+const importSpecifiers =
+  /(?:(?:import|export)\s+(?:[^'"]*?\s+from\s+)?|import\s*\(\s*)(['"])([^'"]+)\1/g;
+
+function checkLocalImports(file, root, role) {
+  if (!/\.[cm]?js$/.test(file)) return;
+  const source = readFileSync(file, 'utf8').replace(
+    /\/\*[\s\S]*?\*\/|(^|[^:\\])\/\/.*/gm,
+    '$1',
+  );
+  for (const [, , specifier] of source.matchAll(importSpecifiers)) {
+    const local =
+      specifier.startsWith('./') ||
+      specifier.startsWith('../') ||
+      specifier.startsWith('file:') ||
+      isAbsolute(specifier);
+    if (!local) continue;
+    const resolved = specifier.startsWith('file:')
+      ? fileURLToPath(specifier)
+      : resolve(dirname(file), specifier);
+    const target = existsSync(resolved) ? realpathSync(resolved) : resolved;
+    const rel = relative(root, target);
+    if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel))
+      throw new Error(
+        `TRIAL_IMPORT_OUTSIDE_ROOT: ${role} import ${specifier} from ${file} resolves outside ${root}`,
+      );
+    if (
+      rel.split(sep).some((part) => part === 'node_modules' || part === '.git')
+    )
+      throw new Error(
+        `TRIAL_IMPORT_EXCLUDED: ${role} import ${specifier} resolves to an excluded directory`,
+      );
+  }
+}
 
 /** Snapshot a delivery directory, or keep the historical single-entry scope. */
 function replayFiles(entry, bundle) {
@@ -182,23 +225,33 @@ export async function trial(
       'TRIAL_INPUTS_CHANGED: replay files or session differ from the trial snapshot',
     );
   };
-  let imports;
+  const trialId = randomUUID();
+  const importEntry = (file) => {
+    const entry = pathToFileURL(file);
+    entry.searchParams.set('midscene-replay-trial', trialId);
+    return import(entry.href);
+  };
   try {
     if (realpathSync(script) !== script)
       throw new Error(`REPLAY_INPUT_SYMLINK: ${script}`);
     replayInventory = replayFiles(script, bundle);
-    for (const file of replayInventory) snapshot('replay', file);
-    if (sessionFile) snapshot('session', sessionFile);
-    imports = await trackTrialImports(roots, snapshot);
+    for (const file of replayInventory) {
+      checkLocalImports(file, roots.replay, 'replay');
+      snapshot('replay', file);
+    }
+    if (sessionFile) {
+      checkLocalImports(sessionFile, roots.session, 'session');
+      snapshot('session', sessionFile);
+    }
     unchanged();
-    const flow = await loadReplayFlow(script, imports.importEntry);
+    const flow = await loadReplayFlow(script, importEntry);
     const replay = await loadReplay(flow, {
       sessionFile,
       cdp,
       isolate: true,
       headless,
       generateReport: false,
-      importEntry: imports.importEntry,
+      importEntry,
     });
     const hostModule = replay.session;
     result.host = {
@@ -230,7 +283,6 @@ export async function trial(
       const metrics = trackModelRequests();
       let host;
       let listener;
-      let screenshots;
       let stage = 'setup';
       const started = performance.now();
       const capture = async (name) => {
@@ -250,8 +302,6 @@ export async function trial(
         const { agent, params } = await replay.prepare(host);
         const page = agent.interface.underlyingPage;
         report.viewport = page.viewportSize?.() ?? page.viewport?.();
-        if (typeof page.context === 'function')
-          screenshots = trackScreenshots(page, () => metrics.phase);
         await capture('start');
         listener = (message) => {
           if (message.agent !== agent) return;
@@ -320,15 +370,10 @@ export async function trial(
         if (host?.agent) {
           // Preserve native Midscene actions, actual screenshots and checkpoints before teardown.
           try {
-            writeFileSync(
-              join(dir, 'agent.json'),
-              host.agent.dumpDataString({ inlineScreenshots: true }),
-            );
+            const dump = host.agent.dumpDataString({ inlineScreenshots: true });
+            writeFileSync(join(dir, 'agent.json'), dump);
             report.agentReport = 'agent.json';
-            report.evidence = exportReportEvidence(
-              JSON.parse(readFileSync(join(dir, 'agent.json'), 'utf8')),
-              dir,
-            );
+            report.evidence = exportReportEvidence(JSON.parse(dump), dir);
           } catch (error) {
             report.errors.push(describeError(error, 'report'));
           }
@@ -345,16 +390,13 @@ export async function trial(
           report.errors.push(describeError(error, 'cleanup'));
         }
         metrics.stop();
-        screenshots?.stop();
         report.requests = metrics.requests;
-        report.screenshots = screenshots?.events ?? [];
         if (report.errors.length) report.execution = 'failed';
         writeJsonFile(join(dir, 'report.json'), report);
       }
       result.reports.push({
         ...report,
         events: undefined,
-        screenshots: undefined,
         evidence: report.evidence && { images: report.evidence.images },
         report: `run-${index}/report.json`,
       });
@@ -365,8 +407,6 @@ export async function trial(
     if (sourceFile) readSource(sourceFile);
   } catch (error) {
     result.errors.push(describeError(error, 'trial'));
-  } finally {
-    imports?.close();
   }
   result.inputs = [...captured.keys()].sort().map((path) => captured.get(path));
   result.inputDigest = digest(

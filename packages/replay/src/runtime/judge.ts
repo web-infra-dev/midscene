@@ -1,4 +1,3 @@
-export { sha256 as digest } from '../io';
 import type { IModelConfig } from '@midscene/shared/env';
 import { createJevChecker } from './jev';
 
@@ -6,14 +5,11 @@ export type VerdictState = 'pass' | 'fail' | 'pending' | 'inconclusive';
 export type JudgeInput = {
   criterion: string;
   frames: { base64: string }[];
-  purpose: 'assert';
   abortSignal?: AbortSignal;
 };
 export interface VerdictJudge {
   model: string;
   detects: { pending: boolean; inconclusive: boolean };
-  maxFrames: number;
-  thresholds?: Record<string, number>;
   judge(input: JudgeInput): Promise<{
     state: VerdictState;
     reason?: string;
@@ -38,9 +34,7 @@ export async function createReplayJev(
   const checker = await createJevChecker({ resolvedConfig });
   return {
     model: checker.model,
-    thresholds: checker.thresholds,
     detects: { pending: true, inconclusive: true },
-    maxFrames: 1,
     async judge({ criterion, frames, abortSignal }) {
       if (frames.length !== 1)
         throw new Error('Jev requires one explicit frame');

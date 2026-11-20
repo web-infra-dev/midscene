@@ -48,7 +48,7 @@ Use the [template](../templates/session.mjs) for special login or redirects, bac
 - Optional `getParams()` supplies host parameters, available to steps as `ctx.params`.
 - Optional `checks`: named async functions for independent checks the script cannot do itself (backend API, reload, another page). Each returns a boolean or `{state: 'pass'|'fail'|'pending'|'inconclusive'|'not_checked', actual?, reason?}`. Assertion errors become fail, other exceptions error, missing results error; only pass succeeds. Do not duplicate the script's own final assertions.
 
-For a frozen trial, place local modules imported by the session beside its entry or in a subdirectory. Trial snapshots the entry and the local ESM modules it imports. Keep credentials in host configuration.
+For a frozen trial, keep local modules imported by the session inside its directory. Trial snapshots the session entry file and rejects local imports outside its directory. Keep credentials in host configuration.
 
 For `run --from STEP --until STEP --session FILE`, give the diagnostic session a `reset` and `verifyStart` for that step's actual entry state. For example, opening an item can start from a seeded results page, with the item id supplied by `getParams()` if the step reads it from `ctx.params`. Keep this fixture separate from the full-workflow session. State set up by a fixture is evidence for the selected step only. See [diagnostic run options](review.md#run).
 
@@ -90,4 +90,4 @@ export async function open() {
 }
 ```
 
-Implement `reset` and `verifyStart` for the actual starting page. Popup following waits for a fresh page from the active source. Native screenshots and evidence are available in a trial. Screenshot-attempt metrics currently instrument Playwright only. Use Playwright for `record web` and the built-in CDP session modes.
+Implement `reset` and `verifyStart` for the actual starting page. Popup following waits for a fresh page from the active source. Native screenshots and evidence are available in a trial. Use Playwright for `record web` and the built-in CDP session modes.

@@ -1,12 +1,12 @@
 import { deepStrictEqual } from 'node:assert/strict';
 import type { Agent } from '@midscene/core';
+import { sha256 as digest } from '../io';
 import { describeError } from '../verification/diagnostic';
 import { replayJevConfig } from './jev';
 import {
   type VerdictJudge,
   type VerdictState,
   createReplayJev,
-  digest,
   imageBytes,
 } from './judge';
 import {
@@ -225,7 +225,6 @@ export function createReplayChecks(
           judged = await judge.judge({
             criterion,
             frames: [{ base64 }],
-            purpose: 'assert',
           });
         } catch (error) {
           const failed = error as {

@@ -412,51 +412,7 @@ it('rejects a transitive local import outside the replay directory before execut
   expect(result()).toMatchObject({ execution: 'failed', completedRuns: 0 });
 });
 
-it('snapshots transitive session imports and detects a lazy helper changing', async () => {
-  const folder = join(root, 'authoring/session');
-  mkdirSync(folder);
-  const host = join(folder, 'index.mjs');
-  const entry = join(root, 'authoring/candidate.mjs');
-  const helper = join(folder, 'helper.mjs');
-  writeFileSync(
-    host,
-    `import {loadHelper} from './reset.mjs';${session.replace(
-      'export async function reset(){}',
-      'export async function reset(){ await loadHelper(); }',
-    )}`,
-  );
-  writeFileSync(
-    join(folder, 'reset.mjs'),
-    "export async function loadHelper(){ const name = './helper.mjs'; await import(name); }",
-  );
-  writeFileSync(helper, 'export const value = 1;');
-  setup();
-  await trial(entry, {
-    session: host,
-    out: join(root, 'passed'),
-    runs: 2,
-  });
-  expect(
-    JSON.parse(readFileSync(join(root, 'passed/result.json'), 'utf8')).inputs,
-  ).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({ path: 'session/index.mjs' }),
-      expect.objectContaining({ path: 'session/reset.mjs' }),
-      expect.objectContaining({ path: 'session/helper.mjs' }),
-    ]),
-  );
-  setup(
-    `const fs = await import('node:fs'); fs.writeFileSync(${JSON.stringify(helper)}, 'export const value = 2;');`,
-  );
-  await expect(
-    trial(entry, { session: host, out: join(root, 'result') }),
-  ).rejects.toThrow('TRIAL_INPUTS_CHANGED');
-  expect(readFileSync(join(root, 'result/session/helper.mjs'), 'utf8')).toBe(
-    'export const value = 1;',
-  );
-});
-
-it('rejects a lazy session import outside the session directory', async () => {
+it('rejects a local session import outside the session directory before execution', async () => {
   const folder = join(root, 'host');
   mkdirSync(folder);
   const host = join(folder, 'session.mjs');
@@ -472,25 +428,7 @@ it('rejects a lazy session import outside the session directory', async () => {
   await expect(run({ session: host })).rejects.toThrow(
     /TRIAL_IMPORT_OUTSIDE_ROOT.*foreign\.mjs/,
   );
-  expect(report().errors[0].stage).toBe('setup');
-});
-
-it('fails a trial when a new session module first loads in a later round', async () => {
-  session = session.replace(
-    'export async function reset(){}',
-    "let calls = 0; export async function reset(){ if (++calls > 1) await import('./late.mjs'); }",
-  );
-  setup();
-  writeFileSync(
-    join(root, 'authoring/late.mjs'),
-    "throw new Error('late helper ran');",
-  );
-  await expect(run()).rejects.toThrow(/TRIAL_INPUTS_CHANGED.*late\.mjs/);
-  expect(result()).toMatchObject({
-    execution: 'failed',
-    completedRuns: 2,
-    reports: [{ execution: 'passed' }, { execution: 'failed' }],
-  });
+  expect(result()).toMatchObject({ execution: 'failed', completedRuns: 0 });
 });
 
 for (const change of ['add', 'edit', 'delete']) {

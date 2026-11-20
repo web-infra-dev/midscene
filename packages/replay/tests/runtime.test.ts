@@ -20,7 +20,6 @@ function fixture(states: VerdictState[] = ['pass']) {
   const judge: VerdictJudge = {
     model: 'fixture',
     detects: { pending: true, inconclusive: true },
-    maxFrames: 1,
     judge: rs.fn(async () => ({ state: states.shift()! })),
   };
   return {
@@ -336,4 +335,65 @@ it('uses bounded default readiness, caches a stable scale and avoids a duplicate
     undefined,
     { skipDefaultWait: true, deferModelResolution: true },
   );
+});
+
+it('records checkpoint values, captures failure screenshots and surfaces evidence errors without masking assertion failures', async () => {
+  const { agent, replay } = fixture();
+  agent.evaluateJavaScript.mockResolvedValueOnce({ count: 2 } as never);
+  await expect(
+    replay.checkpoint('cart count', () => ({ count: 2 }), {
+      expect: { count: 2 },
+    }),
+  ).resolves.toEqual({ count: 2 });
+  expect(agent.interface.screenshotBase64).not.toHaveBeenCalled();
+
+  agent.evaluateJavaScript.mockResolvedValueOnce({ count: 1 } as never);
+  await expect(
+    replay.checkpoint('cart count', () => ({ count: 1 }), {
+      expect: { count: 2 },
+    }),
+  ).rejects.toThrow('cart count');
+  expect(agent.interface.screenshotBase64).toHaveBeenCalledTimes(1);
+  expect(agent.recordToReport).toHaveBeenCalledWith(
+    'Replay · checkpoint',
+    expect.objectContaining({
+      content: expect.stringContaining('"status":"failed"'),
+      screenshots: [{ base64: 'YQ==' }],
+    }),
+  );
+
+  agent.evaluateJavaScript.mockResolvedValueOnce({ count: 0 } as never);
+  agent.interface.screenshotBase64.mockRejectedValueOnce(
+    new Error('screenshot failed'),
+  );
+  await expect(
+    replay.checkpoint('cart count', () => ({ count: 0 }), {
+      expect: { count: 2 },
+    }),
+  ).rejects.toThrow('cart count');
+});
+
+it('matches exact and structured URLs in waitForUrl and rejects malformed targets', async () => {
+  const { agent, replay } = fixture();
+  agent.evaluateJavaScript.mockImplementation(
+    async (expression: string) =>
+      new Function('location', `return ${expression}`)({
+        href: 'https://example.test/search?q=midscene&page=2#results',
+      }) as never,
+  );
+  await replay.waitForUrl(
+    'https://example.test/search?q=midscene&page=2#results',
+  );
+  await replay.waitForUrl({
+    origin: 'https://example.test',
+    pathname: '/search',
+    search: { q: 'midscene' },
+    hash: '#results',
+  });
+  await expect(
+    replay.waitForUrl({ pathname: '/other' }, { timeoutMs: 0 }),
+  ).rejects.toMatchObject({ code: 'WAIT_TIMEOUT' });
+  await expect(
+    replay.waitForUrl('https://user:pass@example.test/'),
+  ).rejects.toMatchObject({ code: 'INVALID_REPLAY_URL' });
 });
