@@ -1,0 +1,102 @@
+# Universal Device JavaScript SDK
+
+`@midscene/universal-device` 通过设备服务连接和操作硬件。`UniversalDeviceAgent` 继承基础 `Agent` 的 [AI 方法](../reference/#interaction-methods)。
+
+## 导入与 API 概览
+
+```ts
+import {
+  agentFromUniversalDevice,
+  listUniversalDevices,
+} from '@midscene/universal-device';
+```
+
+使用 `agentFromUniversalDevice()` 一步完成设备连接并创建 Agent。需要查看可用设备时，先调用 `listUniversalDevices()`。
+
+服务启动和模型配置见[快速开始](../universal-device/quick-start#sdk)。
+
+## `agentFromUniversalDevice()`
+
+```ts
+agentFromUniversalDevice(
+  options: AgentFromUniversalDeviceOptions,
+): Promise<UniversalDeviceAgent>
+```
+
+连接设备服务，为目标设备创建独占会话，并返回 Agent。服务中只有一个设备时，可以省略 `deviceId`。有多个设备时必须指定 ID。
+
+```ts
+const agent = await agentFromUniversalDevice({
+  host: '<your-device-service-url>',
+  deviceId: '<your-device-id>',
+  agentOptions: {
+    generateReport: true,
+  },
+});
+
+try {
+  await agent.aiTap('Settings');
+  await agent.aiAssert('The settings page is visible');
+} finally {
+  await agent.destroy();
+}
+```
+
+### 配置选项
+
+| 参数 | 类型 | 说明 |
+| --- | --- | --- |
+| `host` | `string` | 必填。设备服务的 HTTP(S) 地址，使用协议、主机和端口，不附加 API 路径、查询参数或认证信息。 |
+| `token` | `string` | 访问 Token。省略时读取 `MIDSCENE_UNIVERSAL_DEVICE_SERVICE_TOKEN` 环境变量。 |
+| `deviceId` | `string` | 目标设备 ID，可从 `listUniversalDevices()` 获取。服务中只有一个设备时可省略。 |
+| `agentOptions` | `AgentOpt` | [通用 Agent 配置](../reference/#agent-options)，如模型配置、报告和执行选项。 |
+
+缺少 Token、服务中没有设备、指定的设备不存在，或存在多个设备但未指定 ID 时，创建 Agent 会抛出错误。
+
+### 操作设备
+
+创建 Agent 后，可调用 `aiAct()`、`aiTap()`、`aiQuery()`、`aiAssert()` 等通用方法。可执行的输入动作由设备服务声明的能力决定，例如点击、滑动或文本输入。完整方法见[通用 Agent API](../reference/)。
+
+### 释放设备
+
+通过此工厂函数创建的 Agent 负责设备会话的生命周期，并自动发送心跳续租。使用完毕后调用 `await agent.destroy()` 释放会话，建议放在 `finally` 中，确保操作失败时也能释放设备。
+
+每个 Agent 使用独立的 Device 实例。销毁后如需再次操作，应重新调用 `agentFromUniversalDevice()`。
+
+## `listUniversalDevices()`
+
+```ts
+listUniversalDevices(
+  options: UniversalDeviceOptions,
+): Promise<UniversalDeviceProfile[]>
+```
+
+列出服务中的设备及其状态，不创建控制会话。`host` 和 `token` 均为必填参数，这个函数不会自动读取 Token 环境变量。
+
+```ts
+const token = process.env.MIDSCENE_UNIVERSAL_DEVICE_SERVICE_TOKEN;
+if (!token) throw new Error('Set MIDSCENE_UNIVERSAL_DEVICE_SERVICE_TOKEN.');
+
+const devices = await listUniversalDevices({
+  host: '<your-device-service-url>',
+  token,
+});
+
+console.log(devices);
+```
+
+返回数组中的每个设备包含：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `id` | `string` | 设备 ID，用于连接设备。 |
+| `name` | `string` | 设备名称。 |
+| `status` | `'available' \| 'busy' \| 'offline'` | 可用、被占用或离线。 |
+| `actions` | `InputAction['type'][]` | 设备支持的输入动作。 |
+| `screenSource` | `'usb' \| 'camera' \| 'airplay'` | 可选，画面来源。 |
+| `preview` | `'mjpeg'` | 可选，表示设备支持 MJPEG 预览。 |
+| `inputGuidance` | `string` | 可选，设备的操作说明，工厂函数会将其加入 Agent 的操作上下文。 |
+
+服务中没有设备时返回空数组，请先在设备服务中添加设备。
+
+自定义服务实现见[快速开始](../universal-device/quick-start#custom-device)，完整 HTTP API 见[协议参考](../universal-device/protocol)。

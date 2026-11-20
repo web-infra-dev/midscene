@@ -1,0 +1,103 @@
+.universal-device-screenshots {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.universal-device-screenshots > a {
+  display: block;
+  overflow: hidden;
+  border: 1px solid var(--rp-c-divider);
+  border-radius: 8px;
+}
+
+.universal-device-screenshots img {
+  display: block;
+  width: 100%;
+  margin: 0;
+}
+
+.universal-device-screenshots-connected {
+  position: relative;
+  container-type: inline-size;
+}
+
+.universal-device-screenshots-task-callout,
+.universal-device-screenshots-callout {
+  position: absolute;
+  top: 36%;
+  left: 5%;
+  width: 49%;
+  color: #ed0014;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: clamp(14px, 4cqw, 24px);
+  font-weight: 400;
+  line-height: 1.25;
+  text-align: center;
+  -webkit-text-stroke: 2px #fff;
+  paint-order: stroke fill;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 35%));
+}
+
+.universal-device-screenshots-arrow {
+  position: absolute;
+  top: 55%;
+  left: 53%;
+  width: 20%;
+  height: 3px;
+  border-radius: 2px;
+  background: #ff4081;
+}
+
+.universal-device-screenshots-arrow::after {
+  position: absolute;
+  right: 0;
+  top: -5px;
+  width: 12px;
+  height: 12px;
+  border-top: 3px solid #ff4081;
+  border-right: 3px solid #ff4081;
+  transform: rotate(45deg);
+  content: "";
+}
+
+@media (max-width: 640px) {
+  .universal-device-screenshots {
+    grid-template-columns: 1fr;
+  }
+}
+
+.universal-device-screenshots-task-callout {
+  top: 66%;
+  left: 5%;
+  width: 49%;
+}
+
+.universal-device-screenshots-callout {
+  top: 42%;
+  font-size: clamp(12px, 3.5cqw, 21px);
+}
+
+.universal-device-screenshots-task-arrow {
+  position: absolute;
+  top: 74%;
+  left: 30%;
+  width: 3px;
+  height: 12%;
+  border-radius: 2px;
+  background: #ff4081;
+}
+
+.universal-device-screenshots-task-arrow::after {
+  position: absolute;
+  bottom: 0;
+  left: -5px;
+  width: 12px;
+  height: 12px;
+  border-right: 3px solid #ff4081;
+  border-bottom: 3px solid #ff4081;
+  transform: rotate(45deg);
+  content: "";
+}
