@@ -667,6 +667,8 @@ function aiInput(
       - `'typeOnly'`: Enter the text directly without clearing the field first.
       - `'clear'`: Clear the input field without entering new text.
 
+  On iOS, replacement first attempts to clear the located field. If WDA cannot identify the active input, Midscene can type at the cursor after confirming that the software keyboard is visible and the same app is in the foreground. Existing text may remain. Verify the resulting value when the field may already contain text.
+
   Platform-specific behavior under the default `inputStrategy: 'legacy'`:
 
   | Platform | `'legacy'` behavior |
