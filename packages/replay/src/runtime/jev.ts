@@ -6,7 +6,6 @@ type ImagePreparation = Awaited<
 >['preparation'];
 interface VisualChecker {
   model: string;
-  thresholds: Record<string, number>;
   check(request: {
     criterion: string;
     current: string;
@@ -67,12 +66,14 @@ export function replayJevConfig(
   selected?: IModelConfig,
 ): IModelConfig | undefined {
   if (selected?.modelFamily === 'jev') return selected;
-  if (
-    selected?.slot !== 'default' ||
-    !selected.openaiBaseURL ||
-    new URL(selected.openaiBaseURL).hostname !== 'openrouter.ai'
-  )
+  if (selected?.slot !== 'default' || !selected.openaiBaseURL) return;
+  let hostname: string;
+  try {
+    hostname = new URL(selected.openaiBaseURL).hostname;
+  } catch {
     return;
+  }
+  if (hostname !== 'openrouter.ai') return;
   return {
     ...selected,
     intent: 'insight',
@@ -104,7 +105,6 @@ export async function createJevChecker({
   const model = { ...runtime, config: { ...runtime.config, retryCount: 0 } };
   return {
     model: runtime.config.modelName,
-    thresholds: { ...thresholds },
     async check({ criterion, current, signal, deadline, onPreparedImage }) {
       const prepared = await prepareJevImage(current);
       const image = prepared.imageBase64;

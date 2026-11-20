@@ -43,34 +43,3 @@ export function trackModelRequests() {
   };
   return metrics;
 }
-
-/** Count Playwright screenshot attempts, including Agent reports and popups. CDP fallback is not counted. */
-export function trackScreenshots(page, phase) {
-  const context = page.context();
-  const originals = new Map();
-  const events = [];
-  const attach = (target) => {
-    if (originals.has(target)) return;
-    const original = target.screenshot;
-    originals.set(target, original);
-    target.screenshot = async function (...args) {
-      const event = { phase: phase(), ms: 0 };
-      const start = performance.now();
-      events.push(event);
-      try {
-        return await original.apply(this, args);
-      } finally {
-        event.ms = Math.round(performance.now() - start);
-      }
-    };
-  };
-  for (const target of context.pages()) attach(target);
-  context.on('page', attach);
-  return {
-    events,
-    stop() {
-      context.off('page', attach);
-      for (const [target, original] of originals) target.screenshot = original;
-    },
-  };
-}
