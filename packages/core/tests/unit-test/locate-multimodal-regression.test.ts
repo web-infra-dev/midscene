@@ -1,5 +1,6 @@
 import { Agent } from '@/agent';
 import { ScriptPlayer } from '@/yaml/player';
+import { compileLegacyFlowItem } from '@/yaml/test-runner-compat';
 import { describe, expect, it, rs } from '@rstest/core';
 import { installAgentReportManager } from './test-helpers/agent-report-manager';
 
@@ -30,6 +31,115 @@ const createAgentStub = () => {
 };
 
 describe('multimodal locate prompt regression', () => {
+  it.each(['Results', { prompt: 'Results', images: referenceImages }])(
+    'preserves a fallback scroll prompt with image options: %j',
+    async (prompt) => {
+      const step = compileLegacyFlowItem({
+        aiScroll: null,
+        prompt,
+        ...(typeof prompt === 'string' && { images: referenceImages }),
+        convertHttpImage2Base64: false,
+        direction: 'down',
+      } as any);
+      const input = step.input as any;
+      const agent = createAgentStub();
+      await agent.aiScroll(input.prompt, input.options);
+      expect((agent as any).callActionInActionSpace).toHaveBeenCalledWith(
+        'Scroll',
+        {
+          direction: 'down',
+          locate: {
+            ...expectedLocateParam,
+            prompt: {
+              prompt: 'Results',
+              images: referenceImages,
+              convertHttpImage2Base64: false,
+            },
+          },
+        },
+      );
+    },
+  );
+
+  it.each([
+    { images: referenceImages },
+    { convertHttpImage2Base64: false },
+    { images: undefined, convertHttpImage2Base64: undefined },
+  ])(
+    'ignores image options for targetless YAML actions: %j',
+    async (options) => {
+      const scroll = compileLegacyFlowItem({
+        aiScroll: null,
+        direction: 'down',
+        ...options,
+      } as any);
+      expect(scroll.input).toStrictEqual({
+        prompt: undefined,
+        options: { direction: 'down' },
+      });
+      const agent = createAgentStub();
+      const input = scroll.input as any;
+      await agent.aiScroll(input.prompt, input.options);
+      expect((agent as any).callActionInActionSpace).toHaveBeenCalledWith(
+        'Scroll',
+        { direction: 'down', locate: undefined },
+      );
+
+      const pinch = compileLegacyFlowItem(
+        { aiPinch: { direction: 'in', ...options } } as any,
+        [{ name: 'Pinch', interfaceAlias: 'aiPinch' }],
+      );
+      expect(pinch.input).toStrictEqual({
+        name: 'Pinch',
+        params: { direction: 'in', locate: undefined },
+      });
+    },
+  );
+
+  it.each([
+    {
+      aiTap: null,
+      locate: { prompt: { prompt: 'submit', images: referenceImages } },
+    },
+    {
+      aiTap: {
+        locate: { prompt: { prompt: 'submit', images: referenceImages } },
+      },
+    },
+  ])(
+    'rejects a second prompt object inside legacy aiTap locate: %j',
+    (flow) => {
+      const step = compileLegacyFlowItem(flow as any);
+      expect(step.node).toBe('legacyValidationError');
+      expect(step.input.message).toContain('locate.prompt must be a string');
+    },
+  );
+
+  it.each([{ images: referenceImages }, { convertHttpImage2Base64: false }])(
+    'rejects duplicate image fields across YAML layers: %j',
+    (fields) => {
+      const inputs = [
+        { aiTap: { prompt: 'submit', ...fields }, ...fields },
+        { aiTap: null, locate: { prompt: 'submit', ...fields }, ...fields },
+        { aiTap: { locate: { prompt: 'submit', ...fields } }, ...fields },
+        { aiLocate: { prompt: 'submit', ...fields }, ...fields },
+        {
+          aiScroll: { prompt: 'submit', ...fields },
+          direction: 'down',
+          ...fields,
+        },
+        { aiHover: { prompt: { prompt: 'submit', ...fields }, ...fields } },
+      ];
+      for (const input of inputs) {
+        const step = compileLegacyFlowItem(input as any, [
+          { name: 'Hover', interfaceAlias: 'aiHover' },
+        ]);
+        expect(step.node).toBe('legacyValidationError');
+        expect(step.input.message).toContain('Duplicate');
+      }
+    },
+  );
+
   it.each([
     { images: referenceImages },
     { convertHttpImage2Base64: false },

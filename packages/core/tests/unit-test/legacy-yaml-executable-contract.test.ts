@@ -710,19 +710,17 @@ const frozenLegacySyntax = [
 ] as const;
 
 describe('executable legacy YAML flow contract', () => {
-  test('outer tap fields override nested image and locate options', () => {
+  test('merges separate image fields while outer locate options take precedence', () => {
     const images = [{ name: 'outer', url: 'data:image/png;base64,outer' }];
     const step = compileLegacyFlowItem({
       aiTap: {
         locate: {
           prompt: 'button',
-          images: [{ name: 'inner', url: 'data:image/png;base64,inner' }],
-          convertHttpImage2Base64: true,
+          images,
           deepLocate: true,
           cacheable: true,
         },
       },
-      images,
       convertHttpImage2Base64: false,
       deepLocate: false,
       cacheable: false,

@@ -78,15 +78,35 @@ const buildShortcutActionParam = (
   return undefined;
 };
 
+class DuplicateImageFieldError extends Error {}
+
+function assertNoDuplicateImageFields(
+  prompt: Record<string, any>,
+  options: Record<string, any>,
+) {
+  for (const field of ['images', 'convertHttpImage2Base64']) {
+    if (prompt[field] !== undefined && options[field] !== undefined) {
+      throw new DuplicateImageFieldError(
+        `Duplicate ${field} in YAML locate input. Specify it in only one place.`,
+      );
+    }
+  }
+}
+
 // Older YAML steps can carry reference images alongside the locate prompt.
 function normalizeLegacyLocateInput(
   prompt: TUserPrompt | undefined,
   rawOptions: Record<string, any>,
 ) {
-  if (!prompt) {
-    return { prompt, options: rawOptions };
-  }
   const { images, convertHttpImage2Base64, ...options } = rawOptions;
+  // Targetless actions used to ignore image fields. Do not pass them through
+  // to the SDK, where image fields in locate options are now rejected.
+  if (!prompt) {
+    return { prompt, options };
+  }
+  if (typeof prompt === 'object') {
+    assertNoDuplicateImageFields(prompt, rawOptions);
+  }
   if (images === undefined && convertHttpImage2Base64 === undefined) {
     return { prompt, options };
   }
@@ -104,6 +124,26 @@ function normalizeLegacyLocateInput(
 export function compileLegacyFlowItem(
   flowItem: MidsceneYamlFlowItem,
   actionSpace: readonly LegacyYamlActionIdentity[] = [],
+): NormalizedStep {
+  try {
+    return compileLegacyFlowItemInternal(flowItem, actionSpace);
+  } catch (error) {
+    if (!(error instanceof DuplicateImageFieldError)) {
+      throw error;
+    }
+    // Reject duplicate fields at Step execution, preserving task continuation
+    // and reporting instead of aborting document collection or Agent setup.
+    return {
+      node: 'legacyValidationError',
+      input: { message: error.message },
+      meta: { continueOnError: false },
+    };
+  }
+}
+
+function compileLegacyFlowItemInternal(
+  flowItem: MidsceneYamlFlowItem,
+  actionSpace: readonly LegacyYamlActionIdentity[],
 ): NormalizedStep {
   if (
     typeof flowItem !== 'object' ||
@@ -273,10 +313,13 @@ export function compileLegacyFlowItem(
     });
   }
   if ('aiScroll' in flow) {
-    const { aiScroll, locate, ...options } = raw;
+    const { aiScroll, locate, prompt, ...options } = raw;
     return step(
       'aiScroll',
-      normalizeLegacyLocateInput(locate ?? aiScroll ?? undefined, options),
+      normalizeLegacyLocateInput(
+        (locate ?? aiScroll) || prompt || undefined,
+        options,
+      ),
     );
   }
   if ('aiTap' in flow) {
@@ -284,28 +327,28 @@ export function compileLegacyFlowItem(
     const nested =
       locate ??
       (typeof aiTap === 'object' && aiTap !== null ? aiTap.locate : undefined);
+    if (
+      !(typeof aiTap === 'string' && aiTap) &&
+      nested &&
+      typeof nested === 'object' &&
+      nested.prompt &&
+      typeof nested.prompt !== 'string'
+    ) {
+      return invalid(
+        'aiTap locate.prompt must be a string. Put images alongside locate.prompt, not inside another prompt object.',
+      );
+    }
     const { prompt: locatePrompt, options } = (() => {
       if (typeof aiTap === 'string' && aiTap) {
         return { prompt: aiTap, options: tapOptions };
       }
       if (nested && typeof nested === 'object' && nested.prompt) {
-        const { prompt, images, convertHttpImage2Base64, ...nestedOptions } = {
-          ...nested,
+        const { prompt: nestedPrompt, ...nestedOptions } = nested;
+        assertNoDuplicateImageFields(nestedOptions, tapOptions);
+        return normalizeLegacyLocateInput(nestedPrompt, {
+          ...nestedOptions,
           ...tapOptions,
-        };
-        return {
-          prompt:
-            images !== undefined || convertHttpImage2Base64 !== undefined
-              ? {
-                  prompt,
-                  ...(images !== undefined && { images }),
-                  ...(convertHttpImage2Base64 !== undefined && {
-                    convertHttpImage2Base64,
-                  }),
-                }
-              : prompt,
-          options: nestedOptions,
-        };
+        });
       }
       if (
         aiTap &&
