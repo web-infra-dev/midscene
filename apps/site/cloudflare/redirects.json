@@ -1,0 +1,52 @@
+{
+  "rules": [
+    {
+      "ref": "midscene_apex_cn",
+      "description": "Apex China traffic directly to www Chinese documentation",
+      "expression": "(http.host eq \"midscenejs.com\") and ip.src.country eq \"CN\" and not (http.request.uri.path eq \"/zh\" or starts_with(http.request.uri.path, \"/zh/\")) and not (starts_with(http.request.uri.path, \"/images/\") or starts_with(http.request.uri.path, \"/static/\") or http.request.uri.path in {\"/favicon.ico\" \"/favicon.png\" \"/og-image.png\" \"/robots.txt\" \"/sitemap.xml\" \"/sitemap-index.xml\" \"/apple-touch-icon.png\" \"/apple-touch-icon-precomposed.png\"})",
+      "action": "redirect",
+      "enabled": true,
+      "action_parameters": {
+        "from_value": {
+          "target_url": {
+            "expression": "concat(\"https://www.midscenejs.com/zh\", http.request.uri.path)"
+          },
+          "status_code": 301,
+          "preserve_query_string": true
+        }
+      }
+    },
+    {
+      "ref": "midscene_apex_zh_root",
+      "description": "Apex Chinese homepage directly to canonical www homepage",
+      "expression": "(http.host eq \"midscenejs.com\") and http.request.uri.path eq \"/zh\"",
+      "action": "redirect",
+      "enabled": true,
+      "action_parameters": {
+        "from_value": {
+          "target_url": {
+            "expression": "\"https://www.midscenejs.com/zh/\""
+          },
+          "status_code": 301,
+          "preserve_query_string": true
+        }
+      }
+    },
+    {
+      "ref": "midscene_apex_www",
+      "description": "All remaining apex traffic to HTTPS www, preserving paths",
+      "expression": "(http.host eq \"midscenejs.com\")",
+      "action": "redirect",
+      "enabled": true,
+      "action_parameters": {
+        "from_value": {
+          "target_url": {
+            "expression": "concat(\"https://www.midscenejs.com\", http.request.uri.path)"
+          },
+          "status_code": 301,
+          "preserve_query_string": true
+        }
+      }
+    }
+  ]
+}
