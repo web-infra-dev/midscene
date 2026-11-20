@@ -297,6 +297,16 @@ export function buildDetailedLocateParam(
   let xpath = undefined;
 
   if (typeof opt === 'object' && opt !== null) {
+    // #2220 fixed legacy YAML image loss by merging image fields from locate
+    // options into the prompt. The shared type and helper also made this work
+    // across SDK locate APIs, although that calling convention was undocumented.
+    // The YAML adapter now normalizes these fields into the prompt itself.
+    // Reject them here so SDK calls cannot silently lose reference images.
+    if ('images' in opt || 'convertHttpImage2Base64' in opt) {
+      throw new Error(
+        'images and convertHttpImage2Base64 are not supported in locate options. Pass them in the locate prompt argument: { prompt, images, convertHttpImage2Base64 }.',
+      );
+    }
     // Backward-compatible: accept `deepThink` as a deprecated alias for `deepLocate`.
     // All downstream code works on `deepLocate` only; the compatibility resolution
     // is intentionally kept here at the entry point so it does not bleed through

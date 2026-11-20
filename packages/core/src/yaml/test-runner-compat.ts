@@ -284,31 +284,48 @@ export function compileLegacyFlowItem(
     const nested =
       locate ??
       (typeof aiTap === 'object' && aiTap !== null ? aiTap.locate : undefined);
-    let locatePrompt: any;
-    let options = tapOptions;
-    if (typeof aiTap === 'string' && aiTap) {
-      locatePrompt = aiTap;
-    } else if (nested && typeof nested === 'object' && nested.prompt) {
-      const { prompt: nestedPrompt, ...nestedOptions } = nested;
-      locatePrompt = nestedPrompt;
-      options = { ...nestedOptions, ...tapOptions };
-    } else if (
-      aiTap &&
-      typeof aiTap === 'object' &&
-      typeof aiTap.prompt === 'string' &&
-      aiTap.prompt
-    ) {
-      // Keep structured prompt data such as images inside the private YAML
-      // adapter. A prompt-only object retains the existing normalized string
-      // form used by cached-plan and variable-like legacy inputs.
-      locatePrompt =
-        Object.hasOwn(aiTap, 'images') ||
-        Object.hasOwn(aiTap, 'convertHttpImage2Base64')
-          ? aiTap
-          : aiTap.prompt;
-    } else {
-      locatePrompt = prompt || nested;
-    }
+    const { prompt: locatePrompt, options } = (() => {
+      if (typeof aiTap === 'string' && aiTap) {
+        return { prompt: aiTap, options: tapOptions };
+      }
+      if (nested && typeof nested === 'object' && nested.prompt) {
+        const { prompt, images, convertHttpImage2Base64, ...nestedOptions } = {
+          ...nested,
+          ...tapOptions,
+        };
+        return {
+          prompt:
+            images !== undefined || convertHttpImage2Base64 !== undefined
+              ? {
+                  prompt,
+                  ...(images !== undefined && { images }),
+                  ...(convertHttpImage2Base64 !== undefined && {
+                    convertHttpImage2Base64,
+                  }),
+                }
+              : prompt,
+          options: nestedOptions,
+        };
+      }
+      if (
+        aiTap &&
+        typeof aiTap === 'object' &&
+        typeof aiTap.prompt === 'string' &&
+        aiTap.prompt
+      ) {
+        // Keep structured image prompts intact; prompt-only objects retain
+        // the normalized string form used by cached-plan inputs.
+        return {
+          prompt:
+            Object.hasOwn(aiTap, 'images') ||
+            Object.hasOwn(aiTap, 'convertHttpImage2Base64')
+              ? aiTap
+              : aiTap.prompt,
+          options: tapOptions,
+        };
+      }
+      return { prompt: prompt || nested, options: tapOptions };
+    })();
     if (!locatePrompt) {
       return invalid('missing prompt for aiTap');
     }

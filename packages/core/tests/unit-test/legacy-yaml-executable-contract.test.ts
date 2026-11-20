@@ -710,6 +710,29 @@ const frozenLegacySyntax = [
 ] as const;
 
 describe('executable legacy YAML flow contract', () => {
+  test('outer tap fields override nested image and locate options', () => {
+    const images = [{ name: 'outer', url: 'data:image/png;base64,outer' }];
+    const step = compileLegacyFlowItem({
+      aiTap: {
+        locate: {
+          prompt: 'button',
+          images: [{ name: 'inner', url: 'data:image/png;base64,inner' }],
+          convertHttpImage2Base64: true,
+          deepLocate: true,
+          cacheable: true,
+        },
+      },
+      images,
+      convertHttpImage2Base64: false,
+      deepLocate: false,
+      cacheable: false,
+    } as unknown as MidsceneYamlFlowItem);
+    expect(step.input).toStrictEqual({
+      prompt: { prompt: 'button', images, convertHttpImage2Base64: false },
+      options: { deepLocate: false, cacheable: false },
+    });
+  });
+
   test('compiles a flat image prompt without a conflict warning', () => {
     const images = [{ name: 'button', url: 'data:image/png;base64,fixture' }];
     const warn = rs.spyOn(console, 'warn');
