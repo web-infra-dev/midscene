@@ -573,11 +573,14 @@ export class TaskBuilder {
         const isXpathHit = !!elementFromXpath;
 
         const cachePrompt = locateParam.prompt;
-        const locateCacheRecord = this.taskCache?.matchLocateCache(cachePrompt);
+        const locateCacheEnabled = locateParam.cacheable !== false;
+        const locateCacheRecord = locateCacheEnabled
+          ? this.taskCache?.matchLocateCache(cachePrompt)
+          : undefined;
         const cacheEntry = locateCacheRecord?.cacheContent?.cache;
 
         const elementFromCacheResult =
-          isPlanDirectHit || isXpathHit
+          !locateCacheEnabled || isPlanDirectHit || isXpathHit
             ? null
             : await matchElementFromCache(
                 {
@@ -586,7 +589,6 @@ export class TaskBuilder {
                 },
                 cacheEntry,
                 cachePrompt,
-                locateParam.cacheable,
               );
 
         // elementFromCacheResult is in logical coordinates, which should be transformed to screenshot coordinates;
@@ -658,7 +660,7 @@ export class TaskBuilder {
           this.taskCache &&
           !isCacheHit &&
           (!isPlanDirectHit || !locateCacheAlreadyExists) &&
-          locateParam.cacheable !== false
+          locateCacheEnabled
         ) {
           if (this.interface.cacheFeatureForPoint) {
             try {

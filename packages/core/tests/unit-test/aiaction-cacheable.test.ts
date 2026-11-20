@@ -113,8 +113,7 @@ describe('aiAction cacheable option propagation', () => {
   });
 
   it('should propagate cacheable: false to locate subtasks in aiAction', async () => {
-    // Create a spy on matchElementFromCache to verify it's not called
-    const matchElementFromCacheSpy = rs.spyOn(taskCache, 'matchLocateCache');
+    const matchLocateCacheSpy = rs.spyOn(taskCache, 'matchLocateCache');
 
     // Mock planning result with a Locate action followed by Click
     // This simulates the typical aiAction behavior
@@ -176,11 +175,7 @@ describe('aiAction cacheable option propagation', () => {
         task: createRuntimeTask(locateTask),
       });
 
-      // Verify cache was not queried (or if queried, was rejected due to cacheable: false)
-      // The matchElementFromCache function should have been called but returned undefined
-      // because cacheable: false
-      expect(matchElementFromCacheSpy).toHaveBeenCalled();
-      expect(matchElementFromCacheSpy).toHaveReturnedWith(undefined);
+      expect(matchLocateCacheSpy).not.toHaveBeenCalled();
     }
   });
 
