@@ -93,7 +93,7 @@ const agent = new AndroidAgent(device);
   - `enabled?: boolean` —— 是否启用 scrcpy 截图。默认值：`false`。
   - `maxSize?: number` —— 截图长边的最大像素尺寸（须为非负整数；默认值为 `0`，表示不缩放）。当 scrcpy 暂时不可用并回退到 `adb` / yadb 截图时，该尺寸限制同样生效，防止规划与报告中的截图突然恢复为设备原始分辨率。
   - `videoBitRate?: number` —— scrcpy H.264 视频编码码率（单位：bps）。默认值：`100000000`。调整该值会在传输带宽与画面细节之间进行权衡；仅在独立链路测试表明确有必要时再作调整，并在调整后验证模型识别效果（切勿仅因出现帧新鲜度超时警告就盲目调参）。
-  - `frameRate?: number` — MediaCodec frame-rate 提示值，默认跟随采集上限（10）。必须为正 32 位整数；仅覆盖编码器提示值，保留其他编码参数和采集上限。请在实际设备上验证画质。
+  - `frameRate?: number` —— MediaCodec 编码帧率提示值，须为正的 32 位有符号整数。省略时沿用 scrcpy 的编码器默认值。低码率截图可尝试设为 `10`，在目标设备上对比画质。采集上限仍为 10 fps。
   - `idleTimeoutMs?: number` —— 视频流空闲自动断开的等待时间（单位：毫秒；设为 `0` 则禁用自动断开）。默认值：`30000`。
   - `videoResetFrameTimeoutMs?: number` —— scrcpy 触发流内视频重置后，等待新关键帧的超时时间（单位：毫秒，须为正整数）。默认值：`800`。仅当设备的画面采集管线重启耗时较长时才需调大。
 - `device.getScrcpyStatus()` —— 返回当前 scrcpy 状态（包含 `enabled`、`connected`、`lastError` 和 `retryAfter`）。

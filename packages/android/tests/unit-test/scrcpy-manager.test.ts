@@ -198,13 +198,14 @@ describe('ScrcpyScreenshotManager', () => {
   });
 
   describe('ensureConnected', () => {
-    it('aligns the default encoder hint with maxFps and preserves codec defaults', async () => {
+    it('preserves the original codec options and only adds an explicit frame rate', async () => {
       const options = await (
         createManager({} as any) as any
       ).createScrcpyOptions();
       expect(options.value.videoCodecOptions).toBe(
-        `i-frame-interval=0,bitrate-mode=2,repeat-previous-frame-after=0,frame-rate=${options.value.maxFps}`,
+        'i-frame-interval=0,bitrate-mode=2,repeat-previous-frame-after=0',
       );
+      expect(options.value.maxFps).toBe(10);
       const custom = await (
         createManager({} as any, { frameRate: 30 }) as any
       ).createScrcpyOptions();

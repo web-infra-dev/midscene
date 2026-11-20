@@ -45,12 +45,8 @@ const BUSY_LOOP_MAX_READS = 500; // Max reads per window before considered busy-
 const BUSY_LOOP_COOLDOWN_MS = 50; // Throttle delay when busy-loop detected
 const BUSY_LOOP_WARN_INTERVAL_MS = 5_000; // Min interval between busy-loop warnings
 
-// Scrcpy default configuration (disabled by default, opt-in via scrcpyConfig.enabled)
-export const DEFAULT_MAX_FPS = 10;
-
-export function resolveScrcpyFrameRate(
-  frameRate: number = DEFAULT_MAX_FPS,
-): number {
+export function resolveScrcpyFrameRate(frameRate?: number): number | undefined {
+  if (frameRate === undefined) return undefined;
   if (
     !Number.isSafeInteger(frameRate) ||
     frameRate <= 0 ||
@@ -64,7 +60,6 @@ export function resolveScrcpyFrameRate(
 }
 
 export const DEFAULT_SCRCPY_CONFIG = {
-  frameRate: DEFAULT_MAX_FPS,
   enabled: false,
   maxSize: DEFAULT_MAX_SIZE,
   idleTimeoutMs: DEFAULT_IDLE_TIMEOUT_MS,
@@ -243,7 +238,7 @@ function detectH264KeyFrame(buffer: Buffer): boolean {
  * Required options after applying defaults
  */
 interface ResolvedScrcpyOptions {
-  frameRate: number;
+  frameRate?: number;
   maxSize: number;
   videoBitRate: number;
   idleTimeoutMs: number;
@@ -446,6 +441,15 @@ export class ScrcpyScreenshotManager {
       [import('@yume-chan/adb-scrcpy'), import('@yume-chan/scrcpy')],
     );
 
+    // Repeated packets can carry a fresh PTS without fresh pixels.
+    const codecOptions = [
+      'i-frame-interval=0',
+      'bitrate-mode=2',
+      'repeat-previous-frame-after=0',
+    ];
+    if (this.options.frameRate !== undefined) {
+      codecOptions.push(`frame-rate=${this.options.frameRate}`);
+    }
     return new AdbScrcpyOptions3_3_3({
       audio: false,
       // RESET_VIDEO is carried by scrcpy's control channel. Keep the channel
@@ -458,12 +462,9 @@ export class ScrcpyScreenshotManager {
       scid: ScrcpyInstanceId.random(),
       maxSize: this.options.maxSize,
       videoBitRate: this.options.videoBitRate,
-      maxFps: DEFAULT_MAX_FPS,
+      maxFps: 10,
       sendFrameMeta: true,
-      // scrcpy otherwise asks MediaCodec to repeat the previous frame every
-      // 100ms. Such a packet has a newer PTS but unchanged pixels, so neither
-      // a PTS barrier nor an age check could detect that the image is stale.
-      videoCodecOptions: `i-frame-interval=0,bitrate-mode=2,repeat-previous-frame-after=0,frame-rate=${this.options.frameRate}`,
+      videoCodecOptions: codecOptions.join(','),
     });
   }
 

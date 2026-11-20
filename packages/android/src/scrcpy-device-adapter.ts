@@ -35,7 +35,8 @@ export function formatScrcpyFreshFrameFailure(
 }
 
 type ScrcpyConfig = NonNullable<AndroidDeviceOpt['scrcpyConfig']>;
-type ResolvedScrcpyConfig = Required<ScrcpyConfig>;
+type ResolvedScrcpyConfig = Required<Omit<ScrcpyConfig, 'frameRate'>> &
+  Pick<ScrcpyConfig, 'frameRate'>;
 
 /** ADB capabilities scrcpy needs from the canonical Appium transport. */
 export interface ScrcpyAdbBackend {

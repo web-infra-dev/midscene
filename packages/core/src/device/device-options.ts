@@ -151,7 +151,7 @@ export type AndroidDeviceOpt = {
      * @default 100000000 (100 Mbps)
      */
     videoBitRate?: number;
-    /** MediaCodec frame-rate hint. Positive 32-bit integer; defaults to maxFps (10). Does not change the capture FPS limit. */
+    /** Optional MediaCodec frame-rate hint (positive 32-bit integer). Omit to use the scrcpy encoder default. The capture limit stays at 10 fps. */
     frameRate?: number;
     /**
      * Time in milliseconds to wait for a fresh keyframe after scrcpy accepts
