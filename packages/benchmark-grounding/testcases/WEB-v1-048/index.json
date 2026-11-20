@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-048",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the weather interface control that changes the temperature display unit."
+  },
+  "instruction": {
+    "en": "Change the temperature display unit to Celsius.",
+    "zh": "将温度显示单位改为摄氏度。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [29, 1536, 62, 1460],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L4622",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2.json#385",
+    "image": {
+      "format": "png",
+      "sha256": "1959333ff7c9ae835ef27bc90b9c25cf938cc94068cc3ce40fd339ddb29b5424"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction. Cropped the screenshot to the top navigation bar (1920 × 162 pixels), preserving the temperature-unit control and removing the page body and advertisements.",
+    "collectedAt": 1794206851855
+  }
+}

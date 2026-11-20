@@ -104,4 +104,8 @@ lib
 vendors/**/index.d.ts
 vendors/**/index.js
 
+# Preserve dataset bytes and testcase hashes.
+packages/benchmark-grounding/testcases/**
+packages/benchmark-grounding/candidates/**
+
 tests/configs/src/errors/**

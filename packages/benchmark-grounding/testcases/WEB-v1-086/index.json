@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-086",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Several parking results use identical booking buttons. The task requires matching the requested parking facility to its listing and locating the button in that listing."
+  },
+  "instruction": {
+    "en": "Find the “Book online” button in the listing for LAZ Parking’s 1 Hotel Brooklyn Bridge Garage.",
+    "zh": "在 LAZ Parking 的 1 Hotel Brooklyn Bridge Garage 结果中，找到 “Book online” 按钮。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [500.0, 475.0, 535.0, 298.0],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "288303d062c0cbddf875135de38a84ee76625baeae544dc2acc718c7b6f42ece"
+    },
+    "patch": null,
+    "collectedAt": 1795082162041
+  }
+}

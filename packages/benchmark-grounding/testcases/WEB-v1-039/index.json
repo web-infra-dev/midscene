@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-039",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The task requires comparing the straight-line distances from a fixed station marker to the visible café markers on the map."
+  },
+  "instruction": {
+    "en": "On the map, find the café marker closest to the blue “Gare de Lyon” center marker by straight-line distance.",
+    "zh": "在图中找到与 “Gare de Lyon” 蓝色中心标记直线距离最近的咖啡店标记。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [1012.0, 1522.0, 1031.0, 1418.0],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "fc433e80d308ed19093457849965abc59852ce5d15086a822d262bc1d462ea88"
+    },
+    "patch": null,
+    "collectedAt": 1795080744373
+  }
+}

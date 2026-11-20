@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-050",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires jointly evaluating subject matter and a numerical play-count threshold across audio titles before selecting the relevant play control."
+  },
+  "instruction": {
+    "en": "Locate the play button of the audio novel or audio drama with no more than 4.5 million plays and a cultivation or fantasy theme.",
+    "zh": "定位播放量不超过 450 万且题材包含了修仙或者玄幻的有声小说或有声剧的播放按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2391.0, 1223.0, 2493.0, 1120.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L55616",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "2927",
+    "image": {
+      "format": "png",
+      "sha256": "712807d800135b5dca08a20f2846f9ef2b31010c41c26212a79320f774b071f7"
+    },
+    "patch": "Revised the original English instruction to request the play button of an audio novel or audio drama with a cultivation or fantasy theme and no more than 4.5 million plays, and added the corresponding Chinese instruction. The fantasy title has 4.456 million plays, while the cultivation title has 4.536 million and exceeds the threshold. Moved the ground-truth box from the cultivation title's play button [1551.0, 1225.0, 1654.0, 1122.0] to the fantasy title's play button [2391.0, 1223.0, 2493.0, 1120.0] (top, right, bottom, left). Updated category.reason to explain the comparison.",
+    "collectedAt": 1792485870318
+  }
+}

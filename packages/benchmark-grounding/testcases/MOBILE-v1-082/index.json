@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-082",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The task requires locating an exact street-name label among nearby street and place labels."
+  },
+  "instruction": {
+    "en": "Find the “Rua do Regedor” street label on the map.",
+    "zh": "找到地图上的 “Rua do Regedor” 路名标签。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [1063.0, 597.0, 1189.0, 572.0],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "a40afc540c6ccdd43b6e0d7da5093cfa029888018079da22a2a1f419beb325cc"
+    },
+    "patch": null,
+    "collectedAt": 1795082162041
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-022",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target is identified by its position to the right of the gray button."
+  },
+  "instruction": {
+    "en": "Click the red button to the right of the gray button.",
+    "zh": "点击灰色按钮右边的红色按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1784, 746, 1941, 550],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L806",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#806",
+    "image": {
+      "format": "png",
+      "sha256": "5bcefcefb6dfe5e7a55fe01707bb90a1f3d179940393ee1f788273c88732cd51"
+    },
+    "patch": "Replaced the original instruction “Click the gray button next to Save.” with a request to click the red button to the right of the gray button, and added a corresponding Chinese instruction. Changed groundTruth from [1784, 529, 1941, 333] to [1784, 746, 1941, 550] in [top, right, bottom, left] pixel coordinates, moving the target from the gray View button to the red Save button. Updated category.reason to describe the target’s position relative to the gray button.",
+    "collectedAt": 1794206915948
+  }
+}

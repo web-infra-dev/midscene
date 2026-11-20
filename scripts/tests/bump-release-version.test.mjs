@@ -9,7 +9,12 @@ const roots = [];
 async function fixture() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'midscene-bump-'));
   roots.push(root);
-  for (const dir of ['', 'packages/sdk', 'apps/studio']) {
+  for (const dir of [
+    '',
+    'packages/cli',
+    'packages/benchmark-grounding',
+    'apps/studio',
+  ]) {
     await fs.mkdir(path.join(root, dir), { recursive: true });
     await fs.writeFile(
       path.join(root, dir, 'package.json'),
@@ -37,14 +42,15 @@ describe('release version selection', () => {
     ['prepatch', '1.2.4-beta.0'],
     ['1.3.0-beta-20261106120000.0', '1.3.0-beta-20261106120000.0'],
   ])(
-    'updates root and SDK manifests for %s without requiring git',
+    'updates root, CLI and dataset manifests for %s without requiring git',
     async (release, next) => {
       const root = await fixture();
       const result = await bumpReleaseVersion(root, release);
       expect(result.oldVersion).toBe('1.2.3');
       expect(result.newVersion).toBe(next);
       expect(await version(root)).toBe(next);
-      expect(await version(root, 'packages/sdk')).toBe(next);
+      expect(await version(root, 'packages/cli')).toBe(next);
+      expect(await version(root, 'packages/benchmark-grounding')).toBe(next);
       expect(await version(root, 'apps/studio')).toBe('1.2.3');
       await expect(fs.stat(path.join(root, '.git'))).rejects.toThrow();
     },
@@ -54,6 +60,7 @@ describe('release version selection', () => {
     const root = await fixture();
     await expect(bumpReleaseVersion(root, 'invalid-version')).rejects.toThrow();
     expect(await version(root)).toBe('1.2.3');
-    expect(await version(root, 'packages/sdk')).toBe('1.2.3');
+    expect(await version(root, 'packages/cli')).toBe('1.2.3');
+    expect(await version(root, 'packages/benchmark-grounding')).toBe('1.2.3');
   });
 });

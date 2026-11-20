@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-072",
+  "platform": "mobile",
+  "category": {
+    "item": "Refusal",
+    "reason": "The request uses a strict progress threshold, and none of the displayed downloads exceeds it."
+  },
+  "instruction": {
+    "en": "Find the app whose download progress is greater than 74%.",
+    "zh": "寻找下载进度大于 74% 的 App。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "1d4c8a789875fb0e71bbaa81b87bdaebeb1c2c2875d8d21765122d33376946d0"
+    },
+    "patch": null,
+    "collectedAt": 1795058259678
+  }
+}

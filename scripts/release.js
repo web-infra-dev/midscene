@@ -1,5 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const { setTimeout: delay } = require('node:timers/promises');
 const semver = require('semver');
 const dayjs = require('dayjs');
 const args = require('minimist')(process.argv.slice(2));
@@ -31,6 +32,7 @@ const run = async (bin, args, opts = {}) => {
 };
 
 const currentVersion = require('../package.json').version;
+const benchmarkDataset = '@midscene/benchmark-grounding';
 
 const actionPublishCanary =
   ['preminor', 'prepatch'].includes(args.version) && process.env.CI;
@@ -56,6 +58,7 @@ async function main() {
         `\nbumpVersion ${selectVersion.oldVersion} => ${selectVersion.newVersion}...`,
       );
     }
+    validateBenchmarkReleaseVersion(selectVersion.newVersion);
 
     if (!semver.prerelease(selectVersion.newVersion)) {
       readHighlights(root, selectVersion.newVersion, args.version);
@@ -177,7 +180,7 @@ async function main() {
   } catch (error) {
     console.error(
       chalk.red(
-        'An error occurred during the release process. Please check the logs for more details.',
+        `An error occurred during the release process: ${error.message}`,
       ),
     );
     await cleanup();
@@ -257,6 +260,53 @@ async function pushToGithub(selectVersion) {
   }
 }
 
+function validateBenchmarkReleaseVersion(version) {
+  const cli = require('../packages/cli/package.json');
+  const dataset = require('../packages/benchmark-grounding/package.json');
+  if (cli.version !== version || dataset.version !== version) {
+    throw new Error(
+      `Release ${version} requires matching versions for ${cli.name} (${cli.version}) and ${dataset.name} (${dataset.version})`,
+    );
+  }
+}
+
+async function waitForBenchmarkDataset(version) {
+  const spec = `${benchmarkDataset}@${version}`;
+  const registryUrl = `https://registry.npmjs.org/${encodeURIComponent(benchmarkDataset)}`;
+  const attempts = 6;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const metadata = await fetch(registryUrl, {
+        headers: {
+          accept: 'application/vnd.npm.install-v1+json',
+          'cache-control': 'no-cache',
+        },
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!metadata.ok)
+        throw new Error(`npm metadata returned HTTP ${metadata.status}`);
+      const tarball = (await metadata.json()).versions?.[version]?.dist
+        ?.tarball;
+      if (!tarball) throw new Error(`${spec} is missing from npm metadata`);
+      const response = await fetch(tarball, {
+        method: 'HEAD',
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!response.ok)
+        throw new Error(`npm tarball returned HTTP ${response.status}`);
+      return;
+    } catch (cause) {
+      if (attempt === attempts) {
+        throw new Error(
+          `${spec} is not downloadable from npm: ${cause.message}`,
+          { cause },
+        );
+      }
+    }
+    await delay(5_000);
+  }
+}
+
 async function publish(version) {
   try {
     let releaseTag = 'latest';
@@ -281,18 +331,26 @@ async function publish(version) {
     // Actions publishes. Do not pass `--provenance` explicitly here: npm 11
     // already creates the transparency-log entry for trusted publishing, and
     // an extra flag can make the publish fail with a duplicate tlog entry.
-    let publishArgs = [
+    const publishArgs = [
       '-r',
       'publish',
       '--access',
       'public',
       '--no-git-checks',
+      '--tag',
+      releaseTag,
     ];
-    if (version) {
-      publishArgs = publishArgs.concat(['--tag', releaseTag]);
-    }
 
-    await run('pnpm', publishArgs);
+    // The CLI downloads the exact matching dataset version from npm at runtime.
+    await run('pnpm', [
+      '--filter',
+      benchmarkDataset,
+      '--fail-if-no-match',
+      ...publishArgs,
+    ]);
+    step(`\nChecking npm availability of ${benchmarkDataset}@${version}...`);
+    await waitForBenchmarkDataset(version);
+    await run('pnpm', ['--filter', `!${benchmarkDataset}`, ...publishArgs]);
   } catch (error) {
     console.error(chalk.red(`Error publishing version ${version}`));
     throw error;

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-068",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The task explicitly names a radio button and its settings group, so it requires directly identifying a labeled interface element."
+  },
+  "instruction": {
+    "en": "Locate the “Automatic” radio button under “Distance units”.",
+    "zh": "找到 “Distance units” 部分下的 “Automatic” 单选按钮。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [340.0, 251.0, 356.0, 235.0],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "16dee247e95b3588be811cdc0dd1b4f31ada726ce695b4b0e023f947cc0cbe98"
+    },
+    "patch": null,
+    "collectedAt": 1795082170896
+  }
+}

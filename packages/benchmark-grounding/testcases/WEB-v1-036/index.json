@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-036",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task combines filtering booking offers by price and cancellation terms with comparing the corresponding map markers by distance to a landmark."
+  },
+  "instruction": {
+    "en": "Among the hotels with free cancellation and a nightly rate of A$300 or less, find the map price marker for the hotel closest in a straight line to the center marker labeled “Sydney Opera House”.",
+    "zh": "在每晚价格不超过 300 澳元且可免费取消的酒店中，找到与 “Sydney Opera House” 中心标记直线距离最近的酒店在地图上的价格标记。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [392.0, 2761.0, 444.0, 2629.0],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "6b431da84ddc186ba3cd4cb5f6dfce76ec7367efb98267a172f78809ced00334"
+    },
+    "patch": null,
+    "collectedAt": 1795080111544
+  }
+}

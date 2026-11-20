@@ -1,0 +1,81 @@
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { getDebug } from '@midscene/shared/logger';
+import { Command } from 'commander';
+import open from 'open';
+import c from 'tinyrainbow';
+import { createReport } from '../core';
+import { formatDuration, printHeader, printResult, write } from './output';
+
+const warn = getDebug('benchmark-grounding:cli', { console: true });
+
+/** Report commands share the same publication and browser-opening behavior. */
+export async function saveReport({
+  html,
+  filename,
+  startedAt,
+  openReport = true,
+}: {
+  html: string;
+  filename: string;
+  startedAt: number;
+  openReport?: boolean;
+}) {
+  await mkdir(path.dirname(filename), { recursive: true });
+  await writeFile(filename, html);
+  printResult(
+    'PASS',
+    `Report generated ${c.dim(`(${formatDuration(performance.now() - startedAt)})`)}`,
+  );
+  write(` Report: ${c.cyan(filename)}`, '');
+  if (openReport) {
+    try {
+      await open(pathToFileURL(filename).href);
+    } catch {
+      warn(`Could not open the browser. Open the report manually: ${filename}`);
+    }
+  }
+}
+
+export async function writeReport({
+  runDirectory,
+  output,
+  openReport = true,
+}: {
+  runDirectory: string;
+  output?: string;
+  openReport?: boolean;
+}) {
+  const directory = path.resolve(runDirectory);
+  write('', c.dim(' Generating standalone report...'));
+  const startedAt = performance.now();
+  await saveReport({
+    html: await createReport({ runDirectory: directory }),
+    filename: path.resolve(output ?? path.join(directory, 'report.html')),
+    startedAt,
+    openReport,
+  });
+}
+
+export function reportCommand() {
+  return new Command('report')
+    .description('Generate and open a standalone report from a saved run.')
+    .argument(
+      '<run-directory>',
+      'Run directory containing snapshots and results.',
+    )
+    .option(
+      '--output <file>',
+      'HTML output file (defaults to <run-directory>/report.html).',
+    )
+    .option('--no-open', 'Do not open a browser.')
+    .action(async (runDirectory, options) => {
+      printHeader('REPORT');
+      await writeReport({
+        runDirectory,
+        output: options.output,
+        openReport: options.open,
+      });
+    });
+}

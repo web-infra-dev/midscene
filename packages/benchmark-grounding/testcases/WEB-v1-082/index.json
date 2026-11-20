@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-082",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is identified directly by the Earth depicted in the image."
+  },
+  "instruction": {
+    "en": "Click the image of the Earth.",
+    "zh": "点击地球的图片。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [425.0, 1994.0, 857.0, 1571.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L3338",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2_278",
+    "image": {
+      "format": "png",
+      "sha256": "38334cdf6191f8aa6ceac342f6813bc05197c5e81031a155bee35535f334d874"
+    },
+    "patch": "Rephrased the original request to open the picture of Earth as an explicit request to click the image, and added instruction.zh by translating the revised English instruction. Updated category.reason to describe direct identification of the image. Removed embedded EXIF and XMP metadata and non-color metadata in the PNG screenshot's ICC profile. Decoded pixels and color rendering are unchanged.",
+    "collectedAt": 1792485870981
+  }
+}

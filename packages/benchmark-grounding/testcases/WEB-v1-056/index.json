@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-056",
+  "platform": "web",
+  "category": {
+    "item": "Refusal",
+    "reason": "The requested back button is absent from the lower-left corner of the page, so there is no matching target to locate."
+  },
+  "instruction": {
+    "en": "Find the back button in the lower-left corner of the page.",
+    "zh": "找到页面左下角的返回按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/refusal_grounding.json#L93",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/refusal_grounding.json#13",
+    "image": {
+      "format": "png",
+      "sha256": "2c0935626a54010dde909b20a97b627812f7d7552130e9d56b3b9b86821b0cf6"
+    },
+    "patch": "Reworded both instructions to specify a back button in the lower-left corner of the page, and updated category.reason to describe why the requested target is absent.",
+    "collectedAt": 1792485870905
+  }
+}

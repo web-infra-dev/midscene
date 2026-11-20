@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-070",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The task quotes the exact name of a gas station shown in the search results, so the target can be located by direct text matching."
+  },
+  "instruction": {
+    "en": "Find the text “Gas & Shop” in the search results.",
+    "zh": "在搜索结果中找到 “Gas & Shop” 这行文字。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [415.0, 164.0, 436.0, 68.0],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "771d7f4859d42f670ff38d323ce1d450a0f4a5ef553c8cd5b65bc45e940e7403"
+    },
+    "patch": null,
+    "collectedAt": 1795082162189
+  }
+}

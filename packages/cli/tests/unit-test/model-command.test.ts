@@ -4,12 +4,17 @@ import {
   globalModelConfigManager,
 } from '@midscene/shared/env';
 import { describe, expect, it, rs } from '@rstest/core';
+import { main as runBenchmarkCommand } from '../../src/benchmark-grounding';
 import { loadDotenvConfig } from '../../src/dotenv-loader';
 import {
   buildModelVerifyCurlCommands,
   runModelCommand,
 } from '../../src/model-command';
 import { runSiwcCommand } from '../../src/siwc-command';
+
+rs.mock('../../src/benchmark-grounding', () => ({
+  main: rs.fn(),
+}));
 
 rs.mock('../../src/dotenv-loader', () => ({
   loadDotenvConfig: rs.fn(),
@@ -41,12 +46,53 @@ function createIO() {
 }
 
 describe('model command', () => {
-  it('includes SIWC in model command help', async () => {
+  it('includes SIWC and grounding benchmark subcommands in model command help', async () => {
     const io = createIO();
     expect(await runModelCommand(['model', '--help'], {}, io)).toBe(0);
     expect(io.stdout).toHaveBeenCalledWith(
       expect.stringContaining('midscene model siwc <login|refresh> [options]'),
     );
+    expect(io.stdout).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'midscene model benchmark-grounding <prepare|viewer|run|report|merge> [options]',
+      ),
+    );
+  });
+
+  it('routes benchmark arguments directly without loading model dotenv or configuration', async () => {
+    rs.mocked(loadDotenvConfig).mockClear();
+    const io = createIO();
+    const loadDotenv = rs.fn();
+    const getModelConfig = rs.fn();
+    const args = ['run', '--names', 'MOBILE-v1-001', '--concurrency', '4'];
+    rs.mocked(runBenchmarkCommand).mockResolvedValueOnce(0);
+    expect(
+      await runModelCommand(
+        ['model', 'benchmark-grounding', ...args],
+        { loadDotenv, getModelConfig },
+        io,
+      ),
+    ).toBe(0);
+    expect(runBenchmarkCommand).toHaveBeenLastCalledWith(args);
+    expect(loadDotenvConfig).not.toHaveBeenCalled();
+    expect(loadDotenv).not.toHaveBeenCalled();
+    expect(getModelConfig).not.toHaveBeenCalled();
+    expect(io.stdout).not.toHaveBeenCalled();
+    expect(io.stderr).not.toHaveBeenCalled();
+  });
+
+  it('preserves benchmark help, failure and viewer keepalive return values', async () => {
+    for (const [args, result] of [
+      [['--help'], 0],
+      [['prepare'], 1],
+      [['viewer', '--no-open'], undefined],
+    ] as const) {
+      rs.mocked(runBenchmarkCommand).mockResolvedValueOnce(result);
+      expect(
+        await runModelCommand(['model', 'benchmark-grounding', ...args]),
+      ).toBe(result);
+      expect(runBenchmarkCommand).toHaveBeenLastCalledWith([...args]);
+    }
   });
 
   it('routes siwc options and output without loading model configuration', async () => {

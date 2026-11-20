@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-018",
+  "platform": "mobile",
+  "category": {
+    "item": "Small Target",
+    "reason": "The current rotation angle is indicated by a narrow tick among similar neighboring ruler marks, requiring precise localization without a numeric readout."
+  },
+  "instruction": {
+    "en": "Locate the tick mark that indicates the current rotation angle on the rotation adjustment ruler.",
+    "zh": "定位旋转角度调节标尺上表示当前角度的刻度线。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [
+    1472,
+    421,
+    1524,
+    415
+  ],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "200accb876ec3580fa6c363598ac41812d0b2f9a9f55209dc0aa6e50361d4c50"
+    },
+    "patch": null,
+    "collectedAt": 1794908290996
+  }
+}

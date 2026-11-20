@@ -1197,6 +1197,7 @@ function aiLocate(
     - `context?: string` — Additional context for this call. See [`context` and `aiContexts` precedence](#per-call-context).
     - `xpath?: string` — XPath of the target element. When provided, Midscene tries the XPath first before falling back to the cache and AI model. Default: `undefined`.
     - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
+    - `abortSignal?: AbortSignal` — Cancels this locate operation and passes cancellation to the model request.
 
 - Return value:
 

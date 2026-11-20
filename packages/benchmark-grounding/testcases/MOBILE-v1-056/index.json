@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-056",
+  "platform": "mobile",
+  "category": {
+    "item": "Refusal",
+    "reason": "The task requires recognizing that no button with the specified label is visible, even though a similarly colored control appears in the requested location."
+  },
+  "instruction": {
+    "en": "Find the rounded rectangular button with a light blue background labeled \"Go\" in the lower-left corner of the interface.",
+    "zh": "在界面左下角找到淡蓝色背景且文案为“Go”的圆角矩形按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/refusal_grounding.json#L5861",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/refusal_grounding.json#row=837",
+    "image": {
+      "format": "png",
+      "sha256": "edf9e227118a4d61bb9bc00f16caf523425ff2935621b5e3062a023ca457508a"
+    },
+    "patch": "Revised both instructions to ask for a light-blue rounded rectangular button labeled ‘Go’ in the lower-left corner instead of a red ‘Save’ button, and updated category.reason to describe the absence of the specified label. Covered the exposed basemap along the rounded top edge of the transit panel with an opaque solid fill while preserving the original dimensions and all other pixels.",
+    "collectedAt": 1792485870330
+  }
+}

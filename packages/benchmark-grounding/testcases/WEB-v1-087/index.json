@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-087",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The task tests whether the model can distinguish a continuous bold passage from the surrounding body text by font weight."
+  },
+  "instruction": {
+    "en": "Locate the long, continuous passage in bold in the document body.",
+    "zh": "定位正文中带有加粗文字效果的连续长文本。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [
+    557,
+    2756,
+    751,
+    137
+  ],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "4d0306d912d71c5596225801d462dbc2af895561e3f5fdb2341ed59dc4ef81ff"
+    },
+    "patch": null,
+    "collectedAt": 1795071092899
+  }
+}
