@@ -78,6 +78,56 @@ const createAgentStub = () => {
 };
 
 describe('Agent per-call context option', () => {
+  it.each([
+    { supportsCache: false, cacheable: undefined, expected: false },
+    { supportsCache: false, cacheable: true, expected: false },
+    { supportsCache: false, cacheable: false, expected: false },
+    { supportsCache: true, cacheable: undefined, expected: undefined },
+    { supportsCache: true, cacheable: true, expected: true },
+    { supportsCache: true, cacheable: false, expected: false },
+  ])(
+    'applies one cache policy to the whole aiAct: %j',
+    async ({ supportsCache, cacheable, expected }) => {
+      const { agent, taskExecutor, taskCache } = createAgentStub();
+      const runtime = {
+        ...planningModel,
+        adapter: { planning: { cacheEnabled: supportsCache } },
+      };
+      (agent as any).resolveModelRuntime = rs.fn(() => runtime);
+      // A returned workflow must not be written when this action disables caching.
+      taskExecutor.action.mockResolvedValue({
+        output: { output: 'done', yamlFlow: [{ aiTap: 'target' }] },
+      } as never);
+
+      await agent.aiAct('Click target', { cacheable });
+
+      expect(taskExecutor.action.mock.calls[0][4]).toBe(expected);
+      expect(taskCache.matchPlanCache).toHaveBeenCalledTimes(
+        expected === false ? 0 : 1,
+      );
+      expect(taskCache.updateOrAppendCacheRecord).toHaveBeenCalledTimes(
+        expected === false ? 0 : 1,
+      );
+    },
+  );
+
+  it('does not apply the aiAct planner cache policy to standalone aiTap', async () => {
+    const { agent } = createAgentStub();
+    (agent as any).resolveModelRuntime = rs.fn(() => defaultModel);
+    const dispatch = rs
+      .spyOn(agent as any, 'callActionInActionSpace')
+      .mockResolvedValue(undefined);
+
+    await agent.aiTap('target');
+
+    expect(dispatch).toHaveBeenCalledWith(
+      'Tap',
+      expect.objectContaining({
+        locate: expect.objectContaining({ cacheable: true }),
+      }),
+    );
+  });
+
   it('applies middle-click context defaults, API overrides and explicit blank context', async () => {
     const { agent } = createAgentStub();
     const dispatch = rs
