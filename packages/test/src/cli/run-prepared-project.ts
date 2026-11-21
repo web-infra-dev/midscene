@@ -55,6 +55,20 @@ const asNotRun = (
   notRunReason: reason,
 });
 
+// A project's status also fails when one of its Cases or documents fails, and
+// `failed` and `documentFailures` already count those. A project failure is a
+// failure of the project itself: collection, setup, or cleanup.
+const hasProjectFailure = ({
+  collectionErrors,
+  lifecycle,
+}: TestExecutionProjectRunResult) =>
+  collectionErrors.length > 0 ||
+  !!lifecycle?.setupError ||
+  !!lifecycle?.teardownErrors?.length ||
+  !!lifecycle?.pendingOperations?.length ||
+  lifecycle?.cleanup?.status === 'failed' ||
+  lifecycle?.cleanup?.status === 'pending';
+
 const summarize = (
   projects: readonly TestExecutionProjectRunResult[],
 ): TestProjectRunSummary => {
@@ -99,8 +113,7 @@ const summarize = (
     documentFailures: documents.filter(
       (document) => document.status === 'failed',
     ).length,
-    projectFailures: projects.filter((project) => project.status === 'failed')
-      .length,
+    projectFailures: projects.filter(hasProjectFailure).length,
   };
 };
 

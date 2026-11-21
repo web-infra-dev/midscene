@@ -1615,6 +1615,71 @@ cases:
     ).toHaveLength(1);
   });
 
+  it('counts a failed Case as a Case failure, not as a Project failure', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+        export default {
+          projects: [
+            { name: 'web' },
+            {
+              name: 'android',
+              setup: {
+                name: 'device',
+                setup() {
+                  throw new Error('device unavailable');
+                },
+              },
+            },
+          ],
+          nodes: [{
+            name: 'test.check',
+            stringInputKey: 'value',
+            execute({ input }) {
+              if (input.value !== 'ok') throw new Error('expected ok');
+            },
+          }],
+        };
+      `,
+    );
+    writeWorkflow(
+      root,
+      'checkout.yaml',
+      `
+cases:
+  - name: totals match
+    steps:
+      - test.check: ok
+  - name: discount applies
+    steps:
+      - test.check: wrong
+`,
+    );
+
+    const result = await runTestProject({ projectRoot: root, resultDir });
+
+    expect(result).toMatchObject({
+      status: 'failed',
+      exitCode: 1,
+      projects: [
+        { name: 'web', status: 'failed' },
+        { name: 'android', status: 'failed' },
+      ],
+      summary: {
+        passed: 1,
+        failed: 1,
+        notRun: 2,
+        documentFailures: 0,
+        projectFailures: 1,
+      },
+    });
+    expect(readFileSync(result.markdownPath!, 'utf8')).toContain(
+      '**Infrastructure:** 1 project failures',
+    );
+  });
+
   it.each([
     'case',
     'document',
