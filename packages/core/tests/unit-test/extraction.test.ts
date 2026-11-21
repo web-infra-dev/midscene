@@ -94,6 +94,37 @@ Based on the screenshot, only the first card is fully visible.
     expect(result.data).toEqual([{ index: 1, name: 'Example' }]);
   });
 
+  it('should parse data and errors that contain a dotted capital I', () => {
+    const xml = `
+<observation>The list shows İstanbul and İzmir</observation>
+<data-json>
+["İstanbul", "İzmir"]
+</data-json>
+<errors>
+["The İzmir row is partly hidden"]
+</errors>
+    `.trim();
+
+    const result = parseDefaultInsightResponse<string[]>(xml);
+
+    expect(result).toEqual({
+      thought: 'The list shows İstanbul and İzmir',
+      data: ['İstanbul', 'İzmir'],
+      errors: ['The İzmir row is partly hidden'],
+    });
+  });
+
+  it('should preserve a single extracted object with a dotted capital I in an array', () => {
+    const result = parseDefaultInsightResponse<{ city: string }[]>(`
+<observation>Only one city card is visible.</observation>
+<data-json>
+[{"city": "İstanbul"}]
+</data-json>
+`);
+
+    expect(result.data).toEqual([{ city: 'İstanbul' }]);
+  });
+
   it('should parse XML response with string data', () => {
     const xml = `
 <observation>The page title is "todo list"</observation>

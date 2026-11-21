@@ -270,4 +270,29 @@ I should identify the button first.</think>
       // This is handled separately in parseXMLPlanningResponse
     });
   });
+
+  // "İ" (U+0130) becomes two code units in lower case.
+  describe('text whose lower case is longer', () => {
+    it('should extract a tag that follows a dotted capital I', () => {
+      const xml = `<planning>İleri düğmesine dokun</planning>
+<log>Tap the Next button</log>`;
+      expect(extractXMLTag(xml, 'log')).toBe('Tap the Next button');
+    });
+
+    it('should not include the closing tag when the content has a dotted capital I', () => {
+      const xml = '<data-json>["İstanbul", "İzmir"]</data-json>';
+      expect(extractXMLTag(xml, 'data-json')).toBe('["İstanbul", "İzmir"]');
+    });
+
+    it('should extract a half-open tag that follows a dotted capital I', () => {
+      const xml = `<planning>İleri</planning>
+<action-type>Tap`;
+      expect(extractXMLTag(xml, 'action-type')).toBe('Tap');
+    });
+
+    it('should still match upper-case tag names', () => {
+      const xml = '<PLANNING>İleri</PLANNING><LOG>Tap</LOG>';
+      expect(extractXMLTag(xml, 'log')).toBe('Tap');
+    });
+  });
 });

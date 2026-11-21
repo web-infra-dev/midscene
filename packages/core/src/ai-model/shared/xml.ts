@@ -14,7 +14,11 @@ export function extractXMLTag(
   xmlString: string,
   tagName: string,
 ): string | undefined {
-  const lowerXmlString = xmlString.toLowerCase();
+  // Fold ASCII letters only: toLowerCase() can make the string longer ("İ",
+  // U+0130, becomes "i" plus U+0307), and these indexes slice xmlString.
+  const lowerXmlString = xmlString.replace(/[A-Z]+/g, (letters) =>
+    letters.toLowerCase(),
+  );
   const lowerTagName = tagName.toLowerCase();
   const closeTag = `</${lowerTagName}>`;
   const openTag = `<${lowerTagName}>`;
