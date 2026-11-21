@@ -263,6 +263,7 @@ const validateTagSelection = (
   if (!isRecord(value)) {
     throw new TypeError(`Midscene config ${label} must be an object.`);
   }
+  rejectUnknownKeys(value, ['include', 'exclude'], label);
   return Object.freeze({
     include: Object.freeze(validateTagList(value.include, 'include', label)),
     exclude: Object.freeze(validateTagList(value.exclude, 'exclude', label)),
@@ -555,6 +556,18 @@ const validateTestOptions = (
       ].join('\n'),
     );
   }
+  rejectUnknownKeys(
+    candidate,
+    [
+      'maxConcurrentFiles',
+      'maxConcurrentProjects',
+      'setupTimeout',
+      'teardownTimeout',
+      'bail',
+      'testTimeout',
+    ],
+    'test',
+  );
   return Object.freeze({
     maxConcurrentFiles: validateConcurrency(
       candidate.maxConcurrentFiles,

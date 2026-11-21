@@ -656,6 +656,13 @@ describe('test project config', () => {
       'projects[0].tags.include must be an array',
     ],
     [
+      'unknown tags field',
+      `projects: [{
+        name: 'web', tags: { includes: ['smoke'] },
+      }]`,
+      'projects[0].tags.includes is not supported',
+    ],
+    [
       'unknown Project field',
       `projects: [{ name: 'web', unknown: true }]`,
       'projects[0].unknown is not supported',
@@ -723,6 +730,16 @@ describe('test project config', () => {
       'negative bail',
       'test: { bail: -1 }',
       'test.bail must be a non-negative integer',
+    ],
+    [
+      'unknown test field',
+      'test: { testTimout: 500 }',
+      'test.testTimout is not supported',
+    ],
+    [
+      'Project field under test',
+      'test: { retry: 1 }',
+      'test.retry is not supported',
     ],
   ])('rejects invalid %s configuration', async (_name, field, message) => {
     const { path } = createConfig(`export default { ${field}, nodes: [] };`);
