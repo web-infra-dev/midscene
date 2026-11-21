@@ -99,6 +99,111 @@ describe('continuation after a resource operation times out', () => {
     },
   );
 
+  test('waits for a cancelled last Step before retrying it or starting the next Case', async () => {
+    rs.useFakeTimers();
+    const document = collectLegacyYamlDocument({
+      tasks: [
+        {
+          name: 'times out',
+          continueOnError: true,
+          flow: [{ javascript: 'slow()' }],
+        },
+        { name: 'later case', flow: [{ javascript: 'later()' }] },
+      ],
+    });
+    document.cases[0].definition.steps[0].meta = {
+      timeoutMs: 20,
+      continueOnError: false,
+    };
+    const events: string[] = [];
+    const node = defineNode({
+      name: 'javascript',
+      async execute(ctx) {
+        if (ctx.scope !== 'case') return;
+        events.push(`${ctx.case.name} attempt ${ctx.case.attemptIndex}`);
+        if (ctx.case.name !== 'times out') return;
+        // Like a request torn down by the signal: it settles shortly after
+        // the abort, not in the same turn.
+        await new Promise<void>((_resolve, reject) => {
+          ctx.signal.addEventListener(
+            'abort',
+            () => setTimeout(() => reject(ctx.signal.reason), 100),
+            { once: true },
+          );
+        });
+      },
+    });
+    const running = runWorkflowDocument(document, {
+      resolveNode: () => node,
+      retry: 1,
+      teardownTimeoutMs: () => 1_000,
+    });
+    await rs.advanceTimersByTimeAsync(2_000);
+    const result = await running;
+
+    const [timedOut, later] = result.cases;
+    expect(timedOut.attempts?.map((attempt) => attempt.retryDecision)).toEqual([
+      expect.objectContaining({ decision: 'retry', reason: 'attempt-failed' }),
+      expect.objectContaining({ decision: 'stop', reason: 'budget-exhausted' }),
+    ]);
+    expect(timedOut.run?.steps[0].error?.code).toBe('STEP_TIMEOUT');
+    expect(timedOut.run?.pendingOperations).toBeUndefined();
+    expect(later.status).toBe('success');
+    expect(events).toEqual([
+      'times out attempt 0',
+      'times out attempt 1',
+      'later case attempt 0',
+    ]);
+  });
+
+  test('still stops retries when a cancelled last Step outlives the teardown budget', async () => {
+    rs.useFakeTimers();
+    const action = deferred();
+    const document = collectLegacyYamlDocument({
+      tasks: [
+        {
+          name: 'hangs',
+          continueOnError: true,
+          flow: [{ javascript: 'hang()' }],
+        },
+        { name: 'later case', flow: [{ javascript: 'later()' }] },
+      ],
+    });
+    document.cases[0].definition.steps[0].meta = {
+      timeoutMs: 20,
+      continueOnError: false,
+    };
+    const later = rs.fn();
+    const node = defineNode({
+      name: 'javascript',
+      async execute(ctx) {
+        if (ctx.scope === 'case' && ctx.case.name === 'hangs')
+          await action.promise;
+        else later();
+      },
+    });
+    const running = runWorkflowDocument(document, {
+      resolveNode: () => node,
+      retry: 1,
+      teardownTimeoutMs: () => 50,
+    });
+    await rs.advanceTimersByTimeAsync(1_000);
+    const result = await running;
+
+    expect(result.cases[0].attempts).toHaveLength(1);
+    expect(result.cases[0].run?.retryDecision).toMatchObject({
+      decision: 'stop',
+      reason: 'cleanup-pending',
+    });
+    expect(result.cases[1]).toMatchObject({
+      status: 'not-run',
+      notRunReason: 'cleanup-pending',
+    });
+    expect(later).not.toHaveBeenCalled();
+    action.resolve();
+    await rs.advanceTimersByTimeAsync(0);
+  });
+
   test('bounds recovery and preserves the original timeout and resource quarantine', async () => {
     rs.useFakeTimers();
     const resource = {};

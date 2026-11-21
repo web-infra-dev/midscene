@@ -181,7 +181,16 @@ export async function runCollectedCase<TContext = undefined>(
     }
   };
   try {
-    if (phases.afterEach.length || teardownStack.length)
+    // A timed-out last Step may still be settling. With a teardown budget,
+    // drain it as afterEach would, so the retry decision sees settled work.
+    // A cancelled run makes no retry decision; its parents drain the work.
+    if (
+      phases.afterEach.length ||
+      teardownStack.length ||
+      (options.teardownTimeoutMs !== undefined &&
+        !scopeSignal.aborted &&
+        getPendingScopeOperations(scopeSignal).length)
+    )
       await cleanupScopeResources(scopeSignal, cleanup, {
         totalTimeoutMs: options.teardownTimeoutMs?.(),
         beforeCleanup: async (cleanupSignal) => {
