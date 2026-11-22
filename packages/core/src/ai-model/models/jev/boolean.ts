@@ -13,9 +13,9 @@ export const jevBoolean: BooleanFn = async (options) => {
   const frames =
     options.extractOption?.screenshotIncluded === false
       ? []
-      : options.context.screenshotSequence?.length
-        ? options.context.screenshotSequence
-        : [options.context.screenshot];
+      : options.uiContext.screenshotSequence?.length
+        ? options.uiContext.screenshotSequence
+        : [options.uiContext.screenshot];
   // Drex accepts at most DREX_MAX_IMAGES images per request, shared by frames
   // and reference images, so keep the most recent frames that fit.
   const usableFrames =

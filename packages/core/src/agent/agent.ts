@@ -1341,12 +1341,16 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         deepLocate = false;
       }
 
-      const cacheable = opt?.cacheable;
+      // Without planning cache support, the generated action sequence may change
+      // between runs. Disable locate caching for those actions too, keeping one
+      // consistent cache policy for the entire aiAct instead of partial reuse.
+      const aiActCacheable = planningModel.adapter.planning.cacheEnabled
+        ? opt?.cacheable
+        : false;
       const replanningCycleLimit =
         this.resolveReplanningCycleLimit(planningModel);
-      const planCacheEnabled = planningModel.adapter.planning.cacheEnabled;
       const matchedCache =
-        !planCacheEnabled || cacheable === false
+        aiActCacheable === false
           ? undefined
           : this.taskCache?.matchPlanCache(cachePrompt);
       let cachedYamlFailed = false;
@@ -1400,7 +1404,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         planningModel,
         locateModel,
         aiActContext,
-        cacheable,
+        aiActCacheable,
         replanningCycleLimit,
         effort,
         undefined,
@@ -1410,7 +1414,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       );
 
       // update cache
-      if (this.taskCache && cacheable !== false) {
+      if (this.taskCache && aiActCacheable !== false) {
         const yamlFlow = cachedYamlFailed ? [] : actionOutput?.yamlFlow;
 
         if (!cachedYamlFailed && !yamlFlow?.length) {
@@ -1969,10 +1973,10 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
    */
   async freezePageContext(): Promise<void> {
     debug('Freezing page context');
-    const context = await this._snapshotContext();
+    const uiContext = await this._snapshotContext();
     // Mark the context as frozen
-    context._isFrozen = true;
-    this.frozenUIContext = context;
+    uiContext._isFrozen = true;
+    this.frozenUIContext = uiContext;
     debug('Page context frozen successfully');
   }
 

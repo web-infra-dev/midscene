@@ -50,10 +50,10 @@ describe('grounding locate not-found parsing', () => {
     },
     {
       content: '```json\n[{"bbox_1":920,"ymin":73,"xmax":964,"ymax":98}]\n```',
-      expectedFeedback: 'Expected to be a JSON object, got array',
+      expectedFeedback: 'Missing required coordinate field "bbox_2d"',
     },
     {
-      content: '[{"bbox_2d":[100,200,300,400]}]',
+      content: '[{"bbox_2d":[100,200,300,400]},{"bbox_2d":[500,600,700,800]}]',
       expectedFeedback: 'Expected to be a JSON object, got array',
     },
   ])(
@@ -67,7 +67,7 @@ describe('grounding locate not-found parsing', () => {
         });
 
       const result = await AiLocateElement({
-        context: createFakeContext(),
+        uiContext: createFakeContext(),
         targetElementDescription: 'top-right menu button',
         modelRuntime: getModelRuntime({ ...modelConfig, modelFamily: 'qwen3' }),
       });
@@ -87,6 +87,25 @@ describe('grounding locate not-found parsing', () => {
     },
   );
 
+  it('accepts a single Qwen3 bbox object in an array without retrying', async () => {
+    const content = '[{"bbox_2d":[100,200,300,400]}]';
+    rs.mocked(callGenerativeAI).mockResolvedValueOnce({
+      content,
+      isStreamed: false,
+    });
+
+    const result = await AiLocateElement({
+      uiContext: createFakeContext(),
+      targetElementDescription: 'top-right menu button',
+      modelRuntime: getModelRuntime({ ...modelConfig, modelFamily: 'qwen3' }),
+    });
+
+    expect(callGenerativeAI).toHaveBeenCalledTimes(1);
+    expect(result.parseResult.element?.center).toBeDefined();
+    expect(result.parseResult.errors).toEqual([]);
+    expect(result.rawResponse).toBe(content);
+  });
+
   it('preserves the missing-field error and response after retries are exhausted', async () => {
     const content = '{"error":"target element is not found"}';
     rs.mocked(callGenerativeAI).mockResolvedValue({
@@ -95,7 +114,7 @@ describe('grounding locate not-found parsing', () => {
     });
 
     const result = await AiLocateElement({
-      context: createFakeContext(),
+      uiContext: createFakeContext(),
       targetElementDescription: 'missing button',
       modelRuntime: getModelRuntime(modelConfig),
     });
@@ -118,7 +137,7 @@ describe('grounding locate not-found parsing', () => {
     });
 
     const result = await AiLocateElement({
-      context: createFakeContext(),
+      uiContext: createFakeContext(),
       targetElementDescription: 'missing button',
       modelRuntime: getModelRuntime(modelConfig),
     });
@@ -144,7 +163,7 @@ describe('grounding locate not-found parsing', () => {
       });
 
     const result = await AiLocateElement({
-      context: createFakeContext(),
+      uiContext: createFakeContext(),
       targetElementDescription: 'invalid coordinate target',
       modelRuntime: getModelRuntime(modelConfig),
     });
@@ -174,7 +193,7 @@ describe('grounding locate not-found parsing', () => {
     });
 
     const result = await AiLocateElement({
-      context: createFakeContext(),
+      uiContext: createFakeContext(),
       targetElementDescription: 'invalid coordinate target',
       modelRuntime: getModelRuntime({ ...modelConfig, retryCount: 0 }),
     });
@@ -200,7 +219,7 @@ describe('grounding locate not-found parsing', () => {
       });
 
     const result = await AiLocateElement({
-      context: createFakeContext(),
+      uiContext: createFakeContext(),
       targetElementDescription: 'target with malformed JSON',
       modelRuntime: getModelRuntime(modelConfig),
     });
@@ -221,7 +240,7 @@ describe('grounding locate not-found parsing', () => {
       });
 
     const result = await AiLocateSection({
-      context: createFakeContext(),
+      uiContext: createFakeContext(),
       sectionDescription: 'invalid coordinate section',
       modelRuntime: getModelRuntime(modelConfig),
     });
@@ -255,10 +274,10 @@ describe('grounding locate not-found parsing', () => {
       },
       'test-custom-locate',
     );
-    const context = createFakeContext();
+    const uiContext = createFakeContext();
 
     const result = await AiLocateElement({
-      context,
+      uiContext,
       targetElementDescription: 'custom target',
       modelRuntime: {
         config: {
@@ -325,7 +344,7 @@ describe('grounding locate not-found parsing', () => {
       });
 
     const result = await AiLocateSection({
-      context: createFakeContext(),
+      uiContext: createFakeContext(),
       sectionDescription: 'target section',
       modelRuntime: getModelRuntime(modelConfig),
     });
@@ -346,7 +365,7 @@ describe('grounding locate not-found parsing', () => {
     });
 
     const result = await AiLocateSection({
-      context: createFakeContext(),
+      uiContext: createFakeContext(),
       sectionDescription: 'missing section',
       modelRuntime: getModelRuntime(modelConfig),
     });

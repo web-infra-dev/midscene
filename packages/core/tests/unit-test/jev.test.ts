@@ -311,11 +311,12 @@ describe('Jev requests and coordinates', () => {
       .mockResolvedValue(response());
     const runtime = {
       ...getModelRuntime(jevConfig),
+      executionId: 'jev-execution-id',
       onUsage: rs.fn(),
       onRequest: rs.fn(),
     };
     const result = await AiLocateElement({
-      context: await context(),
+      uiContext: await context(),
       targetElementDescription: 'button',
       modelRuntime: runtime,
     });
@@ -332,6 +333,9 @@ describe('Jev requests and coordinates', () => {
     expect(url).toBe('https://api.typesafe.ai/v1/systemone');
     expect(new Headers(init?.headers).get('x-midscene-version')).toBe(
       getVersion(),
+    );
+    expect(new Headers(init?.headers).get('x-midscene-execution-id')).toBe(
+      runtime.executionId,
     );
     expect(new Headers(init?.headers).get('TypeSafe-Danger-Zone-Images')).toBe(
       'true',
@@ -365,7 +369,7 @@ describe('Jev requests and coordinates', () => {
         .spyOn(globalThis, 'fetch')
         .mockResolvedValue(response());
       await AiLocateElement({
-        context: await context(500, 400),
+        uiContext: await context(500, 400),
         targetElementDescription: 'button',
         modelRuntime: getModelRuntime({
           ...jevConfig,
@@ -388,6 +392,32 @@ describe('Jev requests and coordinates', () => {
       );
     },
   );
+  it.each([
+    'https://official.example/v1/systemone',
+    'http://openrouter.ai/api/v1/systemone',
+    'https://openrouter.ai/api/v2/systemone',
+  ])('uses assets for a non-OpenRouter endpoint %s', async (endpoint) => {
+    const prepared = await prepareSystemOne(
+      {
+        ...jevConfig,
+        openaiBaseURL: 'https://openrouter.ai/api/v1',
+        endpoint,
+      },
+      {
+        state: {},
+        images: { screenshot: 'data:image/png;base64,aGVsbG8=' },
+        questions: {},
+      },
+    );
+    const body = JSON.parse(prepared.body);
+    expect(prepared.url).toBe(endpoint);
+    expect(typeof body.state.screenshot).toBe('string');
+    expect(body.assets[body.state.screenshot]).toEqual({
+      type: 'image',
+      format: 'png',
+      data_base64: 'aGVsbG8=',
+    });
+  });
   it.each([
     [100, 50],
     [3000, 30],
@@ -418,7 +448,7 @@ describe('Jev requests and coordinates', () => {
   it('maps a scaled DeepLocate crop exactly once', async () => {
     rs.spyOn(globalThis, 'fetch').mockResolvedValue(response());
     const result = await AiLocateElement({
-      context: await context(),
+      uiContext: await context(),
       targetElementDescription: 'button',
       modelRuntime: getModelRuntime(jevConfig),
       searchConfig: {
@@ -446,7 +476,7 @@ describe('Jev requests and coordinates', () => {
     const result = await AiExtractElementInfo({
       taskType: 'boolean',
       dataQuery: { Boolean: 'matches' },
-      context: await context(),
+      uiContext: await context(),
       extractOption: { screenshotIncluded: false, context: 'context' },
       pageDescription: 'DOM',
       modelRuntime: getModelRuntime({
@@ -472,7 +502,7 @@ describe('Jev requests and coordinates', () => {
     await AiExtractElementInfo({
       taskType: 'boolean',
       dataQuery: { StatementIsTruthy: 'appeared' },
-      context: { ...ui, screenshotSequence: [ui.screenshot, ui.screenshot] },
+      uiContext: { ...ui, screenshotSequence: [ui.screenshot, ui.screenshot] },
       multimodalPrompt: {
         images: [{ name: 'target', url: await image(50, 50) }],
       },
@@ -583,7 +613,7 @@ describe('Jev requests and coordinates', () => {
       .mockResolvedValueOnce(new Response('{"answers":{}}'))
       .mockResolvedValueOnce(response());
     await AiLocateElement({
-      context: await context(),
+      uiContext: await context(),
       targetElementDescription: 'button',
       modelRuntime: getModelRuntime({ ...jevConfig, retryCount: 1 }),
     });
@@ -635,7 +665,7 @@ describe('Jev requests and coordinates', () => {
     const result = await AiExtractElementInfo({
       taskType: 'extract',
       dataQuery: 'extract text',
-      context: await context(),
+      uiContext: await context(),
       modelRuntime: runtime,
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -752,7 +782,7 @@ describe('Jev planning', () => {
       slot: 'planning',
     });
     return {
-      context: await context(),
+      uiContext: await context(),
       modelRuntime,
       conversationHistory: new ConversationHistory(),
       actionSpace: [

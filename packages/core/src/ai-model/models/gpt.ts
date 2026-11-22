@@ -1,5 +1,6 @@
 import type { TModelFamily } from '@midscene/shared/env';
 import { isOpenRouter } from '../model-adapter/is-openrouter';
+import { buildOpenRouterReasoningParams } from '../model-adapter/openrouter-reasoning';
 import type {
   BuildResponsesParams,
   ChatCompletionCallContext,
@@ -48,18 +49,14 @@ const buildGpt5ResponsesParams: BuildResponsesParams = (input) => {
     'none',
   );
   if (isOpenRouter(baseURL)) {
-    if (effectiveReasoningEffort !== undefined) {
-      const reasoning: Record<string, unknown> = {
-        effort: effectiveReasoningEffort,
-      };
-      if (
-        userConfig.reasoningEnabled === true &&
-        userConfig.reasoningBudget !== undefined
-      ) {
-        reasoning.max_tokens = userConfig.reasoningBudget;
-      }
-      reasoningConfig.reasoning = reasoning;
-    }
+    Object.assign(
+      reasoningConfig,
+      buildOpenRouterReasoningParams(userConfig, {
+        type: 'effort',
+        disabledEffort: 'none',
+        defaultEnabledEffort: 'medium',
+      }),
+    );
   } else {
     // Use current-turn reasoning only. Switching to all_turns requires
     // responses.replayRawAssistantOutput to preserve reasoning history.
@@ -94,18 +91,14 @@ const buildGpt6ResponsesParams: BuildResponsesParams = (input) => {
   const reasoningConfig: Record<string, unknown> = {};
   const effectiveReasoningEffort = resolveGptReasoningEffort(userConfig, 'low');
   if (isOpenRouter(baseURL)) {
-    if (effectiveReasoningEffort !== undefined) {
-      const reasoning: Record<string, unknown> = {
-        effort: effectiveReasoningEffort,
-      };
-      if (
-        userConfig.reasoningEnabled === true &&
-        userConfig.reasoningBudget !== undefined
-      ) {
-        reasoning.max_tokens = userConfig.reasoningBudget;
-      }
-      reasoningConfig.reasoning = reasoning;
-    }
+    Object.assign(
+      reasoningConfig,
+      buildOpenRouterReasoningParams(userConfig, {
+        type: 'effort',
+        disabledEffort: 'low',
+        defaultEnabledEffort: 'medium',
+      }),
+    );
   } else {
     // Use current-turn reasoning only. Switching to all_turns requires
     // responses.replayRawAssistantOutput to preserve reasoning history.
@@ -151,18 +144,14 @@ const buildGpt5ChatCompletionParams = (
     'none',
   );
   if (isOpenRouter(baseURL)) {
-    if (effectiveReasoningEffort !== undefined) {
-      const reasoning: Record<string, unknown> = {
-        effort: effectiveReasoningEffort,
-      };
-      if (
-        userConfig.reasoningEnabled === true &&
-        userConfig.reasoningBudget !== undefined
-      ) {
-        reasoning.max_tokens = userConfig.reasoningBudget;
-      }
-      reasoningConfig.reasoning = reasoning;
-    }
+    Object.assign(
+      reasoningConfig,
+      buildOpenRouterReasoningParams(userConfig, {
+        type: 'effort',
+        disabledEffort: 'none',
+        defaultEnabledEffort: 'medium',
+      }),
+    );
   } else {
     reasoningConfig.reasoning_effort = effectiveReasoningEffort;
   }
@@ -192,18 +181,14 @@ const buildGpt6ChatCompletionParams = (
   const reasoningConfig: Record<string, unknown> = {};
   const effectiveReasoningEffort = resolveGptReasoningEffort(userConfig, 'low');
   if (isOpenRouter(baseURL)) {
-    if (effectiveReasoningEffort !== undefined) {
-      const reasoning: Record<string, unknown> = {
-        effort: effectiveReasoningEffort,
-      };
-      if (
-        userConfig.reasoningEnabled === true &&
-        userConfig.reasoningBudget !== undefined
-      ) {
-        reasoning.max_tokens = userConfig.reasoningBudget;
-      }
-      reasoningConfig.reasoning = reasoning;
-    }
+    Object.assign(
+      reasoningConfig,
+      buildOpenRouterReasoningParams(userConfig, {
+        type: 'effort',
+        disabledEffort: 'low',
+        defaultEnabledEffort: 'medium',
+      }),
+    );
   } else {
     reasoningConfig.reasoning_effort = effectiveReasoningEffort;
   }

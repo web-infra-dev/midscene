@@ -35,7 +35,9 @@ describe('Ant Ling adapter', () => {
               ? {
                   reasoning: {
                     enabled: reasoningEnabled ?? false,
-                    ...(reasoningEnabled === true ? { max_tokens: 1024 } : {}),
+                    ...(reasoningEnabled === true
+                      ? { effort: 'high', max_tokens: 1024 }
+                      : {}),
                   },
                 }
               : {

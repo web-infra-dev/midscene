@@ -53,11 +53,11 @@ describe('insight extraction multi-frame context', () => {
   };
 
   it('submits every frame plus a sequence note when more than one frame is present', async () => {
-    const context = withSequence(3);
+    const uiContext = withSequence(3);
 
     await AiExtractElementInfo<{ result: boolean }>({
       taskType: 'extract',
-      context,
+      uiContext,
       dataQuery: {
         StatementIsTruthy: 'Boolean, whether a success toast briefly appeared',
       },
@@ -104,11 +104,11 @@ describe('insight extraction multi-frame context', () => {
   });
 
   it('falls back to the single-screenshot path when only one frame is present', async () => {
-    const context = withSequence(1);
+    const uiContext = withSequence(1);
 
     await AiExtractElementInfo<{ result: boolean }>({
       taskType: 'extract',
-      context,
+      uiContext,
       dataQuery: {
         StatementIsTruthy: 'Boolean, whether a success toast briefly appeared',
       },

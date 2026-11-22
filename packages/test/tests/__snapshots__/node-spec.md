@@ -6,9 +6,9 @@ This document describes the Nodes available in YAML test files (`.yaml` or `.yml
 
 Learn about the framework and YAML test authoring:
 
-- [Midscene Test overview](https://midscenejs.com/midscene-test/overview): framework concepts and the role of Nodes.
-- [Create and use test projects](https://midscenejs.com/midscene-test/use): write YAML cases, run tests, and inspect results.
-- [Configure test projects](https://midscenejs.com/midscene-test/configuration): register Nodes, select case files, and manage runtime resources.
+- [Midscene Test overview](https://www.midscenejs.com/midscene-test/overview): framework concepts and the role of Nodes.
+- [Create and use test projects](https://www.midscenejs.com/midscene-test/use): write YAML cases, run tests, and inspect results.
+- [Configure test projects](https://www.midscenejs.com/midscene-test/configuration): register Nodes, select case files, and manage runtime resources.
 
 ## Available Nodes
 

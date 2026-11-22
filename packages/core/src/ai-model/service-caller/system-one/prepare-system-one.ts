@@ -1,6 +1,7 @@
 import type { IModelConfig } from '@midscene/shared/env';
 import { assert } from '@midscene/shared/utils';
 import { getVersion } from '../../../utils';
+import { isOpenRouter } from '../../model-adapter/is-openrouter';
 import { createProxyAgentIfNeeded } from '../proxy';
 import { getSystemOneDialect, getSystemOneLabel } from './dialect';
 import { resolveSystemOneEndpoint } from './resolve-endpoint';
@@ -23,10 +24,11 @@ function buildJevRequest(
   request: SystemOneRequest,
   url: string,
 ) {
-  const isOpenRouter = new URL(url).hostname === 'openrouter.ai';
+  // Resolve ENDPOINT precedence before converting the System One URL to a base URL.
+  const useOpenRouter = isOpenRouter(url.replace(/\/systemone$/, ''));
   const { imageState, assets } = encodeSystemOneImages(
     request.images,
-    isOpenRouter,
+    useOpenRouter,
   );
   return {
     body: {
@@ -34,7 +36,7 @@ function buildJevRequest(
       model: config.modelName,
       state: { ...request.state, ...imageState },
       questions: request.questions,
-      ...(!isOpenRouter && Object.keys(assets).length ? { assets } : {}),
+      ...(!useOpenRouter && Object.keys(assets).length ? { assets } : {}),
     },
     headers: { 'TypeSafe-Danger-Zone-Images': 'true' },
     bodyLimit: 32 * MiB,

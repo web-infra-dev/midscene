@@ -1,5 +1,6 @@
 import type { TModelFamily } from '@midscene/shared/env';
 import { isOpenRouter } from '../model-adapter/is-openrouter';
+import { buildOpenRouterReasoningParams } from '../model-adapter/openrouter-reasoning';
 import type {
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
@@ -42,7 +43,7 @@ const buildKimiChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
   const { baseURL, midsceneDefaults, userConfig } = input;
-  const { reasoningEnabled = false, reasoningBudget } = userConfig;
+  const { reasoningEnabled = false } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
 
   // kimi disallow custom temperature
@@ -59,14 +60,10 @@ const buildKimiChatCompletionParams = (
 
   const modelSpecificConfig: Record<string, unknown> = {};
   if (isOpenRouter(baseURL)) {
-    // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
-    if (reasoningEnabled !== 'default') {
-      const reasoning: Record<string, unknown> = { enabled: reasoningEnabled };
-      if (reasoningEnabled === true && reasoningBudget !== undefined) {
-        reasoning.max_tokens = reasoningBudget;
-      }
-      modelSpecificConfig.reasoning = reasoning;
-    }
+    Object.assign(
+      modelSpecificConfig,
+      buildOpenRouterReasoningParams(userConfig),
+    );
   } else {
     if (reasoningEnabled !== 'default') {
       modelSpecificConfig.thinking = {
@@ -100,30 +97,11 @@ const buildKimi3ChatCompletionParams = (
     commonOverrideConfig.response_format = { type: 'json_object' };
   }
 
-  const {
-    reasoningEnabled = false,
-    reasoningEffort,
-    reasoningBudget,
-  } = userConfig;
+  const { reasoningEnabled = false, reasoningEffort } = userConfig;
   const reasoningConfig: Record<string, unknown> = {};
   if (isOpenRouter(baseURL)) {
     // OpenRouter supports disabling K3 reasoning and configuring effort.
-    // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
-    const reasoning: Record<string, unknown> = {};
-    if (reasoningEnabled !== 'default') {
-      reasoning.enabled = reasoningEnabled;
-    }
-    if (reasoningEnabled === true) {
-      if (reasoningEffort !== undefined) {
-        reasoning.effort = reasoningEffort;
-      }
-      if (reasoningBudget !== undefined) {
-        reasoning.max_tokens = reasoningBudget;
-      }
-    }
-    if (Object.keys(reasoning).length > 0) {
-      reasoningConfig.reasoning = reasoning;
-    }
+    Object.assign(reasoningConfig, buildOpenRouterReasoningParams(userConfig));
   } else {
     // Native K3 testing accepted thinking.type="disabled" and returned no
     // reasoning content, despite the documented mandatory reasoning behavior.

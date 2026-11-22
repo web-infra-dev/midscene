@@ -25,7 +25,7 @@ const standardPlan = async (
 
 describe('automation - planning input', () => {
   it('input value', async () => {
-    const { context } = await getContextFromFixture('todo');
+    const { uiContext } = await getContextFromFixture('todo');
     const instructions = [
       'In the task input box, type learning english',
       'In the task input box, type learning english and hit Enter key',
@@ -33,7 +33,7 @@ describe('automation - planning input', () => {
 
     for (const instruction of instructions) {
       const { actions } = await standardPlan(instruction, {
-        context,
+        uiContext,
         actionSpace: mockActionSpace,
         modelRuntime: defaultModelRuntime(),
         conversationHistory: new ConversationHistory(),
@@ -46,7 +46,7 @@ describe('automation - planning input', () => {
   });
 
   it('input value Add, delete, correct and check', async () => {
-    const { context } = await getContextFromFixture('todo-input-with-value');
+    const { uiContext } = await getContextFromFixture('todo-input-with-value');
     const instructions = [
       'Append " tomorrow" to the existing content in the task input box',
       // 'Replace the word "English" with "Skiing" in the existing content of the task input box. Remember to keep other unmatched content',
@@ -55,7 +55,7 @@ describe('automation - planning input', () => {
 
     for (const instruction of instructions) {
       const { actions } = await standardPlan(instruction, {
-        context,
+        uiContext,
         actionSpace: mockActionSpace,
         modelRuntime: defaultModelRuntime(),
         conversationHistory: new ConversationHistory(),

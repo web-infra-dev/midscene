@@ -335,7 +335,7 @@ describe('Drex requests', () => {
     await AiExtractElementInfo({
       taskType: 'boolean',
       dataQuery: { Boolean: 'the form is visible' },
-      context: { ...ctx, screenshotSequence: frames },
+      uiContext: { ...ctx, screenshotSequence: frames },
       modelRuntime: runtime,
     });
     const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
@@ -354,7 +354,7 @@ describe('Drex requests', () => {
     const result = await AiExtractElementInfo({
       taskType: 'boolean',
       dataQuery: { Boolean: 'the form is visible' },
-      context: await context(500, 400),
+      uiContext: await context(500, 400),
       modelRuntime: runtime,
     });
     expect(result.parseResult.data).toEqual({ Boolean: true });
@@ -393,7 +393,7 @@ describe('Drex requests', () => {
     const result = await AiExtractElementInfo({
       taskType: 'boolean',
       dataQuery: { Boolean: 'the form is visible' },
-      context: await context(500, 400),
+      uiContext: await context(500, 400),
       modelRuntime: getModelRuntime({
         ...drexConfig,
         intent: 'insight',
@@ -443,7 +443,7 @@ describe('Drex requests', () => {
     const fetchMock = rs.spyOn(globalThis, 'fetch');
     await expect(
       AiLocateElement({
-        context: await context(500, 400),
+        uiContext: await context(500, 400),
         targetElementDescription: 'button',
         modelRuntime: getModelRuntime({
           ...drexConfig,
@@ -509,7 +509,7 @@ describe('Drex requests', () => {
 describe('Drex planning', () => {
   async function options() {
     return {
-      context: await context(),
+      uiContext: await context(),
       modelRuntime: getModelRuntime(drexConfig),
       conversationHistory: new ConversationHistory(),
       actionSpace: [

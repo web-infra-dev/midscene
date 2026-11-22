@@ -46,7 +46,6 @@ import type {
   ReportViewMode,
   VisualizerProps,
 } from './types';
-import { prepareAnimatedWebpFrames } from './utils/animated-webp';
 import { hydrateDirectoryReport } from './utils/directory-report';
 import {
   downloadMarkdownZip,
@@ -852,26 +851,6 @@ export function App() {
           setError(error instanceof Error ? error.message : String(error));
         console.timeEnd('loading_dump');
         return;
-      }
-      try {
-        const animation = await prepareAnimatedWebpFrames();
-        for (const [id, url] of animation.frameUrls) {
-          imageCache.set(id, url);
-        }
-        if (animation.frameCount > 0) {
-          console.info(
-            `[Midscene] Decoded ${animation.frameCount} Animated WebP frames in ${animation.decodeTimeMs.toFixed(1)}ms`,
-          );
-        } else if (!animation.supported) {
-          console.warn(
-            '[Midscene] Animated WebP report attachment requires ImageDecoder support',
-          );
-        }
-      } catch (error) {
-        console.error(
-          '[Midscene] Failed to decode Animated WebP attachment',
-          error,
-        );
       }
       try {
         if (controller.signal.aborted) return;

@@ -229,8 +229,8 @@ async function runAiLocateConnectivityCheck(
 ): Promise<ConnectivityCheckResultItem> {
   const startTime = Date.now();
   try {
-    const context = buildFixtureContext();
-    const service = new Service(context);
+    const uiContext = buildFixtureContext();
+    const service = new Service(uiContext);
     const locateResult = await service.locate(
       { prompt: 'the main todo input box' },
       {},

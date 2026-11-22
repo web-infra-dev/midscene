@@ -251,6 +251,17 @@ export function isWorkflowError(error: unknown): error is WorkflowError {
   );
 }
 
+/** Recognize failed Node output across the ESM and CommonJS entry points. */
+export function isNodeExecutionError(
+  error: unknown,
+): error is NodeExecutionError {
+  return (
+    isWorkflowError(error) &&
+    error.code === 'NODE_EXECUTION_ERROR' &&
+    typeof (error as NodeExecutionError).node === 'string'
+  );
+}
+
 /** A cancelled operation exhausted its recovery budget within its owning scope. */
 export const isResourceRecoveryError = (error: unknown): boolean =>
   isWorkflowError(error) && error.code === 'RESOURCE_RECOVERY_TIMEOUT';

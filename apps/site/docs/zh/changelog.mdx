@@ -2,6 +2,87 @@
 
 {/* release-notes:start */}
 
+## v1.18.2
+
+### 完整变更
+
+#### 新特性 🎉
+* feat(android): expose an optional scrcpy encoder frame-rate hint by @quanruzhuoxiu in https://github.com/web-infra-dev/midscene/pull/3416
+
+#### 问题修复 🐞
+* fix(core): scale model scroll distances from input image pixels by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3392
+* fix(site): use www documentation domain and repair outdated links by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3412
+* fix(core): reuse Jev reference images across planning rounds by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3407
+* fix(core): distinguish request and parse retry counts by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3417
+* fix(core): honor planner cache policy throughout aiAct by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3418
+
+#### 重构 ♻️
+* refactor(core): reuse OpenRouter detection for Jev by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3405
+* refactor(core): clarify UI context naming by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3410
+
+#### 文档 📖
+* docs(site): document Ling 3.2 Flash model configuration by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3406
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.18.1...v1.18.2
+
+## v1.18.1
+
+### 完整变更
+
+#### 新特性 🎉
+* feat(core): add observe test runner node by @codeestX in https://github.com/web-infra-dev/midscene/pull/3393
+
+#### 问题修复 🐞
+* fix(core): unwrap Qwen3 locate response arrays by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3400
+
+#### 文档 📖
+* docs(site): add Hy4 flash to model configuration by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3399
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.18.0...v1.18.1
+
+## v1.18.0
+
+### 亮点
+
+#### 大量新模型接入
+
+本次版本包含以下三个 UI 自动化模型的适配：
+
+- **千问 4 Max**（`qwen4-max`），模型 Family 为 `qwen4`。[千问配置指南](https://www.midscenejs.com/zh/model-api-setup#qwen)
+- **腾讯混元 4**（`hy4`），模型 Family 为 `tencent-hy`。[腾讯混元配置指南](https://www.midscenejs.com/zh/model-api-setup#tencent-hy)
+- **阶跃星辰 Step 3.7 Flash**（`step-3.7-flash`），模型 Family 为 `step`。[阶跃星辰配置指南](https://www.midscenejs.com/zh/model-api-setup#stepfun)
+
+### 完整变更
+
+#### 新特性 🎉
+* feat(core): add OpenRouter reasoning parameter support by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3375
+* feat(core): add StepFun model adapter by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3391
+* feat(core): add Qwen4 model adapter by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3397
+
+#### 问题修复 🐞
+* fix(test): keep failure frames from the project's own packages folders by @gjreddy in https://github.com/web-infra-dev/midscene/pull/3377
+* fix(test): escape Case and project names in the GitHub job summary by @gjreddy in https://github.com/web-infra-dev/midscene/pull/3378
+* fix(core): clarify pinch distance semantics and API distance documentation by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3386
+* fix(core): include execution ID in Jev requests by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3389
+
+#### 重构 ♻️
+* refactor(core): centralize OpenRouter reasoning parameters by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3388
+
+#### 文档 📖
+* docs(site): homepage copy clarity by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3382
+* docs(site): align Android preparation Node.js requirement by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3383
+* docs(site): add Tencent HY API setup and model cards by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3372
+* docs(site): add Browser Use as a CDP WebSocket URL source by @gregpr07 in https://github.com/web-infra-dev/midscene/pull/3289
+* docs(site): clarify model initialization config overrides by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3387
+
+#### 其他变更
+* revert(report): remove animated webp report poc by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3390
+
+#### 新贡献者
+* @gregpr07 made their first contribution in https://github.com/web-infra-dev/midscene/pull/3289
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.17.8...v1.18.0
+
 ## v1.17.8
 
 ### 完整变更
@@ -179,13 +260,13 @@
 
 #### 使用 ChatGPT 订阅额度
 
-通过 Sign in with ChatGPT（SIWC）授权 Midscene，使用 ChatGPT 订阅额度调用 GPT 模型。下面的视频演示浏览器插件中的登录授权流程。接入方式详见[使用 ChatGPT 订阅](https://midscenejs.com/zh/chatgpt-subscription)。
+通过 Sign in with ChatGPT（SIWC）授权 Midscene，使用 ChatGPT 订阅额度调用 GPT 模型。下面的视频演示浏览器插件中的登录授权流程。接入方式详见[使用 ChatGPT 订阅](https://www.midscenejs.com/zh/chatgpt-subscription)。
 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/siwc/siwc-chrome-auth.mp4" controls></video>
 
 #### Jev 1.14 实验性支持
 
-Jev 可用于任务规划、定位和判断，并与通用默认模型协同完成输入等任务。接入方式及限制详见 [Jev 配置指南](https://midscenejs.com/zh/model-api-setup#jev)。
+Jev 可用于任务规划、定位和判断，并与通用默认模型协同完成输入等任务。接入方式及限制详见 [Jev 配置指南](https://www.midscenejs.com/zh/model-api-setup#jev)。
 
 以下数据来自演示中的单次运行，“单步”指一次模型调用，耗时不包含页面操作和等待。费用单位为美元，按 Jev 输入 $0.042 / 百万 Token、输出免费计算。
 
@@ -304,7 +385,7 @@ Jev 负责点击、定位、性别下拉框选择和完成判断；DeepSeek 生�
 
 #### 接入 Jev 1.4：更快、更低成本的视觉 E2E 测试
 
-Midscene 现已接入 Jev 1.4，继续沿着视觉理解的道路推进 UI 自动化。通过此次接入，开发者可以体验更快、更低成本的 E2E 测试。接入步骤和当前的实验性限制详见 [Jev 配置指南](https://midscenejs.com/zh/model-common-config#jev)。
+Midscene 现已接入 Jev 1.4，继续沿着视觉理解的道路推进 UI 自动化。通过此次接入，开发者可以体验更快、更低成本的 E2E 测试。接入步骤和当前的实验性限制详见 [Jev 配置指南](https://www.midscenejs.com/zh/model-common-config#jev)。
 
 在下方 Demo 的连连看游戏测试中，共进行了 28 次模型调用，平均每次模型推理耗时 **393.57 ms（约 0.39 秒）**。平均每次输入 **5,025 Token**、输出 **67 Token**，模型调用费用约 **$0.000211/次**。费用按输入 $0.042 / 百万 Token 计算，输出免费。
 

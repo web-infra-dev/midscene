@@ -1,5 +1,6 @@
 import type { ModelRuntime } from '@/ai-model/models';
 import { getMidsceneLocationSchema } from '@/common';
+import { getMidsceneDistanceSchema } from '@/distance-schema';
 import type {
   ActionScrollParam,
   DeviceAction,
@@ -725,8 +726,7 @@ export const actionScrollParamSchema = z.object({
     .describe(
       'The direction toward the off-screen content to reveal. Quick mapping: want to see content below the current viewport -> "down"; above -> "up"; to the left -> "left"; to the right -> "right". This does not describe the movement direction of the content currently visible on the screen. Only effective when scrollType is "singleAction".',
     ),
-  distance: z
-    .number()
+  distance: getMidsceneDistanceSchema()
     .positive()
     .nullable()
     .optional()
@@ -855,8 +855,7 @@ function createActionSwipeParamSchema(inputMode: SwipeInputMode) {
       .describe(
         `${movementSource === 'finger' ? 'Finger' : 'Pointer'} movement direction. Quick mapping: move the ${movementSource} or content upward -> "up"; downward -> "down"; leftward -> "left"; rightward -> "right". Required together with a positive distance for a relative swipe. Omit when using end.`,
       ),
-    distance: z
-      .number()
+    distance: getMidsceneDistanceSchema()
       .finite()
       .positive()
       .optional()
@@ -1113,8 +1112,7 @@ export const ActionPinchParamSchema = z.object({
     .describe(
       'Pinch direction. "in" = pinch fingers together (zoom out / shrink), "out" = spread fingers apart (zoom in / enlarge).',
     ),
-  distance: z
-    .number()
+  distance: getMidsceneDistanceSchema()
     .positive()
     .optional()
     .describe(

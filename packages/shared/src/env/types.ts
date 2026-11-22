@@ -394,11 +394,13 @@ export type TModelFamily =
   | 'jev'
   | 'drex'
   | 'ant-ling'
+  | 'step'
   | 'qwen2.5-vl'
   | 'qwen3-vl'
   | 'qwen3'
   | 'qwen3.5'
   | 'qwen3.6'
+  | 'qwen4'
   | 'doubao-vision'
   | 'doubao-seed'
   | 'gemini'
@@ -420,6 +422,7 @@ export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'jev',
   'drex',
   'ant-ling',
+  'step',
   'doubao-vision',
   'doubao-seed',
   'gemini',
@@ -428,6 +431,7 @@ export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'qwen3',
   'qwen3.5',
   'qwen3.6',
+  'qwen4',
   'vlm-ui-tars',
   'vlm-ui-tars-doubao',
   'vlm-ui-tars-doubao-1.5',

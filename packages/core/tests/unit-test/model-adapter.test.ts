@@ -89,6 +89,7 @@ describe('model adapter registry', () => {
       'qwen3',
       'qwen3.5',
       'qwen3.6',
+      'qwen4',
       'glm-v',
       'kimi',
       'kimi3',

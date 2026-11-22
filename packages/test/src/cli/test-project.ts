@@ -551,7 +551,7 @@ const validateTestOptions = (
         hasExplicitProjects
           ? 'For parallel files, configure fileSetup and raise both test.maxConcurrentFiles and projects[].maxConcurrentFiles.'
           : 'For parallel files, configure fileSetup and raise test.maxConcurrentFiles.',
-        'Migration guide: https://midscenejs.com/midscene-test/configuration.html#existing-configurations',
+        'Migration guide: https://www.midscenejs.com/midscene-test/execution#existing-configurations',
       ].join('\n'),
     );
   }

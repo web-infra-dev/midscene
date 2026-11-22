@@ -34,7 +34,7 @@ export const parseProcessArgs = async (): Promise<{
     })
     .usage(
       `Midscene legacy YAML runner executes tasks/flow scripts with AI.
-Homepage: https://midscenejs.com
+Homepage: https://www.midscenejs.com
 Github: https://github.com/web-infra-dev/midscene
 
 Usage: 
@@ -109,10 +109,10 @@ Usage:
     .version('version', 'Show version number', __VERSION__)
     .help()
     .epilogue(`For complete list of configuration options, please visit:
-  • Web options: https://midscenejs.com/automate-with-scripts-in-yaml#the-web-part
-  • Android options: https://midscenejs.com/automate-with-scripts-in-yaml#the-android-part
-  • HarmonyOS options: https://midscenejs.com/automate-with-scripts-in-yaml#the-harmony-part
-  • iOS options: https://midscenejs.com/automate-with-scripts-in-yaml#the-ios-part
+  • Web options: https://www.midscenejs.com/automate-with-scripts-in-yaml#the-web-target-part
+  • Android options: https://www.midscenejs.com/automate-with-scripts-in-yaml#the-android-part
+  • HarmonyOS options: https://www.midscenejs.com/automate-with-scripts-in-yaml#the-harmony-part
+  • iOS options: https://www.midscenejs.com/automate-with-scripts-in-yaml#the-ios-part
 
 Examples:
   $0 script.yaml --web.user-agent "Custom Agent" --web.viewport-width 1920

@@ -32,7 +32,7 @@ import { initDebugConfig } from './init-debug';
 
 declare const __VERSION__: string | undefined;
 
-const MODEL_CONFIG_DOC_URL = 'https://midscenejs.com/model-api-setup.html';
+const MODEL_CONFIG_DOC_URL = 'https://www.midscenejs.com/model-api-setup.html';
 
 const getCurrentVersion = (): string => {
   if (typeof __VERSION__ !== 'undefined' && __VERSION__) {
@@ -391,12 +391,12 @@ export const decideModelConfigFromIntentConfig = (
     finalResult.authMode === 'siwc' ||
       finalResult.endpoint ||
       finalResult.openaiBaseURL,
-    `failed to get base URL or System One endpoint of model (intent=${intent}). See https://midscenejs.com/model-api-setup`,
+    `failed to get base URL or System One endpoint of model (intent=${intent}). See https://www.midscenejs.com/model-api-setup`,
   );
 
   if (!finalResult.modelName) {
     console.warn(
-      `modelName is not set for intent ${intent}, this may cause unexpected behavior. See https://midscenejs.com/model-api-setup`,
+      `modelName is not set for intent ${intent}, this may cause unexpected behavior. See https://www.midscenejs.com/model-api-setup`,
     );
   }
 

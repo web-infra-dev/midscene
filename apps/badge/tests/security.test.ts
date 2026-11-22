@@ -233,7 +233,7 @@ describe('HTML and SVG output boundaries', () => {
         url.startsWith('/e2e?') ||
           /^\/by-midscene(?:\?style=large)?$/.test(url) ||
           /^\/\?lang=(zh|en)$/.test(url) ||
-          url === 'https://midscenejs.com' ||
+          url === 'https://www.midscenejs.com' ||
           url === '/favicon.svg' ||
           /^https:\/\/badge\.midscenejs\.com\/(?:\?lang=(?:en|zh))?$/.test(
             url,

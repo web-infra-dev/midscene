@@ -249,7 +249,7 @@ const debugDevice = getDebug('computer:device');
 const warnDevice = getDebug('computer:device', { console: true });
 const debugComputerInput = getDebug('computer:input', { console: true });
 const WINDOWS_UIPI_DOC_URL =
-  'https://midscenejs.com/computer-getting-started#windows-clicks-have-no-effect-on-some-apps';
+  'https://www.midscenejs.com/platforms/desktop#windows-clicks-have-no-effect-on-some-apps';
 
 function resolvePackageRoot(helperName: string): string | null {
   const require = createRequire(import.meta.url);

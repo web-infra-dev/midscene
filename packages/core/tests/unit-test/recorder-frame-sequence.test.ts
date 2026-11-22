@@ -1,3 +1,6 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { recordAndReleaseScreenshotSequence } from '@/agent/tasks';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { ExecutionTask, UIContext } from '@/types';
@@ -76,5 +79,57 @@ describe('recordAndReleaseScreenshotSequence', () => {
     recordAndReleaseScreenshotSequence(task, uiContext);
 
     expect(task.recorder).toBeUndefined();
+  });
+});
+
+it.each([1, 3])(
+  'retains all %s borrowed frames including the representative',
+  (count) => {
+    const directory = mkdtempSync(join(tmpdir(), 'recorded-frames-'));
+    try {
+      const path = join(directory, 'frame.png');
+      const bytes = Buffer.from('frame bytes');
+      writeFileSync(path, bytes);
+      const frames = Array.from({ length: count }, (_, i) =>
+        ScreenshotItem.fromFile(path, 'image/png', i),
+      );
+      const ids = frames.map((frame) => frame.id);
+      const uiContext = {
+        ...makeUiContext(count),
+        screenshotSequence: frames,
+        screenshot: frames[count - 1],
+      };
+      recordAndReleaseScreenshotSequence(makeTask(), uiContext);
+      rmSync(directory, { recursive: true, force: true });
+      expect(frames.map((frame) => frame.id)).toEqual(ids);
+      expect(uiContext.screenshot).toBe(frames[count - 1]);
+      for (const frame of frames)
+        expect(Buffer.from(frame.rawBase64, 'base64')).toEqual(bytes);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  },
+);
+
+it('keeps already persisted observation images lazy', () => {
+  const frame = ScreenshotItem.fromFile(
+    '/unused-temporary-file.png',
+    'image/png',
+    1,
+  );
+  frame.markPersistedToPath('./screenshots/frame.png', '/report/frame.png');
+  const uiContext = {
+    ...makeUiContext(1),
+    screenshotSequence: [frame],
+    screenshot: frame,
+  };
+  // Neither path exists: retention must not read a report-owned image.
+  expect(() =>
+    recordAndReleaseScreenshotSequence(makeTask(), uiContext),
+  ).not.toThrow();
+  expect(frame.hasBase64()).toBe(false);
+  expect(frame.toSerializable()).toMatchObject({
+    storage: 'file',
+    path: './screenshots/frame.png',
   });
 });

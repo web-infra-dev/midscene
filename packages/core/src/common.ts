@@ -5,6 +5,8 @@ import type {
 } from '@/types';
 import { isPlainObject } from '@midscene/shared/utils';
 import { z } from 'zod';
+import type { DistanceUnit } from './distance-schema';
+import { findDistanceFields } from './distance-schema';
 
 export function findActionInActionSpaceOrThrow(
   planType: string,
@@ -20,9 +22,37 @@ export function findActionInActionSpaceOrThrow(
   return action;
 }
 
+function screenshotDistancesToLogical(
+  param: Record<string, any>,
+  schema: z.ZodTypeAny,
+  ratio: number,
+) {
+  const fields = findDistanceFields(schema);
+  if (fields.length === 0) {
+    return param;
+  }
+
+  const result = { ...param };
+  for (const name of fields) {
+    const value = param[name];
+    if (value === undefined || value === null) {
+      continue;
+    }
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+      throw new Error(`${name} must be a finite non-negative distance`);
+    }
+    if (!Number.isFinite(ratio) || ratio <= 0) {
+      throw new Error('Invalid screenshot-to-logical coordinate ratio');
+    }
+    result[name] = value / ratio;
+  }
+  return result;
+}
+
 export function buildYamlFlowFromPlans(
   plans: PlanningAction[],
   actionSpace: DeviceAction<any>[],
+  shrunkShotToLogicalRatio?: number,
 ): MidsceneYamlFlowItem[] {
   const flow: MidsceneYamlFlowItem[] = [];
 
@@ -33,7 +63,16 @@ export function buildYamlFlowFromPlans(
 
     const flowKey = action.interfaceAlias || verb;
     const flowParam = action.paramSchema
-      ? dumpActionParam(plan.param || {}, action.paramSchema)
+      ? dumpActionParam(
+          shrunkShotToLogicalRatio !== undefined
+            ? screenshotDistancesToLogical(
+                plan.param || {},
+                action.paramSchema,
+                shrunkShotToLogicalRatio,
+              )
+            : plan.param || {},
+          action.paramSchema,
+        )
       : {};
 
     // For actions whose param is a single string field (e.g. Launch/Terminate's
@@ -275,11 +314,15 @@ export const dumpActionParam = (
  *
  * When shrunkShotToLogicalRatio is provided and !== 1, coordinates in locate fields
  * are transformed from screenshot space to logical space.
+ * Model distances use the same ratio. Explicit API distances are already logical.
  */
 export const parseActionParam = (
   rawParam: Record<string, any> | undefined,
   zodSchema?: z.ZodType<any>,
-  options?: { shrunkShotToLogicalRatio?: number },
+  options?: {
+    shrunkShotToLogicalRatio?: number;
+    distanceUnit?: DistanceUnit;
+  },
 ): Record<string, any> | undefined => {
   // If no schema is provided, return undefined (action takes no parameters)
   if (!zodSchema) {
@@ -287,10 +330,13 @@ export const parseActionParam = (
   }
 
   // Handle undefined or null rawParam by providing an empty object
-  const param = rawParam ?? {};
-
-  // Find all locate fields in the schema
+  const input = rawParam ?? {};
   const locateFields = findAllMidsceneLocatorField(zodSchema);
+  const ratio = options?.shrunkShotToLogicalRatio;
+  const param =
+    options?.distanceUnit === 'model-input-image-pixel' && ratio !== undefined
+      ? screenshotDistancesToLogical(input, zodSchema, ratio)
+      : input;
 
   // If there are no locate fields, just do normal validation
   if (locateFields.length === 0) {
@@ -321,7 +367,6 @@ export const parseActionParam = (
 
   // Restore the actual locate field values (unvalidated, as per business requirement),
   // and transform coordinates from screenshot space to logical space if needed
-  const ratio = options?.shrunkShotToLogicalRatio;
   for (const fieldName in locateFieldValues) {
     let value = locateFieldValues[fieldName];
     if (

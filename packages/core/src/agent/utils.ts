@@ -310,14 +310,8 @@ export async function matchElementFromCache(
   },
   cacheEntry: ElementCacheFeature | undefined,
   cachePrompt: TUserPrompt,
-  cacheable: boolean | undefined,
 ): Promise<LocateResultElement | undefined> {
   if (!cacheEntry) {
-    return undefined;
-  }
-
-  if (cacheable === false) {
-    cacheDebug('cache disabled for prompt: %s', cachePrompt);
     return undefined;
   }
 

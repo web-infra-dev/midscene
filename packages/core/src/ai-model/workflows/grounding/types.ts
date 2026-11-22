@@ -25,7 +25,7 @@ export interface SearchAreaConfig {
 }
 
 export interface LocateOptions {
-  context: UIContext;
+  uiContext: UIContext;
   searchConfig?: SearchAreaConfig;
   modelRuntime: ModelRuntime;
   abortSignal?: AbortSignal;

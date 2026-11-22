@@ -24,7 +24,7 @@ rs.mock('@/ai-model/service-caller/index', () => ({
   callAIWithStringResponse: rs.fn(),
 }));
 
-const context: UIContext = {
+const uiContext: UIContext = {
   screenshot: {
     base64: 'data:image/png;base64,AA==',
   } as any,
@@ -50,7 +50,7 @@ const uiTarsAdapter = new ResolvedModelAdapter(
 
 function createPlanOptions(overrides: Partial<PlanOptions> = {}): PlanOptions {
   return {
-    context,
+    uiContext,
     actionSpace: mockActionSpace,
     modelRuntime,
     conversationHistory: new ConversationHistory(),

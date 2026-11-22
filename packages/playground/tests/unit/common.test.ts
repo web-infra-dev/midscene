@@ -44,7 +44,9 @@ describe('common utilities', () => {
       const error = { message: 'Something of different extension' };
       const result = formatErrorMessage(error);
       expect(result).toContain('Conflicting extension detected');
-      expect(result).toContain('midscenejs.com');
+      expect(result).toContain(
+        'https://www.midscenejs.com/platforms/web#chrome-extension-faq',
+      );
     });
 
     it('should format NOT_IMPLEMENTED_AS_DESIGNED error', () => {

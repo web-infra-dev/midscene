@@ -6,6 +6,7 @@ import {
   userPromptToString,
 } from '@/common';
 import { preProcessImageUrl } from '@midscene/shared/img';
+import pLimit from 'p-limit';
 
 export interface PreparedReferenceImage {
   name: string;
@@ -17,20 +18,33 @@ export interface PreparedUserPrompt {
   referenceImages: PreparedReferenceImage[];
 }
 
-const prepareReferenceImages = async (
+export const prepareReferenceImages = async (
   multimodalPrompt?: TMultimodalPrompt,
 ): Promise<PreparedReferenceImage[]> => {
-  const referenceImages: PreparedReferenceImage[] = [];
-  for (const image of multimodalPrompt?.images ?? []) {
-    referenceImages.push({
-      name: image.name,
-      url: await preProcessImageUrl(
-        image.url,
-        !!multimodalPrompt?.convertHttpImage2Base64,
-      ),
-    });
-  }
-  return referenceImages;
+  const images = multimodalPrompt?.images ?? [];
+  const uniqueUrls = new Set(images.map((image) => image.url));
+  const limit = pLimit(5);
+  const preparedUrls = new Map<string, string>();
+
+  // Prepare each unique URL once, with at most five images in flight.
+  await Promise.all(
+    [...uniqueUrls].map((url) =>
+      limit(async () => {
+        preparedUrls.set(
+          url,
+          await preProcessImageUrl(
+            url,
+            !!multimodalPrompt?.convertHttpImage2Base64,
+          ),
+        );
+      }),
+    ),
+  );
+
+  return images.map((image) => ({
+    name: image.name,
+    url: preparedUrls.get(image.url)!,
+  }));
 };
 
 export const prepareUserPrompt = async (
