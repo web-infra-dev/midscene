@@ -46,18 +46,19 @@ const defaultConfig: IModelConfig = {
   slot: 'default',
 };
 
-// Response shapes recorded from POST https://console.nace.ai/v1/systemone with
-// model drex-max. Drex adds confidence, probabilities, evaluation_time_ms and
-// request_id, which Midscene must tolerate.
+// Response shapes from POST https://console.nace.ai/v1/systemone. The response
+// `model` is the pinned version drex-max-v1.1, including when the request
+// names the retired id drex-max. Drex adds confidence, probabilities,
+// evaluation_time_ms and request_id, which Midscene must tolerate.
 const recordedNoul = {
-  model: 'drex-max',
+  model: 'drex-max-v1.1',
   answers: { result: { type: 'noul', noul: 0.9983 } },
   usage: { input_tokens: 307, output_tokens: 311 },
   evaluation_time_ms: 180.8,
   request_id: 'req_recorded_noul',
 };
 const recordedChoice = (choice: string) => ({
-  model: 'drex-max',
+  model: 'drex-max-v1.1',
   answers: {
     action: {
       type: 'choice',
@@ -408,7 +409,7 @@ describe('Drex requests', () => {
         JSON.stringify({
           error: {
             type: 'invalid_request_error',
-            message: 'images: only drex-max accepts images',
+            message: 'path images',
             issues: [],
           },
           request_id: 'req_recorded_422',

@@ -347,7 +347,7 @@ Copy the following configuration to use Drex Max for Planning and Insight:
         value: "https://console.nace.ai/v1",
         comment: "nace.ai API endpoint",
       },
-      modelName: "drex-max",
+      modelName: "drex-max-v1.1",
     },
   ]}
   modelFamily="drex"
@@ -368,7 +368,7 @@ Drex uses the System One protocol, not an OpenAI protocol. Screenshots and refer
 :::info Notes
 
 - **Request URL**: The Base URL must include `/v1`, for example `https://console.nace.ai/v1`. Midscene appends `/systemone`. To use a different path, set the full request URL with `MIDSCENE_PLANNING_MODEL_ENDPOINT` or `MIDSCENE_INSIGHT_MODEL_ENDPOINT`. Endpoint takes precedence over Base URL. Keep the Base URL set; the endpoint must be on its origin.
-- **Image input limits**: `drex-max` and `drex-max-v1.1` read images; `drex-v2.0` and `drex-latest` are text only and reject requests that contain images. A request carries at most 8 images, 512 questions, and a 4,194,304-byte (4 MiB) body, so use the Agent's `screenshotShrinkFactor` option for large screenshots.
+- **Image input limits**: `drex-max-v1.1`, `drex-max-finance`, and `drex-latest` read images. `drex-latest` is an alias of `drex-max-v1.1`. Retired ids `drex-max`, `drex-v1.0`, `drex-v1.1`, and `drex-v1.5` are served by `drex-max-v1.1`, so they read images too. `drex-v2.0` does not read images and rejects a request that contains them. A request carries at most 8 images, 512 questions, and a 4,194,304-byte (4 MiB) body, so use the Agent's `screenshotShrinkFactor` option for large screenshots. Input is $0.03 per 1M tokens; output is not billed.
 
 :::
 
