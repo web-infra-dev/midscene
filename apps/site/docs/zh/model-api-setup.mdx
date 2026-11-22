@@ -368,7 +368,7 @@ Drex 使用 System One 协议，不使用 OpenAI 协议。截图和参考图片�
 :::info 注意事项
 
 - **请求 URL**：Base URL 需要包含 `/v1`，例如 `https://console.nace.ai/v1`，Midscene 会追加 `/systemone`。如果使用其他路径，可通过 `MIDSCENE_PLANNING_MODEL_ENDPOINT` 或 `MIDSCENE_INSIGHT_MODEL_ENDPOINT` 设置完整请求 URL。Endpoint 的优先级高于 Base URL。请保留 Base URL 配置，Endpoint 必须与它同源。
-- **图像输入限制**：`drex-max-v1.1`、`drex-max-finance` 和 `drex-latest` 能读取图片。`drex-latest` 是 `drex-max-v1.1` 的别名。已停用的 `drex-max`、`drex-v1.0`、`drex-v1.1` 和 `drex-v1.5` 由 `drex-max-v1.1` 提供服务，因此同样能读取图片。`drex-v2.0` 不能读取图片，会拒绝包含图片的请求。每次请求最多 8 张图片、512 个问题，请求体上限 4,194,304 字节（4 MiB），截图较大时请使用 Agent 的 `screenshotShrinkFactor` 参数。输入价格为每 100 万 token 0.03 美元，输出不计费。
+- **图像输入限制**：`drex-max-v1.1`、`drex-max-finance` 和 `drex-latest` 能读取图片。`drex-latest` 是 `drex-max-v1.1` 的别名。已停用的 `drex-max`、`drex-v1.0`、`drex-v1.1` 和 `drex-v1.5` 由 `drex-max-v1.1` 提供服务，因此同样能读取图片。`drex-v2.0` 不能读取图片，会拒绝包含图片的请求。每次请求最多 8 张图片、512 个问题，请求体上限 4,194,304 字节（4 MiB）。Drex 会把每张图片缩放到最多 1,638,400 像素（约 1,280 × 1,280），超过该尺寸的细节会丢失。截图较大时请使用 Agent 的 `screenshotShrinkFactor` 参数。输入价格为每 100 万 token 0.03 美元，输出不计费。
 
 :::
 

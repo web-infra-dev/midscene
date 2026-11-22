@@ -403,14 +403,20 @@ describe('Drex requests', () => {
     });
     expect(result.parseResult.data).toEqual({ Boolean: false });
   });
-  it('labels request failures as Drex', async () => {
-    rs.spyOn(globalThis, 'fetch').mockResolvedValue(
+  it('labels an image rejection from a text-only model as Drex', async () => {
+    const screenshot = await image(40, 30);
+    const fetchMock = rs.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(
         JSON.stringify({
           error: {
             type: 'invalid_request_error',
-            message: 'path images',
-            issues: [],
+            message: 'images require a Drex Max model; use drex-latest',
+            issues: [
+              {
+                path: ['images'],
+                message: 'images require a Drex Max model; use drex-latest',
+              },
+            ],
           },
           request_id: 'req_recorded_422',
         }),
@@ -419,10 +425,19 @@ describe('Drex requests', () => {
     );
     await expect(
       callSystemOneAI(
-        { state: {}, questions: noulQuestion },
-        getModelRuntime(drexConfig),
+        {
+          state: {},
+          images: { screenshot },
+          questions: noulQuestion,
+        },
+        getModelRuntime({ ...drexConfig, modelName: 'drex-v2.0' }),
       ),
-    ).rejects.toThrow(/Drex request failed \(422\)/);
+    ).rejects.toThrow(
+      /Drex request failed \(422\).*images require a Drex Max model; use drex-latest/,
+    );
+    const sent = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+    expect(sent.model).toBe('drex-v2.0');
+    expect(sent.images).toEqual([screenshot]);
     expect(recording.events.map((event) => event.type)).toEqual([
       'request',
       'http-response',
