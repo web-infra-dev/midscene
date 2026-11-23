@@ -154,7 +154,7 @@ const rejectUnknownKeys = (
 ): void => {
   const allowed = new Set(allowedKeys);
   const unknown = Object.keys(value).find((key) => !allowed.has(key));
-  if (unknown) {
+  if (unknown !== undefined) {
     throw new TypeError(
       `Midscene config ${label}.${unknown} is not supported.`,
     );

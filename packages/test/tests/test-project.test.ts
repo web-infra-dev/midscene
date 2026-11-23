@@ -741,6 +741,11 @@ describe('test project config', () => {
       'test: { retry: 1 }',
       'test.retry is not supported',
     ],
+    [
+      'empty test field',
+      "test: { '': 1, testTimout: 500 }",
+      'test. is not supported',
+    ],
   ])('rejects invalid %s configuration', async (_name, field, message) => {
     const { path } = createConfig(`export default { ${field}, nodes: [] };`);
     await expect(loadTestProject(path)).rejects.toThrow(message);
