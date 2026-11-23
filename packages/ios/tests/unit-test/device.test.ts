@@ -425,10 +425,45 @@ describe('IOSDevice', () => {
         new InputFocusUnavailableError('no focus'),
       );
       await device.clearInput({ center: [10, 20] } as any);
-      expect(mockWdaClient.selectAllAt).toHaveBeenCalledExactlyOnceWith(10, 20);
+      expect(mockWdaClient.selectAllAt).toHaveBeenCalledExactlyOnceWith(
+        10,
+        20,
+        true,
+      );
       expect(mockWdaClient.typeRawKeys).toHaveBeenCalledExactlyOnceWith(['\b']);
       expect(mockWdaClient.typeText).not.toHaveBeenCalled();
     });
+
+    it.each([true, false])(
+      'uses the current field position and verifies the selection before deleting (confirmed=%s)',
+      async (confirmed) => {
+        mockWdaClient.waitForInputFocus.mockRejectedValue(
+          new InputFocusUnavailableError('no focus'),
+        );
+        mockWdaClient.selectAllAt.mockResolvedValue(undefined);
+        device.visualEditMenu = {
+          inspect: rs
+            .fn()
+            .mockResolvedValueOnce({ action: 'open', point: { x: 30, y: 40 } })
+            .mockResolvedValueOnce({
+              action: 'select',
+              point: { x: 50, y: 60 },
+            }),
+          selectionCoversText: rs.fn().mockResolvedValue(confirmed),
+        };
+        const clear = device.clearInput({ center: [10, 20] } as any);
+        if (confirmed) await clear;
+        else await expect(clear).rejects.toThrow('Cannot confirm selection');
+        expect(mockWdaClient.longPress).toHaveBeenCalledWith(30, 40, 900);
+        expect(mockWdaClient.tap.mock.calls).toEqual([
+          [10, 20],
+          [50, 60],
+        ]);
+        expect(mockWdaClient.typeRawKeys).toHaveBeenCalledTimes(
+          confirmed ? 1 : 0,
+        );
+      },
+    );
 
     it('does not delete or append when the selection fails', async () => {
       mockWdaClient.clearActiveElement.mockResolvedValue(false);

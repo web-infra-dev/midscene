@@ -120,6 +120,27 @@ describe('IOSAgent', () => {
     });
   });
 
+  it('maps a visually located edit command to logical iPhone coordinates', async () => {
+    rs.spyOn(agent, 'aiString').mockResolvedValue('select');
+    const uiContext = { shrunkShotToLogicalRatio: 1.5 } as Awaited<
+      ReturnType<typeof agent.getUIContext>
+    >;
+    rs.spyOn(agent, 'getUIContext').mockResolvedValue(uiContext);
+    const locate = rs.spyOn(agent, 'aiLocate').mockResolvedValue({
+      center: [168, 412],
+      dpr: 3,
+      rect: { left: 160, top: 405, width: 20, height: 14 },
+    });
+    expect(await mockDevice.visualEditMenu!.inspect()).toEqual({
+      action: 'select',
+      point: { x: 112, y: 275 },
+    });
+    expect(locate).toHaveBeenCalledWith(expect.any(String), {
+      uiContext,
+      cacheable: false,
+    });
+  });
+
   describe('Launch Method', () => {
     it('should launch app using callActionInActionSpace', async () => {
       const bundleId = 'com.apple.mobilesafari';

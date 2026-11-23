@@ -22,6 +22,14 @@ describe('iOS input focus readiness', () => {
     rs.restoreAllMocks();
   });
 
+  it('recognizes a third-party keyboard with a visible system keyboard switcher', async () => {
+    request
+      .mockResolvedValueOnce({ value: [] })
+      .mockResolvedValueOnce({ value: [{ ELEMENT: 'switcher' }] });
+    expect(await client.isKeyboardVisible()).toBe(true);
+    expect(request.mock.calls[1][2].value).toContain('下一个键盘');
+  });
+
   it('opens the edit menu and clicks the unique Select All item', async () => {
     const tap = rs.spyOn(client, 'tap').mockResolvedValue(undefined);
     request
@@ -49,7 +57,7 @@ describe('iOS input focus readiness', () => {
           value: hasOtherItems ? [{ ELEMENT: 'other' }] : [],
         });
       if (hasOtherItems)
-        await expect(client.selectAllAt(10, 20)).rejects.toThrow('Select All');
+        expect(await client.selectAllAt(10, 20)).toBeUndefined();
       else expect(await client.selectAllAt(10, 20)).toBe(false);
     },
   );

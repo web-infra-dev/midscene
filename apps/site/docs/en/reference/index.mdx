@@ -667,7 +667,7 @@ function aiInput(
       - `'typeOnly'`: Enter the text directly without clearing the field first.
       - `'clear'`: Clear the input field without entering new text.
 
-  On iOS, when WDA cannot identify a located input, `replace` and `clear` use the system edit menu’s Select All command and send Backspace. This requires a visible software keyboard and a supported Select All menu item (English or Chinese). A menu offering only Paste or AutoFill is treated as an empty field. If selection is otherwise unavailable, the action reports an error before sending replacement text.
+  On iOS, when WDA cannot identify a located input, `clear` and `replace` can use the edit menu to select and delete existing text. If the keyboard moves the field or WDA cannot read the menu, the iOS Agent uses screenshots to locate the focused field and Select All, then checks the selection before deleting. This fallback may make additional model calls.
 
   Platform-specific behavior under the default `inputStrategy: 'legacy'`:
 

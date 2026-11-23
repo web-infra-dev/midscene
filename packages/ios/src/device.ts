@@ -64,6 +64,13 @@ type PendingKeyboardFollowUp = {
 };
 
 export class IOSDevice implements AbstractInterface {
+  /** Used by the agent when the edit menu is drawn outside the accessibility tree. */
+  visualEditMenu?: {
+    inspect(): Promise<
+      'empty' | { action: 'open' | 'select'; point: PointerPoint }
+    >;
+    selectionCoversText(): Promise<boolean>;
+  };
   private deviceId: string;
   private devicePixelRatio = 1;
   private devicePixelRatioInitialized = false;
@@ -711,10 +718,43 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
         point,
         'Cannot clear an unidentified input without a located target',
       );
-      const selected = await this.wdaBackend.selectAllAt(
+      let selected = await this.wdaBackend.selectAllAt(
         Math.round(point.x),
         Math.round(point.y),
+        !this.visualEditMenu,
       );
+      if (selected === undefined) {
+        assert(
+          this.visualEditMenu,
+          'Cannot clear input: the Select All menu item is unavailable',
+        );
+        let menu = await this.visualEditMenu.inspect();
+        if (menu !== 'empty' && menu.action === 'open') {
+          // Opening the keyboard may have moved the input since the original locate.
+          assert(
+            (await this.foregroundApp()) === typingApp,
+            'Foreground App changed before opening the edit menu',
+          );
+          await this.longPressPoint(menu.point, 900);
+          menu = await this.visualEditMenu.inspect();
+        }
+        selected = menu !== 'empty';
+        if (menu !== 'empty') {
+          assert(
+            menu.action === 'select',
+            'Cannot find Select All for the focused input',
+          );
+          assert(
+            (await this.foregroundApp()) === typingApp,
+            'Foreground App changed before selecting text',
+          );
+          await this.tapPoint(menu.point);
+          assert(
+            await this.visualEditMenu.selectionCoversText(),
+            'Cannot confirm selection in the focused input',
+          );
+        }
+      }
       assert(
         (await this.foregroundApp()) === typingApp,
         'Foreground App changed before deleting the selection',

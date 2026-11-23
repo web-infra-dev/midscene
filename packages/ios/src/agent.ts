@@ -84,6 +84,46 @@ export class IOSAgent extends PageAgent<IOSDevice> {
     // Set the mapping on the device instance
     device.setAppNameMapping(this.appNameMapping);
 
+    device.visualEditMenu = {
+      inspect: async () => {
+        const state = (
+          await this.aiString(
+            'Inspect the currently focused text field above the software keyboard. Reply with exactly one word: select if its floating edit menu visibly offers Select All (全选); empty if the focused field is visibly empty or shows only placeholder text; open if it contains text and no edit menu is visible; unknown otherwise.',
+          )
+        )
+          .trim()
+          .toLowerCase();
+        if (state === 'empty') return 'empty';
+        if (state !== 'select' && state !== 'open')
+          throw new Error('Cannot identify the focused input or its edit menu');
+        const prompt =
+          state === 'select'
+            ? 'The visible Select All (全选) command in the floating edit menu of the currently focused text field'
+            : 'A point immediately to the right of the last character inside the currently focused text field above the keyboard. The text itself identifies the field even when the caret is blinking off.';
+        const uiContext = await this.getUIContext('locate');
+        const { center } = await this.aiLocate(prompt, {
+          cacheable: false,
+          uiContext,
+        });
+        if (!center)
+          throw new Error(
+            'Cannot locate the focused input or Select All command',
+          );
+        const ratio = uiContext.shrunkShotToLogicalRatio;
+        return {
+          action: state,
+          point: {
+            x: Math.round(center[0] / ratio),
+            y: Math.round(center[1] / ratio),
+          },
+        };
+      },
+      selectionCoversText: () =>
+        this.aiBoolean(
+          'In the currently focused editable field above the keyboard, is all existing text visibly selected, with a selection highlight or selection handles around all text? A lone insertion caret is insufficient.',
+        ),
+    };
+
     this.runWdaRequest =
       this.createActionWrapper<DeviceActionRunWdaRequest>('RunWdaRequest');
     this.home =

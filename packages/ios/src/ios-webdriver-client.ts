@@ -305,11 +305,15 @@ export class IOSWebDriverClient extends WebDriverClient {
     return clearInputWithFocus(this.requestInput);
   }
 
-  async selectAllAt(x: number, y: number): Promise<boolean> {
+  async selectAllAt(
+    x: number,
+    y: number,
+    openAtOriginalPoint = true,
+  ): Promise<boolean | undefined> {
     const menu =
       'type == "XCUIElementTypeMenuItem" AND visible == true AND enabled == true';
     const findMenu = () => this.findElementIds('predicate string', menu);
-    if (!(await findMenu()).length) {
+    if (openAtOriginalPoint && !(await findMenu()).length) {
       // A second tap at the insertion point opens UIKit's edit menu.
       await this.tap(x, y);
       const deadline = Date.now() + 1200;
@@ -337,6 +341,7 @@ export class IOSWebDriverClient extends WebDriverClient {
         if (!otherItems.length) return false;
       }
     }
+    if (!matches.length) return undefined;
     if (matches.length !== 1) {
       throw new Error(
         'Cannot clear the located input: the iOS Select All menu item is unavailable',
@@ -691,7 +696,13 @@ export class IOSWebDriverClient extends WebDriverClient {
   /** Returns whether WDA currently exposes a visible software keyboard. */
   async isKeyboardVisible(): Promise<boolean> {
     this.ensureSession();
-    return (await this.findVisibleKeyboardIds()).length > 0;
+    if ((await this.findVisibleKeyboardIds()).length) return true;
+    // Third-party keyboards may expose only the system keyboard switcher.
+    const switchers = await this.findElementIds(
+      'predicate string',
+      'type == "XCUIElementTypeButton" AND visible == true AND name IN[c] {"Next keyboard", "下一个键盘", "下一個鍵盤"}',
+    );
+    return switchers.length > 0;
   }
 
   /**
