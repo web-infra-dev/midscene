@@ -41,7 +41,7 @@ Use ordinary JS assertions for important intermediate/final state, and optional 
 node packages/replay/scripts/cli.mjs run midscene_run/replay/my-authoring/replay
 ```
 
-`run` outputs one structured result and a native HTML report path. If the local HTML report template is missing, build `@midscene/report` following the repository contribution guide. For a separate project, provide compatible workspace/local builds of Replay, Web and Playwright; Replay is private.
+`run` outputs one structured result and a native HTML report path. If the local HTML report template is missing, build `@midscene/report` following the repository contribution guide. Outside this repository, install a specific Replay Beta and a compatible Playwright version. Run `pnpm exec midscene-replay` and point your coding Agent at `node_modules/@midscene/replay/skills/midscene-replay/SKILL.md`.
 
 For one-step diagnosis, use `run REPLAY --session STEP_SESSION --from STEP --until STEP` with a custom session that prepares that step's page and data. Skipped steps provide no results or shared state. Use `trial REPLAY --step STEP` when you need earlier steps to produce those values. Find per-attempt `ready`, `run`, and `done` timings in the JSON outcome and the trial's `steps.md`. [Diagnostic commands and evidence](./skills/midscene-replay/references/review.md#run)
 
@@ -68,6 +68,6 @@ pnpm exec nx test @midscene/replay
 pnpm --filter @midscene/replay lint
 ```
 
-The private experimental package ships CLI, Skill and `@midscene/replay/experimental` / `@midscene/replay/tooling`. Tests cover recording, native dispatch, business-check failures, evidence preservation and Jev results. Real-site acceptance is separately reviewed; model calls require host credentials.
+The experimental package ships CLI, Skill and `@midscene/replay/experimental` / `@midscene/replay/tooling`. Tests cover recording, native dispatch, business-check failures, evidence preservation and Jev results. Real-site acceptance is separately reviewed; model calls require host credentials.
 
 `replay-v1.0.0` is the Replay baseline tag. Earlier V6/V7 labels identify development snapshots. The `source.json` and recording `trace.json` format versions are `6` and `1`, respectively. CLI `--version` prints the Midscene SDK package version.

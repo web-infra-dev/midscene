@@ -1,7 +1,6 @@
 {
   "name": "@midscene/replay",
-  "version": "1.17.8",
-  "private": true,
+  "version": "1.18.2",
   "description": "Record Web workflows, execute step-based Midscene replays, and support Agent-led review.",
   "repository": {
     "type": "git",

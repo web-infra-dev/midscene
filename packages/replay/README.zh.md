@@ -41,7 +41,7 @@ node packages/replay/scripts/cli.mjs trial midscene_run/replay/my-authoring/repl
 node packages/replay/scripts/cli.mjs run midscene_run/replay/my-authoring/replay
 ```
 
-`run` 执行一次并输出结构化结果与原生 HTML 报告路径。如果本地缺报告模板，按仓库贡献指南构建 `@midscene/report`。Replay 是私有实验包，独立宿主使用兼容的工作区依赖或本地构建。
+`run` 执行一次并输出结构化结果与原生 HTML 报告路径。如果本地缺报告模板，按仓库贡献指南构建 `@midscene/report`。在仓库外，安装确定版本的 Replay Beta 和兼容的 Playwright。用 `pnpm exec midscene-replay` 启动 CLI，并让编码 Agent 读取 `node_modules/@midscene/replay/skills/midscene-replay/SKILL.md`。
 
 只跑一个步骤时，用 `run REPLAY --session STEP_SESSION --from STEP --until STEP`，由自定义会话准备该步骤需要的页面和数据。跳过的步骤不会产生结果或共享状态。依赖前序数据时，用 `trial REPLAY --step STEP` 重放前序步骤。每次尝试的 `ready`、`run`、`done` 耗时可在 JSON 结果和试跑的 `steps.md` 中查看。[诊断命令和证据](./skills/midscene-replay/references/review.md#run)
 
