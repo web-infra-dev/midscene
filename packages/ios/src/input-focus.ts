@@ -27,6 +27,24 @@ function isProtocolError(error: unknown, code: string): boolean {
   );
 }
 
+// Some WDA gateways omit the JSON content type or return an empty 404.
+function isMissingActiveElement(error: unknown): boolean {
+  if (isProtocolError(error, 'no such element')) return true;
+  if (!(error instanceof WebDriverRequestError) || error.status !== 404)
+    return false;
+  let body = error.response;
+  if (typeof body === 'string') {
+    const text = body.trim();
+    if (!text || text === 'no such element') return true;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      return false;
+    }
+  }
+  return (body?.value?.error ?? body?.error) === 'no such element';
+}
+
 async function activeInput(
   request: InputRequest,
   timeout?: number,
@@ -40,7 +58,7 @@ async function activeInput(
     );
     return value === null ? undefined : elementId(value);
   } catch (error) {
-    if (isProtocolError(error, 'no such element')) return undefined;
+    if (isMissingActiveElement(error)) return undefined;
     throw error;
   }
 }

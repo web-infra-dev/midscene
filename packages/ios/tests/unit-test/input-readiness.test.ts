@@ -50,7 +50,30 @@ describe('iOS input focus readiness', () => {
   });
 
   it.each([
+    '',
+    'no such element',
+    JSON.stringify({ value: { error: 'no such element' } }),
+    { error: 'no such element' },
+  ])('polls an active-element 404 returned by a gateway (%j)', async (body) => {
+    request
+      .mockRejectedValueOnce(new WebDriverRequestError('HTTP 404', 404, body))
+      .mockResolvedValue({ value: { ELEMENT: 'field' } });
+    await client.waitForInputFocus();
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
     new WebDriverRequestError('Connection lost'),
+    new WebDriverRequestError(
+      'Session gone',
+      404,
+      JSON.stringify({ value: { error: 'invalid session id' } }),
+    ),
+    new WebDriverRequestError(
+      'Unrecognized response',
+      404,
+      '<html>Not found</html>',
+    ),
     new WebDriverRequestError('Request timeout after 3000ms'),
     new WebDriverRequestError('Unsupported', 404, {
       value: { error: 'unknown command' },
