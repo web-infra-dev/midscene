@@ -428,10 +428,6 @@ export default defineConfig(async () => {
             link: '/awesome-midscene',
           },
           {
-            text: 'Brand resources',
-            link: '/brand-resources',
-          },
-          {
             text: 'Data privacy',
             link: '/data-privacy',
           },
@@ -705,10 +701,6 @@ export default defineConfig(async () => {
           {
             text: 'Awesome Midscene',
             link: '/zh/awesome-midscene',
-          },
-          {
-            text: '品牌资源',
-            link: '/zh/brand-resources',
           },
           {
             text: '数据隐私',
