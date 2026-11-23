@@ -24,10 +24,15 @@ describe('located iOS replacement on custom inputs', () => {
   let holds: number;
   let active: { accessible: boolean; value: string | null } | undefined;
 
-  function replace(text: string, inputStrategy?: 'sequential') {
+  function replace(
+    text: string,
+    inputStrategy?: 'sequential',
+    customInputClearFallbackMaxDeleteCount?: number,
+  ) {
     const device = new IOSDevice({
       sessionId: 'fixture',
       autoDismissKeyboard: false,
+      customInputClearFallbackMaxDeleteCount,
     });
     const input = device
       .actionSpace()
@@ -37,6 +42,22 @@ describe('located iOS replacement on custom inputs', () => {
       mode: 'replace',
       value: text,
       inputStrategy,
+    });
+  }
+
+  function clear(customInputClearFallbackMaxDeleteCount?: number) {
+    const device = new IOSDevice({
+      sessionId: 'fixture',
+      autoDismissKeyboard: false,
+      customInputClearFallbackMaxDeleteCount,
+    });
+    const input = device
+      .actionSpace()
+      .find((action) => action.name === 'Input')!;
+    return input.call({
+      locate: target,
+      mode: 'clear',
+      value: '',
     });
   }
 
@@ -153,7 +174,11 @@ describe('located iOS replacement on custom inputs', () => {
         case '/wda/keys': {
           const keys = body.value.join('');
           keyRequests.push(keys);
-          value = (selected ? '' : value) + keys;
+          if (selected) value = '';
+          for (const key of keys) {
+            if (key === '\b') value = Array.from(value).slice(0, -1).join('');
+            else value += key;
+          }
           selected = false;
           return ok(null);
         }
@@ -245,6 +270,7 @@ describe('located iOS replacement on custom inputs', () => {
       expect(outsideClicks).toBe(0);
       expect(keyRequests).toEqual([]);
     },
+    10_000,
   );
 
   it.each([null, 'Nickname'])(
@@ -288,6 +314,20 @@ describe('located iOS replacement on custom inputs', () => {
     expect(value).toBe(original);
   });
 
+  it('clears with bounded backspaces when the edit menu is inaccessible and fallback is enabled', async () => {
+    itemCount = 0;
+    await clear(40);
+    expect(value).toBe('');
+    expect(keyRequests).toEqual(['\b'.repeat(40)]);
+  }, 10_000);
+
+  it('falls back to bounded backspaces when the edit menu is inaccessible and fallback is enabled', async () => {
+    itemCount = 0;
+    await replace('new', undefined, 40);
+    expect(value).toBe('new');
+    expect(keyRequests).toEqual(['\b'.repeat(40), 'new']);
+  }, 10_000);
+
   it.each([0, 2])(
     'preserves the old value with %i matching menu actions',
     async (count) => {
@@ -298,6 +338,7 @@ describe('located iOS replacement on custom inputs', () => {
       expect(keyRequests).toEqual([]);
       expect(value).toBe(original);
     },
+    10_000,
   );
 
   it('propagates a failed selection without typing or retrying', async () => {

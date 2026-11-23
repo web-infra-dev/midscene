@@ -52,6 +52,7 @@ function containsPoint(rect: WebDriverElementRect, x: number, y: number) {
 export type ReplacementPreparation =
   | 'native'
   | 'selected'
+  | 'fallback'
   | { emptyFieldId: string };
 
 const editMenuMaxGap = 88; // Two standard iOS edit-menu rows.
@@ -507,7 +508,13 @@ export class IOSWebDriverClient extends WebDriverClient {
       const menuDeadline = Date.now() + editMenuTimeoutMs;
       const previous = [...beforeTap, ...afterTap];
       while (Date.now() < menuDeadline) {
-        const current = await this.findSelectAllActions(menuDeadline);
+        let current: EditAction[];
+        try {
+          current = await this.findSelectAllActions(menuDeadline);
+        } catch (error) {
+          if (Date.now() >= menuDeadline) break;
+          throw error;
+        }
         matches = newlyOpenedActions(current, previous, target);
         if (matches.length) break;
         if (mayBeEmptyNativeField && activeId) {
@@ -527,9 +534,7 @@ export class IOSWebDriverClient extends WebDriverClient {
       }
     }
     if (matches.length !== 1) {
-      throw new Error(
-        'Cannot uniquely locate Select All in the input edit menu; refusing to append text',
-      );
+      return 'fallback';
     }
     await this.clickElement(matches[0]);
     return 'selected';
@@ -875,6 +880,13 @@ export class IOSWebDriverClient extends WebDriverClient {
    * Used by the per-character typing delay path where each character
    * must be delivered exactly as-is.
    */
+  async deleteBackward(count: number): Promise<void> {
+    if (!Number.isSafeInteger(count) || count <= 0) {
+      throw new Error('Backspace fallback count must be a positive integer');
+    }
+    await this.typeRawKeys(['\b'.repeat(count)]);
+  }
+
   async typeRawKeys(chars: string[]): Promise<void> {
     this.ensureSession();
 

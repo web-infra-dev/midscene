@@ -115,6 +115,7 @@ export class IOSDevice implements AbstractInterface {
           preparation = await this.clearOrSelectInput(
             focusRestorePoint,
             Boolean(value) && !opts?.focusOnly,
+            this.options?.customInputClearFallbackMaxDeleteCount,
           );
         } else if (focusRestorePoint) {
           await this.tapPoint(focusRestorePoint);
@@ -132,8 +133,18 @@ export class IOSDevice implements AbstractInterface {
           preparation,
         );
       },
-      clearInput: (target) =>
-        this.clearInput(target as ElementInfo | undefined),
+      clearInput: async (target) => {
+        const element = target as ElementInfo | undefined;
+        if (element && this.options?.customInputClearFallbackMaxDeleteCount) {
+          await this.clearOrSelectInput(
+            { x: element.center[0], y: element.center[1] },
+            true,
+            this.options.customInputClearFallbackMaxDeleteCount,
+          );
+          return;
+        }
+        await this.clearInput(element);
+      },
       cursorMove: async (direction, times = 1) => {
         const arrowKey = direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
         for (let i = 0; i < times; i++) {
@@ -274,6 +285,7 @@ export class IOSDevice implements AbstractInterface {
   private async clearOrSelectInput(
     point?: PointerPoint,
     allowSelection = false,
+    fallbackMaxDeleteCount?: number,
   ): Promise<ReplacementPreparation> {
     this.invalidatePendingKeyboardFollowUp('clear input');
     if (allowSelection && point) {
@@ -281,6 +293,18 @@ export class IOSDevice implements AbstractInterface {
         Math.round(point.x),
         Math.round(point.y),
       );
+      if (preparation === 'fallback') {
+        assert(
+          fallbackMaxDeleteCount,
+          'Cannot uniquely locate Select All in the input edit menu; refusing to append text',
+        );
+        assert(
+          await this.wdaBackend.isKeyboardVisible(),
+          'Keyboard is not visible; refusing to clear the custom input',
+        );
+        await this.wdaBackend.deleteBackward(fallbackMaxDeleteCount);
+        return 'selected';
+      }
       if (preparation !== 'native') return preparation;
     } else {
       if (point) await this.tapPoint(point);

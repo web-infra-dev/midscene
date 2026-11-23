@@ -168,6 +168,12 @@ export type IOSDeviceInputOpt = {
   /** Automatically dismiss the keyboard after input is completed */
   autoDismissKeyboard?: boolean;
   /**
+   * Opt in to a bounded Backspace fallback when WDA cannot expose the iOS
+   * contextual Select All action for a located custom input. Disabled by
+   * default to preserve strict replacement semantics.
+   */
+  customInputClearFallbackMaxDeleteCount?: number;
+  /**
    * Finite non-negative delay in milliseconds between keystrokes.
    *
    * In legacy mode, a positive value types text one Unicode code point at a
