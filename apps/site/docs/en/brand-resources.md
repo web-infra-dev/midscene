@@ -4,8 +4,8 @@ This page provides the official Midscene.js icon and brand color for documentati
 
 ## Icon
 
-- [Monochrome SVG](/images/brand/midscenedotjs.svg)
-- [Color icon](/images/brand/midscene-icon.png)
+- <a href="/images/brand/midscenedotjs.svg" download>Monochrome SVG</a>
+- <a href="/images/brand/midscene-icon.png" download>Color icon</a>
 - [All brand assets on GitHub](https://github.com/web-infra-dev/midscene/tree/main/apps/site/docs/public/images/brand)
 
 The monochrome SVG uses a 24 × 24 viewBox and a single compound path. It has a transparent background and no explicit fill color, so it defaults to black. Set the fill color when rendering it.

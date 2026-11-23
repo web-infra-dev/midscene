@@ -4,8 +4,8 @@
 
 ## 图标
 
-- [单色 SVG](/images/brand/midscenedotjs.svg)
-- [彩色图标](/images/brand/midscene-icon.png)
+- <a href="/images/brand/midscenedotjs.svg" download>单色 SVG</a>
+- <a href="/images/brand/midscene-icon.png" download>彩色图标</a>
 - [GitHub 上的全部品牌资源](https://github.com/web-infra-dev/midscene/tree/main/apps/site/docs/public/images/brand)
 
 单色 SVG 使用 24 × 24 的 viewBox 和单个复合路径，背景透明，未指定填充颜色，默认显示为黑色。可在渲染时设置填充颜色。
