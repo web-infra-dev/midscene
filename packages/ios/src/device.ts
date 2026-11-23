@@ -281,7 +281,7 @@ export class IOSDevice implements AbstractInterface {
     this.invalidatePendingKeyboardFollowUp('clear input');
     const app = point ? await this.appBeforeInput() : undefined;
     if (point) await this.tapPoint(point);
-    await this.prepareTextInput(app, true, point);
+    await this.prepareTextInput(app, 'clear', point);
   }
 
   actionSpace(): DeviceAction<any>[] {
@@ -352,6 +352,12 @@ export class IOSDevice implements AbstractInterface {
 
   constructor(options?: IOSDeviceOpt) {
     assertWdaConnectionOptions(options);
+    const count = options?.customInputClearFallbackMaxDeleteCount;
+    if (count !== undefined)
+      assert(
+        Number.isInteger(count) && count >= 1 && count <= 256,
+        'customInputClearFallbackMaxDeleteCount must be an integer from 1 to 256',
+      );
     // deviceId will be auto-detected from WebDriverAgent connection
     this.deviceId = 'pending-connection';
     this.options = options;
@@ -686,7 +692,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   private async prepareTextInput(
     typingApp: string | undefined,
-    clear: boolean,
+    mode: 'clear' | 'replace' | 'typeOnly',
     point?: PointerPoint,
   ): Promise<void> {
     let nativeFocus = true;
@@ -698,7 +704,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       nativeFocus = false;
     }
     if (nativeFocus) {
-      if (!clear) return;
+      if (mode === 'typeOnly') return;
       if (await this.wdaBackend.clearActiveElement()) {
         await this.wdaBackend.waitForInputFocus();
         return;
@@ -713,54 +719,77 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       (await this.foregroundApp()) === typingApp,
       'Foreground App changed during input; no text was sent',
     );
-    if (clear) {
+    if (mode !== 'typeOnly') {
       assert(
         point,
         'Cannot clear an unidentified input without a located target',
       );
-      let selected = await this.wdaBackend.selectAllAt(
-        Math.round(point.x),
-        Math.round(point.y),
-        !this.visualEditMenu,
-      );
-      if (selected === undefined) {
-        assert(
-          this.visualEditMenu,
-          'Cannot clear input: the Select All menu item is unavailable',
-        );
-        let menu = await this.visualEditMenu.inspect();
-        if (menu !== 'empty' && menu.action === 'open') {
-          // Opening the keyboard may have moved the input since the original locate.
-          assert(
-            (await this.foregroundApp()) === typingApp,
-            'Foreground App changed before opening the edit menu',
-          );
-          await this.longPressPoint(menu.point, 900);
-          menu = await this.visualEditMenu.inspect();
-        }
-        selected = menu !== 'empty';
-        if (menu !== 'empty') {
-          assert(
-            menu.action === 'select',
-            'Cannot find Select All for the focused input',
-          );
-          assert(
-            (await this.foregroundApp()) === typingApp,
-            'Foreground App changed before selecting text',
-          );
-          await this.tapPoint(menu.point);
-          assert(
-            await this.visualEditMenu.selectionCoversText(),
-            'Cannot confirm selection in the focused input',
-          );
-        }
-      }
-      assert(
-        (await this.foregroundApp()) === typingApp,
-        'Foreground App changed before deleting the selection',
-      );
-      if (selected) await this.wdaBackend.typeRawKeys(['\b']);
+      const selected = await this.selectCustomInput(point, typingApp);
+      await this.checkInputApp(typingApp);
+      if (selected && mode === 'clear')
+        await this.wdaBackend.typeRawKeys(['\b']);
     }
+  }
+
+  private async checkInputApp(expected: string): Promise<void> {
+    assert(
+      (await this.foregroundApp()) === expected,
+      'Foreground App changed during input',
+    );
+  }
+
+  private async selectCustomInput(
+    point: PointerPoint,
+    app: string,
+  ): Promise<boolean> {
+    const { visualEditMenu } = this;
+    const selected = await this.wdaBackend.selectAllAt(
+      Math.round(point.x),
+      Math.round(point.y),
+      !visualEditMenu,
+    );
+    if (selected !== undefined) return selected;
+    assert(
+      visualEditMenu,
+      'Cannot clear input: the Select All menu item is unavailable',
+    );
+
+    const count = this.options?.customInputClearFallbackMaxDeleteCount;
+    if (count !== undefined) {
+      await this.checkInputApp(app);
+      await this.wdaBackend.typeRawKeys(['\b'.repeat(count)]);
+    }
+    // A successful key request does not prove the field is empty: Backspace
+    // leaves the suffix after the caret and may exhaust the caller's budget.
+    let menu = await visualEditMenu.inspect();
+    if (menu !== 'empty' && menu.action === 'open') {
+      await this.checkInputApp(app);
+      // After deletion the caret may still be at the start of a suffix.
+      // Tapping its freshly located end can open the native menu directly.
+      if (count !== undefined) {
+        await this.tapPoint(menu.point);
+        await this.checkInputApp(app);
+        const tapped = await this.wdaBackend.selectAllFromMenu();
+        if (tapped === true) return true;
+      }
+      await this.longPressPoint(menu.point, 900);
+      await this.checkInputApp(app);
+      const nativeSelection = await this.wdaBackend.selectAllFromMenu();
+      if (nativeSelection === true) return true;
+      menu = await visualEditMenu.inspect();
+    }
+    if (menu === 'empty') return false;
+    assert(
+      menu.action === 'select',
+      'Cannot find Select All for the focused input',
+    );
+    await this.checkInputApp(app);
+    await this.tapPoint(menu.point);
+    assert(
+      await visualEditMenu.selectionCoversText(),
+      'Cannot confirm selection in the focused input',
+    );
+    return true;
   }
 
   private async typeText(
@@ -785,7 +814,11 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     debugDevice(`Typing text: "${text}"`);
 
     try {
-      await this.prepareTextInput(typingApp, replaceLocated, focusRestorePoint);
+      await this.prepareTextInput(
+        typingApp,
+        replaceLocated ? 'replace' : 'typeOnly',
+        focusRestorePoint,
+      );
 
       if (inputSequentially) {
         // Type one character at a time with a delay between keystrokes.
@@ -803,6 +836,8 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
             delayAfterLast: resolvedInputOptions.inputStrategy === 'legacy',
           },
         );
+      } else if (replaceLocated && text !== text.trim()) {
+        await this.wdaBackend.typeRawKeys([text]);
       } else {
         await this.wdaBackend.typeText(text);
       }

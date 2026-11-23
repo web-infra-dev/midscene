@@ -188,6 +188,8 @@ export type IOSDeviceInputOpt = {
  * iOS device options
  */
 export type IOSDeviceOpt = {
+  /** Optional Backspace budget for located custom fields. The agent inspects the field after the batch. */
+  customInputClearFallbackMaxDeleteCount?: number;
   /**
    * Optional npm module path used to override the default iOS device implementation.
    * The target module must export an `IOSDevice` class (or default export) compatible with Midscene's iOS device interface.

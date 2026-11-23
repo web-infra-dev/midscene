@@ -45,6 +45,7 @@ describe('IOSDevice', () => {
       typeText: rs.fn().mockResolvedValue(undefined),
       typeRawKeys: rs.fn().mockResolvedValue(undefined),
       waitForInputFocus: rs.fn().mockResolvedValue(undefined),
+      selectAllFromMenu: rs.fn().mockResolvedValue(undefined),
       selectAllAt: rs.fn().mockResolvedValue(true),
       clearActiveElement: rs.fn().mockResolvedValue(true),
       pressKey: rs.fn().mockResolvedValue(undefined),
@@ -465,6 +466,64 @@ describe('IOSDevice', () => {
       },
     );
 
+    it.each(['clear', 'replace'] as const)(
+      'finishes %s only after checking the Backspace result',
+      async (mode) => {
+        device.options = { customInputClearFallbackMaxDeleteCount: 40 };
+        mockWdaClient.waitForInputFocus.mockRejectedValue(
+          new InputFocusUnavailableError('no focus'),
+        );
+        mockWdaClient.selectAllAt.mockResolvedValue(undefined);
+        mockWdaClient.selectAllFromMenu.mockResolvedValue(true);
+        device.visualEditMenu = {
+          inspect: rs
+            .fn()
+            .mockResolvedValue({ action: 'open', point: { x: 30, y: 40 } }),
+          selectionCoversText: rs.fn(),
+        };
+        await device
+          .actionSpace()
+          .find((a) => a.name === 'Input')!
+          .call(
+            {
+              locate: { center: [10, 20] },
+              value: 'new',
+              mode,
+              autoDismissKeyboard: false,
+            } as any,
+            mockExecutorContext,
+          );
+        expect(device.visualEditMenu.inspect).toHaveBeenCalledOnce();
+        expect(mockWdaClient.typeRawKeys.mock.calls).toEqual(
+          mode === 'clear'
+            ? [[['\b'.repeat(40)]], [['\b']]]
+            : [[['\b'.repeat(40)]]],
+        );
+        expect(mockWdaClient.typeText).toHaveBeenCalledTimes(
+          mode === 'replace' ? 1 : 0,
+        );
+      },
+    );
+
+    it('does not type when the post-Backspace inspection fails', async () => {
+      device.options = { customInputClearFallbackMaxDeleteCount: 40 };
+      mockWdaClient.clearActiveElement.mockResolvedValue(false);
+      mockWdaClient.selectAllAt.mockResolvedValue(undefined);
+      device.visualEditMenu = {
+        inspect: rs.fn().mockRejectedValue(new Error('unknown field')),
+        selectionCoversText: rs.fn(),
+      };
+      await expect(
+        device.inputPrimitives.keyboard.typeText('new', {
+          target: { center: [10, 20] },
+        }),
+      ).rejects.toThrow('unknown field');
+      expect(mockWdaClient.typeRawKeys).toHaveBeenCalledExactlyOnceWith([
+        '\b'.repeat(40),
+      ]);
+      expect(mockWdaClient.typeText).not.toHaveBeenCalled();
+    });
+
     it('does not delete or append when the selection fails', async () => {
       mockWdaClient.clearActiveElement.mockResolvedValue(false);
       mockWdaClient.selectAllAt.mockRejectedValue(new Error('no menu'));
@@ -509,9 +568,7 @@ describe('IOSDevice', () => {
         expect(mockWdaClient.selectAllAt).toHaveBeenCalledTimes(
           replace ? 1 : 0,
         );
-        expect(mockWdaClient.typeRawKeys.mock.calls).toEqual(
-          replace ? [[['\b']]] : [],
-        );
+        expect(mockWdaClient.typeRawKeys).not.toHaveBeenCalled();
       },
     );
 

@@ -14,6 +14,8 @@ import {
   selectKeyboardAccessoryDismissButton,
 } from './keyboard-dismiss';
 
+const visibleEditMenuItem =
+  'type == "XCUIElementTypeMenuItem" AND visible == true AND enabled == true';
 const debugIOS = getDebug('webdriver:ios');
 
 // WDA MJPEG server settings applied during session setup
@@ -310,20 +312,24 @@ export class IOSWebDriverClient extends WebDriverClient {
     y: number,
     openAtOriginalPoint = true,
   ): Promise<boolean | undefined> {
-    const menu =
-      'type == "XCUIElementTypeMenuItem" AND visible == true AND enabled == true';
-    const findMenu = () => this.findElementIds('predicate string', menu);
-    if (openAtOriginalPoint && !(await findMenu()).length) {
-      // A second tap at the insertion point opens UIKit's edit menu.
-      await this.tap(x, y);
-      const deadline = Date.now() + 1200;
-      while (!(await findMenu()).length && Date.now() < deadline) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
+    if (openAtOriginalPoint) {
+      const findMenu = () =>
+        this.findElementIds('predicate string', visibleEditMenuItem);
+      if (!(await findMenu()).length) {
+        await this.tap(x, y);
+        const deadline = Date.now() + 1200;
+        while (!(await findMenu()).length && Date.now() < deadline) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
       }
     }
+    return this.selectAllFromMenu();
+  }
+
+  async selectAllFromMenu(): Promise<boolean | undefined> {
     const matches = await this.findElementIds(
       'predicate string',
-      `${menu} AND (name IN {"Select All", "全选", "全選"} OR label IN {"Select All", "全选", "全選"})`,
+      `${visibleEditMenuItem} AND (name IN {"Select All", "全选", "全選"} OR label IN {"Select All", "全选", "全選"})`,
     );
     if (!matches.length) {
       // UIKit offers only insertion actions in the edit menu of an empty field.
@@ -331,12 +337,12 @@ export class IOSWebDriverClient extends WebDriverClient {
         'name IN {"Paste", "AutoFill", "AutoFill…", "粘贴", "贴上", "貼上", "自动填充", "自動填寫", "自動填入"}';
       const insertionItems = await this.findElementIds(
         'predicate string',
-        `${menu} AND (${insertionActions})`,
+        `${visibleEditMenuItem} AND (${insertionActions})`,
       );
       if (insertionItems.length) {
         const otherItems = await this.findElementIds(
           'predicate string',
-          `${menu} AND NOT (${insertionActions})`,
+          `${visibleEditMenuItem} AND NOT (${insertionActions})`,
         );
         if (!otherItems.length) return false;
       }

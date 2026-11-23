@@ -72,6 +72,7 @@ Accepts all [shared Agent options](../reference/#agent-options), plus the follow
 - `wdaMjpegPort?: number` — WDA MJPEG server port for real-time screen streaming. Default: `9100`.
 - `wdaMjpegUrl?: string` — Full HTTP(S) MJPEG stream URL (including any gateway path or query string). Cannot be combined with `wdaMjpegPort`.
 - `wdaMjpegFrameSource?: { enabled?: boolean }` — Whether to use WDA's MJPEG stream as the continuous frame source for `agent.startObserving()`. Disabled by default; when disabled, observers fall back to sequential `screenshotBase64()` calls.
+- `customInputClearFallbackMaxDeleteCount?: number` — Optional integer from 1 to 256. For a located custom field with no accessible Select All command, the iOS Agent sends a single batch of Backspaces, inspects the field, and uses the edit menu if text remains. Omit to disable. CLI example: `--custom-input-clear-fallback-max-delete-count 40`.
 - `autoDismissKeyboard?: boolean` — Whether to automatically dismiss the on-screen keyboard after text input. Default: `true`.
 - `keyboardTypeDelay?: number` — Delay in milliseconds between keystrokes (must be a finite non-negative number). When set to a positive value, `'legacy'` input sends characters one Unicode code point at a time through WDA's `/wda/keys` endpoint. Useful when an input field drops characters during fast typing.
 - `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` — Default text input strategy for `Input` actions. Default: `'legacy'`:

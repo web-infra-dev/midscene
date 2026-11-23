@@ -72,6 +72,7 @@ const agent = new IOSAgent(device);
 - `wdaMjpegPort?: number` —— WDA MJPEG 实时画面流端口。默认值：`9100`。
 - `wdaMjpegUrl?: string` —— 完整的 HTTP(S) MJPEG 画面流地址（可包含网关路径或查询参数）。不能与 `wdaMjpegPort` 同时设置。
 - `wdaMjpegFrameSource?: { enabled?: boolean }` —— 是否将 WDA 的 MJPEG 画面流作为 `agent.startObserving()` 的连续帧源。默认关闭；关闭时，观察器会回退为按序调用 `screenshotBase64()` 截图。
+- `customInputClearFallbackMaxDeleteCount?: number` — 可选整数，范围 1–256，默认关闭。定位到自绘输入框且 WDA 找不到“全选”时，iOS Agent 会一次发送指定次数的退格，再检查输入框；有残留文字就继续通过编辑菜单全选。CLI 示例：`--custom-input-clear-fallback-max-delete-count 40`。
 - `autoDismissKeyboard?: boolean` —— 文本输入完成后是否自动收起软键盘。默认值：`true`。
 - `keyboardTypeDelay?: number` —— 按键之间的延迟（单位：毫秒，须为有限非负数）。设为正数时，`'legacy'` 输入模式会通过 WDA 的 `/wda/keys` 接口逐个 Unicode 码点发送字符，适用于输入框因输入过快而丢字的场景。
 - `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` —— `Input` 动作的默认文本输入策略。默认值为 `'legacy'`：

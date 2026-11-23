@@ -48,6 +48,15 @@ const iosInitArgShape = {
     .describe(
       'Opt-in: use the WDA MJPEG stream as a continuous frame source for UI observation (default off)',
     ),
+  customInputClearFallbackMaxDeleteCount: z
+    .number()
+    .int()
+    .min(1)
+    .max(256)
+    .optional()
+    .describe(
+      'Try up to this many Backspaces on a located custom input, then inspect the field (default: disabled)',
+    ),
   ...agentBehaviorInitArgShape,
 };
 
@@ -61,6 +70,7 @@ type IOSInitArgs = AgentBehaviorInitArgs &
     | 'wdaMjpegPort'
     | 'wdaMjpegUrl'
     | 'wdaMjpegFrameSource'
+    | 'customInputClearFallbackMaxDeleteCount'
   >;
 
 function getTargetIdentity(initArgs?: IOSInitArgs): string {
