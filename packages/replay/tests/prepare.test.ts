@@ -1,13 +1,40 @@
+import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it } from '@rstest/core';
-import { prepareDependencies } from '../scripts/prepare.mjs';
 
-it('makes an external authoring directory import the host SDK and replay runtime', () => {
+it('makes an external authoring directory import the SDK without the Playwright test runner', () => {
   const out = mkdtempSync(join(tmpdir(), 'replay-dependencies-'));
   try {
-    const versions = prepareDependencies(out);
+    const hook = `
+      export function resolve(name, context, next) {
+        if (name === '@playwright/test') throw new Error('Test runner is unavailable');
+        return next(name, context);
+      }
+    `;
+    const preload = `import { register } from 'node:module';
+      register(${JSON.stringify(`data:text/javascript;base64,${Buffer.from(hook).toString('base64')}`)});`;
+    const entry = new URL('../scripts/prepare.mjs', import.meta.url).href;
+    const child = spawnSync(
+      process.execPath,
+      [
+        '--input-type=module',
+        '--eval',
+        `import {prepareDependencies} from ${JSON.stringify(entry)};
+          console.log(JSON.stringify(prepareDependencies(process.argv[1])));`,
+        out,
+      ],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          NODE_OPTIONS: `--import=data:text/javascript;base64,${Buffer.from(preload).toString('base64')}`,
+        },
+      },
+    );
+    expect(child.status, child.stderr).toBe(0);
+    const versions = JSON.parse(child.stdout);
     expect(Object.keys(versions).sort()).toEqual([
       '@midscene/replay',
       '@midscene/web',

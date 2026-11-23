@@ -1,7 +1,7 @@
 // Optional. Only for login, special browser context, state reset or
 // independent checks. Without it, trial/run use meta.startUrl with a
 // headless Chromium PlaywrightBrowserAgent.
-import { PlaywrightBrowserAgent } from '@midscene/web/playwright';
+import { PlaywrightBrowserAgent } from '@midscene/web/playwright/agent';
 import { chromium } from 'playwright';
 
 export const platform = 'web';

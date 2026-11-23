@@ -167,7 +167,7 @@ function defaultWebSession(
     async open({ outDir }) {
       const [{ chromium }, { PlaywrightBrowserAgent }] = await Promise.all([
         import('playwright'),
-        import('@midscene/web/playwright'),
+        import('@midscene/web/playwright/agent'),
       ]);
       if (cdp && isolate) storageState ??= await readTrialStorage(cdp, url);
       if (reuseTab) liveTab ??= await connectToTab(cdp, url);
