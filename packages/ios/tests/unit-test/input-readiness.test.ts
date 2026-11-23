@@ -22,6 +22,38 @@ describe('iOS input focus readiness', () => {
     rs.restoreAllMocks();
   });
 
+  it('opens the edit menu and clicks the unique Select All item', async () => {
+    const tap = rs.spyOn(client, 'tap').mockResolvedValue(undefined);
+    request
+      .mockResolvedValueOnce({ value: [] })
+      .mockResolvedValueOnce({ value: [{ ELEMENT: 'menu' }] })
+      .mockResolvedValueOnce({ value: [{ ELEMENT: 'select-all' }] })
+      .mockResolvedValueOnce({ value: null });
+    expect(await client.selectAllAt(10, 20)).toBe(true);
+    expect(tap).toHaveBeenCalledExactlyOnceWith(10, 20);
+    expect(request.mock.calls.at(-1)?.slice(0, 2)).toEqual([
+      'POST',
+      '/session/session/element/select-all/click',
+    ]);
+  });
+
+  it.each([true, false])(
+    'recognizes an insertion-only edit menu (other items: %s)',
+    async (hasOtherItems) => {
+      rs.spyOn(client, 'tap').mockResolvedValue(undefined);
+      request
+        .mockResolvedValueOnce({ value: [{ ELEMENT: 'menu' }] })
+        .mockResolvedValueOnce({ value: [] })
+        .mockResolvedValueOnce({ value: [{ ELEMENT: 'paste' }] })
+        .mockResolvedValueOnce({
+          value: hasOtherItems ? [{ ELEMENT: 'other' }] : [],
+        });
+      if (hasOtherItems)
+        await expect(client.selectAllAt(10, 20)).rejects.toThrow('Select All');
+      else expect(await client.selectAllAt(10, 20)).toBe(false);
+    },
+  );
+
   it.each([
     { value: { 'element-6066-11e4-a52e-4f735466cecf': 'input' } },
     { value: { ELEMENT: 'input' } },

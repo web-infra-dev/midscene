@@ -45,6 +45,7 @@ describe('IOSDevice', () => {
       typeText: rs.fn().mockResolvedValue(undefined),
       typeRawKeys: rs.fn().mockResolvedValue(undefined),
       waitForInputFocus: rs.fn().mockResolvedValue(undefined),
+      selectAllAt: rs.fn().mockResolvedValue(true),
       clearActiveElement: rs.fn().mockResolvedValue(true),
       pressKey: rs.fn().mockResolvedValue(undefined),
       pressHomeButton: rs.fn().mockResolvedValue(undefined),
@@ -419,6 +420,28 @@ describe('IOSDevice', () => {
       );
     });
 
+    it('clears a located inaccessible field without typing a replacement', async () => {
+      mockWdaClient.waitForInputFocus.mockRejectedValue(
+        new InputFocusUnavailableError('no focus'),
+      );
+      await device.clearInput({ center: [10, 20] } as any);
+      expect(mockWdaClient.selectAllAt).toHaveBeenCalledExactlyOnceWith(10, 20);
+      expect(mockWdaClient.typeRawKeys).toHaveBeenCalledExactlyOnceWith(['\b']);
+      expect(mockWdaClient.typeText).not.toHaveBeenCalled();
+    });
+
+    it('does not delete or append when the selection fails', async () => {
+      mockWdaClient.clearActiveElement.mockResolvedValue(false);
+      mockWdaClient.selectAllAt.mockRejectedValue(new Error('no menu'));
+      await expect(
+        device.inputPrimitives.keyboard.typeText('new', {
+          target: { center: [10, 20] },
+        }),
+      ).rejects.toThrow('no menu');
+      expect(mockWdaClient.typeRawKeys).not.toHaveBeenCalled();
+      expect(mockWdaClient.typeText).not.toHaveBeenCalled();
+    });
+
     it('propagates a failed native clear without typing', async () => {
       mockWdaClient.clearActiveElement.mockRejectedValue(
         new Error('stale clear'),
@@ -448,7 +471,12 @@ describe('IOSDevice', () => {
         expect(mockWdaClient.typeText).toHaveBeenCalledExactlyOnceWith(
           'new text',
         );
-        expect(mockWdaClient.executeRequest).toHaveBeenCalledTimes(2);
+        expect(mockWdaClient.selectAllAt).toHaveBeenCalledTimes(
+          replace ? 1 : 0,
+        );
+        expect(mockWdaClient.typeRawKeys.mock.calls).toEqual(
+          replace ? [[['\b']]] : [],
+        );
       },
     );
 

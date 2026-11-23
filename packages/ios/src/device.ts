@@ -111,12 +111,7 @@ export class IOSDevice implements AbstractInterface {
         const willType = !!value && !opts?.focusOnly;
         const replaceLocated = !!target && opts?.replace !== false;
         const typingApp =
-          target && willType
-            ? await this.foregroundApp().catch((error) => {
-                debugDevice(`Keyboard fallback unavailable: ${error}`);
-                return undefined;
-              })
-            : undefined;
+          target && willType ? await this.appBeforeInput() : undefined;
         if (replaceLocated && !willType) {
           await this.clearInput(target);
         } else if (target) {
@@ -277,15 +272,9 @@ export class IOSDevice implements AbstractInterface {
 
   private async clearInputAt(point?: PointerPoint): Promise<void> {
     this.invalidatePendingKeyboardFollowUp('clear input');
-    if (point) {
-      await this.tapPoint(point);
-    }
-
-    await this.wdaBackend.waitForInputFocus();
-    debugDevice('Attempting to clear input with WebDriver Clear API');
-    const cleared = await this.wdaBackend.clearActiveElement();
-    assert(cleared, 'Cannot verify that input was cleared');
-    debugDevice('Successfully cleared input with WebDriver Clear API');
+    const app = point ? await this.appBeforeInput() : undefined;
+    if (point) await this.tapPoint(point);
+    await this.prepareTextInput(app, true, point);
   }
 
   actionSpace(): DeviceAction<any>[] {
@@ -298,15 +287,7 @@ export class IOSDevice implements AbstractInterface {
       },
       getDefaultAutoDismissKeyboard: () => this.options?.autoDismissKeyboard,
     };
-    const defaultActions = createDefaultMobileActions(mobileActionContext).map(
-      (action) =>
-        action.name === 'Input'
-          ? {
-              ...action,
-              description: `${action.description}. On iOS, replacement attempts to clear the located field first. If WDA cannot identify the active input, the software keyboard may insert text alongside existing content. Verify the field value when replacement matters.`,
-            }
-          : action,
-    );
+    const defaultActions = createDefaultMobileActions(mobileActionContext);
 
     const platformSpecificActions = Object.values(createPlatformActions(this));
 
@@ -689,9 +670,17 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     return bundleId;
   }
 
+  private async appBeforeInput(): Promise<string | undefined> {
+    return this.foregroundApp().catch((error) => {
+      debugDevice(`Keyboard fallback unavailable: ${error}`);
+      return undefined;
+    });
+  }
+
   private async prepareTextInput(
     typingApp: string | undefined,
-    replaceLocated: boolean,
+    clear: boolean,
+    point?: PointerPoint,
   ): Promise<void> {
     let nativeFocus = true;
     try {
@@ -702,7 +691,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       nativeFocus = false;
     }
     if (nativeFocus) {
-      if (!replaceLocated) return;
+      if (!clear) return;
       if (await this.wdaBackend.clearActiveElement()) {
         await this.wdaBackend.waitForInputFocus();
         return;
@@ -717,10 +706,21 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       (await this.foregroundApp()) === typingApp,
       'Foreground App changed during input; no text was sent',
     );
-    if (replaceLocated)
-      debugDeviceWarning(
-        'WDA could not identify the input to clear. Typing at the cursor; existing text may remain.',
+    if (clear) {
+      assert(
+        point,
+        'Cannot clear an unidentified input without a located target',
       );
+      const selected = await this.wdaBackend.selectAllAt(
+        Math.round(point.x),
+        Math.round(point.y),
+      );
+      assert(
+        (await this.foregroundApp()) === typingApp,
+        'Foreground App changed before deleting the selection',
+      );
+      if (selected) await this.wdaBackend.typeRawKeys(['\b']);
+    }
   }
 
   private async typeText(
@@ -745,7 +745,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     debugDevice(`Typing text: "${text}"`);
 
     try {
-      await this.prepareTextInput(typingApp, replaceLocated);
+      await this.prepareTextInput(typingApp, replaceLocated, focusRestorePoint);
 
       if (inputSequentially) {
         // Type one character at a time with a delay between keystrokes.

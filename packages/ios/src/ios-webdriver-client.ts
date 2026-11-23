@@ -305,6 +305,47 @@ export class IOSWebDriverClient extends WebDriverClient {
     return clearInputWithFocus(this.requestInput);
   }
 
+  async selectAllAt(x: number, y: number): Promise<boolean> {
+    const menu =
+      'type == "XCUIElementTypeMenuItem" AND visible == true AND enabled == true';
+    const findMenu = () => this.findElementIds('predicate string', menu);
+    if (!(await findMenu()).length) {
+      // A second tap at the insertion point opens UIKit's edit menu.
+      await this.tap(x, y);
+      const deadline = Date.now() + 1200;
+      while (!(await findMenu()).length && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
+    const matches = await this.findElementIds(
+      'predicate string',
+      `${menu} AND (name IN {"Select All", "全选", "全選"} OR label IN {"Select All", "全选", "全選"})`,
+    );
+    if (!matches.length) {
+      // UIKit offers only insertion actions in the edit menu of an empty field.
+      const insertionActions =
+        'name IN {"Paste", "AutoFill", "AutoFill…", "粘贴", "贴上", "貼上", "自动填充", "自動填寫", "自動填入"}';
+      const insertionItems = await this.findElementIds(
+        'predicate string',
+        `${menu} AND (${insertionActions})`,
+      );
+      if (insertionItems.length) {
+        const otherItems = await this.findElementIds(
+          'predicate string',
+          `${menu} AND NOT (${insertionActions})`,
+        );
+        if (!otherItems.length) return false;
+      }
+    }
+    if (matches.length !== 1) {
+      throw new Error(
+        'Cannot clear the located input: the iOS Select All menu item is unavailable',
+      );
+    }
+    await this.clickElement(matches[0]);
+    return true;
+  }
+
   /** Wait for keyboard focus before attempting to clear or type text. */
   async waitForInputFocus(): Promise<void> {
     await waitForInputFocus(this.requestInput);
