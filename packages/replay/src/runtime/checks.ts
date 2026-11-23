@@ -27,7 +27,12 @@ import {
 } from './web-target';
 import type { ReplayEvidence } from './with-replay';
 
-type WaitOptions<Args extends unknown[]> = { args?: Args; timeoutMs?: number };
+type WaitOptions<Args extends unknown[]> = {
+  args?: Args;
+  timeoutMs?: number;
+  /** A business condition name for errors and timing evidence. */
+  title?: string;
+};
 
 export interface Verdict {
   state: VerdictState;
@@ -92,7 +97,7 @@ export function createReplayChecks(
     },
     async waitFor<Args extends unknown[]>(
       expression: string | ((...args: Args) => unknown),
-      { timeoutMs = 0, args }: WaitOptions<Args> = {},
+      { timeoutMs = 0, args, title }: WaitOptions<Args> = {},
     ) {
       const source =
         typeof expression === 'string'
@@ -101,30 +106,41 @@ export function createReplayChecks(
       if (!source) throw replayError('INVALID_WAIT_CONDITION');
       const started = performance.now();
       const condition =
-        typeof expression === 'string'
+        title ??
+        (typeof expression === 'string'
           ? source
-          : expression.name || 'page function';
-      await poll(
-        deadlineAfter(timeoutMs),
-        async () =>
-          (await agent.evaluateJavaScript(`Boolean(${source})`))
-            ? true
-            : undefined,
-        () => {
-          throw replayError('WAIT_TIMEOUT', { condition });
-        },
-      );
-      await report({
-        type: 'wait',
-        condition,
-        durationMs: performance.now() - started,
-      });
+          : expression.name || 'page function');
+      let status = 'failed';
+      try {
+        await poll(
+          deadlineAfter(timeoutMs),
+          async () =>
+            (await agent.evaluateJavaScript(`Boolean(${source})`))
+              ? true
+              : undefined,
+          () => {
+            throw replayError('WAIT_TIMEOUT', { condition });
+          },
+        );
+        status = 'passed';
+      } finally {
+        publish({
+          type: 'wait',
+          title,
+          condition,
+          status,
+          durationMs: performance.now() - started,
+        });
+      }
     },
-    async waitForUrl(expected: UrlMatch, { timeoutMs = 0 } = {}) {
+    async waitForUrl(
+      expected: UrlMatch,
+      options: Omit<WaitOptions<[]>, 'args'> = {},
+    ) {
       const match = normalizeUrlMatch(expected);
       await checks.waitFor(
         `(${matchesUrl.toString()})(location.href,${JSON.stringify(match)})`,
-        { timeoutMs },
+        options,
       );
     },
     async inspect(

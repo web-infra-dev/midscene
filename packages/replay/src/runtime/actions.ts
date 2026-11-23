@@ -18,6 +18,7 @@ import {
   replayError,
 } from './web-page';
 import {
+  type Locator,
   type Point,
   type SelectOption,
   type StrictLocate,
@@ -40,6 +41,12 @@ export type TapTarget = StrictLocate & {
 };
 export type SelectTarget = Omit<StrictLocate, 'fallback'> & {
   option: SelectOption;
+};
+
+type ScrollIntoViewOptions = {
+  target: Locator | Pick<StrictLocate, 'candidates' | 'within' | 'guard'>;
+  container?: Locator;
+  timeoutMs?: number;
 };
 // Share the policy across the CLI ESM entry and scripts loading the CJS SDK.
 const policyKey = Symbol.for('midscene.replay.fallbackDisabled');
@@ -296,6 +303,23 @@ export function createReplayActions(
     await afterAction?.();
     await checkPostcondition(action, prompt, resolvedBy, postcondition);
   }
+  function scroll(
+    prompt: string,
+    target: StrictLocate & {
+      direction: 'up' | 'down' | 'left' | 'right';
+      distance: number;
+    },
+  ) {
+    const { direction, distance, ...locator } = target;
+    if (!Number.isFinite(distance) || distance <= 0)
+      throw new Error('scroll requires a positive distance');
+    return dispatch('Scroll', prompt, locator, {
+      direction,
+      distance,
+      scrollType: 'singleAction',
+    });
+  }
+
   return {
     async tap(prompt: string, target: TapTarget) {
       const { opensPage, ...locator } = target;
@@ -455,21 +479,54 @@ export function createReplayActions(
       if (!keyName?.trim()) throw new Error('keyPress requires keyName');
       return dispatch('KeyboardPress', prompt, locator, { keyName });
     },
-    scroll: (
+    scroll,
+    async scrollIntoView(
       prompt: string,
-      target: StrictLocate & {
-        direction: 'up' | 'down' | 'left' | 'right';
-        distance: number;
-      },
-    ) => {
-      const { direction, distance, ...locator } = target;
-      if (!Number.isFinite(distance) || distance <= 0)
-        throw new Error('scroll requires a positive distance');
-      return dispatch('Scroll', prompt, locator, {
-        direction,
-        distance,
-        scrollType: 'singleAction',
-      });
+      {
+        target,
+        container,
+        timeoutMs = options.timeoutMs ?? 5000,
+      }: ScrollIntoViewOptions,
+    ) {
+      await preflightHost();
+      const locate: StrictLocate =
+        'candidates' in target ? target : { candidates: [target] };
+      const deadline = deadlineAfter(timeoutMs);
+      const sample = () =>
+        poll(
+          deadline,
+          async () =>
+            (
+              await sampleTarget(
+                agent,
+                { ...locate, scrollContainer: container },
+                'reveal',
+              )
+            ).reveal,
+          () => {
+            throw replayError('SCROLL_TARGET_NOT_VISIBLE');
+          },
+          retryable,
+        );
+      let previous;
+      for (let moves = 0; moves <= 4; moves++) {
+        const current = await sample();
+        if (!current.motion) return;
+        if (
+          moves === 4 ||
+          (previous &&
+            (performance.now() >= deadline ||
+              (previous[0] === current.offset[0] &&
+                previous[1] === current.offset[1])))
+        )
+          throw replayError('SCROLL_TARGET_NOT_VISIBLE', { target, container });
+        previous = current.offset;
+        await scroll(prompt, {
+          candidates: [container ?? { xpath: '//html' }],
+          timeoutMs: Math.max(0, deadline - performance.now()),
+          ...current.motion,
+        });
+      }
     },
   };
 }

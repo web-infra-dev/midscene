@@ -1,7 +1,7 @@
 import { statSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { checkReplayHost } from '../dist/es/experimental.mjs';
+import { checkReplayHost, withReplay } from '../dist/es/experimental.mjs';
 import { describeError } from '../dist/es/tooling.mjs';
 import { connectToTab, readTrialStorage, startUrl } from './browser.mjs';
 
@@ -32,8 +32,10 @@ export async function loadReplay(
     sessionFile,
     cdp,
     isolate = false,
+    reuseTab = false,
     headless,
     generateReport,
+    checkStartLandmark = true,
     importEntry = importFile,
   },
 ) {
@@ -41,7 +43,7 @@ export async function loadReplay(
   const platform = meta.platform;
   if (platform !== 'web') throw new Error('PLATFORM_UNSUPPORTED: expected web');
 
-  const requires = meta.requires;
+  const { requires, ready } = meta;
   if (
     requires !== undefined &&
     (!requires ||
@@ -53,6 +55,16 @@ export async function loadReplay(
       (requires.popups !== undefined && typeof requires.popups !== 'boolean'))
   )
     throw new Error('INVALID_REPLAY_REQUIREMENTS');
+  if (
+    ready !== undefined &&
+    (typeof ready?.xpath !== 'string' ||
+      !ready.xpath.trim() ||
+      (ready.timeoutMs !== undefined &&
+        (!Number.isFinite(ready.timeoutMs) || ready.timeoutMs < 0)))
+  )
+    throw new Error(
+      'INVALID_REPLAY_READY: expected xpath and optional timeoutMs',
+    );
 
   const url = meta.startUrl === undefined ? undefined : startUrl(meta.startUrl);
   if (!sessionFile && !url)
@@ -64,6 +76,7 @@ export async function loadReplay(
     : defaultWebSession(url, {
         cdp,
         isolate,
+        reuseTab,
         headless: headless ?? true,
         generateReport,
       });
@@ -74,45 +87,92 @@ export async function loadReplay(
     )
   )
     throw new Error('Session must implement open, reset and verifyStart');
+  const isolation = sessionFile
+    ? {
+        browserContext: session.isolation?.browserContext ?? 'unknown',
+        tab: session.isolation?.tab ?? 'unknown',
+        businessState: session.isolation?.businessState ?? 'unknown',
+      }
+    : {
+        browserContext: cdp && !isolate ? 'shared' : 'fresh',
+        tab: cdp && !isolate ? 'reused' : 'new',
+        businessState: 'not-reset',
+      };
+  if (
+    !['fresh', 'shared', 'unknown'].includes(isolation.browserContext) ||
+    !['new', 'reused', 'unknown'].includes(isolation.tab) ||
+    !['reset', 'not-reset', 'unknown'].includes(isolation.businessState) ||
+    (isolation.tab === 'reused' && isolation.browserContext === 'fresh')
+  )
+    throw new Error('INVALID_SESSION_ISOLATION');
 
   return {
     session,
     flow,
-    hostConfig: sessionFile
-      ? { platform, session: 'custom' }
-      : {
-          platform,
-          session: cdp ? (isolate ? 'cdp-state' : 'cdp-tab') : 'default',
-          engine: 'chromium',
-          headless: cdp && !isolate ? false : (headless ?? true),
-        },
-    async prepare(host) {
+    hostConfig: {
+      platform,
+      session: sessionFile
+        ? 'custom'
+        : cdp
+          ? isolate
+            ? 'cdp-state'
+            : 'cdp-tab'
+          : 'default',
+      ...isolation,
+      ...(sessionFile
+        ? {}
+        : {
+            engine: 'chromium',
+            ...(cdp && !isolate ? {} : { headless: headless ?? true }),
+          }),
+    },
+    async dispose() {
+      if (reuseTab) await session.disconnect();
+    },
+    async prepare(host, setStage = () => {}) {
       if (typeof host?.close !== 'function' || !host.agent)
         throw new Error('Session must return agent and close()');
       const { agent } = host;
       const params = (await session.getParams?.()) ?? {};
+      setStage(sessionFile ? 'reset' : 'navigation');
       await session.reset(agent, params);
+      setStage(sessionFile ? 'application-ready' : 'start-url');
       if ((await session.verifyStart(agent, params)) !== true)
         throw new Error('START_MISMATCH');
+      setStage('application-ready');
+      if (ready && checkStartLandmark)
+        await withReplay(agent).expect(
+          { xpath: ready.xpath },
+          { visible: true },
+          { timeoutMs: ready.timeoutMs ?? 5000 },
+        );
       await checkReplayHost(agent, requires);
       return { agent, params };
     },
   };
 }
 
-function defaultWebSession(url, { cdp, isolate, headless, generateReport }) {
+function defaultWebSession(
+  url,
+  { cdp, isolate, reuseTab, headless, generateReport },
+) {
   const useExistingTab = cdp && !isolate;
   let storageState;
+  let liveTab;
   return {
     platform: 'web',
+    async disconnect() {
+      await liveTab?.browser.close();
+    },
     async open({ outDir }) {
       const [{ chromium }, { PlaywrightBrowserAgent }] = await Promise.all([
         import('playwright'),
         import('@midscene/web/playwright'),
       ]);
       if (cdp && isolate) storageState ??= await readTrialStorage(cdp, url);
+      if (reuseTab) liveTab ??= await connectToTab(cdp, url);
       const { browser, page } = useExistingTab
-        ? await connectToTab(cdp, url)
+        ? (liveTab ?? (await connectToTab(cdp, url)))
         : { browser: await chromium.launch({ headless }) };
       try {
         const context =
@@ -128,12 +188,12 @@ function defaultWebSession(url, { cdp, isolate, headless, generateReport }) {
             try {
               await agent.destroy();
             } finally {
-              await browser.close();
+              if (!reuseTab) await browser.close();
             }
           },
         };
       } catch (error) {
-        await browser.close();
+        if (!reuseTab) await browser.close();
         throw error;
       }
     },

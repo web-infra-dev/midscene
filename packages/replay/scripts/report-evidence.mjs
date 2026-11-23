@@ -73,7 +73,12 @@ function attemptSummary(step) {
  * Group one trial's evidence by first-class step. `steps` is the static step
  * list of the flow; each run's `flow` outcome is the authority for status.
  */
-export function writeStepIndex(reports, out, steps, { acceptance, heal }) {
+export function writeStepIndex(
+  reports,
+  out,
+  steps,
+  { acceptance, heal, host } = {},
+) {
   const runs = reports.map(({ index }) => {
     const folder = `run-${index}`;
     const report = JSON.parse(
@@ -104,6 +109,11 @@ export function writeStepIndex(reports, out, steps, { acceptance, heal }) {
     '',
     'Evidence per step for review. Script assertions and business review are separate.',
     '',
+    ...(host
+      ? [
+          `- Session ${host.session} · browser context ${host.browserContext} · tab ${host.tab} · business state ${host.businessState}`,
+        ]
+      : []),
     '- [Trial result and input digest](result.json) · [Frozen replay files](replay/)',
     ...(acceptance ? [`- [Business acceptance](${acceptance})`] : []),
     ...(heal ? [`- [Locator repair hints](${heal})`] : []),
@@ -148,6 +158,10 @@ export function writeStepIndex(reports, out, steps, { acceptance, heal }) {
           lines.push(
             `  - Fallback ${event.resolvedBy ?? event.mode ?? ''}: ${event.result} (${Math.round(event.durationMs)} ms)`,
           );
+        if (event.type === 'wait' && event.title)
+          lines.push(
+            `  - Wait ${markdownCell(event.title)}: ${event.status ?? 'passed'} (${Math.round(event.durationMs)} ms)`,
+          );
       }
       const images = new Map();
       for (const entry of evidence.native)
@@ -172,6 +186,10 @@ export function writeStepIndex(reports, out, steps, { acceptance, heal }) {
       (step) => !['not-run', 'skipped'].includes(step.status),
     );
     const links = [`[Run ${index} report](${folder}/report.json)`];
+    if (report.reportHtml)
+      links.push(
+        `[Midscene Agent Test Report](${folder}/${report.reportHtml})`,
+      );
     if (report.agentReport)
       links.push(`[Native Agent dump](${folder}/${report.agentReport})`);
     if (ranStep) links.push(`[Review sheet](${folder}/review.png)`);
@@ -182,6 +200,14 @@ export function writeStepIndex(reports, out, steps, { acceptance, heal }) {
         `[${report.execution === 'failed' ? 'Failure' : 'Terminal'} image](${folder}/${report.terminal.image})`,
       );
     lines.push(`- ${links.join(' · ')}`);
+    if (report.reportHtmlError)
+      lines.push(
+        `  - HTML export failed: ${markdownCell(report.reportHtmlError.message)}`,
+      );
+    for (const error of report.errors ?? [])
+      lines.push(
+        `  - ${markdownCell(error.stage ?? 'execution')}: ${markdownCell(error.message)}`,
+      );
   }
   writeFileSync(join(out, 'steps.md'), `${lines.join('\n')}\n`, { flag: 'wx' });
   return runs.map(({ folder, report, grouped }) => ({

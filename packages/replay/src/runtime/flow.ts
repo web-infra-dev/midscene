@@ -133,6 +133,8 @@ export interface ReplayMeta {
   platform: 'web';
   startUrl?: string;
   requires?: ReplayRequirements;
+  /** Visible start landmark checked by Replay CLI before business steps. */
+  ready?: { xpath: string; timeoutMs?: number };
 }
 export interface RunOptions<Params = Record<string, unknown>> {
   params?: Params;

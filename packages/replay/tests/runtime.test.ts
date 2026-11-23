@@ -1,3 +1,4 @@
+import { channel } from 'node:diagnostics_channel';
 import type { Agent } from '@midscene/core';
 import { expect, it, rs } from '@rstest/core';
 import {
@@ -29,6 +30,45 @@ function fixture(states: VerdictState[] = ['pass']) {
   };
 }
 const target = { candidates: [{ xpath: '//button' }] } as const;
+
+it('publishes named wait timings on success and timeout without adding screenshots', async () => {
+  const { agent, replay } = fixture();
+  const events: unknown[] = [];
+  const stream = channel('midscene.replay');
+  const collect = (message: unknown) => {
+    const record = message as { agent: unknown; event: unknown };
+    if (record.agent === agent) events.push(record.event);
+  };
+  stream.subscribe(collect);
+  try {
+    agent.evaluateJavaScript.mockResolvedValueOnce(true as never);
+    await replay.waitFor(() => true, { title: 'Wood receipt' });
+    agent.evaluateJavaScript.mockResolvedValueOnce(false as never);
+    await expect(
+      replay.waitFor(() => false, { title: 'Save complete' }),
+    ).rejects.toMatchObject({
+      code: 'WAIT_TIMEOUT',
+      details: { condition: 'Save complete' },
+    });
+    expect(events).toEqual([
+      expect.objectContaining({
+        type: 'wait',
+        title: 'Wood receipt',
+        status: 'passed',
+        durationMs: expect.any(Number),
+      }),
+      expect.objectContaining({
+        type: 'wait',
+        title: 'Save complete',
+        status: 'failed',
+        durationMs: expect.any(Number),
+      }),
+    ]);
+    expect(agent.interface.screenshotBase64).not.toHaveBeenCalled();
+  } finally {
+    stream.unsubscribe(collect);
+  }
+});
 
 it('rejects a smaller viewport during host preflight', async () => {
   const { agent } = fixture();

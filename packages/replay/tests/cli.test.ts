@@ -78,6 +78,7 @@ it.each([
   [['browser', 'msedge', '--port', '65536'], '--port expects an integer'],
   [['browser', 'chrome', '--url', 'file:///tmp/start'], 'INVALID_START_URL'],
   [['run', 'replay.mjs', '--port', '9222'], '--port is supported by browser'],
+  [['trial', 'replay.mjs', '--reuse-tab'], '--reuse-tab requires trial --cdp'],
 ])('rejects invalid dedicated browser arguments %j', (args, message) => {
   const result = spawnSync(process.execPath, [cli, ...args], {
     cwd: root,
@@ -230,7 +231,7 @@ it('runs just one step from a custom session with a prepared entry and explicit 
     `import assert from 'node:assert/strict';
     import {defineReplay,defineStep} from ${JSON.stringify(new URL('../dist/es/experimental.mjs', import.meta.url).href)};
     const unexpected = () => { throw new Error('Outside selected range'); };
-    export default defineReplay({meta:{platform:'web',startUrl:'https://example.test/'},steps:[
+    export default defineReplay({meta:{platform:'web',startUrl:'https://example.test/',ready:{xpath:'//main[@id="home"]',timeoutMs:0}},steps:[
       defineStep({id:'find',title:'Find',run:unexpected}),
       defineStep({
         id:'open',title:'Open',
@@ -348,7 +349,7 @@ it('retains the selected mode on startup and execution failures', () => {
       execution: 'failed',
       business: 'not-completed',
       checks: [{ name: 'final', state: 'not_checked' }],
-      errors: [{ stage: ready === 'yes' ? 'script' : 'setup' }],
+      errors: [{ stage: ready === 'yes' ? 'script' : 'application-ready' }],
     });
   }
   writeFileSync(session, "throw new Error('fixture session import failed');");

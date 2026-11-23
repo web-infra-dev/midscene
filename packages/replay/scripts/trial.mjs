@@ -37,6 +37,7 @@ import {
   uncheckedChecks,
 } from './host.mjs';
 import { trackModelRequests } from './metrics.mjs';
+import { renderAgentReport } from './native-report.mjs';
 import {
   exportReportEvidence,
   writeReviewSheets,
@@ -115,6 +116,7 @@ function nextTrialDir(workspace) {
  * @param {{
  *   session?: string,
  *   cdp?: string,
+ *   reuseTab?: boolean,
  *   source?: string,
  *   out?: string,
  *   runs?: number,
@@ -136,6 +138,7 @@ export async function trial(
   {
     session: sessionFile,
     cdp,
+    reuseTab = false,
     source: sourceFile,
     out,
     runs = 3,
@@ -148,6 +151,8 @@ export async function trial(
     throw new Error('Expected positive integer --runs');
   if (allowFallback && runs !== 1)
     throw new Error('--allow-fallback requires --runs 1 (diagnostics only)');
+  if (reuseTab && (!cdp || sessionFile))
+    throw new Error('--reuse-tab requires trial --cdp and excludes --session');
   script = resolveReplayEntry(resolve(script));
   const bundle = basename(script) === 'index.mjs';
   const root = realpathSync(dirname(script));
@@ -181,6 +186,7 @@ export async function trial(
   }
   const result = {
     at: new Date().toISOString(),
+    directory: out,
     snapshotScope: bundle ? 'replay-directory' : 'entry-and-steps',
     ...(source ? { recording: source.root, source: source.source } : {}),
     execution: 'failed',
@@ -193,6 +199,7 @@ export async function trial(
     errors: [],
   };
   let replayInventory;
+  let replay;
   const captured = new Map();
   const snapshot = (role, file) => {
     const path = `${role}/${relative(roots[role], file).split(sep).join('/')}`;
@@ -245,10 +252,11 @@ export async function trial(
     }
     unchanged();
     const flow = await loadReplayFlow(script, importEntry);
-    const replay = await loadReplay(flow, {
+    replay = await loadReplay(flow, {
       sessionFile,
       cdp,
-      isolate: true,
+      isolate: !reuseTab,
+      reuseTab,
       headless,
       generateReport: false,
       importEntry,
@@ -283,7 +291,7 @@ export async function trial(
       const metrics = trackModelRequests();
       let host;
       let listener;
-      let stage = 'setup';
+      let stage = 'session-open';
       const started = performance.now();
       const capture = async (name) => {
         const file = `${name}.png`;
@@ -299,7 +307,10 @@ export async function trial(
       try {
         unchanged();
         host = await hostModule.open({ outDir: dir });
-        const { agent, params } = await replay.prepare(host);
+        const { agent, params } = await replay.prepare(host, (phase) => {
+          stage = phase;
+        });
+        stage = 'start-evidence';
         const page = agent.interface.underlyingPage;
         report.viewport = page.viewportSize?.() ?? page.viewport?.();
         await capture('start');
@@ -367,11 +378,13 @@ export async function trial(
       } finally {
         if (listener) stream.unsubscribe(listener);
         metrics.phase = 'evidence';
+        let serializedReport;
         if (host?.agent) {
           // Preserve native Midscene actions, actual screenshots and checkpoints before teardown.
           try {
             const dump = host.agent.dumpDataString({ inlineScreenshots: true });
             writeFileSync(join(dir, 'agent.json'), dump);
+            serializedReport = dump;
             report.agentReport = 'agent.json';
             report.evidence = exportReportEvidence(JSON.parse(dump), dir);
           } catch (error) {
@@ -391,6 +404,14 @@ export async function trial(
         }
         metrics.stop();
         report.requests = metrics.requests;
+        if (serializedReport) {
+          try {
+            await renderAgentReport(serializedReport, join(dir, 'report.html'));
+            report.reportHtml = 'report.html';
+          } catch (error) {
+            report.reportHtmlError = describeError(error, 'report-html');
+          }
+        }
         if (report.errors.length) report.execution = 'failed';
         writeJsonFile(join(dir, 'report.json'), report);
       }
@@ -407,6 +428,12 @@ export async function trial(
     if (sourceFile) readSource(sourceFile);
   } catch (error) {
     result.errors.push(describeError(error, 'trial'));
+  } finally {
+    try {
+      await replay?.dispose();
+    } catch (error) {
+      result.errors.push(describeError(error, 'cleanup'));
+    }
   }
   result.inputs = [...captured.keys()].sort().map((path) => captured.get(path));
   result.inputDigest = digest(
@@ -443,6 +470,7 @@ export async function trial(
               .join('/')
           : undefined,
       heal: result.heal,
+      host: result.host,
     });
     result.stepIndex = 'steps.md';
     result.reviewSheets = await writeReviewSheets(steps, out);

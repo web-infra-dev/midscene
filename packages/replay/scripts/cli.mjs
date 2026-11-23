@@ -13,13 +13,14 @@ const help = [
   '  browser chrome|msedge [--port PORT] [--url URL] (macOS; persistent Replay profile, default port 9222)',
   '  prepare RECORDING --out NEW_WORKSPACE [--goal TEXT]',
   '  run REPLAY [--session SESSION | --cdp BROWSER] [--headed] [--out NEW_DIR] [--from STEP] [--until STEP]',
-  '  trial REPLAY [--session SESSION | --cdp BROWSER] [--out NEW_DIR] [--headed] [--runs N] [--source SOURCE_MANIFEST]',
+  '  trial REPLAY [--session SESSION | --cdp BROWSER [--reuse-tab]] [--out NEW_DIR] [--headed] [--runs N] [--source SOURCE_MANIFEST]',
   '    --cdp accepts msedge, chrome or a local HTTP/WS CDP endpoint. Open the exact start URL first.',
-  '    Record/run use the existing tab. Trial copies site cookies and localStorage into fresh contexts.',
+  '    Trial copies login state into fresh contexts by default. --reuse-tab keeps one live tab for all rounds.',
   '    Without --out, a prepared workspace writes to WORKSPACE/trials/NN.',
   '  trial REPLAY --step STEP [--runs N] (focus: run earlier steps, then STEP; diagnostic only)',
   '  REPLAY is a replay folder (index.mjs) or entry module; STEP is a step id or 1-based number.',
   '  trial REPLAY --runs 1 --allow-fallback [other trial options] (diagnostic only)',
+  '  report AGENT_DUMP [--out NEW_REPORT_HTML] (render saved agent.json without replaying)',
   '  --version  Print the Midscene SDK package version.',
   'All commands accept --env-file FILE. Trial reports execution; the coding Agent reviews evidence.',
 ].join('\n');
@@ -48,6 +49,7 @@ async function main() {
         ].map((key) => [key, { type: 'string' }]),
       ),
       headed: { type: 'boolean' },
+      'reuse-tab': { type: 'boolean' },
       'allow-fallback': { type: 'boolean' },
       version: { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
@@ -60,6 +62,8 @@ async function main() {
   if (values.help || !cmd) return help;
   if (rest.length || !input) throw new Error(help);
   const { cdp, browser } = values;
+  if (values['reuse-tab'] && (cmd !== 'trial' || cdp === undefined))
+    throw new Error('--reuse-tab requires trial --cdp');
   if (values.port !== undefined && cmd !== 'browser')
     throw new Error('--port is supported by browser');
   if (browser !== undefined) {
@@ -91,6 +95,17 @@ async function main() {
   if (cmd === 'browser') {
     const { openDedicatedBrowser } = await import('./dedicated-browser.mjs');
     return openDedicatedBrowser(input, { port: values.port, url: values.url });
+  }
+  if (cmd === 'report') {
+    const { readFile } = await import('node:fs/promises');
+    const { renderAgentReport } = await import('./native-report.mjs');
+    const dump = resolve(input);
+    const report = values.out
+      ? resolve(values.out)
+      : join(dirname(dump), 'report.html');
+    return {
+      report: await renderAgentReport(await readFile(dump, 'utf8'), report),
+    };
   }
   if (
     ['record', 'prepare', 'trial', 'run'].includes(cmd) &&
@@ -150,6 +165,7 @@ async function main() {
       session: values.session && resolve(values.session),
       cdp,
       source: values.source && resolve(values.source),
+      reuseTab: values['reuse-tab'],
       out: values.out && resolve(values.out),
       headless: values.headed ? false : undefined,
       allowFallback: values['allow-fallback'],

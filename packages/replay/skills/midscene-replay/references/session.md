@@ -1,6 +1,6 @@
 # Session
 
-By default, `run` and `trial` start headless Chromium with a `PlaywrightBrowserAgent`, open `meta.startUrl` and verify the normalized URL (`--headed` to watch).
+By default, `run` and `trial` start headless Chromium with a `PlaywrightBrowserAgent`, open `meta.startUrl` and verify the normalized URL (`--headed` to watch). Set `meta.ready: {xpath, timeoutMs?}` when the app needs a visible post-load landmark before business steps can begin.
 
 By default, `record web` opens a new Chrome window with an isolated profile. Pass `--browser msedge` or `--browser chromium` to open a new window in another browser.
 
@@ -35,6 +35,7 @@ node <CLI> trial "$REPLAY" --cdp msedge
 
 - `record` and `run` attach to that tab as it is. Return the tab to the expected start before `run`. The CLI disconnects when finished and leaves the browser and its tabs open.
 - A dedicated window supplies a long-lived login source. `trial --cdp` uses it as a `cdp-state` host, taking one in-memory snapshot of cookies applicable to the start URL and that origin's `localStorage`, then starts each round in a fresh Chromium context using that snapshot. `--headed` shows the separate trial browser. Credentials are not written to evidence or the replay folder by the session setup.
+- Use `trial --cdp BROWSER --reuse-tab` to pin the selected tab for the entire group. Each round creates a new Agent over the same page. The live tab and app state are shared. The built-in host checks the exact start URL each round and checks `meta.ready` if supplied. Use a custom session if each round needs extra navigation, UI reset or business data reset. The CLI leaves the tab open.
 - Use a custom session if authentication requires `sessionStorage`, IndexedDB, credentials on other origins, or device-bound state, or if the workflow needs its own backend data reset. Add a meaningful `ready` or `verifyStart` check for the expected signed-in business state. The built-in URL check verifies navigation.
 - Choose either `--cdp` or `--session`. A custom session owns authentication and data isolation, including any additional origin state it needs.
 
@@ -44,7 +45,8 @@ Use the [template](../templates/session.mjs) for special login or redirects, bac
 
 - Required: `open({outDir})` returns `{agent, close()}`; `close` must release the browser even if Agent teardown fails. `reset(agent, params)` establishes the initial state without pre-executing the workflow. `verifyStart(agent, params)` returns `true` only for the expected start.
 - For an SSO app and a separate API origin, load the test account’s required storage or sign in within each new context. For a mutation tested against a backend, seed or reset isolated test data in `reset`, then verify the expected account and data in `verifyStart`. Keep credentials outside the snapshot.
-- Use a Playwright or Puppeteer BrowserAgent when the flow opens popups. `generateReport: false` avoids automatic HTML publication. Trial still saves the native dump with screenshots.
+- Use a Playwright or Puppeteer BrowserAgent when the flow opens popups. `generateReport: false` suppresses live report writes. Trial renders the native HTML from the saved dump.
+- Optional `isolation` describes the session in result.json and steps.md. Set `browserContext` to `fresh` or `shared`, `tab` to `new` or `reused`, and `businessState` to `reset` or `not-reset`. Use `reset` when the session establishes and verifies a clean business baseline each round. Omitted fields are reported as `unknown`.
 - Optional `getParams()` supplies host parameters, available to steps as `ctx.params`.
 - Optional `checks`: named async functions for independent checks the script cannot do itself (backend API, reload, another page). Each returns a boolean or `{state: 'pass'|'fail'|'pending'|'inconclusive'|'not_checked', actual?, reason?}`. Assertion errors become fail, other exceptions error, missing results error; only pass succeeds. Do not duplicate the script's own final assertions.
 

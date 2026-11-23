@@ -5,6 +5,11 @@ import { PlaywrightBrowserAgent } from '@midscene/web/playwright';
 import { chromium } from 'playwright';
 
 export const platform = 'web';
+export const isolation = {
+  browserContext: 'fresh',
+  tab: 'new',
+  businessState: 'not-reset',
+};
 const START = 'https://example.com/';
 
 export async function open() {

@@ -31,6 +31,7 @@ export async function run(
     actions: [],
     fallbacks: [],
     checkpoints: [],
+    waits: [],
     checks: [],
     errors: [],
   };
@@ -59,6 +60,13 @@ export async function run(
         status: event.status,
         actual: event.actual,
       });
+    if (event.type === 'wait' && event.title)
+      result.waits.push({
+        step: event.step?.id,
+        title: event.title,
+        status: event.status,
+        durationMs: event.durationMs,
+      });
   };
   let host;
   let stage = 'setup';
@@ -74,14 +82,18 @@ export async function run(
       cdp,
       headless,
       generateReport: true,
+      checkStartLandmark: first === 0,
     });
     result.host = replay.hostConfig;
     result.checks = uncheckedChecks(
       replay.session,
       partial ? partialChecksReason : undefined,
     );
+    stage = 'session-open';
     host = await replay.session.open({ outDir: out });
-    const { agent, params } = await replay.prepare(host);
+    const { agent, params } = await replay.prepare(host, (phase) => {
+      stage = phase;
+    });
     stage = metrics.phase = 'script';
     const started = performance.now();
     try {

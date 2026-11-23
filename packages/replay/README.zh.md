@@ -19,9 +19,9 @@ node packages/replay/scripts/cli.mjs prepare midscene_run/replay/my-recording --
 
 `prepare` 生成来源清单和索引，把现有宿主/工具依赖链接到新的工作目录并验证导入，输出 Skill 路径。它不会启动另一个编码 Agent，也不安装或修改宿主依赖。`--goal TEXT` 可选。命令从调用目录的 `.env` 或 `--env-file FILE` 加载宿主配置。`--version` 显示 Midscene SDK 包版本。
 
-录制默认打开一个使用独立配置的 Chrome 新窗口。可用 `--browser msedge` 或 `--browser chromium` 换一个浏览器开新窗口。macOS 上可用 `node packages/replay/scripts/cli.mjs browser msedge`（或 `browser chrome`）打开保留登录态的专用浏览器。首次手动登录，之后给 `record web`、`run` 或 `trial` 加上 `--cdp http://127.0.0.1:9222`。专用窗口长期保存登录资料。CDP 试跑每轮把适用于起点 URL 的 Cookie 和同源 `localStorage` 带入新上下文。跨域认证、其他登录状态或服务端数据复位用自定义会话。[会话配置](./skills/midscene-replay/references/session.md)
+录制默认打开一个使用独立配置的 Chrome 新窗口。可用 `--browser msedge` 或 `--browser chromium` 换一个浏览器开新窗口。macOS 上可用 `node packages/replay/scripts/cli.mjs browser msedge`（或 `browser chrome`）打开保留登录态的专用浏览器。首次手动登录，之后给 `record web`、`run` 或 `trial` 加上 `--cdp http://127.0.0.1:9222`。专用窗口长期保存登录资料。CDP 试跑每轮把适用于起点 URL 的 Cookie 和同源 `localStorage` 带入新上下文。用 `trial --cdp BROWSER --reuse-tab` 复用同一个标签页与业务数据。跨域认证、其他登录状态或服务端数据复位用自定义会话。[会话配置](./skills/midscene-replay/references/session.md)
 
-Agent 阅读原始证据，在对话中展示从 1 编号的业务流程与验收表，并保存到 `acceptance.md`。默认记录为已展示并继续；用户明确确认或更正的范围记录为已确认。如果用户要求先确认，则等待实际答复。表中每一行对应一个步骤，包含稳定的 id、入口检查（`ready`）、动作（`run`）、出口检查（`done`）和重试策略。只服务于同一个业务结果的动作合并，有独立可验证结果或恢复边界时再拆步。仅对重要歧义或范围变化询问。原始证据不变，不能为失败脚本降低要求。
+录制结束后，Agent 自动执行 `prepare` 并阅读原始证据，在对话中展示从 1 编号的业务流程与验收大纲表（明确提示“如果需要修改请打断我”）并保存到 `acceptance.md`。默认记录为已展示、不阻塞等待，直接继续整理回放脚本、尝试回放与迭代调整并输出最终结果；用户明确确认或更正的范围记录为已确认。如果用户明确要求先确认，则等待答复。遇到真正阻塞流程的问题（如需要手动登录、外部写入授权或重大业务歧义）时允许打断，并明确说明自己需要什么、下一步用户要做什么、以及之后自己会做什么。表中每一行对应一个步骤，包含稳定的 id、入口检查（`ready`）、动作（`run`）、出口检查（`done`）和重试策略。只服务于同一个业务结果的动作合并，有独立可验证结果或恢复边界时再拆步。原始证据不变，不能为失败脚本降低要求。
 
 ## 执行与审阅
 
@@ -31,7 +31,7 @@ node packages/replay/scripts/cli.mjs trial midscene_run/replay/my-authoring/repl
 
 回放流程提供 `meta.startUrl` 后，可直接使用默认的无界面 Chromium 宿主，加 `--headed` 可观察执行。登录、测试数据复位或特殊环境通过 `--session FILE` 提供。不传 `--out` 时，试跑结果按 `trials/01`、`trials/02` 依次写入准备好的工作目录；诊断文件放在其中的 `scratch/` 目录。用 `trial replay --step <id>` 修单个步骤：之前的步骤正常执行，跑完该步骤即停止，只作诊断。Trial 为每次运行新建会话、复位并核对起点，执行脚本及配置的检查，保存原生报告、起止截图、代码快照和耗时。默认三次，失败即停止。最终验收要求同一版本至少连续完整通过三次，并完成业务证据审阅；`--runs 1` 仅用于诊断。修改后重跑完整组。默认发现回放目录旁的 `source.json`，也支持 `--source MANIFEST`，用于保护原始证据。没有底层事件逐项比对或自动证书。
 
-试跑从 `steps.md` 开始审阅。它链接到 `result.json` 的输入摘要、冻结脚本、业务验收、每轮报告与图片，以及有记录时的定位修复建议。程序读每轮 `report.json` 的 `evidence.entries` 获取截图索引。原生 `agent.json`、去重图片和 `review.png` 均可查阅。编码 Agent 对照原始要求、三轮实际图片、检查点状态和执行脚本，在 `acceptance.md` 追加结论。程序通过不等于业务验收通过；证据不足保持未验证。
+试跑从 `steps.md` 开始审阅。这里标注了会话隔离方式，并链接每轮 Midscene Agent 原生报告。用 `node packages/replay/scripts/cli.mjs report path/to/agent.json` 可以离线导出已有 dump。它链接到 `result.json` 的输入摘要、冻结脚本、业务验收、每轮报告与图片，以及有记录时的定位修复建议。程序读每轮 `report.json` 的 `evidence.entries` 获取截图索引。原生 `agent.json`、去重图片和 `review.png` 均可查阅。编码 Agent 对照原始要求、三轮实际图片、检查点状态和执行脚本，在 `acceptance.md` 追加结论。程序通过不等于业务验收通过；证据不足保持未验证。
 
 关键中间状态和终态使用普通 JS 断言，可用 `session.checks` 独立读取最终结果。通过 `rp.checkpoint` 记录关键状态和截图。需要 Jev 判断的视觉要求用 `rp.verify`，由脚本声明检查点。
 

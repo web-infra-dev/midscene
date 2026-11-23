@@ -54,6 +54,7 @@ export type Point = NonNullable<TargetSample['point']>;
 type Mode =
   | 'action'
   | 'inspect'
+  | 'reveal'
   | 'fallback-context'
   | 'select-ready'
   | 'select';
@@ -67,7 +68,16 @@ export interface TargetSample {
   state?: ElementState;
   point?: { x: number; y: number; identity: string; tag: string };
   suggestions?: string[];
+  reveal?: {
+    offset: [number, number];
+    motion?: {
+      direction: 'up' | 'down' | 'left' | 'right';
+      distance: number;
+    };
+  };
 }
+
+type SamplingTarget = StrictLocate & { scrollContainer?: Locator };
 
 export function hasGuardIdentity(guard?: TargetGuard) {
   return (
@@ -79,7 +89,7 @@ export function hasGuardIdentity(guard?: TargetGuard) {
 // Serialized into the page. Leave all DOM dependencies inside this function.
 /* istanbul ignore next -- browser realm has no host coverage counters */
 export function sampleWebTarget(
-  options: StrictLocate,
+  options: SamplingTarget,
   mode: Mode,
   resolution?: Resolution,
   option?: SelectOption,
@@ -315,6 +325,71 @@ export function sampleWebTarget(
     )
       fail('SELECT_REQUIRES_SINGLE_SELECT');
     const { rendered, visible } = visibility(element);
+    if (mode === 'reveal') {
+      const locator = options.scrollContainer;
+      const container = locator
+        ? unique(locator, document)
+        : document.scrollingElement;
+      if (!container) fail('SCROLL_CONTAINER_MISSING');
+      if (!container.contains(element)) fail('TARGET_OUTSIDE_SCROLL_CONTAINER');
+      if (!rendered)
+        fail('TARGET_NOT_INTERACTABLE', { reason: 'not-rendered' });
+      const rect = element.getBoundingClientRect();
+      const box = container.getBoundingClientRect();
+      const left = locator ? Math.max(0, box.left + container.clientLeft) : 0;
+      const top = locator ? Math.max(0, box.top + container.clientTop) : 0;
+      const right = locator
+        ? Math.min(
+            innerWidth,
+            box.left + container.clientLeft + container.clientWidth,
+          )
+        : innerWidth;
+      const bottom = locator
+        ? Math.min(
+            innerHeight,
+            box.top + container.clientTop + container.clientHeight,
+          )
+        : innerHeight;
+      if (right <= left || bottom <= top) fail('SCROLL_CONTAINER_NOT_VISIBLE');
+
+      const reveal: NonNullable<TargetSample['reveal']> = {
+        offset: [container.scrollLeft, container.scrollTop],
+      };
+      const x = (Math.max(0, rect.left) + Math.min(innerWidth, rect.right)) / 2;
+      const y =
+        (Math.max(0, rect.top) + Math.min(innerHeight, rect.bottom)) / 2;
+      if (
+        x >= left &&
+        x < right &&
+        y >= top &&
+        y < bottom &&
+        element.contains(document.elementFromPoint(x, y))
+      )
+        return { reveal };
+
+      // Aim inside the visible part of the container, leaving room at its edges.
+      const deltaY =
+        rect.top < top || rect.bottom > bottom
+          ? (rect.top + rect.bottom - top - bottom) / 2
+          : 0;
+      const deltaX =
+        rect.left < left || rect.right > right
+          ? (rect.left + rect.right - left - right) / 2
+          : 0;
+      if (!deltaY && !deltaX)
+        fail('TARGET_NOT_INTERACTABLE', { reason: 'hit-target-mismatch' });
+      reveal.motion =
+        Math.abs(deltaY) >= Math.abs(deltaX)
+          ? {
+              direction: deltaY > 0 ? 'down' : 'up',
+              distance: Math.ceil(Math.abs(deltaY)),
+            }
+          : {
+              direction: deltaX > 0 ? 'right' : 'left',
+              distance: Math.ceil(Math.abs(deltaX)),
+            };
+      return { reveal };
+    }
     if (mode === 'inspect') {
       const state: ElementState = {
         text: element.textContent?.trim() ?? '',
@@ -409,7 +484,7 @@ export function sampleWebTarget(
 }
 
 export function sampleExpression(
-  options: StrictLocate,
+  options: SamplingTarget,
   mode: Mode,
   resolution?: Resolution,
   option?: SelectOption,
@@ -419,7 +494,7 @@ export function sampleExpression(
 
 export async function sampleTarget(
   agent: Agent,
-  target: StrictLocate,
+  target: SamplingTarget,
   mode: Mode,
   resolution?: Resolution,
   option?: SelectOption,

@@ -1,9 +1,10 @@
 # Commands, evidence and review
 
 ```sh
-node <CLI> trial WORKSPACE/replay [--session S | --cdp BROWSER] [--runs 3] [--headed] [--out NEW_DIR]
+node <CLI> trial WORKSPACE/replay [--session S | --cdp BROWSER [--reuse-tab]] [--runs 3] [--headed] [--out NEW_DIR]
 node <CLI> trial WORKSPACE/replay --step STEP [--runs N]          # focus one step; diagnosis only
 node <CLI> trial WORKSPACE/replay --runs 1 --allow-fallback       # diagnosis only
+node <CLI> report trials/NN/run-1/agent.json [--out NEW_REPORT_HTML]
 node <CLI> run replay [--session S | --cdp BROWSER] [--headed] [--out NEW_DIR] [--from STEP] [--until STEP]
 ```
 
@@ -13,12 +14,14 @@ node <CLI> run replay [--session S | --cdp BROWSER] [--headed] [--out NEW_DIR] [
 - Keep local ESM file imports inside the replay or session entry's own directory. Trial checks local import specifiers before execution and rejects paths outside that directory or into `node_modules`/`.git`. Installed packages, CommonJS `require()` and files opened directly by the script are host inputs. Keep credentials outside the snapshot.
 - Without `--out`, a prepared workspace (with `source.json` beside the folder) writes `trials/01`, `trials/02`, ...; otherwise a new directory under the Midscene run directory.
 - `--step` runs earlier steps normally and stops after the focused step. Whole-flow host checks stay `not_checked`, with the reason in each run's report. A passed focused run is diagnostic evidence for the selected range.
-- Each run opens a new session, resets and verifies the start, runs the script and checks; the first failure stops the group. Added, removed or edited files within the snapshot scope fail the group. Source integrity is checked before and after; output belongs outside the recording and replay directory.
-- `result.json`: `execution: passed|failed`, mode (`strict`, `diagnostic`, `focus`), counts, host configuration, `snapshotScope`, the group `inputDigest` and file hashes, business step identifiers and per-run facts. Exit zero means execution and checks succeeded, not acceptance.
-- Per run: `report.json` (the flow outcome with per-step status and attempts, retry count, events, checks, fallbacks, heal hints, timings, start/terminal images and URLs, model requests), `agent.json` (native Midscene dump), `evidence.entries` in the run report with native task status, timestamps and deduplicated paths under `images/`, and `review.png` (last screenshot of each numbered step).
+- By default each round opens a fresh session. With `--reuse-tab` all rounds attach to one live page. Each round prepares and verifies the start, then runs the script and checks; the first failure stops the group. Added, removed or edited files within the snapshot scope fail the group. Source integrity is checked before and after; output belongs outside the recording and replay directory.
+- `result.json`: `execution: passed|failed`, mode (`strict`, `diagnostic`, `focus`), counts, session mode and browser/tab/business-state isolation, `snapshotScope`, the group `inputDigest` and file hashes, business step identifiers and per-run facts. Exit zero means execution and checks succeeded, not acceptance.
+- Per run: `report.json` (the flow outcome with per-step status and attempts, retry count, events, checks, fallbacks, heal hints, timings, start/terminal images and URLs, model requests), `report.html` (native Midscene Agent Test Report), `agent.json` (its source dump), `evidence.entries` in the run report with native task status, timestamps and deduplicated paths under `images/`, and `review.png` (last screenshot of each numbered step).
 - Group: `steps.md` lists every step per run with status, attempts (phase, dispatch count, error), actions with `resolvedBy`, checkpoints, fallbacks, repair hints and image links. Start here for the input digest, frozen replay, business acceptance in a prepared workspace, native reports and start, terminal or failure screenshots. Retries are allowed in a strict group but must be explained in review; fallbacks fail it. `heal.json` collects recovered and suggested locators.
+- `report` renders an existing dump without opening the app. It defaults to a new `report.html` beside the dump. HTML export failures appear separately from execution and leave the dump available for recovery.
+- Setup errors identify the stage. Inspect session opening, navigation or reset, start URL, or application readiness before debugging a business action.
 - `setupMs`, `scriptMs`, `checksMs` separate phases; model request timings are recorded per phase.
-- Use `steps.md` or `flow.steps[].attempts[].phaseMs` in each run's `report.json` to find time spent in `ready`, `run`, and `done`. Inspect each attempt separately. A missing phase did not run. Recovery checks are timed under `done`; the error phase still identifies where the attempt first failed. Inspect the slow callback and increase a specific wait only when replay evidence shows an expected transition needs it.
+- Name business waits with `title` to see successful and failed waits in `steps.md`. Use `steps.md` or `flow.steps[].attempts[].phaseMs` in each run's `report.json` to find time spent in `ready`, `run`, and `done`. Inspect each attempt separately. A missing phase did not run. Recovery checks are timed under `done`; the error phase still identifies where the attempt first failed. Inspect the slow callback and increase a specific wait only when replay evidence shows an expected transition needs it.
 
 ## Run
 

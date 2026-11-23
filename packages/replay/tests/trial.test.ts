@@ -55,7 +55,7 @@ beforeEach(() => {
     export async function open(){
       const context={pages:()=>[page],on(){},off(){}};
       const page={url:()=>'https://example.test/',viewport:()=>({width:640,height:480}),context:()=>context,screenshot:async()=>Buffer.from('a')};
-      const agent={interface:{underlyingPage:page,screenshotBase64:async()=>'YQ=='},dumpDataString:()=>JSON.stringify({executions:[{tasks:[]}]})};
+      const agent={interface:{underlyingPage:page,screenshotBase64:async()=>'YQ=='},dumpDataString:()=>JSON.stringify({executions:[{id:'fixture',name:'Fixture',tasks:[]}]})};
       return {agent,close:async()=>{}};
     }
   `;
@@ -84,13 +84,19 @@ const result = () =>
   JSON.parse(readFileSync(join(root, 'result/result.json'), 'utf8'));
 const report = () =>
   JSON.parse(readFileSync(join(root, 'result/run-1/report.json'), 'utf8'));
-it('defaults to three fresh sessions with checks and exported evidence, leaving review to the Agent', async () => {
+it('reports unknown isolation for custom sessions without a declaration', async () => {
   setup();
   await run();
   expect(result()).toMatchObject({
     execution: 'passed',
     requestedRuns: 3,
     completedRuns: 3,
+    host: {
+      session: 'custom',
+      browserContext: 'unknown',
+      tab: 'unknown',
+      businessState: 'unknown',
+    },
   });
   expect(result()).not.toHaveProperty('review');
   expect(report().checks).toEqual([
@@ -98,7 +104,7 @@ it('defaults to three fresh sessions with checks and exported evidence, leaving 
   ]);
   expect(
     JSON.parse(readFileSync(join(root, 'result/run-1/agent.json'), 'utf8')),
-  ).toEqual({ executions: [{ tasks: [] }] });
+  ).toEqual({ executions: [{ id: 'fixture', name: 'Fixture', tasks: [] }] });
   expect(existsSync(join(root, 'result/run-3/terminal.png'))).toBe(true);
   expect(report().evidence).toEqual({ entries: [], images: 0 });
   expect(report().viewport).toEqual({ width: 640, height: 480 });
@@ -184,7 +190,32 @@ it('retains diagnostics when the initial state is wrong', async () => {
   );
   setup();
   await expect(run()).rejects.toThrow('START_MISMATCH');
-  expect(report().errors[0].stage).toBe('setup');
+  expect(report().errors[0].stage).toBe('application-ready');
+  expect(report().scriptCompleted).toBe(false);
+});
+it('checks the application landmark before dispatch and reports a declared custom session', async () => {
+  session += `export const isolation = {browserContext:'fresh',tab:'new',businessState:'reset'};`;
+  session = session.replace(
+    'const agent={',
+    'const agent={evaluateJavaScript: async () => ({ error: {code:"TARGET_MISSING"} }),',
+  );
+  setup("throw new Error('business step should not run');");
+  const script = join(root, 'authoring/candidate.mjs');
+  writeFileSync(
+    script,
+    readFileSync(script, 'utf8').replace(
+      "platform:'web'",
+      "platform:'web',ready:{xpath:'//main',timeoutMs:0}",
+    ),
+  );
+  await expect(run()).rejects.toThrow('TARGET_MISSING');
+  expect(result().host).toMatchObject({
+    browserContext: 'fresh',
+    tab: 'new',
+    businessState: 'reset',
+  });
+  expect(report().errors[0].stage).toBe('application-ready');
+  expect(report().scriptCompleted).toBe(false);
 });
 it('refuses mixed script versions and retains the executed source snapshot', async () => {
   setup(

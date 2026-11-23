@@ -81,10 +81,9 @@ for (const [width, height, deviceScaleFactor] of [
       const distance = await page
         .locator('#selected')
         .evaluate((element) => element.clientHeight / 2);
-      await rp.scroll('Scroll selected container down', {
-        ...container,
-        direction: 'down',
-        distance,
+      await rp.scrollIntoView('Reveal Pen in the selected container', {
+        target: product,
+        container: container.candidates[0],
       });
       await rp.waitFor('document.querySelector("#selected").scrollTop > 0', {
         timeoutMs: 1000,
@@ -92,6 +91,16 @@ for (const [width, height, deviceScaleFactor] of [
       const down = await page
         .locator('#selected')
         .evaluate((element) => element.scrollTop);
+      await rp.scrollIntoView('Pen is already visible', {
+        target: product,
+        container: container.candidates[0],
+        timeoutMs: 0,
+      });
+      expect(
+        await page
+          .locator('#selected')
+          .evaluate((element) => element.scrollTop),
+      ).toBe(down);
       await rp.waitFor('document.querySelector("#new-product")', {
         timeoutMs: 1000,
       });
@@ -116,3 +125,32 @@ for (const [width, height, deviceScaleFactor] of [
     }
   }, 30_000);
 }
+
+it('reveals a page target through ActionSpace and rejects an unrelated container', async () => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.setContent(
+    '<aside id="other"></aside><button id="finish" style="margin-top: 1150px">Finish</button><div style="height: 900px"></div>',
+  );
+  const agent = new PlaywrightBrowserAgent(context, page, {
+    generateReport: false,
+  });
+  const rp = withReplay(agent);
+  const target = { xpath: '//button[@id="finish"]' };
+  try {
+    await expect(
+      rp.scrollIntoView('Wrong container', {
+        target,
+        container: { xpath: '//aside' },
+        timeoutMs: 0,
+      }),
+    ).rejects.toMatchObject({ code: 'TARGET_OUTSIDE_SCROLL_CONTAINER' });
+    expect(await page.evaluate(() => scrollY)).toBe(0);
+    await rp.scrollIntoView('Reveal Finish', { target });
+    expect(await page.evaluate(() => scrollY)).toBeGreaterThan(0);
+    await rp.tap('Finish', { candidates: [target], timeoutMs: 0 });
+  } finally {
+    await agent.destroy();
+    await context.close();
+  }
+});

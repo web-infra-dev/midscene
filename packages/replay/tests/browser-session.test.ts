@@ -12,6 +12,7 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readReportActionDump } from '@midscene/core/report';
 import { expect, it } from '@rstest/core';
 import { type BrowserContext, chromium } from 'playwright';
 
@@ -244,11 +245,32 @@ it('records and prepares a signed-in flow, then verifies strict three-round tria
     expect(stepIndex).toContain('(result.json)');
     expect(stepIndex).toContain('(replay/)');
     expect(stepIndex).toContain('(run-1/agent.json)');
+    expect(stepIndex).toContain('(run-1/report.html)');
+    expect(stepIndex).toContain(
+      'browser context fresh · tab new · business state not-reset',
+    );
     expect(stepIndex).toMatch(/\(run-1\/images\/[a-f0-9]{64}\.(png|jpg)\)/);
     const nativeReport = JSON.parse(
       readFileSync(join(trialDir, 'run-1/report.json'), 'utf8'),
     );
     expect(nativeReport.evidence.entries.length).toBeGreaterThan(0);
+    const reportHtml = join(trialDir, 'run-1/report.html');
+    const reportDump = await readReportActionDump(reportHtml);
+    expect(
+      reportDump.executions
+        .flatMap(({ tasks }) => tasks)
+        .some((task) =>
+          task.recorder?.some((record) => record.type === 'screenshot'),
+        ),
+    ).toBe(true);
+    const reexport = join(root, 'restored.html');
+    const report = spawn(
+      process.execPath,
+      [cli, 'report', join(trialDir, 'run-1/agent.json'), '--out', reexport],
+      { cwd: root, stdio: 'ignore' },
+    );
+    expect((await once(report, 'exit'))[0]).toBe(0);
+    expect(await readReportActionDump(reexport)).toEqual(reportDump);
     for (const file of ['index.mjs', 'steps/save.mjs', 'steps/confirm.mjs'])
       expect(readFileSync(join(trialDir, 'replay', file))).toEqual(
         readFileSync(join(bundle, file)),
@@ -290,6 +312,56 @@ it('records and prepares a signed-in flow, then verifies strict three-round tria
       '[Failure image](run-1/terminal.png)',
     );
     expect(readFileSync(join(trace, 'events.jsonl'), 'utf8')).toBe(events);
+
+    // Explicit reuse retains tab-only state across all rounds.
+    await page.evaluate(() => {
+      sessionStorage.setItem('rounds', '0');
+      document.querySelector('#save')?.addEventListener('click', () => {
+        sessionStorage.setItem(
+          'rounds',
+          String(Number(sessionStorage.getItem('rounds')) + 1),
+        );
+      });
+    });
+    writeFileSync(
+      join(bundle, 'index.mjs'),
+      `import {defineReplay,defineStep} from '@midscene/replay/experimental';
+       export default defineReplay({
+         meta: {platform:'web',startUrl:${JSON.stringify(url)},ready:{xpath:'//button[@id="save"]'}},
+         steps:[defineStep({id:'save',title:'Save in the existing tab',
+           async run(rp) {
+             await rp.waitFor(() => sessionStorage.getItem('tabMarker') === 'live', {title:'Existing tab'});
+             await rp.tap('Save', {candidates:[{xpath:'//button[@id="save"]'}]});
+           }
+         })],
+       });`,
+    );
+    const sharedDir = join(root, 'reuse-tab');
+    const shared = await command(
+      'trial',
+      bundle,
+      '--out',
+      sharedDir,
+      '--reuse-tab',
+    ).done;
+    expect(shared.code, shared.stderr || shared.stdout).toBe(0);
+    expect(
+      JSON.parse(readFileSync(join(sharedDir, 'result.json'), 'utf8')),
+    ).toMatchObject({
+      completedRuns: 3,
+      host: {
+        session: 'cdp-tab',
+        browserContext: 'shared',
+        tab: 'reused',
+        businessState: 'not-reset',
+      },
+    });
+    expect(await page.evaluate(() => sessionStorage.getItem('rounds'))).toBe(
+      '3',
+    );
+    expect(readFileSync(join(sharedDir, 'steps.md'), 'utf8')).toContain(
+      'Wait Existing tab: passed',
+    );
 
     const duplicate = await context.newPage();
     await duplicate.goto(url);
