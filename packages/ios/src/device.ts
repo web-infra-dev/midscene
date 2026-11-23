@@ -267,16 +267,18 @@ export class IOSDevice implements AbstractInterface {
     this.invalidatePendingKeyboardFollowUp('clear input');
     if (point) {
       await this.tapPoint(point);
+      await sleep(100);
     }
 
-    await this.wdaBackend.waitForInputFocus();
     debugDevice('Attempting to clear input with WebDriver Clear API');
     const cleared = await this.wdaBackend.clearActiveElement();
-    assert(
-      cleared,
-      'Cannot verify that input was cleared; refusing to append text',
-    );
-    debugDevice('Successfully cleared input with WebDriver Clear API');
+    if (cleared) {
+      debugDevice('Successfully cleared input with WebDriver Clear API');
+    } else {
+      debugDeviceWarning(
+        'WDA could not identify an active input to clear; continuing without clearing. Existing text may remain.',
+      );
+    }
   }
 
   actionSpace(): DeviceAction<any>[] {
@@ -680,7 +682,8 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     debugDevice(`Typing text: "${text}"`);
 
     try {
-      await this.wdaBackend.waitForInputFocus();
+      // Preserve compatibility with responders absent from WDA's accessibility tree.
+      await sleep(200);
 
       if (inputSequentially) {
         // Type one character at a time with a delay between keystrokes.
