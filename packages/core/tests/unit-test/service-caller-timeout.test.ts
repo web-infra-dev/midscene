@@ -508,13 +508,13 @@ it('never retries external cancellation even when its reason is a timeout', asyn
 
 it.each([0, 2])(
   'reports total duration and %i request retries while preserving successful-attempt usage',
-  async (retryCount) => {
+  async (requestRetryCount) => {
     const { callGenerativeAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
     rs.useFakeTimers();
     try {
       mockCreate.mockReset();
-      for (let attempt = 0; attempt < retryCount; attempt++) {
+      for (let attempt = 0; attempt < requestRetryCount; attempt++) {
         mockCreate.mockImplementationOnce(async () => {
           await new Promise((resolve) => setTimeout(resolve, 1000));
           return {
@@ -536,23 +536,25 @@ it.each([0, 2])(
       });
       const onUsage = rs.fn();
       const promise = callGenerativeAI([{ role: 'user', content: 'hello' }], {
-        ...getModelRuntime(baseConfig({ retryCount, retryInterval: 500 })),
+        ...getModelRuntime(
+          baseConfig({ retryCount: requestRetryCount, retryInterval: 500 }),
+        ),
         onUsage,
       });
-      const totalTimeCost = 1000 + retryCount * 1500;
+      const totalTimeCost = 1000 + requestRetryCount * 1500;
       await rs.advanceTimersByTimeAsync(totalTimeCost);
       const result = await promise;
       expect(result.usage).toMatchObject({
         time_cost: 1000,
         total_time_cost: totalTimeCost,
-        retry_count: retryCount,
+        request_retry_count: requestRetryCount,
         prompt_tokens: 1,
         completion_tokens: 2,
         total_tokens: 3,
       });
       expect(onUsage).toHaveBeenCalledTimes(1);
       expect(onUsage).toHaveBeenCalledWith(result.usage);
-      expect(mockCreate).toHaveBeenCalledTimes(retryCount + 1);
+      expect(mockCreate).toHaveBeenCalledTimes(requestRetryCount + 1);
     } finally {
       rs.useRealTimers();
     }

@@ -15,7 +15,7 @@ import {
   normalizePlanningLocateParameter,
 } from './locate-normalization';
 
-// Mutates locator fields in place; ordinary parameters retain their model values.
+// Normalize locator fields in place; other parameters retain model values.
 export function parsePlanningActions(
   actions: PlanningAction[],
   {

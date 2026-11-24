@@ -27,7 +27,7 @@ const debugSection = getDebug('ai:grounding:section');
 type SectionLocateRawResponse = Awaited<ReturnType<typeof callGenerativeAI>>;
 
 export async function AiLocateSection(options: {
-  context: UIContext;
+  uiContext: UIContext;
   sectionDescription: TUserPrompt;
   modelRuntime: ModelRuntime;
   abortSignal?: AbortSignal;
@@ -38,7 +38,7 @@ export async function AiLocateSection(options: {
   rawAssistantOutput?: RawAssistantOutput;
   usage?: AIUsageInfo;
 }> {
-  const { context, sectionDescription } = options;
+  const { uiContext, sectionDescription } = options;
   const modelRuntime = options.modelRuntime;
   const { adapter } = modelRuntime;
   assert(
@@ -48,7 +48,7 @@ export async function AiLocateSection(options: {
   const searchArea = adapter.locate.searchArea;
   assert(searchArea, 'section locate requires a search area operation');
   const { protocol: searchAreaProtocol, resultCodec } = searchArea;
-  const screenshotBase64 = context.screenshot.base64;
+  const screenshotBase64 = uiContext.screenshot.base64;
 
   const systemPrompt = buildSearchAreaLocateSystemPrompt({
     systemPromptIntroduction: searchAreaProtocol.systemPromptIntroduction,
@@ -66,8 +66,8 @@ export async function AiLocateSection(options: {
     userPrompt: userInstructionPrompt,
     locateImage: {
       imageBase64: screenshotBase64,
-      width: context.shotSize.width,
-      height: context.shotSize.height,
+      width: uiContext.shotSize.width,
+      height: uiContext.shotSize.height,
     },
     imagePreprocess: adapter.imagePreprocess,
     targetDescription: sectionDescription,
@@ -196,13 +196,13 @@ export async function AiLocateSection(options: {
   }
 
   try {
-    const expandedRect = expandSearchArea(mergedRect, context.shotSize);
+    const expandedRect = expandSearchArea(mergedRect, uiContext.shotSize);
     const originalWidth = expandedRect.width;
     const originalHeight = expandedRect.height;
     debugSection('expanded sectionRect %j', expandedRect);
 
     const searchAreaConfig = await buildSearchAreaConfig({
-      context,
+      uiContext,
       baseRect: mergedRect,
     });
 

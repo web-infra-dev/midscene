@@ -94,15 +94,15 @@ it.each([1, 3])(
         ScreenshotItem.fromFile(path, 'image/png', i),
       );
       const ids = frames.map((frame) => frame.id);
-      const context = {
+      const uiContext = {
         ...makeUiContext(count),
         screenshotSequence: frames,
         screenshot: frames[count - 1],
       };
-      recordAndReleaseScreenshotSequence(makeTask(), context);
+      recordAndReleaseScreenshotSequence(makeTask(), uiContext);
       rmSync(directory, { recursive: true, force: true });
       expect(frames.map((frame) => frame.id)).toEqual(ids);
-      expect(context.screenshot).toBe(frames[count - 1]);
+      expect(uiContext.screenshot).toBe(frames[count - 1]);
       for (const frame of frames)
         expect(Buffer.from(frame.rawBase64, 'base64')).toEqual(bytes);
     } finally {
@@ -118,14 +118,14 @@ it('keeps already persisted observation images lazy', () => {
     1,
   );
   frame.markPersistedToPath('./screenshots/frame.png', '/report/frame.png');
-  const context = {
+  const uiContext = {
     ...makeUiContext(1),
     screenshotSequence: [frame],
     screenshot: frame,
   };
   // Neither path exists: retention must not read a report-owned image.
   expect(() =>
-    recordAndReleaseScreenshotSequence(makeTask(), context),
+    recordAndReleaseScreenshotSequence(makeTask(), uiContext),
   ).not.toThrow();
   expect(frame.hasBase64()).toBe(false);
   expect(frame.toSerializable()).toMatchObject({

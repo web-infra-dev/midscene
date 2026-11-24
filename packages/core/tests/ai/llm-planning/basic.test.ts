@@ -37,12 +37,12 @@ const standardPlan = async (
 // of AI CI until that prompt contract is tightened.
 describe.skipIf(hasModelFamily)('automation - llm planning', () => {
   it('basic run', async () => {
-    const { context } = await getContextFromFixture('todo');
+    const { uiContext } = await getContextFromFixture('todo');
 
     const { actions, shouldContinuePlanning } = await standardPlan(
       'type "Why is the earth a sphere?", wait 3.5s, hit Enter',
       {
-        context,
+        uiContext,
         actionSpace: mockActionSpace,
         modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
@@ -58,11 +58,11 @@ describe.skipIf(hasModelFamily)('automation - llm planning', () => {
   });
 
   it('scroll page', async () => {
-    const { context } = await getContextFromFixture('todo');
+    const { uiContext } = await getContextFromFixture('todo');
     const { actions, shouldContinuePlanning } = await standardPlan(
       'Scroll down the page by 200px, scroll up the page by 100px, scroll right the second item of the task list by 300px',
       {
-        context,
+        uiContext,
         actionSpace: mockActionSpace,
         modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
@@ -110,9 +110,9 @@ describe('planning', () => {
 
   todoInstructions.forEach(({ name, instruction }) => {
     it(`todo mvc - ${name}`, async () => {
-      const { context } = await getContextFromFixture('todo');
+      const { uiContext } = await getContextFromFixture('todo');
       const { actions } = await standardPlan(instruction, {
-        context,
+        uiContext,
         actionSpace: mockActionSpace,
         modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
@@ -128,11 +128,11 @@ describe('planning', () => {
   });
 
   it('scroll some element', async () => {
-    const { context } = await getContextFromFixture('todo');
+    const { uiContext } = await getContextFromFixture('todo');
     const { actions } = await standardPlan(
       'Scroll left the status filters (with a button named "completed")',
       {
-        context,
+        uiContext,
         actionSpace: mockActionSpace,
         modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
@@ -147,11 +147,11 @@ describe('planning', () => {
   });
 
   it('should not throw in an "if" statement', async () => {
-    const { context } = await getContextFromFixture('todo');
+    const { uiContext } = await getContextFromFixture('todo');
     const { actions, error } = await standardPlan(
       'If there is a cookie prompt, close it',
       {
-        context,
+        uiContext,
         actionSpace: mockActionSpace,
         modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
@@ -166,11 +166,11 @@ describe('planning', () => {
   });
 
   it('should make mark unfinished when something is not found', async () => {
-    const { context } = await getContextFromFixture('todo');
+    const { uiContext } = await getContextFromFixture('todo');
     const res = await standardPlan(
       'click the input box, wait 300ms. After that, the page will be redirected to the home page, click the close button of the cookie prompt on the home page',
       {
-        context,
+        uiContext,
         actionSpace: mockActionSpace,
         modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),

@@ -198,7 +198,7 @@ export default function TestRunnerReport({
             <div className="runner-header-inner">
               <div className="runner-header-title">
                 <a
-                  href="https://midscenejs.com/"
+                  href="https://www.midscenejs.com/"
                   target="_blank"
                   rel="noreferrer"
                 >

@@ -33,7 +33,7 @@ export const llmLabels: Record<(typeof llms)[number], string> = {
   kimi: 'Kimi K3',
   'xiaomi-mimo': 'MiMo V2.6 Pro',
   'glm-v': 'GLM-5V-Turbo',
-  'ant-ling': 'Ling-3.0-flash-VL',
+  'ant-ling': 'Ling-3.2-flash',
   'tencent-hy': 'Tencent HY4',
 };
 

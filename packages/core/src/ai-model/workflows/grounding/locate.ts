@@ -33,11 +33,11 @@ export async function AiLocateElement(
     'cannot find the target element description',
   );
 
-  const { context } = locateOptions;
+  const { uiContext } = locateOptions;
   const locateImage = locateOptions.searchConfig?.image ?? {
-    imageBase64: context.screenshot.base64,
-    width: context.shotSize.width,
-    height: context.shotSize.height,
+    imageBase64: uiContext.screenshot.base64,
+    width: uiContext.shotSize.width,
+    height: uiContext.shotSize.height,
   };
   const locateRequest: LocateRequest = {
     targetElementDescription,

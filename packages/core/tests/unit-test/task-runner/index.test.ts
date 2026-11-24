@@ -44,8 +44,8 @@ const insightFindTask = (shouldThrow?: boolean) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
         throw new Error('test-error');
       }
-      const context = createFakeContext();
-      const service = new Service(context);
+      const uiContext = createFakeContext();
+      const service = new Service(uiContext);
       const { element, dump: insightDump } = await service.locate(
         {
           prompt: locateParam.prompt,

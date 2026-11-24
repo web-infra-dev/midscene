@@ -12,6 +12,7 @@ import {
   type Point,
   type Size,
   type UITreeSnapshot,
+  getMidsceneDistanceSchema,
   getMidsceneLocationSchema,
   z,
 } from '@midscene/core';
@@ -459,8 +460,7 @@ export class AndroidDevice implements AbstractInterface {
         description: 'Trigger pull down to refresh or pull up actions',
         paramSchema: z.object({
           direction: z.enum(['up', 'down']).describe('The direction to pull'),
-          distance: z
-            .number()
+          distance: getMidsceneDistanceSchema()
             .optional()
             .describe('The distance to pull (in pixels)'),
           duration: z
@@ -706,7 +706,7 @@ ${Object.keys(size)
 
             // throw the error again
             throw new Error(
-              `ADB error with device ${deviceId} when calling ${methodName} (ADB executable: ${adbExecutable}), please check https://midscenejs.com/integrate-with-android.html#faq : ${error.message}`,
+              `ADB error with device ${deviceId} when calling ${methodName} (ADB executable: ${adbExecutable}), please check https://www.midscenejs.com/platforms/android#faq : ${error.message}`,
               {
                 cause: error,
               },

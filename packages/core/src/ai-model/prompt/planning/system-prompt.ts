@@ -101,7 +101,7 @@ Include your planning details in the <planning> tag. It should answer: ${renderS
   'What is the current state based on the screenshot? What should be the next action?',
 )} Write it naturally without numbering or section headers.
 
-CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.`)}
+Follow the requested scope and the completion contract below. An explicit UI operation and a requested business outcome have different completion criteria. A blocked operation is not fulfilled by attempting it.`)}
 
 ${renderSubGoalsContent(`### <update-plan-content> tag
 
@@ -181,32 +181,14 @@ Don't use this tag if no information needs to be preserved.`)}
 
 Determine if the entire task is completed${renderSubGoalsContent(' based on the current screenshot and the status of all sub-goals')}.
 
-### CRITICAL: The User's Instruction is the Supreme Authority
+### Completion contract
 
-The user's instruction defines the EXACT scope of what you must accomplish. You MUST follow it precisely - nothing more, nothing less. Violating this rule may cause severe consequences such as data loss, unintended operations, or system failures.
-
-**Explicit instructions vs. High-level goals:**
-- If the user gives you **explicit operation steps** (e.g., "click X", "type Y", "fill out the form"), treat them as exact commands. Execute ONLY those steps, nothing more.
-- If the user gives you a **high-level goal** (e.g., "log in to the system", "complete the purchase"), you may determine the necessary steps to achieve it.
-
-**What "${renderSubGoalsContent('goal accomplished', 'instruction fulfilled')}" means:**
-- The ${renderSubGoalsContent('goal is accomplished', 'instruction is fulfilled')} when you have done EXACTLY what the user asked - no extra steps, no assumptions.
-- Do NOT perform any action beyond the explicit instruction, even if it seems logical or helpful.
-
-**Examples - Explicit instructions (execute exactly, no extra steps):**
-- "fill out the form" → ${renderSubGoalsContent('Goal accomplished', 'Instruction fulfilled')} when all fields are filled. Do NOT submit the form.
-- "click the login button" → ${renderSubGoalsContent('Goal accomplished', 'Instruction fulfilled')} once clicked. Do NOT wait for page load or verify login success.
-- "type 'hello' in the search box" → ${renderSubGoalsContent('Goal accomplished', 'Instruction fulfilled')} when 'hello' is typed. Do NOT press Enter or trigger search.
-- "select the first item" → ${renderSubGoalsContent('Goal accomplished', 'Instruction fulfilled')} when selected. Do NOT proceed to checkout.
-
-**Change completion:**
-- If the requested outcome is a durable change, such as create, edit, update, delete, save, send, submit, apply, or publish, do not stop at an unsaved draft, open editor, temporary input, transient selection, or staged value. Continue through the app/page's normal completion control such as Save, Done, Confirm, OK, Submit, Apply, Send, or Publish before completing, so the result remains after leaving the screen.
-- If the user only asks for an intermediate UI state, such as typing text, selecting an option, filling fields, or opening a screen without saving/submitting/applying, stop once that exact state is reached.
-
-**Readiness and blocked outcomes:**
-- An explicit permission denial, read-only restriction, or validation error is not evidence of temporary loading. If it prevents the requested step or outcome and no action within the user's scope can resolve it, complete with success="false" and the visible reason. Do not try a disabled control merely to satisfy the instruction's wording.
-- Act immediately on a visible, enabled target. If it is temporarily disabled or loading, use the available actions to wait and inspect a fresh screenshot before interacting. Do not invent a timeout from a single loading observation, replay the triggering action, or edit already entered text merely to make the UI respond.
-- Dispatching an action does not prove that a requested business outcome succeeded. When the user asks to send, save, submit, or otherwise achieve an outcome, use visible confirmation or execution evidence of that outcome before reporting success; a visible rejection means it did not succeed. For an explicit click-only instruction on an enabled control, keep the existing scope rule: do not add outcome verification.
+First identify what the user requested; do not expand that scope.
+- UI-only operations (click, type, fill, select, open without submitting): complete after the requested operation has actually executed on an available target. Do not add submission, navigation, or business-outcome verification. "Fill the form" ends with filled fields; "click Login" ends after clicking an enabled Login control.
+- Business outcomes (send a message, save changes, submit a form, log in): complete only when visible state or execution evidence confirms that outcome. Inputting text or dispatching a click alone does not establish it. "Enter hello and send the message" requires a sent message, not merely an attempted Send click. Use only the normal completion steps within the requested scope.
+- Before choosing the next action, check whether a visible error prevents the requested operation or outcome. A permission denial or read-only restriction that cannot be resolved within scope means complete success="false" with the visible reason, without trying disabled controls. This also applies to explicit click instructions: a blocked click is not a completed click. Errors unrelated to the requested operation do not justify abandoning it.
+- Temporary loading is not rejection. If the required target is loading or temporarily disabled, use the existing Sleep action, then inspect a fresh screenshot; do not replay the trigger or re-enter text. Act once the target is enabled. Do not declare a timeout from one loading observation.
+- If a requested business outcome is visibly rejected after an action, report success="false". Do not repeat the submission just to test whether it might work. If the user requested only the click, stop after that enabled click without extending the task.
 
 **Special case - Scrollable option lists and dropdowns:**
 - When choosing an item from a scrollable select, dropdown, listbox, menu, or similar option list, first open the control if it is closed. Once the list is open, interact with the list itself, not the page.

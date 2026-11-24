@@ -45,7 +45,20 @@ const BUSY_LOOP_MAX_READS = 500; // Max reads per window before considered busy-
 const BUSY_LOOP_COOLDOWN_MS = 50; // Throttle delay when busy-loop detected
 const BUSY_LOOP_WARN_INTERVAL_MS = 5_000; // Min interval between busy-loop warnings
 
-// Scrcpy default configuration (disabled by default, opt-in via scrcpyConfig.enabled)
+export function resolveScrcpyFrameRate(frameRate?: number): number | undefined {
+  if (frameRate === undefined) return undefined;
+  if (
+    !Number.isSafeInteger(frameRate) ||
+    frameRate <= 0 ||
+    frameRate > 2147483647
+  ) {
+    throw new Error(
+      `Invalid scrcpyConfig.frameRate: expected a positive 32-bit integer, received ${frameRate}`,
+    );
+  }
+  return frameRate;
+}
+
 export const DEFAULT_SCRCPY_CONFIG = {
   enabled: false,
   maxSize: DEFAULT_MAX_SIZE,
@@ -55,6 +68,7 @@ export const DEFAULT_SCRCPY_CONFIG = {
 } as const;
 
 export interface ScrcpyScreenshotOptions {
+  frameRate?: number;
   maxSize?: number;
   videoBitRate?: number;
   idleTimeoutMs?: number;
@@ -224,6 +238,7 @@ function detectH264KeyFrame(buffer: Buffer): boolean {
  * Required options after applying defaults
  */
 interface ResolvedScrcpyOptions {
+  frameRate?: number;
   maxSize: number;
   videoBitRate: number;
   idleTimeoutMs: number;
@@ -301,6 +316,7 @@ export class ScrcpyScreenshotManager {
       );
     }
     this.options = {
+      frameRate: resolveScrcpyFrameRate(options.frameRate),
       maxSize: options.maxSize ?? DEFAULT_MAX_SIZE,
       videoBitRate: clampedBitRate,
       idleTimeoutMs: options.idleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS,
@@ -425,6 +441,15 @@ export class ScrcpyScreenshotManager {
       [import('@yume-chan/adb-scrcpy'), import('@yume-chan/scrcpy')],
     );
 
+    // Repeated packets can carry a fresh PTS without fresh pixels.
+    const codecOptions = [
+      'i-frame-interval=0',
+      'bitrate-mode=2',
+      'repeat-previous-frame-after=0',
+    ];
+    if (this.options.frameRate !== undefined) {
+      codecOptions.push(`frame-rate=${this.options.frameRate}`);
+    }
     return new AdbScrcpyOptions3_3_3({
       audio: false,
       // RESET_VIDEO is carried by scrcpy's control channel. Keep the channel
@@ -439,11 +464,7 @@ export class ScrcpyScreenshotManager {
       videoBitRate: this.options.videoBitRate,
       maxFps: 10,
       sendFrameMeta: true,
-      // scrcpy otherwise asks MediaCodec to repeat the previous frame every
-      // 100ms. Such a packet has a newer PTS but unchanged pixels, so neither
-      // a PTS barrier nor an age check could detect that the image is stale.
-      videoCodecOptions:
-        'i-frame-interval=0,bitrate-mode=2,repeat-previous-frame-after=0',
+      videoCodecOptions: codecOptions.join(','),
     });
   }
 

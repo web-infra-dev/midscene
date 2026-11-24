@@ -7,6 +7,7 @@ import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
 import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
+import { defineActionScroll } from '@/device';
 import type { UIContext } from '@/types';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { mockActionSpace } from '../../../common';
@@ -50,7 +51,7 @@ const autoGlmAdapter = new ResolvedModelAdapter(
   'auto-glm',
 );
 
-const context: UIContext = {
+const uiContext: UIContext = {
   screenshot: {
     base64: 'data:image/png;base64,AA==',
   } as any,
@@ -63,8 +64,10 @@ const context: UIContext = {
 
 function createPlanOptions(overrides: Partial<PlanOptions> = {}): PlanOptions {
   return {
-    context,
-    actionSpace: mockActionSpace,
+    uiContext,
+    actionSpace: mockActionSpace.map((action) =>
+      action.name === 'Scroll' ? defineActionScroll(async () => {}) : action,
+    ),
     modelRuntime: {
       config: {
         modelName: 'auto-glm-test-model',
@@ -114,7 +117,7 @@ describe('createAutoGlmPlanner', () => {
       const result = await runCustomPlanning(
         await prepareUserPrompt('swipe left'),
         createPlanOptions({
-          context: { ...context, shotSize: { width: 101, height: 81 } },
+          uiContext: { ...uiContext, shotSize: { width: 101, height: 81 } },
         }),
         resolveCustomPlanningDefinition({
           ...planner,

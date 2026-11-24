@@ -41,7 +41,7 @@ describe('homepage language and navigation', () => {
         language === 'zh' ? 'Counts come from the URL' : '数字由 URL 提供',
       );
       expect(html).toContain(
-        '<a href="https://midscenejs.com">Midscene.js</a>',
+        '<a href="https://www.midscenejs.com">Midscene.js</a>',
       );
       expect(html).toContain('<img class="logo" src="data:image/png;base64,');
       expect(response.headers.get('Vary')).toBe('Accept-Language, User-Agent');

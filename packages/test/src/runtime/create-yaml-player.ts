@@ -225,7 +225,7 @@ export async function createYamlAgent(
       );
       if (resolvedWebTarget?.source === 'target') {
         cleanupWarning(
-          'target is deprecated, please use page or browser instead. See https://midscenejs.com/automate-with-scripts-in-yaml for more information. Sorry for the inconvenience.',
+          'target is deprecated, please use page or browser instead. See https://www.midscenejs.com/automate-with-scripts-in-yaml for more information. Sorry for the inconvenience.',
         );
       }
 

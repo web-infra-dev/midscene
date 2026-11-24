@@ -58,7 +58,9 @@ describe('test project config', () => {
           : 'implicit default project keeps running files sequentially',
       );
       expect(error.message).toContain('fileSetup');
-      expect(error.message).toContain('https://midscenejs.com/');
+      expect(error.message).toContain(
+        'https://www.midscenejs.com/midscene-test/execution#existing-configurations',
+      );
 
       const migrated = createConfig(`export default {
         test: { maxConcurrentProjects: ${limit}, maxConcurrentFiles: ${fileLimit} },

@@ -153,7 +153,7 @@ const copy = {
     ],
   },
 };
-const SITE = 'https://midscenejs.com';
+const SITE = 'https://www.midscenejs.com';
 const examples = [
   { path: '/e2e?pass=42&fail=3', alt: 'Midscene Test' },
   { path: '/e2e?pass=42&fail=3&style=large', alt: 'Midscene Test' },

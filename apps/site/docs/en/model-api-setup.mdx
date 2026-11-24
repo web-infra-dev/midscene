@@ -236,15 +236,25 @@ Configuration example (`glm-5v-turbo`):
 
 </ModelConfigSection>
 
-<ModelConfigSection description="Ling-3.0-flash-VL">
+<ModelConfigSection description="Ling-3.2-flash">
 
 ### Ant Ling {#ant-ling}
+
+<div className="model-series-table">
+
+| Model<br />`MIDSCENE_MODEL_NAME` | Model family<br />`MIDSCENE_MODEL_FAMILY` | Notes |
+| --- | --- | --- |
+| **Ling 3 series**<br />`Ling-3.2-flash` `Ling-3.0-flash-VL` | `ant-ling` | — |
+
+</div>
+
+Configuration example (`Ling-3.2-flash`):
 
 <AntLingModelCard />
 
 :::info Screenshot dimensions
 
-We observed that localization accuracy may decrease when the longest image edge exceeds 2000 pixels. Use the Agent's `screenshotShrinkFactor` option to resize images.
+We observed that `Ling-3.0-flash-VL` may locate elements less accurately when the longest image edge exceeds 2000 pixels. Use the Agent's `screenshotShrinkFactor` option to resize images. We did not observe this issue with `Ling-3.2-flash`.
 
 :::
 
@@ -258,7 +268,7 @@ We observed that localization accuracy may decrease when the longest image edge 
 
 | Model<br />`MIDSCENE_MODEL_NAME` | Model family<br />`MIDSCENE_MODEL_FAMILY` | Notes |
 | --- | --- | --- |
-| **Hy4**<br />`hy4` | `tencent-hy` | — |
+| **Hy4 series**<br />`hy4` `hy4-flash` | `tencent-hy` | — |
 
 </div>
 

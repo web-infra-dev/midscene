@@ -1,5 +1,5 @@
 import { getDebug } from '@midscene/shared/logger';
-import { WebDriverClient } from '@midscene/webdriver';
+import { WebDriverClient, WebDriverRequestError } from '@midscene/webdriver';
 import {
   type InputRequest,
   clearInputWithFocus,
@@ -14,6 +14,8 @@ import {
   selectKeyboardAccessoryDismissButton,
 } from './keyboard-dismiss';
 
+const visibleEditMenuItem =
+  'type == "XCUIElementTypeMenuItem" AND visible == true AND enabled == true';
 const debugIOS = getDebug('webdriver:ios');
 
 // WDA MJPEG server settings applied during session setup
@@ -303,6 +305,82 @@ export class IOSWebDriverClient extends WebDriverClient {
    */
   async clearActiveElement(): Promise<boolean> {
     return clearInputWithFocus(this.requestInput);
+  }
+
+  /** Capture the field before the keyboard can move it away from the tap point. */
+  async findInputAt(x: number, y: number): Promise<string | undefined> {
+    const fieldTypes =
+      'self::XCUIElementTypeTextField or self::XCUIElementTypeSecureTextField or self::XCUIElementTypeTextView or self::XCUIElementTypeSearchField';
+    // Menu reopening is optional. An expensive accessibility snapshot must not
+    // consume the input action's normal WDA request timeout.
+    try {
+      const fields = await this.findElementIds(
+        'xpath',
+        `//*[${fieldTypes}][@visible="true" and @enabled="true" and @x <= ${x} and @x + @width > ${x} and @y <= ${y} and @y + @height > ${y}]`,
+        { deadline: Date.now() + 1200 },
+      );
+      return fields.length === 1 ? fields[0] : undefined;
+    } catch (error) {
+      debugIOS(
+        `Cannot identify the field for reopening its edit menu: ${error}`,
+      );
+      return undefined;
+    }
+  }
+
+  async selectAllFromMenu(inputId?: string): Promise<boolean> {
+    let deadline = Date.now() + 1200;
+    const lookup = async (predicate: string): Promise<string[] | undefined> => {
+      const timeout = deadline - Date.now();
+      if (timeout <= 0) return undefined;
+      try {
+        const response = await this.requestInput(
+          'POST',
+          '/elements',
+          { using: 'predicate string', value: predicate },
+          { timeout },
+        );
+        return this.getElementIds(response);
+      } catch (error) {
+        if (
+          error instanceof WebDriverRequestError &&
+          error.message === `Request timeout after ${timeout}ms`
+        )
+          return undefined;
+        throw error;
+      }
+    };
+
+    if (inputId) {
+      let menu = await lookup(visibleEditMenuItem);
+      const remainingLookupTime = deadline - Date.now();
+      if (!menu || remainingLookupTime <= 0) return false;
+      if (!menu.length) {
+        // Budget menu discovery separately from the gesture that opens it.
+        await this.clickElement(inputId);
+        deadline = Date.now() + remainingLookupTime;
+        while (true) {
+          menu = await lookup(visibleEditMenuItem);
+          if (menu?.length) break;
+          const remaining = deadline - Date.now();
+          if (!menu || remaining <= 0) return false;
+          await new Promise((resolve) =>
+            setTimeout(resolve, Math.min(100, remaining)),
+          );
+        }
+      }
+    }
+    const matches = await lookup(
+      `${visibleEditMenuItem} AND (name IN {"Select All", "全选", "全選"} OR label IN {"Select All", "全选", "全選"})`,
+    );
+    if (!matches?.length || Date.now() >= deadline) return false;
+    if (matches.length !== 1) {
+      throw new Error(
+        'Cannot clear the located input: the iOS Select All menu item is unavailable',
+      );
+    }
+    await this.clickElement(matches[0]);
+    return true;
   }
 
   /** Wait for keyboard focus before attempting to clear or type text. */
@@ -650,7 +728,13 @@ export class IOSWebDriverClient extends WebDriverClient {
   /** Returns whether WDA currently exposes a visible software keyboard. */
   async isKeyboardVisible(): Promise<boolean> {
     this.ensureSession();
-    return (await this.findVisibleKeyboardIds()).length > 0;
+    if ((await this.findVisibleKeyboardIds()).length) return true;
+    // Third-party keyboards may expose only the system keyboard switcher.
+    const switchers = await this.findElementIds(
+      'predicate string',
+      'type == "XCUIElementTypeButton" AND visible == true AND name IN[c] {"Next keyboard", "下一个键盘", "下一個鍵盤"}',
+    );
+    return switchers.length > 0;
   }
 
   /**

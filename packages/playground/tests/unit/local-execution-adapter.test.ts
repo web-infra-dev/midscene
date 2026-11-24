@@ -148,7 +148,9 @@ describe('LocalExecutionAdapter', () => {
       const result = adapter.formatErrorMessage(error);
 
       expect(result).toContain('Conflicting extension detected');
-      expect(result).toContain('midscenejs.com');
+      expect(result).toContain(
+        'https://www.midscenejs.com/platforms/web#chrome-extension-faq',
+      );
     });
 
     it('should use basic formatting for other errors', () => {

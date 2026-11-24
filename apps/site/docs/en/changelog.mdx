@@ -2,6 +2,44 @@
 
 {/* release-notes:start */}
 
+## v1.18.2
+
+### Changes
+
+#### Features 🎉
+* feat(android): expose an optional scrcpy encoder frame-rate hint by @quanruzhuoxiu in https://github.com/web-infra-dev/midscene/pull/3416
+
+#### Fixes 🐞
+* fix(core): scale model scroll distances from input image pixels by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3392
+* fix(site): use www documentation domain and repair outdated links by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3412
+* fix(core): reuse Jev reference images across planning rounds by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3407
+* fix(core): distinguish request and parse retry counts by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3417
+* fix(core): honor planner cache policy throughout aiAct by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3418
+
+#### Refactors ♻️
+* refactor(core): reuse OpenRouter detection for Jev by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3405
+* refactor(core): clarify UI context naming by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3410
+
+#### Documentation 📖
+* docs(site): document Ling 3.2 Flash model configuration by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3406
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.18.1...v1.18.2
+
+## v1.18.1
+
+### Changes
+
+#### Features 🎉
+* feat(core): add observe test runner node by @codeestX in https://github.com/web-infra-dev/midscene/pull/3393
+
+#### Fixes 🐞
+* fix(core): unwrap Qwen3 locate response arrays by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3400
+
+#### Documentation 📖
+* docs(site): add Hy4 flash to model configuration by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3399
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.18.0...v1.18.1
+
 ## v1.18.0
 
 ### Highlights
@@ -10,9 +48,9 @@
 
 This release includes support for three models for UI automation:
 
-- **Qwen4-Max** (`qwen4-max`), with model family `qwen4`. [Qwen configuration guide](https://midscenejs.com/model-api-setup#qwen)
-- **Tencent Hunyuan 4** (`hy4`), with model family `tencent-hy`. [Tencent Hunyuan configuration guide](https://midscenejs.com/model-api-setup#tencent-hy)
-- **StepFun Step 3.7 Flash** (`step-3.7-flash`), with model family `step`. [StepFun configuration guide](https://midscenejs.com/model-api-setup#stepfun)
+- **Qwen4-Max** (`qwen4-max`), with model family `qwen4`. [Qwen configuration guide](https://www.midscenejs.com/model-api-setup#qwen)
+- **Tencent Hunyuan 4** (`hy4`), with model family `tencent-hy`. [Tencent Hunyuan configuration guide](https://www.midscenejs.com/model-api-setup#tencent-hy)
+- **StepFun Step 3.7 Flash** (`step-3.7-flash`), with model family `step`. [StepFun configuration guide](https://www.midscenejs.com/model-api-setup#stepfun)
 
 ### Changes
 
@@ -222,13 +260,13 @@ This release includes support for three models for UI automation:
 
 #### Use your ChatGPT subscription
 
-Authorize Midscene through Sign in with ChatGPT (SIWC) to call GPT models using your ChatGPT subscription allowance. The video below demonstrates the browser extension's sign-in and authorization flow. See [Use your ChatGPT subscription](https://midscenejs.com/chatgpt-subscription) for setup instructions.
+Authorize Midscene through Sign in with ChatGPT (SIWC) to call GPT models using your ChatGPT subscription allowance. The video below demonstrates the browser extension's sign-in and authorization flow. See [Use your ChatGPT subscription](https://www.midscenejs.com/chatgpt-subscription) for setup instructions.
 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/siwc/siwc-chrome-auth.mp4" controls></video>
 
 #### Experimental Jev 1.14 support
 
-Jev can handle planning, localization, and judgments, working with a general-purpose default model for tasks such as text input. See the [Jev configuration guide](https://midscenejs.com/model-api-setup#jev) for setup instructions and limitations.
+Jev can handle planning, localization, and judgments, working with a general-purpose default model for tasks such as text input. See the [Jev configuration guide](https://www.midscenejs.com/model-api-setup#jev) for setup instructions and limitations.
 
 The following measurements come from a single run of each demo. A step means one model call; latency excludes page actions and waits. Costs are in USD, calculated at $0.042 per million Jev input tokens, with output tokens free of charge.
 
@@ -347,7 +385,7 @@ The following measurements **cover Jev only and exclude DeepSeek**:
 
 #### Jev 1.4 support: faster, lower-cost visual E2E testing
 
-Midscene now supports Jev 1.4, continuing our focus on visual understanding to drive UI automation. With this integration, developers can experience faster, lower-cost E2E testing. See the [Jev configuration guide](https://midscenejs.com/model-common-config#jev) for setup instructions and the current experimental limitations.
+Midscene now supports Jev 1.4, continuing our focus on visual understanding to drive UI automation. With this integration, developers can experience faster, lower-cost E2E testing. See the [Jev configuration guide](https://www.midscenejs.com/model-common-config#jev) for setup instructions and the current experimental limitations.
 
 In the tile-matching game test shown in the demo below, 28 model calls were made, with model inference averaging **393.57 ms (approximately 0.39 seconds) per call**. Each call averaged **5,025 input tokens** and **67 output tokens**, at a model cost of approximately **$0.000211 per call**. This is calculated at $0.042 per million input tokens, with output tokens free of charge.
 

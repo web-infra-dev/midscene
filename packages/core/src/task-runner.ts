@@ -199,7 +199,7 @@ export class TaskRunner {
   }
 
   private lastUiContext?: {
-    context: UIContext;
+    uiContext: UIContext;
     capturedAt: number;
   };
 
@@ -213,11 +213,11 @@ export class TaskRunner {
       this.lastUiContext &&
       now - this.lastUiContext.capturedAt <= UI_CONTEXT_CACHE_TTL_MS;
 
-    if (shouldReuse && this.lastUiContext?.context) {
+    if (shouldReuse && this.lastUiContext?.uiContext) {
       debug(
         `reuse cached uiContext captured ${now - this.lastUiContext.capturedAt}ms ago`,
       );
-      return this.lastUiContext?.context;
+      return this.lastUiContext?.uiContext;
     }
 
     try {
@@ -225,7 +225,7 @@ export class TaskRunner {
       this.abortSignal?.throwIfAborted();
       if (uiContext) {
         this.lastUiContext = {
-          context: uiContext,
+          uiContext,
           capturedAt: Date.now(),
         };
       } else {

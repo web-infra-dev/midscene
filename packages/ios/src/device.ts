@@ -30,6 +30,7 @@ import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison } from '@midscene/shared/utils';
 import { WDAManager } from '@midscene/webdriver';
+import { InputFocusUnavailableError } from './input-focus';
 import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
 import { MjpegFrameSource } from './mjpeg-frame-source';
 import {
@@ -50,6 +51,9 @@ export const WDA_HTTP_METHODS = ['GET', 'POST', 'DELETE', 'PUT'] as const;
 export type WDAHttpMethod = (typeof WDA_HTTP_METHODS)[number];
 
 const DEFAULT_WDA_MJPEG_PORT = 9100;
+// WDA sends every Backspace even after the field is empty. Cap the batch
+// at 50 to keep short-field clears fast when Select All is unavailable.
+const customInputBackspaceCount = 50;
 const keyboardFollowUpMaxAgeMs = 30_000;
 const keyboardFollowUpKeys: ReadonlySet<string> = new Set([
   'enter',
@@ -107,10 +111,20 @@ export class IOSDevice implements AbstractInterface {
         const focusRestorePoint = target
           ? { x: target.center[0], y: target.center[1] }
           : undefined;
-        if (target && opts?.replace !== false) {
+        const willType = !!value && !opts?.focusOnly;
+        const replaceLocated = !!target && opts?.replace !== false;
+        const typingApp =
+          target && willType ? await this.appBeforeInput() : undefined;
+        let inputId: string | undefined;
+        if (replaceLocated && !willType) {
           await this.clearInput(target);
-        } else if (target) {
-          await this.tapPoint({ x: target.center[0], y: target.center[1] });
+        } else if (focusRestorePoint) {
+          if (replaceLocated && typingApp)
+            inputId = await this.wdaBackend.findInputAt(
+              focusRestorePoint.x,
+              focusRestorePoint.y,
+            );
+          await this.tapPoint(focusRestorePoint);
         }
 
         if (opts?.focusOnly) {
@@ -122,6 +136,9 @@ export class IOSDevice implements AbstractInterface {
           opts,
           focusRestorePoint,
           resolvedInputOptions,
+          typingApp,
+          replaceLocated,
+          inputId,
         );
       },
       clearInput: (target) =>
@@ -265,18 +282,13 @@ export class IOSDevice implements AbstractInterface {
 
   private async clearInputAt(point?: PointerPoint): Promise<void> {
     this.invalidatePendingKeyboardFollowUp('clear input');
-    if (point) {
-      await this.tapPoint(point);
-    }
-
-    await this.wdaBackend.waitForInputFocus();
-    debugDevice('Attempting to clear input with WebDriver Clear API');
-    const cleared = await this.wdaBackend.clearActiveElement();
-    assert(
-      cleared,
-      'Cannot verify that input was cleared; refusing to append text',
-    );
-    debugDevice('Successfully cleared input with WebDriver Clear API');
+    const app = point ? await this.appBeforeInput() : undefined;
+    const inputId =
+      point && app
+        ? await this.wdaBackend.findInputAt(point.x, point.y)
+        : undefined;
+    if (point) await this.tapPoint(point);
+    await this.prepareTextInput(app, 'clear', point, inputId);
   }
 
   actionSpace(): DeviceAction<any>[] {
@@ -289,7 +301,7 @@ export class IOSDevice implements AbstractInterface {
       },
       getDefaultAutoDismissKeyboard: () => this.options?.autoDismissKeyboard,
     };
-    const defaultActions = [...createDefaultMobileActions(mobileActionContext)];
+    const defaultActions = createDefaultMobileActions(mobileActionContext);
 
     const platformSpecificActions = Object.values(createPlatformActions(this));
 
@@ -660,6 +672,80 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     await this.swipePoint({ x: fromX, y: fromY }, { x: toX, y: toY }, duration);
   }
 
+  private async foregroundApp(): Promise<string> {
+    const response = await this.wdaBackend.executeRequest<{
+      value: { bundleId?: unknown };
+    }>('GET', '/wda/activeAppInfo');
+    const bundleId = response?.value?.bundleId;
+    assert(
+      typeof bundleId === 'string' && bundleId.length > 0,
+      'Invalid WDA foreground App response; no text was sent',
+    );
+    return bundleId;
+  }
+
+  private async appBeforeInput(): Promise<string | undefined> {
+    return this.foregroundApp().catch((error) => {
+      debugDevice(`Keyboard fallback unavailable: ${error}`);
+      return undefined;
+    });
+  }
+
+  private async prepareTextInput(
+    typingApp: string | undefined,
+    mode: 'clear' | 'replace' | 'typeOnly',
+    point?: PointerPoint,
+    inputId?: string,
+  ): Promise<void> {
+    let nativeFocus = true;
+    try {
+      await this.wdaBackend.waitForInputFocus();
+    } catch (error) {
+      if (!(error instanceof InputFocusUnavailableError) || !typingApp)
+        throw error;
+      nativeFocus = false;
+    }
+    if (nativeFocus) {
+      if (mode === 'typeOnly') return;
+      if (await this.wdaBackend.clearActiveElement()) {
+        await this.wdaBackend.waitForInputFocus();
+        return;
+      }
+    }
+    assert(typingApp, 'Cannot confirm the foreground app for keyboard input');
+    assert(
+      await this.wdaBackend.isKeyboardVisible(),
+      'Keyboard is not visible; no text was sent',
+    );
+    assert(
+      (await this.foregroundApp()) === typingApp,
+      'Foreground App changed during input; no text was sent',
+    );
+    if (mode !== 'typeOnly') {
+      assert(
+        point,
+        'Cannot clear an unidentified input without a located target',
+      );
+      const selected = await this.wdaBackend.selectAllFromMenu(inputId);
+      await this.checkInputApp(typingApp);
+      if (!selected) {
+        await this.wdaBackend.typeRawKeys([
+          '\b'.repeat(customInputBackspaceCount),
+        ]);
+        if (mode === 'replace') await this.checkInputApp(typingApp);
+      } else if (mode === 'clear') {
+        await this.wdaBackend.typeRawKeys(['\b']);
+      }
+    }
+  }
+
+  private async checkInputApp(expected: string): Promise<void> {
+    assert(
+      (await this.foregroundApp()) === expected,
+      'Foreground App changed during input',
+    );
+  }
+
   private async typeText(
     text: string,
     options?: IOSDeviceInputOpt & { skipDefaultWait?: boolean },
@@ -668,6 +754,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       options,
       this.options,
     ),
+    typingApp?: string,
+    replaceLocated = false,
+    inputId?: string,
   ): Promise<void> {
     this.invalidatePendingKeyboardFollowUp('new text input');
     if (!text) return;
@@ -680,7 +769,12 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     debugDevice(`Typing text: "${text}"`);
 
     try {
-      await this.wdaBackend.waitForInputFocus();
+      await this.prepareTextInput(
+        typingApp,
+        replaceLocated ? 'replace' : 'typeOnly',
+        focusRestorePoint,
+        inputId,
+      );
 
       if (inputSequentially) {
         // Type one character at a time with a delay between keystrokes.
@@ -698,6 +792,8 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
             delayAfterLast: resolvedInputOptions.inputStrategy === 'legacy',
           },
         );
+      } else if (replaceLocated && text !== text.trim()) {
+        await this.wdaBackend.typeRawKeys([text]);
       } else {
         await this.wdaBackend.typeText(text);
       }

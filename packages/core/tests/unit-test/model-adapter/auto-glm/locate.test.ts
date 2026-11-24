@@ -46,7 +46,7 @@ const autoGlmAdapter = new ResolvedModelAdapter(
   'auto-glm',
 );
 
-const context: UIContext = {
+const uiContext: UIContext = {
   screenshot: {
     base64: 'data:image/png;base64,AA==',
   } as any,
@@ -97,7 +97,7 @@ describe('Auto-GLM planning tap locator definition', () => {
 
 function createLocateOptions(): LocateOptions {
   return {
-    context,
+    uiContext,
     modelRuntime: {
       config: {
         modelName: 'auto-glm-test-model',

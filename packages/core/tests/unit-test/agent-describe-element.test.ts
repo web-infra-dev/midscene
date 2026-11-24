@@ -234,7 +234,7 @@ describe('element describer utils', () => {
       expect.any(Object),
       expect.objectContaining({
         deepDescribe: false,
-        context: expect.objectContaining({
+        uiContext: expect.objectContaining({
           shotSize: fixtureScreenshotSize,
           shrunkShotToLogicalRatio: 1,
           _isFrozen: true,
@@ -247,7 +247,7 @@ describe('element describer utils', () => {
         deepLocate: true,
       }),
       {
-        context: expect.objectContaining({
+        uiContext: expect.objectContaining({
           shotSize: fixtureScreenshotSize,
         }),
       },
@@ -417,7 +417,7 @@ describe('element describer utils', () => {
       },
     );
 
-    const describeContext = describe.mock.calls[0][2]?.context;
+    const describeContext = describe.mock.calls[0][2]?.uiContext;
     expect(describeContext?.screenshot.base64).toMatch(
       /^data:image\/png;base64,/,
     );
@@ -721,7 +721,7 @@ describe('element describer utils', () => {
       [1641, 721],
       expect.any(Object),
       expect.objectContaining({
-        context: expect.objectContaining({
+        uiContext: expect.objectContaining({
           shotSize: fixtureScreenshotSize,
         }),
       }),
@@ -731,7 +731,7 @@ describe('element describer utils', () => {
         prompt: 'Mapped target',
       }),
       {
-        context: expect.objectContaining({
+        uiContext: expect.objectContaining({
           shotSize: fixtureScreenshotSize,
         }),
       },
@@ -789,7 +789,7 @@ describe('element describer utils', () => {
       [1641, 721],
       expect.any(Object),
       expect.objectContaining({
-        context: expect.objectContaining({
+        uiContext: expect.objectContaining({
           shotSize: fixtureScreenshotSize,
         }),
       }),
@@ -871,7 +871,7 @@ describe('element describer utils', () => {
         prompt: 'Mapped submit button',
       }),
       {
-        context: expect.objectContaining({
+        uiContext: expect.objectContaining({
           shotSize: fixtureScreenshotSize,
           shrunkShotToLogicalRatio: 1,
           _isFrozen: true,

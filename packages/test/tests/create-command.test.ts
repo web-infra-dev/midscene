@@ -455,8 +455,12 @@ describe('create project', () => {
     expect(config).not.toContain('@midscene/test/playwright');
     expect(existsSync(join(root, '.env'))).toBe(false);
     const exampleEnv = readFileSync(join(root, '.env.example'), 'utf8');
-    expect(exampleEnv).toContain('https://midscenejs.com/model-api-setup.html');
-    expect(exampleEnv).toContain('https://midscenejs.com/model-config.html');
+    expect(exampleEnv).toContain(
+      'https://www.midscenejs.com/model-api-setup.html',
+    );
+    expect(exampleEnv).toContain(
+      'https://www.midscenejs.com/model-config.html',
+    );
     expect(exampleEnv).toContain('MIDSCENE_MODEL_BASE_URL=');
     expect(exampleEnv).toContain('MIDSCENE_MODEL_API_KEY=');
     expect(exampleEnv).toContain('MIDSCENE_MODEL_NAME=');

@@ -455,14 +455,12 @@ describe('system prompts', () => {
       includeSubGoals: false,
     });
 
-    expect(prompt).toContain('Change completion');
-    expect(prompt).toContain('If the requested outcome is a durable change');
     expect(prompt).toContain(
-      "Continue through the app/page's normal completion control such as Save, Done, Confirm, OK, Submit, Apply, Send, or Publish before completing",
+      'complete only when visible state or execution evidence confirms that outcome',
     );
-    expect(prompt).toContain(
-      'If the user only asks for an intermediate UI state',
-    );
+    expect(prompt).toContain('Use only the normal completion steps');
+    expect(prompt).toContain('"Fill the form" ends with filled fields');
+    expect(prompt).toContain('a blocked click is not a completed click');
   });
 
   it('planning - multi-turn example with includeSubGoals true should have sub-goal tags', async () => {

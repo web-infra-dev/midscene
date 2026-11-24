@@ -236,15 +236,25 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
 
 </ModelConfigSection>
 
-<ModelConfigSection description="Ling-3.0-flash-VL">
+<ModelConfigSection description="Ling-3.2-flash">
 
 ### 蚂蚁百灵 Ant Ling {#ant-ling}
+
+<div className="model-series-table">
+
+| 模型<br />`MIDSCENE_MODEL_NAME` | Model family<br />`MIDSCENE_MODEL_FAMILY` | 备注 |
+| --- | --- | --- |
+| **百灵 3 系列**<br />`Ling-3.2-flash` `Ling-3.0-flash-VL` | `ant-ling` | — |
+
+</div>
+
+配置示例（`Ling-3.2-flash`）：
 
 <AntLingModelCard />
 
 :::info 截图尺寸
 
-我们观察到，图片最长边超过 2000 像素时，定位精度可能下降。建议通过 Agent 的 `screenshotShrinkFactor` 参数缩放图片。
+我们观察到，使用 `Ling-3.0-flash-VL` 时，如果图片最长边超过 2000 像素，定位精度可能下降。建议通过 Agent 的 `screenshotShrinkFactor` 参数缩放图片。`Ling-3.2-flash` 未观察到这一问题。
 
 :::
 
@@ -258,7 +268,7 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
 
 | 模型<br />`MIDSCENE_MODEL_NAME` | Model family<br />`MIDSCENE_MODEL_FAMILY` | 备注 |
 | --- | --- | --- |
-| **Hy4**<br />`hy4` | `tencent-hy` | — |
+| **混元 4 系列**<br />`hy4` `hy4-flash` | `tencent-hy` | — |
 
 </div>
 
