@@ -64,7 +64,7 @@ pnpm exec midscene-replay verify case.yaml --case "审批 B 单" --runs 3
 
 `verify` 冻结编写项目，以 strict、retry 0 调用原生 Test，保留 HTML/机器结果、Replay 诊断、`steps.md`、`review.png` 和需要时的 `heal.json`。输入修改或任一轮失败使整组失效。编码 Agent 仍需结合原始目标逐步审阅截图。详见[验收边界](skills/midscene-replay/references/review.md)。
 
-请将配置、YAML、辅助代码和测试数据放在独立编写目录中。配置位于 workspace 根目录时，验收会在复制前报错，避免复制整个 monorepo；可传入 `--config ./replay-project/midscene.config.mjs`，依赖包仍可安装在上级 workspace。验收在复制前检查 JS/TS 中的字面量本地导入，并在每轮前后核对原文件与快照的哈希。计算得到的导入路径、绝对文件导入和 `#` 别名不支持，请改用相对导入。这不会冻结任意文件读取、已安装依赖或外部服务，也不是安全沙箱。
+请将配置、YAML、辅助代码和测试数据放在独立编写目录中。配置位于 workspace 根目录时，验收会在复制前报错，避免复制整个 monorepo；可传入 `--config ./replay-project/midscene.config.mjs`，依赖包仍可安装在上级 workspace。验收在复制前检查 YAML 的回放脚本入口以及 JS/TS 中的字面量本地导入，并在每轮前后核对原文件与快照的哈希。计算得到的导入路径、绝对文件导入和 `#` 别名不支持，请改用相对导入。这不会冻结任意文件读取、已安装依赖或外部服务，也不是安全沙箱。
 
 ## 录制与登录
 

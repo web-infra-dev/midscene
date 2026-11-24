@@ -1391,6 +1391,9 @@ importers:
       '@midscene/web':
         specifier: workspace:*
         version: link:../web-integration
+      js-yaml:
+        specifier: 4.3.2
+        version: 4.3.2
       playwright:
         specifier: ^1.65.0
         version: 1.65.0

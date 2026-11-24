@@ -1,11 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { parse } from '@babel/parser';
+import { load } from 'js-yaml';
 
 // Inspect authored JS/TS without executing it or installing Node loader hooks.
 // This intentionally does not attempt to sandbox eval(), fs or installed packages.
 export function validateImports(root, files, within) {
-  const check = (source, node) => {
+  const check = (source, node, script = false) => {
     const specifier =
       node?.type === 'StringLiteral'
         ? node.value
@@ -25,7 +26,7 @@ export function validateImports(root, files, within) {
       throw new Error(
         `VERIFY_IMPORT_OUTSIDE_INPUTS: ${specifier} in ${source}; use a relative local import or an installed package.`,
       );
-    if (!specifier.startsWith('.')) return;
+    if (!script && !specifier.startsWith('.')) return;
     const target = resolve(root, dirname(source), specifier.split(/[?#]/)[0]);
     const rel = relative(root, target).split(sep).join('/');
     const candidates = [
@@ -54,6 +55,28 @@ export function validateImports(root, files, within) {
       );
   };
   for (const file of Object.keys(files)) {
+    if (/\.ya?ml$/.test(file)) {
+      const seen = new WeakSet();
+      const visitYaml = (value) => {
+        if (!value || typeof value !== 'object' || seen.has(value)) return;
+        seen.add(value);
+        for (const [name, input] of Object.entries(value)) {
+          if (
+            (name.startsWith('ai') || name === 'runGherkinScenario') &&
+            input?.replay !== undefined
+          ) {
+            const script =
+              typeof input.replay === 'string'
+                ? input.replay
+                : input.replay?.script;
+            check(file, { type: 'StringLiteral', value: script }, true);
+          }
+          visitYaml(input);
+        }
+      };
+      visitYaml(load(readFileSync(join(root, file), 'utf8')));
+      continue;
+    }
     if (!/\.[cm]?[jt]sx?$/.test(file) || /\.d\.[cm]?ts$/.test(file)) continue;
     let ast;
     try {

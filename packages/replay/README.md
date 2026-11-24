@@ -64,7 +64,7 @@ Set the project default with `test: { replay: 'auto' }`; CLI overrides it. SDK u
 
 `verify` snapshots the authored project, runs native Test in strict mode with retry 0, and retains native HTML/machine results, Replay diagnostics, `steps.md`, `review.png` and optional `heal.json`. A source change or any failed round invalidates the group. A coding Agent still reviews actual screenshots against the original goal. See [verification boundaries](skills/midscene-replay/references/review.md).
 
-Keep the config, YAML, helpers and fixtures in a dedicated authoring directory. Workspace-root configs are rejected before copying a monorepo; pass `--config ./replay-project/midscene.config.mjs`. Installed packages can remain in the parent workspace. Verification checks literal local JS/TS imports before copying and hashes source/snapshot files between rounds. Computed imports, absolute file imports and `#` aliases are rejected; use relative imports. This does not freeze arbitrary filesystem reads, installed packages or external services, and is not a sandbox.
+Keep the config, YAML, helpers and fixtures in a dedicated authoring directory. Workspace-root configs are rejected before copying a monorepo; pass `--config ./replay-project/midscene.config.mjs`. Installed packages can remain in the parent workspace. Verification checks YAML replay entry paths and literal local JS/TS imports before copying and hashes source/snapshot files between rounds. Computed imports, absolute file imports and `#` aliases are rejected; use relative imports. This does not freeze arbitrary filesystem reads, installed packages or external services, and is not a sandbox.
 
 ## Recording and login
 

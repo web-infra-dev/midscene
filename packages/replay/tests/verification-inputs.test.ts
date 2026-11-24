@@ -116,3 +116,31 @@ it('rejects sibling and cross-drive paths on Windows', () => {
   );
   expect(within('C:\\project', 'D:\\run.mjs', win32)).toBe(false);
 });
+
+it.each(['../outside.mjs', '{script: ../outside.mjs}'])(
+  'rejects YAML replay entry points outside the snapshot: %s',
+  (replay) => {
+    const root = mkdtempSync(join(tmpdir(), 'replay-yaml-inputs-'));
+    const out = join(root, 'verification');
+    mkdirSync(out);
+    try {
+      const yaml = `cases:\n  - name: local\n    steps:\n      - aiAct:\n          prompt: act\n          replay: ${replay}\n`;
+      writeFileSync(join(root, 'case.yaml'), yaml);
+      expect(() => freezeInputs(root, out)).toThrow(
+        'VERIFY_IMPORT_OUTSIDE_INPUTS',
+      );
+      expect(existsSync(join(out, 'inputs'))).toBe(false);
+      writeFileSync(
+        join(root, 'case.yaml'),
+        yaml.replaceAll('../outside.mjs', 'step.mjs'),
+      );
+      writeFileSync(join(root, 'step.mjs'), 'export default {run(){}}');
+      expect(Object.keys(freezeInputs(root, out).files)).toEqual([
+        'case.yaml',
+        'step.mjs',
+      ]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  },
+);
