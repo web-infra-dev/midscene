@@ -58,7 +58,7 @@ import {
   errorMessageForAiAct,
 } from './progress';
 import { buildLocateCacheKey } from './prompt-context';
-import { TaskBuilder } from './task-builder';
+import { type ModelRuntimeSource, TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
 import {
@@ -326,14 +326,15 @@ export class TaskExecutor {
 
   public async convertPlanToExecutable(
     plans: PlanningAction[],
-    planningModel: ModelRuntime,
-    locateModel: ModelRuntime,
+    planningModel: ModelRuntimeSource,
+    locateModel: ModelRuntimeSource,
     options?: {
       distanceUnit?: DistanceUnit;
       cacheable?: boolean;
       multimodalPrompt?: TMultimodalPrompt;
       deepLocate?: boolean;
       abortSignal?: AbortSignal;
+      skipDefaultWait?: boolean;
     },
   ) {
     return this.taskBuilder.build(plans, planningModel, locateModel, options);
@@ -419,9 +420,13 @@ export class TaskExecutor {
   async runPlans(
     title: string,
     plans: PlanningAction[],
-    planningModel: ModelRuntime,
-    locateModel: ModelRuntime,
-    options?: { uiContext?: UIContext; abortSignal?: AbortSignal },
+    planningModel: ModelRuntimeSource,
+    locateModel: ModelRuntimeSource,
+    options?: {
+      uiContext?: UIContext;
+      abortSignal?: AbortSignal;
+      skipDefaultWait?: boolean;
+    },
   ): Promise<ExecutionResult> {
     const abortSignal = options?.abortSignal ?? this.getAbortSignal?.();
     const session = this.createExecutionSession(title, {
@@ -429,13 +434,26 @@ export class TaskExecutor {
       abortSignal,
     });
     const runner = session.getRunner();
-    const executionPlanningModel = { ...planningModel, executionId: runner.id };
-    const executionLocateModel = { ...locateModel, executionId: runner.id };
+    // Direct actions and resolved locators need no model. Resolve only when a
+    // task actually falls through to AI, keeping usage tied to this execution.
+    const forExecution = (source: ModelRuntimeSource): ModelRuntimeSource => {
+      if (typeof source !== 'function')
+        return { ...source, executionId: runner.id };
+      let resolved: ModelRuntime | undefined;
+      return () => {
+        resolved ??= { ...source(), executionId: runner.id };
+        return resolved;
+      };
+    };
     const { tasks } = await this.convertPlanToExecutable(
       plans,
-      executionPlanningModel,
-      executionLocateModel,
-      { distanceUnit: 'device-logical', abortSignal },
+      forExecution(planningModel),
+      forExecution(locateModel),
+      {
+        distanceUnit: 'device-logical',
+        abortSignal,
+        skipDefaultWait: options?.skipDefaultWait,
+      },
     );
     const result = await session.appendAndRun(tasks);
     const { output } = result ?? {};

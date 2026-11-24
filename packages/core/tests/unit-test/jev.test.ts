@@ -3,9 +3,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Insight } from '@/agent/insight';
 import { TaskExecutor } from '@/agent/tasks';
+import { prepareJevImage } from '@/ai-model';
 import { runConnectivityTest } from '@/ai-model/connectivity';
 import { getModelRuntime } from '@/ai-model/models';
-import { mapJevBox, prepareJevImage } from '@/ai-model/models/jev/image';
+import { mapJevBox } from '@/ai-model/models/jev/image';
 import { jevPlan } from '@/ai-model/models/jev/planning';
 import { resolveModelForTaskType } from '@/ai-model/models/model-fallback';
 import { callSystemOneAI } from '@/ai-model/service-caller';
@@ -205,6 +206,23 @@ describe('Jev model fallback', () => {
 });
 
 describe('Jev requests and coordinates', () => {
+  it('preserves HTTP status through the common model caller for retry classification', async () => {
+    const fetchMock = rs
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(
+        new Response('Invalid image dimensions', { status: 400 }),
+      );
+    await expect(
+      callSystemOneAI(
+        {
+          state: {},
+          questions: { answer: { type: 'noul', instructions: 'True?' } },
+        },
+        getModelRuntime(jevConfig),
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
   it.each([undefined, 'custom-version'])(
     'sends the Midscene version regardless of a custom version header (%s)',
     async (version) => {
@@ -342,7 +360,12 @@ describe('Jev requests and coordinates', () => {
     );
     const body = JSON.parse(init?.body as string);
     expect(Object.keys(body.questions)).toEqual(['target']);
-    expect(body.assets[body.state.screenshot].format).toBe('png');
+    expect(body.assets[body.state.screenshot].format).toBe('jpg');
+    expect(
+      await sharp(
+        Buffer.from(body.assets[body.state.screenshot].data_base64, 'base64'),
+      ).metadata(),
+    ).toMatchObject({ width: 1568, height: 784 });
     expect(runtime.onUsage).toHaveBeenCalledTimes(1);
     expect(runtime.onRequest).toHaveBeenCalledTimes(1);
     expect(result.usage).toMatchObject({
@@ -419,16 +442,66 @@ describe('Jev requests and coordinates', () => {
     });
   });
   it.each([
-    [100, 50],
-    [3000, 30],
+    [1280, 720, 1280, 720],
+    [2560, 1440, 1568, 882],
+    [1440, 2560, 882, 1568],
+    [100, 50, 280, 280],
+    [3000, 30, 1568, 280],
+    [280, 1568, 280, 1568],
   ])(
-    'preserves image bytes and dimensions for %i × %i',
-    async (width, height) => {
+    'prepares %i × %i within limits and restores content coordinates',
+    async (width, height, preparedWidth, preparedHeight) => {
       const original = await image(width, height);
       const prepared = await prepareJevImage(original);
-      expect(prepared.imageBase64).toBe(original);
+      const metadata = await sharp(
+        Buffer.from(prepared.imageBase64.split(',')[1], 'base64'),
+      ).metadata();
+      expect(metadata).toMatchObject({
+        width: preparedWidth,
+        height: preparedHeight,
+      });
+      if (width === preparedWidth && height === preparedHeight)
+        expect(prepared.imageBase64).toBe(original);
+      const { contentSize, preparedSize } = prepared.preparation;
+      const sx = contentSize.width / preparedSize.width;
+      const sy = contentSize.height / preparedSize.height;
+      const result = mapJevBox(
+        { left: 0.2 * sx, right: 0.6 * sx, top: 0.1 * sy, bottom: 0.5 * sy },
+        { width, height },
+        prepared.preparation,
+      );
+      expect(result.center[0]).toBeCloseTo(width * 0.4);
+      expect(result.center[1]).toBeCloseTo(height * 0.3);
     },
   );
+  it('rejects invalid image input and boxes targeting padding before dispatch', async () => {
+    await expect(
+      prepareJevImage('data:image/png;base64,YQ=='),
+    ).rejects.toMatchObject({
+      code: 'JEV_IMAGE_INVALID',
+      category: 'invalid-input',
+      next: expect.any(String),
+    });
+    const { preparation } = await prepareJevImage(await image(100, 50));
+    expect(() =>
+      mapJevBox(
+        { left: 0.7, top: 0.7, right: 0.9, bottom: 0.9 },
+        { width: 100, height: 50 },
+        preparation,
+      ),
+    ).toThrow('padding');
+  });
+  it('propagates remote reference transport errors unchanged', async () => {
+    const failure = new TypeError('unable to fetch reference image');
+    const fetch = rs.spyOn(globalThis, 'fetch').mockRejectedValue(failure);
+    try {
+      await expect(
+        prepareJevImage('https://example.test/reference.png'),
+      ).rejects.toBe(failure);
+    } finally {
+      fetch.mockRestore();
+    }
+  });
   it('maps normalized boxes to target coordinates', () => {
     const result = mapJevBox(
       { left: 0.2, top: 0.1, right: 0.6, bottom: 0.5 },

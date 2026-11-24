@@ -12,7 +12,7 @@ rs.mock('@/agent/utils', { spy: true });
 import { Agent, type AgentOpt, type PlanningCache } from '@/agent';
 import { commonContextParser } from '@/agent/utils';
 import { standardPlan } from '@/ai-model/workflows/planning';
-import { defineActionTap } from '@/device';
+import { defineActionKeyboardPress, defineActionTap } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { ActionReadyContext, DeviceAction } from '@/types';
 import { uuid } from '@midscene/shared/utils';
@@ -37,6 +37,9 @@ function setup(options: AgentOpt = {}, interfaceType = 'android') {
   const call = rs.fn(async () => 'saved');
   const actions: DeviceAction[] = [
     { name: 'Submit', interfaceAlias: 'submit', delayBeforeRunner: 0, call },
+    defineActionKeyboardPress(async () => {
+      await call();
+    }),
     {
       ...defineActionTap(async () => {
         await call();
@@ -97,6 +100,49 @@ function seedPlan(agent: Agent) {
 }
 
 describe('Agent action readiness', () => {
+  it('dispatches explicit coordinates and non-locating actions without resolving models', async () => {
+    const { agent, call } = setup({ modelConfig: {} }, 'playwright');
+    const resolve = rs.spyOn(agent as any, 'resolveModelRuntime');
+    rs.mocked(commonContextParser).mockResolvedValue(uiContext);
+    await agent.callActionInActionSpace(
+      'Tap',
+      {
+        locate: { locatedPixelResult: { center: [30, 40] }, cacheable: false },
+      },
+      undefined,
+      { skipDefaultWait: true, deferModelResolution: true },
+    );
+    await agent.callActionInActionSpace('Submit', {}, undefined, {
+      skipDefaultWait: true,
+      deferModelResolution: true,
+    });
+    await agent.callActionInActionSpace(
+      'KeyboardPress',
+      { keyName: 'Enter' },
+      undefined,
+      { skipDefaultWait: true, deferModelResolution: true },
+    );
+    expect(call).toHaveBeenCalledTimes(3);
+    expect(resolve).not.toHaveBeenCalled();
+    await agent.destroy();
+  });
+
+  it('still reports missing model configuration when a target needs AI', async () => {
+    const { agent, device, call } = setup({ modelConfig: {} }, 'playwright');
+    rs.mocked(commonContextParser).mockResolvedValue(uiContext);
+    device.rectMatchesCacheFeature.mockResolvedValue(undefined as never);
+    await expect(
+      agent.callActionInActionSpace(
+        'Tap',
+        { locate: { prompt: 'unknown button', cacheable: false } },
+        undefined,
+        { deferModelResolution: true },
+      ),
+    ).rejects.toThrow('MIDSCENE_MODEL_NAME');
+    expect(call).not.toHaveBeenCalled();
+    await agent.destroy();
+  });
+
   beforeEach(() => {
     rs.mocked(commonContextParser).mockResolvedValue(uiContext);
   });
@@ -302,6 +348,64 @@ describe('Agent action readiness', () => {
     expect(Date.now()).toBe(started);
     expect(device.defaultActionWait).not.toHaveBeenCalled();
     expect(device.afterInvokeAction).toHaveBeenCalledOnce();
+  });
+
+  it('skips default waits for one call without changing the next action', async () => {
+    rs.useFakeTimers();
+    const { agent, device, call } = setup({ waitAfterAction: 300 });
+    device.actionSpace()[0].delayBeforeRunner = 200;
+    const started = Date.now();
+    await agent.callActionInActionSpace('Submit', {}, undefined, {
+      skipDefaultWait: true,
+    });
+    expect(Date.now()).toBe(started);
+    expect(call).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({ skipDefaultWait: true }),
+    );
+    expect(device.defaultActionWait).not.toHaveBeenCalled();
+    expect(device.beforeInvokeAction).toHaveBeenCalledOnce();
+    expect(device.afterInvokeAction).toHaveBeenCalledOnce();
+
+    const pending = agent.callActionInActionSpace('Submit');
+    await rs.runAllTimersAsync();
+    await pending;
+    expect(Date.now() - started).toBe(500);
+    expect(device.defaultActionWait).toHaveBeenCalledOnce();
+    expect(device.beforeInvokeAction).toHaveBeenCalledTimes(2);
+    expect(device.afterInvokeAction).toHaveBeenCalledTimes(2);
+    expect(
+      agent.dump.executions
+        .flatMap((execution) => execution.tasks)
+        .filter((task) => task.subType === 'Submit')
+        .map((task) => task.actionReadiness),
+    ).toEqual(['none', 'default']);
+  });
+
+  it('honors explicit host readiness even when default waits are skipped', async () => {
+    const started = deferred();
+    const ready = deferred();
+    const { agent, device, call } = setup({
+      waitForActionReady: async () => {
+        started.resolve();
+        await ready.promise;
+      },
+    });
+    const pending = agent.callActionInActionSpace('Submit', {}, undefined, {
+      skipDefaultWait: true,
+    });
+    await started.promise;
+    expect(call).toHaveBeenCalledOnce();
+    expect(device.afterInvokeAction).not.toHaveBeenCalled();
+    ready.resolve();
+    await pending;
+    expect(device.defaultActionWait).not.toHaveBeenCalled();
+    expect(device.afterInvokeAction).toHaveBeenCalledOnce();
+    expect(
+      agent.dump.executions
+        .flatMap((execution) => execution.tasks)
+        .find((task) => task.subType === 'Submit')?.actionReadiness,
+    ).toBe('custom');
   });
 
   it('waits for cached actions without invoking planning', async () => {

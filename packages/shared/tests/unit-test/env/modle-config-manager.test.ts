@@ -22,6 +22,7 @@ import {
   MIDSCENE_MODEL_REASONING_EFFORT,
   MIDSCENE_MODEL_REASONING_ENABLED,
   MIDSCENE_MODEL_TIMEOUT,
+  MIDSCENE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_BASE_URL,
   MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON,
@@ -36,6 +37,27 @@ import {
 } from '../../../src/env/types';
 
 describe('ModelConfigManager', () => {
+  it('reads report settings without requiring a model, preserving config isolation', () => {
+    rs.stubEnv(
+      MIDSCENE_MODEL_INIT_CONFIG_JSON,
+      '{"REPORT_SERVER_URL":"https://global.test"}',
+    );
+    expect(new ModelConfigManager({}).getUploadTestServerUrl()).toBeUndefined();
+    const manager = new ModelConfigManager({
+      [MIDSCENE_MODEL_INIT_CONFIG_JSON]:
+        '{"REPORT_SERVER_URL":"https://local.test"}',
+    });
+    expect(manager.getUploadTestServerUrl()).toBe('https://local.test');
+    expect(() => manager.getModelConfig('default')).toThrow(
+      'MIDSCENE_MODEL_NAME',
+    );
+    expect(() =>
+      new ModelConfigManager({
+        [MIDSCENE_MODEL_INIT_CONFIG_JSON]: 'invalid',
+      }).getUploadTestServerUrl(),
+    ).toThrow();
+  });
+
   afterEach(() => {
     rs.unstubAllEnvs();
   });
@@ -166,6 +188,48 @@ describe('ModelConfigManager', () => {
     });
 
     expect(manager.getUploadTestServerUrl()).toBe('https://uploader.test');
+  });
+
+  it('keeps model validation independent from report upload configuration', () => {
+    const manager = new ModelConfigManager({
+      ...baseMap,
+      [MIDSCENE_MODEL_BASE_URL]: '',
+      [MIDSCENE_MODEL_INIT_CONFIG_JSON]:
+        '{"REPORT_SERVER_URL":"https://modern.test"}',
+      [MIDSCENE_OPENAI_INIT_CONFIG_JSON]:
+        '{"REPORT_SERVER_URL":"https://legacy.test"}',
+    });
+    expect(manager.getUploadTestServerUrl()).toBe('https://modern.test');
+    expect(() => manager.getModelConfig('default')).toThrow();
+    expect(
+      new ModelConfigManager({
+        [MIDSCENE_MODEL_INIT_CONFIG_JSON]: '',
+        [MIDSCENE_OPENAI_INIT_CONFIG_JSON]:
+          '{"REPORT_SERVER_URL":"https://legacy.test"}',
+      }).getUploadTestServerUrl(),
+    ).toBe('https://legacy.test');
+    expect(() =>
+      new ModelConfigManager({
+        [MIDSCENE_MODEL_INIT_CONFIG_JSON]: 'broken',
+        [MIDSCENE_OPENAI_INIT_CONFIG_JSON]:
+          '{"REPORT_SERVER_URL":"https://legacy.test"}',
+      }).getUploadTestServerUrl(),
+    ).toThrow(MIDSCENE_MODEL_INIT_CONFIG_JSON);
+  });
+
+  it('honors global overrides only when Agent config is absent', () => {
+    const global = new GlobalConfigManager();
+    const manager = new ModelConfigManager();
+    manager.registerGlobalConfigManager(global);
+    global.registerModelConfigManager(manager);
+    global.overrideAIConfig({
+      [MIDSCENE_OPENAI_INIT_CONFIG_JSON]:
+        '{"REPORT_SERVER_URL":"https://override.test"}',
+    });
+    expect(manager.getUploadTestServerUrl()).toBe('https://override.test');
+    const isolated = new ModelConfigManager({});
+    isolated.registerGlobalConfigManager(global);
+    expect(isolated.getUploadTestServerUrl()).toBeUndefined();
   });
 
   it('clears model config map when called by global manager', () => {
