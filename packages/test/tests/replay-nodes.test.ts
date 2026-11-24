@@ -159,24 +159,53 @@ describe('native AI script implementations', () => {
       ),
     ).rejects.toBe(failure);
   });
-  it('false assertion results fail with the native message; invalid scalar outputs do not silently pass', async () => {
-    const replay = moduleFile(
-      `export default {run(){return {pass:false,thought:'wrong page'}}}`,
-    );
-    const agent = { aiAssert: rs.fn(), recordToReport: rs.fn() };
-    await expect(
-      withReplayExecution({ replay: 'strict' }, () =>
-        executeWithReplay(
-          definition('aiAssert'),
-          agent,
-          context({
-            prompt: 'good page',
-            message: 'business failure',
-            replay,
-          }) as any,
+  it.each(['auto', 'strict'] as const)(
+    '%s preserves a false assertion even when native AI would pass',
+    async (replayMode) => {
+      const replay = moduleFile(
+        `export default {run(){return {pass:false,thought:'wrong page'}}}`,
+      );
+      const events: ReplayEvent[] = [];
+      const agent = {
+        aiAssert: rs.fn(async () => ({ pass: true })),
+        recordToReport: rs.fn(),
+      };
+      await expect(
+        withReplayExecution(
+          { replay: replayMode, onReplayEvent: (e) => events.push(e) },
+          () =>
+            executeWithReplay(
+              definition('aiAssert'),
+              agent,
+              context({
+                prompt: 'good page',
+                message: 'business failure',
+                replay,
+              }) as any,
+            ),
         ),
+      ).rejects.toThrow('business failure');
+      expect(agent.aiAssert).not.toHaveBeenCalled();
+      expect(events).toContainEqual(
+        expect.objectContaining({ type: 'implementation', status: 'failed' }),
+      );
+      expect(events.some((e) => e.type === 'native-fallback')).toBe(false);
+      expect(agent.recordToReport.mock.calls[0][0]).toBe(
+        'Replay · aiAssert · failed',
+      );
+    },
+  );
+  it('rejects malformed script results without native fallback', async () => {
+    const replay = moduleFile(`export default {run(){return '3'}}`);
+    const agent = { aiNumber: rs.fn(async () => 3), recordToReport: rs.fn() };
+    await expect(
+      executeWithReplay(
+        definition('aiNumber'),
+        agent,
+        context({ prompt: 'count', replay }) as any,
       ),
-    ).rejects.toThrow('business failure');
+    ).rejects.toThrow();
+    expect(agent.aiNumber).not.toHaveBeenCalled();
     expect(() => definition('aiNumber').replayResult!('3', {})).toThrow();
     expect(() => definition('aiAssert').replayResult!(false, {})).toThrow();
     expect(definition('aiBoolean').replayResult!(false, {})).toMatchObject({

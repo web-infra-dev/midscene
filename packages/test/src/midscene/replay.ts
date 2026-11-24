@@ -105,6 +105,7 @@ export async function executeWithReplay(
   };
   let scriptFailure: unknown;
   let failed = false;
+  let scriptCompleted = false;
   let output: ReturnType<NonNullable<typeof definition.replayResult>>;
   try {
     ctx.signal.throwIfAborted();
@@ -132,6 +133,9 @@ export async function executeWithReplay(
       onEvent: publish,
     });
     ctx.signal.throwIfAborted();
+    // A returned assertion is a node outcome, not a failed script attempt.
+    // Keep conversion errors in the report, but never ask AI to overturn them.
+    scriptCompleted = true;
     output = definition.replayResult(raw, input);
     publish({ type: 'implementation', path: 'replay', status: 'passed' });
   } catch (error) {
@@ -152,7 +156,8 @@ export async function executeWithReplay(
     isNativeExecutionTerminalError(scriptFailure) ||
     isResourceAdmissionError(scriptFailure) ||
     isFatalDeviceError(scriptFailure);
-  const fallback = failed && settings.replay !== 'strict' && !terminal;
+  const fallback =
+    failed && !scriptCompleted && settings.replay !== 'strict' && !terminal;
   if (fallback) publish({ type: 'native-fallback', path: 'native' });
   // Keep script evidence inside this same node before native execution can change the page.
   // recordToReport contributes to runAgentCall's normal trace and immutable snapshot.
