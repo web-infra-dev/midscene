@@ -84,11 +84,6 @@ export class IOSAgent extends PageAgent<IOSDevice> {
     // Set the mapping on the device instance
     device.setAppNameMapping(this.appNameMapping);
 
-    device.isFocusedInputEmpty = () =>
-      this.aiBoolean(
-        'Is the currently focused text field above the software keyboard clearly visible and empty (blank or showing only a placeholder)? Answer false if text remains or the field cannot be identified.',
-      );
-
     this.runWdaRequest =
       this.createActionWrapper<DeviceActionRunWdaRequest>('RunWdaRequest');
     this.home =

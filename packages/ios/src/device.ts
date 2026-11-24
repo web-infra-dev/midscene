@@ -64,8 +64,6 @@ type PendingKeyboardFollowUp = {
 };
 
 export class IOSDevice implements AbstractInterface {
-  /** Read-only agent check for fields whose value WDA cannot inspect. */
-  isFocusedInputEmpty?: () => Promise<boolean>;
   private deviceId: string;
   private devicePixelRatio = 1;
   private devicePixelRatioInitialized = false;
@@ -731,10 +729,16 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
         point,
         'Cannot clear an unidentified input without a located target',
       );
-      const selected = await this.selectCustomInput(typingApp, inputId);
+      const selected = await this.wdaBackend.selectAllFromMenu(inputId);
       await this.checkInputApp(typingApp);
-      if (selected && mode === 'clear')
+      if (!selected) {
+        const count =
+          this.options?.customInputClearFallbackMaxDeleteCount ?? 40;
+        await this.wdaBackend.typeRawKeys(['\b'.repeat(count)]);
+        if (mode === 'replace') await this.checkInputApp(typingApp);
+      } else if (mode === 'clear') {
         await this.wdaBackend.typeRawKeys(['\b']);
+      }
     }
   }
 
@@ -743,29 +747,6 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       (await this.foregroundApp()) === expected,
       'Foreground App changed during input',
     );
-  }
-
-  private async selectCustomInput(
-    app: string,
-    inputId?: string,
-  ): Promise<boolean> {
-    const { isFocusedInputEmpty } = this;
-    if (await this.wdaBackend.selectAllFromMenu(inputId)) return true;
-    assert(
-      isFocusedInputEmpty,
-      'Cannot clear input: the Select All menu item is unavailable',
-    );
-
-    const count = this.options?.customInputClearFallbackMaxDeleteCount;
-    if (count !== undefined) {
-      await this.checkInputApp(app);
-      await this.wdaBackend.typeRawKeys(['\b'.repeat(count)]);
-    }
-    assert(
-      await isFocusedInputEmpty(),
-      'Cannot confirm the focused input is empty: WDA could not select all text',
-    );
-    return false;
   }
 
   private async typeText(

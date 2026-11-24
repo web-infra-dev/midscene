@@ -188,7 +188,7 @@ export type IOSDeviceInputOpt = {
  * iOS device options
  */
 export type IOSDeviceOpt = {
-  /** Optional Backspace budget for located custom fields. The agent inspects the field after the batch. */
+  /** Backspaces to send when WDA cannot select all text in a located custom field (1–256, default 40). */
   customInputClearFallbackMaxDeleteCount?: number;
   /**
    * Optional npm module path used to override the default iOS device implementation.

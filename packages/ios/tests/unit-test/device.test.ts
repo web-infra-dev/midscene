@@ -436,14 +436,13 @@ describe('IOSDevice', () => {
     describe.each(['clear', 'replace'] as const)(
       '%s without a WDA Select All item',
       (mode) => {
-        it.each([true, false])(
-          'checks whether the field is empty after bounded Backspace (empty=%s)',
-          async (empty) => {
-            device.options = { customInputClearFallbackMaxDeleteCount: 40 };
+        it.each([undefined, 7])(
+          'deletes in one batch with the configured budget (%s)',
+          async (count) => {
+            device.options = { customInputClearFallbackMaxDeleteCount: count };
             mockWdaClient.clearActiveElement.mockResolvedValue(false);
             mockWdaClient.selectAllFromMenu.mockResolvedValue(false);
-            device.isFocusedInputEmpty = rs.fn().mockResolvedValue(empty);
-            const action = device
+            await device
               .actionSpace()
               .find((a) => a.name === 'Input')!
               .call(
@@ -455,37 +454,28 @@ describe('IOSDevice', () => {
                 } as any,
                 mockExecutorContext,
               );
-            if (empty) await action;
-            else
-              await expect(action).rejects.toThrow(
-                'Cannot confirm the focused input is empty',
-              );
             expect(mockWdaClient.typeRawKeys).toHaveBeenCalledExactlyOnceWith([
-              '\b'.repeat(40),
+              '\b'.repeat(count ?? 40),
             ]);
-            expect(device.isFocusedInputEmpty).toHaveBeenCalledOnce();
             expect(mockWdaClient.tap).toHaveBeenCalledTimes(1);
             expect(mockWdaClient.longPress).not.toHaveBeenCalled();
             expect(mockWdaClient.typeText).toHaveBeenCalledTimes(
-              empty && mode === 'replace' ? 1 : 0,
+              mode === 'replace' ? 1 : 0,
             );
           },
         );
       },
     );
 
-    it('stops without gestures or keys when WDA cannot select the nonempty input and Backspace is disabled', async () => {
+    it('propagates a failed deletion before typing replacement text', async () => {
       mockWdaClient.clearActiveElement.mockResolvedValue(false);
       mockWdaClient.selectAllFromMenu.mockResolvedValue(false);
-      device.isFocusedInputEmpty = rs.fn().mockResolvedValue(false);
+      mockWdaClient.typeRawKeys.mockRejectedValue(new Error('WDA keys failed'));
       await expect(
         device.inputPrimitives.keyboard.typeText('new', {
           target: { center: [10, 20] },
         }),
-      ).rejects.toThrow('Cannot confirm the focused input is empty');
-      expect(mockWdaClient.tap).toHaveBeenCalledTimes(1);
-      expect(mockWdaClient.longPress).not.toHaveBeenCalled();
-      expect(mockWdaClient.typeRawKeys).not.toHaveBeenCalled();
+      ).rejects.toThrow('WDA keys failed');
       expect(mockWdaClient.typeText).not.toHaveBeenCalled();
     });
 

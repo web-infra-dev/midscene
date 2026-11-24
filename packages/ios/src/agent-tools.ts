@@ -55,7 +55,7 @@ const iosInitArgShape = {
     .max(256)
     .optional()
     .describe(
-      'Try up to this many Backspaces on a located custom input, then inspect the field (default: disabled)',
+      'Backspaces to send when WDA cannot select all text in a located custom input (default: 40)',
     ),
   ...agentBehaviorInitArgShape,
 };

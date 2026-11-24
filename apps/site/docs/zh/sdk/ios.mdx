@@ -72,7 +72,7 @@ const agent = new IOSAgent(device);
 - `wdaMjpegPort?: number` —— WDA MJPEG 实时画面流端口。默认值：`9100`。
 - `wdaMjpegUrl?: string` —— 完整的 HTTP(S) MJPEG 画面流地址（可包含网关路径或查询参数）。不能与 `wdaMjpegPort` 同时设置。
 - `wdaMjpegFrameSource?: { enabled?: boolean }` —— 是否将 WDA 的 MJPEG 画面流作为 `agent.startObserving()` 的连续帧源。默认关闭；关闭时，观察器会回退为按序调用 `screenshotBase64()` 截图。
-- `customInputClearFallbackMaxDeleteCount?: number` — 对已定位的自绘输入框执行 `clear` 或 `replace` 时，如果 WDA 无法通过编辑菜单判断如何清空，可一次发送 1–256 次退格。默认跳过退格。两种情况下，Agent 都会通过截图确认输入框已空或只显示占位文字。退格只能删除光标前的文字。若仍有文字或无法确认已空，操作会报错，已删除的文字不会恢复，替换文字也不会写入。
+- `customInputClearFallbackMaxDeleteCount?: number` — 对已定位的自绘输入框执行清空时，如果 WDA 无法全选，单次请求发送的退格次数。范围为 1–256，默认 40。清空会尽力执行，光标后的文字或超出退格次数的文字可能保留。WDA 请求成功后，`replace` 会在光标处输入新文字。
 - `autoDismissKeyboard?: boolean` —— 文本输入完成后是否自动收起软键盘。默认值：`true`。
 - `keyboardTypeDelay?: number` —— 按键之间的延迟（单位：毫秒，须为有限非负数）。设为正数时，`'legacy'` 输入模式会通过 WDA 的 `/wda/keys` 接口逐个 Unicode 码点发送字符，适用于输入框因输入过快而丢字的场景。
 - `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` —— `Input` 动作的默认文本输入策略。默认值为 `'legacy'`：
@@ -80,10 +80,10 @@ const agent = new IOSAgent(device);
   - `'bulk'`：整段文本仅调用一次 WDA 文本接口；使用此策略时，不能设置 `keyboardTypeDelay`（或须将其设为 `0`）。
 - `customActions?: DeviceAction<any>[]` —— 注册自定义动作，供 Agent 在规划时调用。可传入 `IOSDevice` 构造函数或 `agentFromWebDriverAgent()`，定义方式请参阅[自定义动作](../integrate-with-any-interface)。
 
-例如，替换昵称时允许最多退格 40 次：
+例如，替换昵称时允许最多退格 64 次：
 
 ```bash
-pnpm exec midscene-ios input --mode replace --locate '{"prompt":"昵称输入框"}' --value '新昵称' --custom-input-clear-fallback-max-delete-count 40
+pnpm exec midscene-ios input --mode replace --locate '{"prompt":"昵称输入框"}' --value '新昵称' --custom-input-clear-fallback-max-delete-count 64
 ```
 
 ## 平台方法

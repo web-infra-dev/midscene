@@ -33,7 +33,7 @@ describe('iOS input focus readiness', () => {
   });
 
   it.each(['closed menu', 'paste only', 'unidentified field'] as const)(
-    'handles %s through the Agent with its emptiness check installed',
+    'handles %s through the Agent without a model call to verify clearing',
     async (scenario) => {
       const device = new IOSDevice();
       const agent = new IOSAgent(device, {
@@ -82,27 +82,22 @@ describe('iOS input focus readiness', () => {
           return { value: null };
         },
       );
-      const result = device.inputPrimitives.keyboard.typeText('new', {
+      await device.inputPrimitives.keyboard.typeText('new', {
         target: { center: [10, 20] },
         replace: true,
         autoDismissKeyboard: false,
       });
       if (scenario === 'closed menu') {
-        await result;
         expect(clicks).toEqual([
           '/session/session/element/field/click',
           '/session/session/element/select-all/click',
         ]);
         expect(keys.join('')).toBe('new');
-        expect(empty).not.toHaveBeenCalled();
       } else {
-        await expect(result).rejects.toThrow(
-          'Cannot confirm the focused input is empty',
-        );
-        expect(empty).toHaveBeenCalledOnce();
         expect(clicks).toEqual([]);
-        expect(keys).toEqual([]);
+        expect(keys).toEqual(['\b'.repeat(40), 'n', 'e', 'w']);
       }
+      expect(empty).not.toHaveBeenCalled();
       expect(taps).toEqual([{ x: 10, y: 20 }]);
     },
   );
