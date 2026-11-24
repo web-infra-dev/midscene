@@ -29,6 +29,50 @@ import SetupEnv from './common/setup-env.mdx';
 
 <SetupEnv />
 
+## 无需编写类：用 Midscene Connect 接入设备
+
+如果设备只需要截图和输入（例如机械臂、采集卡加 HID 模块，或另一台机器上的屏幕），可以用 [`@midscene/connect`](https://github.com/web-infra-dev/midscene/tree/main/packages/connect) 在一个 `.mjs` 文件里描述设备，不必实现 `AbstractInterface`：
+
+```js
+// my-screen.mjs
+export default {
+  name: 'My Screen',
+  pointerType: 'touch', // 提供 swipe 时必填
+  async connect() {
+    return {
+      screenshot: () => captureJpeg(), // PNG/JPEG Buffer 或 base64
+      actions: {
+        // 名称与内置输入原语一致：tap、swipe、typeText、homeButton 等
+        tap: (p) => hardware.tap(p.x, p.y),
+        swipe: (from, to) => hardware.swipe(from, to),
+      },
+    };
+  },
+};
+```
+
+先启动设备服务。它会保持设备连接，并提供 HTTP 接口，接口文档（Swagger）位于 `/api/docs/`：
+
+```bash
+npx @midscene/connect serve ./my-screen.mjs
+```
+
+之后可以通过 Agent SDK、CLI 或 Playground 操作设备：
+
+```ts
+import { agentOverConnectProtocol } from '@midscene/connect';
+
+const agent = await agentOverConnectProtocol({ url: 'http://127.0.0.1:5820' });
+await agent.aiAct('打开设置页');
+```
+
+```bash
+npx @midscene/connect act --prompt "打开设置页"
+npx @midscene/connect playground
+```
+
+自定义动作、设备参数、Token 鉴权和 HTTP 接口说明见[包的 README](https://github.com/web-infra-dev/midscene/tree/main/packages/connect)。
+
 ## 实现你自己的界面类
 
 ### 关键概念
