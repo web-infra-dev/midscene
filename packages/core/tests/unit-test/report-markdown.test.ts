@@ -262,7 +262,7 @@ describe('report-markdown', () => {
         {
           logTime: 1710000000000,
           name: 'agent execution',
-          aiActContext: 'Complete checkout.',
+          userContext: 'Complete checkout.',
           tasks: [
             createTask({
               taskId: 'task-agent-context',
@@ -321,7 +321,7 @@ describe('report-markdown', () => {
     expect(result.markdown).toContain('### Model Usage');
     expect(result.markdown).toContain('req-main');
     expect(result.markdown).toContain('req-search');
-    expect(result.markdown).toContain('### AI Action Context');
+    expect(result.markdown).toContain('### Context');
     expect(result.markdown).toContain('Complete checkout.');
     expect(result.markdown).toContain('### Param');
     expect(result.markdown).toContain('"prompt": "Submit"');

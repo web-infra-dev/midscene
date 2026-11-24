@@ -145,7 +145,7 @@ describe('Agent per-call context option', () => {
         convertHttpImage2Base64: true,
       });
       expect(taskExecutor.createTypeQueryExecution.mock.calls[0]?.[3]).toEqual({
-        context: 'Only inspect the main panel.',
+        userContext: 'Only inspect the main panel.',
       });
       expect(prompt.images[0].url).toBe('https://example.com/ref.png');
     },
@@ -169,7 +169,7 @@ describe('Agent per-call context option', () => {
     expect(dispatch).toHaveBeenLastCalledWith(
       'MiddleClick',
       expect.objectContaining({
-        locate: expect.objectContaining({ context: 'Default context.' }),
+        locate: expect.objectContaining({ userContext: 'Default context.' }),
       }),
     );
     agent.setAIContext('aiMiddleClick', 'Middle-click context.');
@@ -177,14 +177,18 @@ describe('Agent per-call context option', () => {
     expect(dispatch).toHaveBeenLastCalledWith(
       'MiddleClick',
       expect.objectContaining({
-        locate: expect.objectContaining({ context: 'Middle-click context.' }),
+        locate: expect.objectContaining({
+          userContext: 'Middle-click context.',
+        }),
       }),
     );
     await agent.aiMiddleClick('target', { context: '' });
     expect(dispatch).toHaveBeenLastCalledWith(
       'MiddleClick',
       expect.objectContaining({
-        locate: expect.not.objectContaining({ context: expect.any(String) }),
+        locate: expect.not.objectContaining({
+          userContext: expect.any(String),
+        }),
       }),
     );
   });
@@ -416,7 +420,7 @@ describe('Agent per-call context option', () => {
       { demand: 'The success toast is visible' },
       expect.objectContaining(defaultModel),
       {
-        context: 'The current user is a logged-in buyer.',
+        userContext: 'The current user is a logged-in buyer.',
         domIncluded: false,
         screenshotIncluded: true,
       },
@@ -444,7 +448,7 @@ describe('Agent per-call context option', () => {
       { demand: 'The success toast is visible' },
       expect.objectContaining(defaultModel),
       {
-        context: 'Default context.',
+        userContext: 'Default context.',
         domIncluded: false,
         screenshotIncluded: true,
       },
@@ -470,16 +474,16 @@ describe('Agent per-call context option', () => {
     });
 
     const locatePlans = taskExecutor.runPlans.mock.calls[0]?.[1] as
-      | Array<{ param: { prompt: string; context?: string } }>
+      | Array<{ param: { prompt: string; userContext?: string } }>
       | undefined;
-    expect(locatePlans?.[0]?.param.context).toBe('Use the cart footer.');
+    expect(locatePlans?.[0]?.param.userContext).toBe('Use the cart footer.');
     expect(taskExecutor.createTypeQueryExecution.mock.calls[0]?.[3]).toEqual({
-      context: 'The cart has one item.',
+      userContext: 'The cart has one item.',
     });
     expect(taskExecutor.waitFor).toHaveBeenCalledWith(
       'The order is complete',
       {
-        context: 'The order id is 42.',
+        userContext: 'The order id is 42.',
         timeoutMs: 1000,
         checkIntervalMs: 100,
       },
@@ -501,14 +505,14 @@ describe('Agent per-call context option', () => {
     await agent.aiWaitFor('The order is complete');
 
     const locatePlans = taskExecutor.runPlans.mock.calls[0]?.[1] as
-      | Array<{ param: { prompt: string; context?: string } }>
+      | Array<{ param: { prompt: string; userContext?: string } }>
       | undefined;
-    expect(locatePlans?.[0]?.param.context).toBe('Locate context.');
+    expect(locatePlans?.[0]?.param.userContext).toBe('Locate context.');
     expect(taskExecutor.createTypeQueryExecution.mock.calls[0]?.[3]).toEqual(
-      expect.objectContaining({ context: 'Boolean context.' }),
+      expect.objectContaining({ userContext: 'Boolean context.' }),
     );
     expect(taskExecutor.waitFor.mock.calls[0]?.[1]).toEqual({
-      context: 'Wait context.',
+      userContext: 'Wait context.',
       timeoutMs: 15_000,
       checkIntervalMs: 3_000,
     });
@@ -524,7 +528,7 @@ describe('Agent per-call context option', () => {
     await agent.aiBoolean('The checkout button is enabled');
 
     expect(taskExecutor.createTypeQueryExecution.mock.calls[0]?.[3]).toEqual(
-      expect.objectContaining({ context: 'Default context.' }),
+      expect.objectContaining({ userContext: 'Default context.' }),
     );
   });
 
@@ -538,7 +542,7 @@ describe('Agent per-call context option', () => {
     await agent.aiBoolean('The checkout button is enabled');
 
     expect(taskExecutor.createTypeQueryExecution.mock.calls[0]?.[3]).toEqual(
-      expect.objectContaining({ context: '' }),
+      expect.objectContaining({ userContext: '' }),
     );
   });
 
@@ -553,7 +557,7 @@ describe('Agent per-call context option', () => {
     await agent.aiAsk('What is the order status?');
 
     expect(taskExecutor.createTypeQueryExecution.mock.calls[0]?.[3]).toEqual(
-      expect.objectContaining({ context: 'Ask context.' }),
+      expect.objectContaining({ userContext: 'Ask context.' }),
     );
   });
 
@@ -571,13 +575,13 @@ describe('Agent per-call context option', () => {
     await agent.aiBoolean('Third check');
 
     expect(taskExecutor.createTypeQueryExecution.mock.calls[0]?.[3]).toEqual(
-      expect.objectContaining({ context: 'Runtime Boolean context.' }),
+      expect.objectContaining({ userContext: 'Runtime Boolean context.' }),
     );
     expect(taskExecutor.createTypeQueryExecution.mock.calls[1]?.[3]).toEqual(
-      expect.objectContaining({ context: 'New default context.' }),
+      expect.objectContaining({ userContext: 'New default context.' }),
     );
     expect(taskExecutor.createTypeQueryExecution.mock.calls[2]?.[3]).toEqual(
-      expect.objectContaining({ context: '' }),
+      expect.objectContaining({ userContext: '' }),
     );
   });
 

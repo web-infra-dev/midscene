@@ -23,7 +23,7 @@ describe('ExecutionDump', () => {
         executor: async () => {},
       } as any,
     ],
-    aiActContext: 'Test context',
+    userContext: 'Test context',
   });
 
   describe('constructor', () => {
@@ -35,7 +35,7 @@ describe('ExecutionDump', () => {
       expect(dump.name).toBe(data.name);
       expect(dump.description).toBe(data.description);
       expect(dump.tasks).toEqual(data.tasks);
-      expect(dump.aiActContext).toBe(data.aiActContext);
+      expect(dump.userContext).toBe(data.userContext);
     });
 
     it('should handle optional fields', () => {
@@ -50,7 +50,7 @@ describe('ExecutionDump', () => {
       expect(dump.name).toBe('Minimal Execution');
       expect(dump.description).toBeUndefined();
       expect(dump.tasks).toEqual([]);
-      expect(dump.aiActContext).toBeUndefined();
+      expect(dump.userContext).toBeUndefined();
     });
   });
 
@@ -204,7 +204,7 @@ describe('ExecutionDump', () => {
           ...task,
           recorder: task.recorder || [],
         })),
-        aiActContext: data.aiActContext,
+        userContext: data.userContext,
       });
     });
   });
@@ -249,7 +249,7 @@ describe('ExecutionDump', () => {
       expect(dump2.logTime).toBe(dump1.logTime);
       expect(dump2.name).toBe(dump1.name);
       expect(dump2.description).toBe(dump1.description);
-      expect(dump2.aiActContext).toBe(dump1.aiActContext);
+      expect(dump2.userContext).toBe(dump1.userContext);
     });
   });
 });
@@ -541,7 +541,7 @@ describe('ReportActionDump', () => {
                 executor: async () => {},
               } as any,
             ],
-            aiActContext: 'Test AI context',
+            userContext: 'Test AI context',
           },
         ],
       };
@@ -551,7 +551,7 @@ describe('ReportActionDump', () => {
       const dump2 = ReportActionDump.fromSerializedString(serialized);
 
       expect(dump2.executions[0].tasks).toHaveLength(2);
-      expect(dump2.executions[0].aiActContext).toBe('Test AI context');
+      expect(dump2.executions[0].userContext).toBe('Test AI context');
     });
   });
 });

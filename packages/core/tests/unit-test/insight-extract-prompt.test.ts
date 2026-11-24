@@ -77,7 +77,7 @@ describe('insight extraction prompt assembly', () => {
       input,
       modelRuntime,
       'Assert',
-      { context: 'Header only' },
+      { userContext: 'Header only' },
       undefined,
       uiContext,
     );
@@ -91,7 +91,7 @@ describe('insight extraction prompt assembly', () => {
             ),
           },
         },
-        extractOption: { context: 'Header only' },
+        extractOption: { userContext: 'Header only' },
       }),
     );
     expect(result.dump.userQuery.dataDemand).toBe('The logo matches');
@@ -287,7 +287,7 @@ describe('insight extraction prompt assembly', () => {
         },
       },
       extractOption: {
-        context: 'Only consider visible UI state.',
+        userContext: 'Only consider visible UI state.',
       },
       modelRuntime: getModelRuntime(modelConfig),
     });

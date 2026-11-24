@@ -160,7 +160,7 @@ Action: click(start_box='(500,500)')`,
         ],
       },
       createPlanOptions({
-        actionContext: 'prefer the primary submit button',
+        userContext: 'prefer the primary submit button',
         conversationHistory,
         abortSignal: abortController.signal,
       }),

@@ -19,7 +19,7 @@ export const jevBoolean: BooleanFn = async (options) => {
     {
       state: {
         statement: options.input.demand,
-        context: options.extractOption?.context,
+        context: options.extractOption?.userContext,
         pageDescription: options.pageDescription,
         frames: screenshots.map((_, index) => `\`frame_${index}\``),
         references: references.references,

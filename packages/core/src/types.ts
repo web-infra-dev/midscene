@@ -719,7 +719,7 @@ export interface IExecutionDump extends DumpMeta {
   name: string;
   description?: string;
   tasks: ExecutionTask[];
-  aiActContext?: string;
+  userContext?: string;
 }
 
 /*
@@ -747,7 +747,7 @@ task - service-query
 export interface ExecutionTaskInsightQueryParam extends TMultimodalPrompt {
   dataDemand: ServiceExtractParam;
   domIncluded?: boolean | 'visible-only';
-  context?: string;
+  userContext?: string;
 }
 
 export interface ExecutionTaskInsightQueryOutput {
@@ -813,7 +813,7 @@ export interface ExecutionTaskPlanningParam {
   userInstruction: TUserPrompt;
   userInstructionDisplay?: string;
   replanningCycleLimit?: number;
-  aiActContext?: string;
+  userContext?: string;
   imagesIncludeCount?: number;
   effort?: AiActEffort;
   subGoalStatus?: string;

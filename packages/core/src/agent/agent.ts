@@ -291,7 +291,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   /** Observers own temporary frame files until their observation is disposed. */
   private ownedObservers = new Set<UIObserverImpl>();
 
-  private get aiContexts(): AgentAIContexts {
+  private get userContexts(): AgentAIContexts {
     if (!this.opts.aiContexts) {
       this.opts.aiContexts = {};
     }
@@ -300,37 +300,40 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
   private resolveUserContext(
     apiName: AiApiName,
-    callContext?: string,
+    callUserContext?: string,
   ): string | undefined {
-    if (callContext !== undefined) {
-      return callContext;
+    if (callUserContext !== undefined) {
+      return callUserContext;
     }
 
-    const apiContext = this.opts.aiContexts?.[apiName];
-    if (apiContext !== undefined) {
-      return apiContext;
+    const apiUserContext = this.opts.aiContexts?.[apiName];
+    if (apiUserContext !== undefined) {
+      return apiUserContext;
     }
 
-    const defaultContext = this.opts.aiContexts?.default;
-    if (defaultContext !== undefined) {
-      return defaultContext;
+    const defaultUserContext = this.opts.aiContexts?.default;
+    if (defaultUserContext !== undefined) {
+      return defaultUserContext;
     }
 
     return undefined;
   }
 
-  private withContext<T extends { context?: string }>(
+  private withUserContext<T extends { context?: string }>(
     apiName: AiApiName,
     options?: T,
   ): T | undefined {
-    const resolvedContext = this.resolveUserContext(apiName, options?.context);
-    if (resolvedContext === undefined) {
+    const resolvedUserContext = this.resolveUserContext(
+      apiName,
+      options?.context,
+    );
+    if (resolvedUserContext === undefined) {
       return options;
     }
 
     return {
       ...(options ?? ({} as T)),
-      context: resolvedContext,
+      context: resolvedUserContext,
     };
   }
 
@@ -414,7 +417,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
           ),
       },
       (taskType) => this.resolveModelRuntime('insight', taskType),
-      (apiName, callContext) => this.resolveUserContext(apiName, callContext),
+      (apiName, callUserContext) =>
+        this.resolveUserContext(apiName, callUserContext),
       getUIContext,
     );
   }
@@ -708,23 +712,26 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
    * `''` keeps an explicit empty value and therefore prevents an API from using
    * `default`.
    */
-  setAIContext(target: AgentAIContextKey, context: string | undefined): void {
+  setAIContext(
+    target: AgentAIContextKey,
+    userContext: string | undefined,
+  ): void {
     if (!isAgentAIContextKey(target)) {
       throw new TypeError(`Unknown Agent context key: ${String(target)}`);
     }
-    if (context !== undefined && typeof context !== 'string') {
+    if (userContext !== undefined && typeof userContext !== 'string') {
       throw new TypeError('Agent context must be a string or undefined');
     }
 
-    this.aiContexts[target] = context;
+    this.userContexts[target] = userContext;
 
     if (target === 'aiAct') {
-      if (context === undefined) {
+      if (userContext === undefined) {
         this.opts.aiActContext = undefined;
         this.opts.aiActionContext = undefined;
       } else {
-        this.opts.aiActContext = context;
-        this.opts.aiActionContext = context;
+        this.opts.aiActContext = userContext;
+        this.opts.aiActionContext = userContext;
       }
     }
   }
@@ -905,7 +912,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
       const detailedLocateParam = buildDetailedLocateParam(
         locatePrompt,
-        this.withContext('aiTap', opt),
+        this.withUserContext('aiTap', opt),
       );
 
       const fileChooserAccept = opt?.fileChooserAccept
@@ -928,7 +935,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const detailedLocateParam = buildDetailedLocateParam(
       locatePrompt,
-      this.withContext('aiRightClick', opt),
+      this.withUserContext('aiRightClick', opt),
     );
 
     await this.callActionInActionSpace('RightClick', {
@@ -950,7 +957,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const detailedLocateParam = buildDetailedLocateParam(
       locatePrompt,
-      this.withContext('aiMiddleClick', opt),
+      this.withUserContext('aiMiddleClick', opt),
     );
 
     await this.callActionInActionSpace('MiddleClick', {
@@ -966,7 +973,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const detailedLocateParam = buildDetailedLocateParam(
       locatePrompt,
-      this.withContext('aiDoubleClick', opt),
+      this.withUserContext('aiDoubleClick', opt),
     );
 
     await this.callActionInActionSpace('DoubleClick', {
@@ -979,7 +986,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const detailedLocateParam = buildDetailedLocateParam(
       locatePrompt,
-      this.withContext('aiHover', opt),
+      this.withUserContext('aiHover', opt),
     );
 
     await this.callActionInActionSpace('Hover', {
@@ -1047,7 +1054,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt,
-      this.withContext('aiInput', opt),
+      this.withUserContext('aiInput', opt),
     );
 
     // Convert value to string to ensure consistency
@@ -1118,7 +1125,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt || '',
-      this.withContext('aiKeyboardPress', opt),
+      this.withUserContext('aiKeyboardPress', opt),
     );
 
     await this.callActionInActionSpace('KeyboardPress', {
@@ -1199,7 +1206,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt || '',
-      this.withContext('aiScroll', opt),
+      this.withUserContext('aiScroll', opt),
     );
 
     await this.callActionInActionSpace('Scroll', {
@@ -1218,7 +1225,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   ): Promise<void> {
     const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt || '',
-      this.withContext('aiPinch', opt),
+      this.withUserContext('aiPinch', opt),
     );
 
     await this.callActionInActionSpace('Pinch', {
@@ -1235,7 +1242,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt,
-      this.withContext('aiLongPress', opt),
+      this.withUserContext('aiLongPress', opt),
     );
 
     await this.callActionInActionSpace('LongPress', {
@@ -1252,7 +1259,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const detailedLocateParam = buildDetailedLocateParam(
       locatePrompt,
-      this.withContext('aiClearInput', opt),
+      this.withUserContext('aiClearInput', opt),
     );
 
     await this.callActionInActionSpace('ClearInput', {
@@ -1290,7 +1297,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     const runAiAct = async () => {
       const planningModel = this.resolveModelRuntime('planning', 'planning');
       const locateModel = this.resolveModelRuntime('locate', 'locate');
-      const aiActContext = this.resolveUserContext('aiAct', opt?.context);
+      const userContext = this.resolveUserContext('aiAct', opt?.context);
       // Resolve the public planning controls at the API boundary. Internal
       // aiAct plumbing only uses effort from this point onward. The explicit
       // effort option takes precedence over deepThink when both are provided.
@@ -1347,7 +1354,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         this.resolveReplanningCycleLimit(planningModel);
       const cachePrompt =
         this.taskCache && aiActCacheable !== false
-          ? buildPlanningCacheKey(taskPrompt, aiActContext)
+          ? buildPlanningCacheKey(taskPrompt, userContext)
           : undefined;
       const matchedCache =
         cachePrompt !== undefined
@@ -1403,7 +1410,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         taskPrompt,
         planningModel,
         locateModel,
-        aiActContext,
+        userContext,
         aiActCacheable,
         replanningCycleLimit,
         effort,
@@ -1560,7 +1567,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   private async executeLocate(prompt: TUserPrompt, opt?: LocateOption) {
     const locateParam = buildDetailedLocateParam(
       prompt,
-      this.withContext('aiLocate', opt),
+      this.withUserContext('aiLocate', opt),
     );
     assert(locateParam, 'cannot get locate param for aiLocate');
     const locatePlan = locatePlanForLocate(locateParam);
@@ -1604,12 +1611,14 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
   async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {
     const modelRuntime = this.resolveModelRuntime('insight', 'boolean');
-    const options = this.withContext('aiWaitFor', opt);
+    const { context: userContext, ...options } =
+      this.withUserContext('aiWaitFor', opt) ?? {};
     await this.withReportOperation(() =>
       this.taskExecutor.waitFor(
         assertion,
         {
           ...options,
+          ...(userContext !== undefined ? { userContext } : {}),
           timeoutMs: options?.timeoutMs || 15 * 1000,
           checkIntervalMs: options?.checkIntervalMs || 3 * 1000,
         },

@@ -1,8 +1,8 @@
 import {
   buildLocateCacheKey,
-  buildLocatePromptWithContext,
+  buildLocatePromptWithUserContext,
   buildPlanningCacheKey,
-  renderAIContext,
+  renderUserContext,
 } from '@/agent/prompt-context';
 import { describe, expect, it } from '@rstest/core';
 
@@ -39,10 +39,10 @@ describe('buildPlanningCacheKey', () => {
   });
 });
 
-describe('buildLocatePromptWithContext', () => {
+describe('buildLocatePromptWithUserContext', () => {
   it('renders context and locate target in explicit tags', () => {
     expect(
-      buildLocatePromptWithContext(
+      buildLocatePromptWithUserContext(
         'Favorite button',
         'The favorite button is the star icon in the bottom-right corner.',
       ),
@@ -54,7 +54,7 @@ describe('buildLocatePromptWithContext', () => {
 
   it('preserves multimodal fields while wrapping the prompt text', () => {
     expect(
-      buildLocatePromptWithContext(
+      buildLocatePromptWithUserContext(
         {
           prompt: 'Favorite button',
           images: [{ name: 'target', url: './target.png' }],
@@ -69,17 +69,17 @@ describe('buildLocatePromptWithContext', () => {
   });
 });
 
-describe('renderAIContext', () => {
+describe('renderUserContext', () => {
   it('renders every resolved context with the same model-facing structure', () => {
-    expect(renderAIContext('Shared business rules.')).toBe(
+    expect(renderUserContext('Shared business rules.')).toBe(
       '<CONTEXT>\nShared business rules.\n</CONTEXT>',
     );
   });
 
   it('preserves the distinction between omitted and explicitly blank context', () => {
-    expect(renderAIContext(undefined)).toBeUndefined();
-    expect(renderAIContext('')).toBe('');
-    expect(renderAIContext('   ')).toBe('');
+    expect(renderUserContext(undefined)).toBeUndefined();
+    expect(renderUserContext('')).toBe('');
+    expect(renderUserContext('   ')).toBe('');
   });
 });
 

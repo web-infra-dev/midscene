@@ -13,7 +13,6 @@ import type {
   ExecutionTaskAction,
   ExecutionTaskInsightAssertion,
   ExecutionTaskPlanning,
-  ExecutionTaskPlanningApply,
   LocateResultElement,
 } from '@midscene/core';
 import { extractInsightParam, paramStr, typeStr } from '@midscene/core/agent';
@@ -259,8 +258,18 @@ const DetailSide = ({ onClose }: { onClose?: () => void }): JSX.Element => {
   const { matchedElement: elements } = dump || {};
   const reasoningContent = task?.reasoning_content;
 
-  const aiActContextValue = (task as ExecutionTaskPlanningApply)?.param
-    ?.aiActContext;
+  const userContext =
+    task?.type === 'Planning' || task?.type === 'Insight'
+      ? (task.param as { userContext?: string })?.userContext
+      : undefined;
+  const userContextRows = userContext
+    ? [
+        {
+          key: 'Context',
+          content: <pre className="user-context-source">{userContext}</pre>,
+        },
+      ]
+    : [];
 
   const formatStageCostLine = (
     label: string,
@@ -417,16 +426,6 @@ const DetailSide = ({ onClose }: { onClose?: () => void }): JSX.Element => {
         key: 'total time',
         content: timeCostStrElement(task?.timing?.cost),
       },
-      ...(aiActContextValue
-        ? [
-            {
-              key: 'act context',
-              content: (
-                <pre className="act-context-source">{aiActContextValue}</pre>
-              ),
-            },
-          ]
-        : []),
       ...(task?.usage?.time_cost
         ? [
             {
@@ -504,11 +503,6 @@ const DetailSide = ({ onClose }: { onClose?: () => void }): JSX.Element => {
     // Get subGoalStatus and memoriesStatus from param
     const subGoalStatus = (planningTask.param as any)?.subGoalStatus;
     const memoriesStatus = (planningTask.param as any)?.memoriesStatus;
-    const locateContext =
-      planningTask.subType === 'Locate'
-        ? (planningTask.param as any)?.context
-        : undefined;
-
     if (planningTask.param?.userInstruction) {
       const instructionContent =
         typeof planningTask.param.userInstruction === 'string'
@@ -522,6 +516,7 @@ const DetailSide = ({ onClose }: { onClose?: () => void }): JSX.Element => {
             content: instructionContent,
             images: images,
           },
+          ...userContextRows,
           ...(memoriesStatus
             ? [
                 {
@@ -563,16 +558,7 @@ const DetailSide = ({ onClose }: { onClose?: () => void }): JSX.Element => {
             content: promptContent,
             images: images,
           },
-          ...(locateContext
-            ? [
-                {
-                  key: 'context',
-                  content: (
-                    <pre className="act-context-source">{locateContext}</pre>
-                  ),
-                },
-              ]
-            : []),
+          ...userContextRows,
           ...(memoriesStatus
             ? [
                 {
@@ -629,16 +615,7 @@ const DetailSide = ({ onClose }: { onClose?: () => void }): JSX.Element => {
               },
             ]
           : []),
-        ...(taskParam?.context
-          ? [
-              {
-                key: 'context',
-                content: (
-                  <pre className="act-context-source">{taskParam.context}</pre>
-                ),
-              },
-            ]
-          : []),
+        ...userContextRows,
         ...(isPageContextFrozen
           ? [
               {

@@ -39,7 +39,6 @@ import type {
   PlanningAction,
   PlanningActionParamWaitFor,
   ServiceDump,
-  ServiceExtractOption,
   UIContext,
 } from '@/types';
 import { ServiceError, aiActProgressScope } from '@/types';
@@ -62,6 +61,7 @@ import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
 import {
+  type InsightOptions,
   type InsightTaskType,
   type QueryInput,
   insightResultKey,
@@ -449,7 +449,7 @@ export class TaskExecutor {
     userPrompt: TUserPrompt,
     planningModel: ModelRuntime,
     locateModel: ModelRuntime,
-    aiActContext?: string,
+    userContext?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
     effort: AiActEffort = 'balance',
@@ -472,7 +472,7 @@ export class TaskExecutor {
         userPrompt,
         planningModel,
         locateModel,
-        aiActContext,
+        userContext,
         cacheable,
         replanningCycleLimitOverride,
         effort,
@@ -513,7 +513,7 @@ export class TaskExecutor {
         if (locateParam?.prompt) {
           const cacheKey = buildLocateCacheKey(
             locateParam.prompt,
-            locateParam.context,
+            locateParam.userContext,
           );
           this.taskCache.markLocateCacheStale(cacheKey);
         }
@@ -525,7 +525,7 @@ export class TaskExecutor {
     userPrompt: TUserPrompt,
     planningModel: ModelRuntime,
     locateModel: ModelRuntime,
-    aiActContext?: string,
+    userContext?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
     effort: AiActEffort = 'balance',
@@ -685,7 +685,7 @@ export class TaskExecutor {
               ? { userInstructionDisplay: reportOptions.prompt }
               : {}),
             replanningCycleLimit,
-            aiActContext,
+            userContext,
             imagesIncludeCount,
             effort,
             ...(subGoalStatus ? { subGoalStatus } : {}),
@@ -756,7 +756,7 @@ export class TaskExecutor {
               setTimingFieldOnce(timing, 'callAiStart');
               planResult = await planImpl(preparedUserPrompt, {
                 uiContext: planningUiContext,
-                actionContext: aiActContext,
+                userContext,
                 actionSpace,
                 modelRuntime,
                 planningAdvice,
@@ -1033,7 +1033,7 @@ export class TaskExecutor {
     type: InsightTaskType,
     input: QueryInput,
     modelRuntime: ModelRuntime,
-    opt?: ServiceExtractOption,
+    opt?: InsightOptions,
     executionOptions?: {
       abortSignal?: AbortSignal;
     },
@@ -1044,7 +1044,9 @@ export class TaskExecutor {
       subType: type,
       param: {
         domIncluded: opt?.domIncluded,
-        ...(opt?.context !== undefined ? { context: opt.context } : {}),
+        ...(opt?.userContext !== undefined
+          ? { userContext: opt.userContext }
+          : {}),
         dataDemand: demand,
         ...referenceOptions,
       },
@@ -1157,7 +1159,7 @@ export class TaskExecutor {
     type: Exclude<InsightTaskType, 'WaitFor'>,
     input: QueryInput,
     modelRuntime: ModelRuntime,
-    opt?: ServiceExtractOption,
+    opt?: InsightOptions,
     executionOptions?: {
       abortSignal?: AbortSignal;
       uiContext?: UIContext;
@@ -1210,7 +1212,8 @@ export class TaskExecutor {
 
   async waitFor(
     assertion: TUserPrompt,
-    opt: PlanningActionParamWaitFor,
+    opt: InsightOptions &
+      Pick<PlanningActionParamWaitFor, 'timeoutMs' | 'checkIntervalMs'>,
     modelRuntime: ModelRuntime,
   ): Promise<ExecutionResult<void>> {
     const abortSignal = this.getAbortSignal?.();
@@ -1231,7 +1234,7 @@ export class TaskExecutor {
       screenshotIncluded,
       ...restOpt
     } = opt;
-    const serviceExtractOpt: ServiceExtractOption = {
+    const serviceExtractOpt: InsightOptions = {
       domIncluded,
       screenshotIncluded,
       ...restOpt,

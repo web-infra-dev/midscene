@@ -332,11 +332,11 @@ export function buildDetailedLocateParam(
     return undefined;
   }
 
-  const context = opt?.context?.trim() || undefined;
+  const userContext = opt?.context?.trim() || undefined;
 
   return {
     prompt,
-    ...(context ? { context } : {}),
+    ...(userContext ? { userContext } : {}),
     deepLocate,
     cacheable,
     xpath,
@@ -360,7 +360,7 @@ export function buildDetailedLocateParamAndRestParams(
     // Get all keys from opt
     const allKeys = Object.keys(opt);
 
-    // `context` belongs to locateParam, not the action's remaining parameters.
+    // Public `context` is stored as locateParam.userContext.
     const locateParamKeys = Object.keys(locateParam || {});
 
     // Extract all other keys

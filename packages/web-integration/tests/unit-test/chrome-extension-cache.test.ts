@@ -77,8 +77,8 @@ describe('ChromeExtensionProxyPage cache methods', () => {
     });
 
     it.each([undefined, '选择列表第二项'])(
-      'forwards context %s to the order judge',
-      async (context) => {
+      'forwards user context %s to the order judge',
+      async (userContext) => {
         const mockXpaths = ['/html/body/div[1]'];
         rs.spyOn(page, 'getXpathsByPoint').mockResolvedValue(mockXpaths);
         rs.mocked(AiJudgeOrderSensitive).mockResolvedValue({
@@ -92,13 +92,13 @@ describe('ChromeExtensionProxyPage cache methods', () => {
         await page.cacheFeatureForPoint([100, 200], {
           targetDescription: 'Click the submit button',
           modelRuntime,
-          context,
+          userContext,
         });
 
         expect(AiJudgeOrderSensitive).toHaveBeenCalledWith(
           'Click the submit button',
           modelRuntime,
-          context,
+          userContext,
         );
         expect(page.getXpathsByPoint).toHaveBeenCalledWith(
           { left: 100, top: 200 },

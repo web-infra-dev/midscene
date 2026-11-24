@@ -22,7 +22,7 @@ export const sanitizeXpaths = (xpaths: unknown): string[] => {
 // Cache feature extraction options interface
 export interface CacheFeatureOptions {
   targetDescription?: string;
-  context?: string;
+  userContext?: string;
   modelRuntime?: ModelRuntime;
 }
 
@@ -38,7 +38,7 @@ export async function judgeOrderSensitive(
     const judgeResult = await AiJudgeOrderSensitive(
       options.targetDescription,
       options.modelRuntime,
-      options.context,
+      options.userContext,
     );
     debug(
       'judged isOrderSensitive=%s for description: %s',

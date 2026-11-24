@@ -6,11 +6,10 @@ import type {
   AIDataExtractionResponse,
   AIUsageInfo,
   RawAssistantOutput,
-  ServiceExtractOption,
   UIContext,
 } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
-import { renderAIContext } from '../../../agent/prompt-context';
+import { renderUserContext } from '../../../agent/prompt-context';
 import type { ModelRuntime } from '../../models';
 import {
   buildInsightSystemPrompt,
@@ -28,6 +27,7 @@ import {
 import { multimodalPromptToMessages } from '../../shared/multimodal-prompt';
 import { parseInsightResponse } from './insight-response-parser';
 import {
+  type InsightOptions,
   type InsightTaskType,
   type QueryInput,
   insightResultKey,
@@ -43,7 +43,7 @@ export interface ExtractOptions {
   input: QueryInput;
   uiContext: UIContext;
   pageDescription?: string;
-  extractOption?: ServiceExtractOption;
+  extractOption?: InsightOptions;
   modelRuntime: ModelRuntime;
   abortSignal?: AbortSignal;
 }
@@ -91,11 +91,11 @@ export async function AiExtractElementInfo<T>(
   });
   const screenshotBase64 = uiContext.screenshot.base64;
 
-  const renderedContext = renderAIContext(extractOption?.context);
+  const renderedUserContext = renderUserContext(extractOption?.userContext);
   const extractDataPromptText = extractDataQueryPrompt(
     options.pageDescription || '',
     demand,
-    renderedContext,
+    renderedUserContext,
   );
 
   const userContent: ConversationUserMessage['content'] = [];

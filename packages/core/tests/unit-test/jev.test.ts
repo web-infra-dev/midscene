@@ -477,7 +477,7 @@ describe('Jev requests and coordinates', () => {
       type: 'Boolean',
       input: { demand: 'matches' },
       uiContext: await context(),
-      extractOption: { screenshotIncluded: false, context: 'context' },
+      extractOption: { screenshotIncluded: false, userContext: 'context' },
       pageDescription: 'DOM',
       modelRuntime: getModelRuntime({
         ...jevConfig,
@@ -1111,7 +1111,7 @@ describe('Jev planning', () => {
     const planOptions = {
       ...opts,
       actionSpace,
-      actionContext: 'Existing context',
+      userContext: 'Existing context',
       getDefaultModelRuntime: () => ({
         ...base,
         adapter: {

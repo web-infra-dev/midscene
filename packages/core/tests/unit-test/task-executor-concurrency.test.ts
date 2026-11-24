@@ -149,7 +149,7 @@ describe('TaskExecutor concurrency isolation', () => {
             {
               type: 'Planning',
               subType: 'Locate',
-              param: { prompt, context },
+              param: { prompt, userContext: context },
               executor: async ({ task }: ExecutorContext) => {
                 expect(
                   cache.matchLocateCache(cacheKey)?.cacheContent.cache?.xpaths,
@@ -165,7 +165,7 @@ describe('TaskExecutor concurrency isolation', () => {
             {
               type: 'Planning',
               subType: 'Locate',
-              param: { prompt, context },
+              param: { prompt, userContext: context },
               executor: async () => {
                 expect(cache.matchLocateCache(cacheKey)).toBeUndefined();
                 cache.updateOrAppendCacheRecord({
@@ -603,11 +603,11 @@ describe('TaskExecutor concurrency isolation', () => {
     expect(standardPlan).toHaveBeenCalledWith(
       { text: 'prompt', referenceImages: [] },
       expect.objectContaining({
-        actionContext: 'Use checkout rules.',
+        userContext: 'Use checkout rules.',
       }),
     );
     expect(result.runner.tasks[0].param).toEqual(
-      expect.objectContaining({ aiActContext: 'Use checkout rules.' }),
+      expect.objectContaining({ userContext: 'Use checkout rules.' }),
     );
   });
 
