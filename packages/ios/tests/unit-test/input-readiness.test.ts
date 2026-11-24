@@ -1,5 +1,13 @@
 import { WebDriverRequestError } from '@midscene/webdriver';
-import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
+import {
+  type MockInstance,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  rs,
+} from '@rstest/core';
 import { IOSAgent } from '../../src/agent';
 import { IOSDevice } from '../../src/device';
 import { InputFocusUnavailableError } from '../../src/input-focus';
@@ -12,7 +20,7 @@ const noFocus = () =>
 
 describe('iOS input focus readiness', () => {
   let client: IOSWebDriverClient;
-  let request: ReturnType<typeof rs.spyOn>;
+  let request: MockInstance<IOSWebDriverClient['makeRequest']>;
 
   beforeEach(() => {
     client = new IOSWebDriverClient({ host: 'localhost', port: 8100 });
@@ -109,7 +117,8 @@ describe('iOS input focus readiness', () => {
         .mockResolvedValueOnce({ value: [] }) // Menu closed
         .mockResolvedValueOnce({ value: null }) // Open menu
         .mockResolvedValueOnce({ value: [] }) // First poll
-        .mockImplementationOnce(async (_method, _path, _body, { timeout }) => {
+        .mockImplementationOnce(async (_method, _path, _body, options) => {
+          const timeout = options?.timeout;
           expect(timeout).toBe(1100);
           await new Promise((resolve) => setTimeout(resolve, timeout));
           throw new WebDriverRequestError(`Request timeout after ${timeout}ms`);
