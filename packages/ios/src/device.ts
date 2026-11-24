@@ -51,8 +51,9 @@ export const WDA_HTTP_METHODS = ['GET', 'POST', 'DELETE', 'PUT'] as const;
 export type WDAHttpMethod = (typeof WDA_HTTP_METHODS)[number];
 
 const DEFAULT_WDA_MJPEG_PORT = 9100;
-// Bound the time spent synthesizing keys when WDA cannot select the text.
-const customInputBackspaceCount = 100;
+// WDA sends every Backspace even after the field is empty. Cap the batch
+// at 50 to keep short-field clears fast when Select All is unavailable.
+const customInputBackspaceCount = 50;
 const keyboardFollowUpMaxAgeMs = 30_000;
 const keyboardFollowUpKeys: ReadonlySet<string> = new Set([
   'enter',
