@@ -23,6 +23,8 @@ const WDA_MJPEG_SCALING_FACTOR = 50;
 const w3cElementId = 'element-6066-11e4-a52e-4f735466cecf';
 const keyboardDismissDeadlineMs = 5000;
 const keyboardDismissPollIntervalMs = 100;
+const launchForegroundPollDeadlineMs = 5000;
+const launchForegroundPollIntervalMs = 300;
 
 type FindElementIdsOptions = {
   rootElementId?: string;
@@ -47,6 +49,47 @@ export class IOSWebDriverClient extends WebDriverClient {
       debugIOS(`Failed to launch app ${bundleId}: ${error}`);
       throw error;
     }
+
+    // Confirm the app actually reached the foreground. WDA's launch endpoint
+    // normally blocks until the app reaches XCTest quiescence, which
+    // self-rendered apps (Flutter/Unity) never satisfy — causing a false
+    // 30s timeout. With waitForQuiescence disabled (see createSession) the
+    // launch returns immediately, so verify the foreground state here instead.
+    await this.confirmAppInForeground(bundleId);
+  }
+
+  private async confirmAppInForeground(bundleId: string): Promise<void> {
+    const deadline = Date.now() + launchForegroundPollDeadlineMs;
+
+    for (;;) {
+      try {
+        const response = await this.makeRequest(
+          'GET',
+          `/session/${this.sessionId}/wda/activeAppInfo`,
+        );
+        const foregroundBundleId = response?.value?.bundleId;
+        if (
+          typeof foregroundBundleId === 'string' &&
+          foregroundBundleId === bundleId
+        ) {
+          debugIOS(`Confirmed app in foreground: ${bundleId}`);
+          return;
+        }
+      } catch (error) {
+        debugIOS(`Foreground check failed: ${error}`);
+      }
+
+      if (Date.now() >= deadline) {
+        break;
+      }
+      await new Promise((resolve) =>
+        setTimeout(resolve, launchForegroundPollIntervalMs),
+      );
+    }
+
+    debugIOS(
+      `Foreground not confirmed within ${launchForegroundPollDeadlineMs}ms: ${bundleId}`,
+    );
   }
 
   async activateApp(bundleId: string): Promise<void> {
@@ -926,6 +969,11 @@ export class IOSWebDriverClient extends WebDriverClient {
       // iOS-specific settings
       shouldUseSingletonTestManager: false,
       shouldUseTestManagerForVisibilityDetection: false,
+      // Self-rendered apps (Flutter/Unity) never reach XCTest quiescence, so
+      // WDA's launch endpoint would block until it times out. Disable the
+      // quiescence wait so launch returns once the process is started;
+      // launchApp() then confirms the foreground state explicitly.
+      waitForQuiescence: false,
       ...capabilities,
     };
 
