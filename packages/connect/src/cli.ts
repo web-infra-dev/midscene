@@ -44,6 +44,19 @@ Device options are declared by the definition's \`options\` schema.`);
 }
 
 async function playground(args: string[]) {
+  if (args.includes('--help') || args.includes('-h')) {
+    console.log(`
+Usage: ${scriptName} playground [options]
+
+Open the Playground for a Connect device.
+
+  --url <url>      Device URL (env: MIDSCENE_CONNECT_URL, default: http://127.0.0.1:${DEFAULT_CONNECT_PORT})
+  --token <token>  Device token (env: MIDSCENE_CONNECT_TOKEN)
+  --port <port>    Local Playground web port (default: 5800)
+  --no-open        Start without opening a browser`);
+    return;
+  }
+
   const { flags } = parseFlags(args);
   const url = str(flags.url, 'url');
   const token = str(flags.token, 'token');
