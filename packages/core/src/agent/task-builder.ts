@@ -2,6 +2,7 @@ import { findAllMidsceneLocatorField, parseActionParam } from '@/ai-model';
 import type { ModelRuntime } from '@/ai-model/models';
 import {
   type TMultimodalPrompt,
+  type TUserPrompt,
   findActionInActionSpaceOrThrow,
   userPromptToMultimodalPrompt,
   userPromptToString,
@@ -30,7 +31,8 @@ import { ServiceError } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { ActionReadiness } from './action-readiness';
-import type { TaskCache } from './task-cache';
+import { buildLocateCacheKey } from './prompt-context';
+import type { LocateCache, MatchCacheResult, TaskCache } from './task-cache';
 import { withUsageIntent } from './usage-intent';
 import {
   ifLocateParamHasLocatedPixelResult,
@@ -102,6 +104,11 @@ interface TaskBuilderDeps {
   waitAfterAction?: number;
   actionReadiness?: ActionReadiness;
   operationResource?: object;
+}
+
+interface LocateCacheLookup {
+  cacheKey: TUserPrompt;
+  record: MatchCacheResult<LocateCache> | undefined;
 }
 
 interface BuildOptions {
@@ -572,15 +579,24 @@ export class TaskBuilder {
 
         const isXpathHit = !!elementFromXpath;
 
-        const cachePrompt = locateParam.prompt;
-        const locateCacheEnabled = locateParam.cacheable !== false;
-        const locateCacheRecord = locateCacheEnabled
-          ? this.taskCache?.matchLocateCache(cachePrompt)
-          : undefined;
-        const cacheEntry = locateCacheRecord?.cacheContent?.cache;
+        const locateCache: LocateCacheLookup | undefined = (() => {
+          if (!this.taskCache || locateParam.cacheable === false) {
+            return undefined;
+          }
+
+          const cacheKey = buildLocateCacheKey(
+            locateParam.prompt,
+            locateParam.context,
+          );
+          return {
+            cacheKey,
+            record: this.taskCache.matchLocateCache(cacheKey),
+          };
+        })();
+        const cacheEntry = locateCache?.record?.cacheContent?.cache;
 
         const elementFromCacheResult =
-          !locateCacheEnabled || isPlanDirectHit || isXpathHit
+          !locateCache || isPlanDirectHit || isXpathHit
             ? null
             : await matchElementFromCache(
                 {
@@ -588,7 +604,7 @@ export class TaskBuilder {
                   interfaceInstance: this.interface,
                 },
                 cacheEntry,
-                cachePrompt,
+                locateParam.prompt,
               );
 
         // elementFromCacheResult is in logical coordinates, which should be transformed to screenshot coordinates;
@@ -644,9 +660,7 @@ export class TaskBuilder {
         }
 
         // Check if locate cache already exists (for planHitFlag case)
-        const locateCacheAlreadyExists = hasNonEmptyCache(
-          locateCacheRecord?.cacheContent?.cache,
-        );
+        const locateCacheAlreadyExists = hasNonEmptyCache(cacheEntry);
 
         let currentCacheEntry: ElementCacheFeature | undefined;
         // Write cache if:
@@ -660,7 +674,7 @@ export class TaskBuilder {
           this.taskCache &&
           !isCacheHit &&
           (!isPlanDirectHit || !locateCacheAlreadyExists) &&
-          locateCacheEnabled
+          locateCache
         ) {
           if (this.interface.cacheFeatureForPoint) {
             try {
@@ -687,23 +701,23 @@ export class TaskBuilder {
               );
               if (hasNonEmptyCache(feature)) {
                 debug(
-                  'update cache, prompt: %s, cache: %o',
-                  cachePrompt,
+                  'update cache, cacheKey: %s, cache: %o',
+                  locateCache.cacheKey,
                   feature,
                 );
                 currentCacheEntry = feature;
                 this.taskCache.updateOrAppendCacheRecord(
                   {
                     type: 'locate',
-                    prompt: cachePrompt,
+                    prompt: locateCache.cacheKey,
                     cache: feature,
                   },
-                  locateCacheRecord,
+                  locateCache.record,
                 );
               } else {
                 debug(
-                  'no cache data returned, skip cache update, prompt: %s',
-                  cachePrompt,
+                  'no cache data returned, skip cache update, cacheKey: %s',
+                  locateCache.cacheKey,
                 );
               }
             } catch (error) {
@@ -751,29 +765,12 @@ export class TaskBuilder {
           };
         }
 
-        const promptDisplay = locateParam.promptDisplay;
-        const elementForAction = promptDisplay
-          ? {
-              ...element,
-              description: promptDisplay,
-            }
-          : element;
-
-        if (promptDisplay && locateDump?.matchedElement) {
-          locateDump.matchedElement = locateDump.matchedElement.map(
-            (matchedElement) => ({
-              ...matchedElement,
-              description: promptDisplay,
-            }),
-          );
-        }
-
-        onResult?.(elementForAction);
+        onResult?.(element);
 
         return {
           output: {
             element: {
-              ...elementForAction,
+              ...element,
               // backward compatibility for aiLocate, which return value needs a dpr field
               dpr: uiContext.deprecatedDpr,
             },

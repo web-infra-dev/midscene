@@ -263,7 +263,11 @@ describe('task cancellation boundaries', () => {
     expect(before).toHaveBeenCalledWith('Noop', {}, controller.signal);
     expect(wait).toHaveBeenCalledWith('Noop', {}, controller.signal);
     expect(after).toHaveBeenCalledWith('Noop', {}, controller.signal);
-    await executor.createTypeQueryExecution('Query', 'result', model);
+    await executor.createTypeQueryExecution(
+      'Query',
+      { demand: 'result' },
+      model,
+    );
     expect(service.extract).toHaveBeenCalledTimes(1);
   });
 

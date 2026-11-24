@@ -45,9 +45,10 @@ describe('buildLocatePromptWithContext', () => {
         'Favorite button',
         'The favorite button is the star icon in the bottom-right corner.',
       ),
-    ).toBe(
-      '<CONTEXT>\nThe favorite button is the star icon in the bottom-right corner.\n</CONTEXT>\n\n<LOCATE_TARGET>\nFavorite button\n</LOCATE_TARGET>',
-    );
+    ).toEqual({
+      prompt:
+        '<CONTEXT>\nThe favorite button is the star icon in the bottom-right corner.\n</CONTEXT>\n\n<LOCATE_TARGET>\nFavorite button\n</LOCATE_TARGET>',
+    });
   });
 
   it('preserves multimodal fields while wrapping the prompt text', () => {

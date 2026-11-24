@@ -1,3 +1,4 @@
+import * as promptContext from '@/agent/prompt-context';
 import { TaskBuilder, locatePlanForLocate } from '@/agent/task-builder';
 import type { TaskCache } from '@/agent/task-cache';
 import { getMidsceneLocationSchema } from '@/ai-model';
@@ -54,6 +55,7 @@ describe('TaskBuilder', () => {
   });
 
   afterEach(() => {
+    rs.restoreAllMocks();
     rs.useRealTimers();
   });
 
@@ -62,9 +64,11 @@ describe('TaskBuilder', () => {
     { hasCoordinates: false, cacheable: false },
     { hasCoordinates: true, cacheable: undefined },
     { hasCoordinates: false, cacheable: undefined },
+    { hasCoordinates: false, cacheable: true, withoutTaskCache: true },
   ])(
     'honors locate caching independently of the planner: %j',
-    async ({ hasCoordinates, cacheable }) => {
+    async ({ hasCoordinates, cacheable, withoutTaskCache }) => {
+      const buildCacheKey = rs.spyOn(promptContext, 'buildLocateCacheKey');
       const feature = { xpaths: ['/button'] };
       const taskCache = {
         isCacheResultUsed: true,
@@ -83,7 +87,9 @@ describe('TaskBuilder', () => {
         getDefaultModelRuntime: () => mockModelRuntime,
         interfaceInstance: device,
         service: { locate } as unknown as Service,
-        taskCache: taskCache as unknown as TaskCache,
+        taskCache: withoutTaskCache
+          ? undefined
+          : (taskCache as unknown as TaskCache),
         actionSpace: [],
       });
       // A standalone locate may cache even if the configured planner cannot.
@@ -114,7 +120,8 @@ describe('TaskBuilder', () => {
 
       expect(locate).toHaveBeenCalledTimes(hasCoordinates ? 0 : 1);
       expect(matchFeature).not.toHaveBeenCalled();
-      if (cacheable === false) {
+      if (cacheable === false || withoutTaskCache) {
+        expect(buildCacheKey).not.toHaveBeenCalled();
         expect(taskCache.matchLocateCache).not.toHaveBeenCalled();
         expect(extractFeature).not.toHaveBeenCalled();
         expect(taskCache.updateOrAppendCacheRecord).not.toHaveBeenCalled();
@@ -334,77 +341,106 @@ describe('TaskBuilder', () => {
     expect(tasks.at(-1)?.planningFeedbackMaxLength).toBe(123);
   });
 
-  it('uses promptDisplay for the located element passed to an action', async () => {
-    const actionSchema = z.object({
-      locate: getMidsceneLocationSchema().describe('element to locate'),
-    });
-    const mockAction: DeviceAction = {
-      name: 'Tap',
-      description: 'mock tap action',
-      paramSchema: actionSchema,
-      call: rs.fn(),
-    };
-    const mockInterface = new MockInterface([mockAction]);
-    const locateDump = {
-      taskInfo: { durationMs: 1 },
-      matchedElement: [
+  it.each([true, false])(
+    'uses the raw target description with context (cache hit: %s)',
+    async (cacheHit) => {
+      const actionSchema = z.object({
+        locate: getMidsceneLocationSchema().describe('element to locate'),
+      });
+      const mockAction: DeviceAction = {
+        name: 'Tap',
+        description: 'mock tap action',
+        paramSchema: actionSchema,
+        call: rs.fn(),
+      };
+      const mockInterface = new MockInterface([mockAction]);
+      const locateDump = {
+        taskInfo: { durationMs: 1 },
+        matchedElement: [
+          {
+            center: [50, 50],
+            rect: { left: 40, top: 40, width: 20, height: 20 },
+            description: 'orange',
+          },
+        ],
+      };
+      const insightService = {
+        contextRetrieverFn: rs.fn(),
+        locate: rs.fn(async () => ({
+          element: {
+            center: [50, 50],
+            rect: { left: 40, top: 40, width: 20, height: 20 },
+            description: 'orange',
+          },
+          dump: locateDump,
+        })),
+      } as unknown as Service;
+      const matchLocateCache = rs
+        .fn()
+        .mockReturnValue(
+          cacheHit
+            ? { cacheContent: { cache: { xpaths: ['/button'] } } }
+            : undefined,
+        );
+      mockInterface.rectMatchesCacheFeature = rs.fn().mockResolvedValue({
+        left: 40,
+        top: 40,
+        width: 20,
+        height: 20,
+      });
+      const taskBuilder = new TaskBuilder({
+        getDefaultModelRuntime: () => mockModelRuntime,
+        interfaceInstance: mockInterface,
+        service: insightService,
+        actionSpace: mockInterface.actionSpace(),
+        taskCache: { matchLocateCache, isCacheResultUsed: true } as any,
+      });
+      const plans: PlanningAction[] = [
         {
-          center: [50, 50],
-          rect: { left: 40, top: 40, width: 20, height: 20 },
-          description:
-            '<CONTEXT>favorite fruit rule</CONTEXT><LOCATE_TARGET>orange</LOCATE_TARGET>',
-        },
-      ],
-    };
-    const insightService = {
-      contextRetrieverFn: rs.fn(),
-      locate: rs.fn(async () => ({
-        element: {
-          center: [50, 50],
-          rect: { left: 40, top: 40, width: 20, height: 20 },
-          description:
-            '<CONTEXT>favorite fruit rule</CONTEXT><LOCATE_TARGET>orange</LOCATE_TARGET>',
-        },
-        dump: locateDump,
-      })),
-    } as unknown as Service;
-    const taskBuilder = new TaskBuilder({
-      getDefaultModelRuntime: () => mockModelRuntime,
-      interfaceInstance: mockInterface,
-      service: insightService,
-      actionSpace: mockInterface.actionSpace(),
-    });
-    const plans: PlanningAction[] = [
-      {
-        type: 'Tap',
-        param: {
-          locate: {
-            prompt:
-              '<CONTEXT>favorite fruit rule</CONTEXT><LOCATE_TARGET>orange</LOCATE_TARGET>',
-            promptDisplay: 'orange',
-            context: 'favorite fruit rule',
+          type: 'Tap',
+          param: {
+            locate: {
+              prompt: 'orange',
+              context: 'favorite fruit rule',
+            },
           },
         },
-      },
-    ];
+      ];
 
-    const { tasks } = await taskBuilder.build(
-      plans,
-      mockModelRuntime,
-      mockModelRuntime,
-    );
-    const locateTask = tasks[0];
-    await locateTask.executor({
-      task: { timing: {} },
-      uiContext: {
-        shrunkShotToLogicalRatio: 1,
-        deprecatedDpr: 1,
-      },
-    } as any);
+      const { tasks } = await taskBuilder.build(
+        plans,
+        mockModelRuntime,
+        mockModelRuntime,
+      );
+      const locateTask = tasks[0];
+      await locateTask.executor({
+        task: { timing: {} },
+        uiContext: {
+          shrunkShotToLogicalRatio: 1,
+          deprecatedDpr: 1,
+        },
+      } as any);
 
-    expect((plans[0].param as any).locate.description).toBe('orange');
-    expect(locateDump.matchedElement[0].description).toBe('orange');
-  });
+      expect((plans[0].param as any).locate.description).toBe('orange');
+      expect(locateDump.matchedElement[0].description).toBe('orange');
+      expect(matchLocateCache).toHaveBeenCalledWith(
+        '<CONTEXT>\nfavorite fruit rule\n</CONTEXT>\n\n<LOCATE_TARGET>\norange\n</LOCATE_TARGET>',
+      );
+      if (cacheHit) {
+        expect(insightService.locate).not.toHaveBeenCalled();
+        return;
+      }
+      expect(insightService.locate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: 'orange',
+          context: 'favorite fruit rule',
+        }),
+        expect.any(Object),
+        mockModelRuntime,
+        undefined,
+      );
+    },
+  );
 
   it('throws when building an executable task for an action outside actionSpace', async () => {
     const mockInterface = new MockInterface([defineActionSleep()]);

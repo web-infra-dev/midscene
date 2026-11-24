@@ -517,7 +517,7 @@ describe('TaskExecutor concurrency isolation', () => {
     expect(standardPlan).toHaveBeenCalledWith(
       { text: 'prompt', referenceImages: [] },
       expect.objectContaining({
-        actionContext: '<CONTEXT>\nUse checkout rules.\n</CONTEXT>',
+        actionContext: 'Use checkout rules.',
       }),
     );
     expect(result.runner.tasks[0].param).toEqual(

@@ -128,6 +128,38 @@ describe('Agent per-call context option', () => {
     );
   });
 
+  it.each(['aiBoolean', 'aiNumber', 'aiString', 'aiAsk'] as const)(
+    'keeps %s text, images and conversion options in one input',
+    async (api) => {
+      const { agent, taskExecutor } = createAgentStub();
+      const prompt = {
+        prompt: 'Compare the visible result with the reference',
+        images: [{ name: 'reference', url: 'https://example.com/ref.png' }],
+        convertHttpImage2Base64: true,
+      };
+      await agent[api](prompt, { context: 'Only inspect the main panel.' });
+
+      expect(taskExecutor.createTypeQueryExecution.mock.calls[0]?.[1]).toEqual({
+        demand: prompt.prompt,
+        images: prompt.images,
+        convertHttpImage2Base64: true,
+      });
+      expect(taskExecutor.createTypeQueryExecution.mock.calls[0]?.[3]).toEqual({
+        context: 'Only inspect the main panel.',
+      });
+      expect(prompt.images[0].url).toBe('https://example.com/ref.png');
+    },
+  );
+
+  it('preserves structured query fields named prompt and images as data demands', async () => {
+    const { agent, taskExecutor } = createAgentStub();
+    const demand = { prompt: 'The prompt label', images: 'The image count' };
+    await agent.aiQuery(demand);
+    expect(taskExecutor.createTypeQueryExecution.mock.calls[0]?.[1]).toEqual({
+      demand,
+    });
+  });
+
   it('applies middle-click context defaults, API overrides and explicit blank context', async () => {
     const { agent } = createAgentStub();
     const dispatch = rs
@@ -381,14 +413,13 @@ describe('Agent per-call context option', () => {
 
     expect(taskExecutor.createTypeQueryExecution).toHaveBeenCalledWith(
       'Assert',
-      'The success toast is visible',
+      { demand: 'The success toast is visible' },
       expect.objectContaining(defaultModel),
       {
         context: 'The current user is a logged-in buyer.',
         domIncluded: false,
         screenshotIncluded: true,
       },
-      undefined,
       {
         abortSignal: undefined,
       },
@@ -410,14 +441,13 @@ describe('Agent per-call context option', () => {
 
     expect(taskExecutor.createTypeQueryExecution).toHaveBeenCalledWith(
       'Assert',
-      'The success toast is visible',
+      { demand: 'The success toast is visible' },
       expect.objectContaining(defaultModel),
       {
         context: 'Default context.',
         domIncluded: false,
         screenshotIncluded: true,
       },
-      undefined,
       {
         abortSignal: abortController.signal,
       },
@@ -440,11 +470,9 @@ describe('Agent per-call context option', () => {
     });
 
     const locatePlans = taskExecutor.runPlans.mock.calls[0]?.[1] as
-      | Array<{ param: { prompt: string } }>
+      | Array<{ param: { prompt: string; context?: string } }>
       | undefined;
-    expect(locatePlans?.[0]?.param.prompt).toContain(
-      '<CONTEXT>\nUse the cart footer.\n</CONTEXT>',
-    );
+    expect(locatePlans?.[0]?.param.context).toBe('Use the cart footer.');
     expect(taskExecutor.createTypeQueryExecution.mock.calls[0]?.[3]).toEqual({
       context: 'The cart has one item.',
     });
@@ -473,11 +501,9 @@ describe('Agent per-call context option', () => {
     await agent.aiWaitFor('The order is complete');
 
     const locatePlans = taskExecutor.runPlans.mock.calls[0]?.[1] as
-      | Array<{ param: { prompt: string } }>
+      | Array<{ param: { prompt: string; context?: string } }>
       | undefined;
-    expect(locatePlans?.[0]?.param.prompt).toContain(
-      '<CONTEXT>\nLocate context.\n</CONTEXT>',
-    );
+    expect(locatePlans?.[0]?.param.context).toBe('Locate context.');
     expect(taskExecutor.createTypeQueryExecution.mock.calls[0]?.[3]).toEqual(
       expect.objectContaining({ context: 'Boolean context.' }),
     );

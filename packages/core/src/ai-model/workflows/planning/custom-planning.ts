@@ -1,3 +1,4 @@
+import { renderAIContext } from '@/agent/prompt-context';
 import type { PlanningAIResponse, PlanningAction } from '@/types';
 import { ScreenshotItem } from '../../../screenshot-item';
 import type {
@@ -30,10 +31,10 @@ export function buildCustomPlanningMessages<TParsed>(
   config: CustomPlanningMessageConfig<TParsed>,
 ): ModelCallMessages {
   const { options } = input;
-  const { conversationHistory, uiContext, actionContext } = options;
+  const { conversationHistory, uiContext } = options;
   const systemPrompt = appendActionContext(
     config.buildSystemPrompt(),
-    actionContext,
+    renderAIContext(options.actionContext),
   );
   const userInstructionText = input.userInstruction.text;
   const userInstruction = config.buildUserInstruction

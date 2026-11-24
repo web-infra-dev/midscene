@@ -89,7 +89,7 @@ describe('Agent.startObserving', () => {
     expect(stop).toHaveBeenCalledOnce();
     const executionOptions = (
       createTypeQueryExecution.mock.calls[0] as any[]
-    )[5];
+    )[4];
     const sequence = executionOptions.uiContext.screenshotSequence;
     expect(sequence.length).toBeGreaterThanOrEqual(2);
     expect(sequence[0].hasBase64()).toBe(false);
@@ -193,7 +193,7 @@ describe('Agent.startObserving', () => {
 
     const executionOptions = (
       createTypeQueryExecution.mock.calls[0] as any[]
-    )[5];
+    )[4];
     expect(
       executionOptions.uiContext.screenshotSequence.map(
         (frame: ScreenshotItem) =>
@@ -214,7 +214,7 @@ describe('Agent.startObserving', () => {
       createTypeQueryExecution.mock.calls.map((call) => (call as any[])[0]),
     ).toEqual(['Assert', 'Query', 'Boolean', 'Number', 'String', 'String']);
     for (const call of createTypeQueryExecution.mock.calls) {
-      expect((call as any[])[5].uiContext.screenshotSequence).toHaveLength(3);
+      expect((call as any[])[4].uiContext.screenshotSequence).toHaveLength(3);
     }
   });
 
@@ -226,10 +226,10 @@ describe('Agent.startObserving', () => {
     await agent.aiBoolean('is the page fine?');
 
     expect(
-      (createTypeQueryExecution.mock.calls[0] as any[])[5].uiContext,
+      (createTypeQueryExecution.mock.calls[0] as any[])[4].uiContext,
     ).toBeUndefined();
     expect(
-      (createTypeQueryExecution.mock.calls[1] as any[])[5]?.uiContext,
+      (createTypeQueryExecution.mock.calls[1] as any[])[4]?.uiContext,
     ).toBeUndefined();
   });
 

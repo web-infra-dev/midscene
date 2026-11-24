@@ -103,12 +103,12 @@ describe('TaskExecutor - Null Data Handling', () => {
 
     const result = await taskExecutor.createTypeQueryExecution(
       'Query',
-      'compare with the reference',
-      modelRuntime,
-      {},
       {
+        demand: 'compare with the reference',
         images: [{ name: 'reference', url: referenceImageDataUrl }],
       },
+      modelRuntime,
+      {},
     );
 
     expect(result.runner.dump().getReferenceImageUrls()).toEqual([
@@ -149,9 +149,8 @@ describe('TaskExecutor - Null Data Handling', () => {
       // Create a WaitFor task
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'WaitFor',
-        'Element is visible',
+        { demand: 'Element is visible' },
         getModelRuntime(mockModelConfig),
-        {},
         {}, // ServiceExtractOption
       );
 
@@ -194,7 +193,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'WaitFor',
-        'Button is enabled',
+        { demand: 'Button is enabled' },
         getModelRuntime(mockModelConfig),
         {},
       );
@@ -236,7 +235,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Assert',
-        'Page title is correct',
+        { demand: 'Page title is correct' },
         getModelRuntime(mockModelConfig),
         {},
       );
@@ -263,15 +262,11 @@ describe('TaskExecutor - Null Data Handling', () => {
       });
 
       expect(mockInsight.extract).toHaveBeenCalledWith(
-        {
-          StatementIsTruthy:
-            'Boolean, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, whether the following statement is true: Page title is correct',
-        },
+        { demand: 'Page title is correct' },
         getModelRuntime(mockModelConfig),
-        'boolean',
+        'Assert',
         {},
         '',
-        undefined,
         expectEmptyUIContext(),
         { abortSignal: undefined },
       );
@@ -310,7 +305,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'WaitFor',
-        'Element is visible',
+        { demand: 'Element is visible' },
         getModelRuntime(mockModelConfig),
         {},
       );
@@ -322,15 +317,11 @@ describe('TaskExecutor - Null Data Handling', () => {
       } as any);
 
       expect(mockInsight.extract).toHaveBeenCalledWith(
-        {
-          StatementIsTruthy:
-            "Boolean, the user wants to do some 'wait for' operation. based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, please check whether the following statement is true: Element is visible",
-        },
+        { demand: 'Element is visible' },
         getModelRuntime(mockModelConfig),
-        'boolean',
+        'WaitFor',
         {},
         '',
-        undefined,
         expectEmptyUIContext(),
         { abortSignal: taskSignal },
       );
@@ -381,7 +372,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Boolean',
-        'Element is visible',
+        { demand: 'Element is visible' },
         getModelRuntime(mockModelConfig),
         {},
       );
@@ -508,7 +499,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Boolean',
-        'Element is visible',
+        { demand: 'Element is visible' },
         getModelRuntime(mockModelConfig),
         {},
       );
@@ -558,7 +549,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'WaitFor',
-        'Element is visible',
+        { demand: 'Element is visible' },
         getModelRuntime(mockModelConfig),
         {},
       );
@@ -598,7 +589,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Query',
-        { question: 'What is the title?' },
+        { demand: { question: 'What is the title?' } },
         getModelRuntime(mockModelConfig),
         {},
       );
@@ -640,7 +631,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'String',
-        'Extract the username',
+        { demand: 'Extract the username' },
         getModelRuntime(mockModelConfig),
         {},
       );
@@ -687,10 +678,9 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Number',
-        'Extract the price',
+        { demand: 'Extract the price' },
         getModelRuntime(mockModelConfig),
         {},
-        undefined,
         { abortSignal: explicitSignal },
       );
 
@@ -701,15 +691,11 @@ describe('TaskExecutor - Null Data Handling', () => {
       } as any);
 
       expect(mockInsight.extract).toHaveBeenCalledWith(
-        {
-          Number:
-            'Number, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, Extract the price',
-        },
+        { demand: 'Extract the price' },
         getModelRuntime(mockModelConfig),
-        'extract',
+        'Number',
         {},
         '',
-        undefined,
         expectEmptyUIContext(),
         { abortSignal: explicitSignal },
       );
@@ -749,7 +735,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Number',
-        'Extract the price',
+        { demand: 'Extract the price' },
         getModelRuntime(mockModelConfig),
         {
           context: 'Use wholesale pricing rules.',
@@ -792,7 +778,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Number',
-        'Extract the price',
+        { demand: 'Extract the price' },
         getModelRuntime(mockModelConfig),
         {},
       );
@@ -803,15 +789,11 @@ describe('TaskExecutor - Null Data Handling', () => {
       } as any);
 
       expect(mockInsight.extract).toHaveBeenCalledWith(
-        {
-          Number:
-            'Number, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, Extract the price',
-        },
+        { demand: 'Extract the price' },
         getModelRuntime(mockModelConfig),
-        'extract',
+        'Number',
         {},
         '',
-        undefined,
         expectEmptyUIContext(),
         { abortSignal: undefined },
       );
@@ -850,7 +832,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Boolean',
-        'there is a like button',
+        { demand: 'there is a like button' },
         getModelRuntime(mockModelConfig),
         {},
       );
@@ -861,15 +843,11 @@ describe('TaskExecutor - Null Data Handling', () => {
       } as any);
 
       expect(mockInsight.extract).toHaveBeenCalledWith(
-        {
-          Boolean:
-            'Boolean, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, there is a like button',
-        },
+        { demand: 'there is a like button' },
         getModelRuntime(mockModelConfig),
-        'boolean',
+        'Boolean',
         {},
         '',
-        undefined,
         expectEmptyUIContext(),
         { abortSignal: undefined },
       );
