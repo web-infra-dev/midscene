@@ -173,7 +173,10 @@ it('records login state and verifies native YAML three times; preparation retain
       );
       expect(report.result.summary).toMatchObject({ passed: 1, failed: 0 });
       expect(report.modelRequests).toEqual([]);
-      expect(report.evidence.filter((e) => e.phase === 'steps').length).toBe(3);
+      expect(
+        report.evidence.filter((e: { phase: string }) => e.phase === 'steps')
+          .length,
+      ).toBe(3);
       expect(existsSync(report.result.reportPath)).toBe(true);
       expect(existsSync(join(out, `run-${index}/review.png`))).toBe(true);
     }

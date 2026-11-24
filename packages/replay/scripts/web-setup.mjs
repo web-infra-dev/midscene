@@ -14,7 +14,21 @@ const availablePort = async () => {
   return port;
 };
 
-/** Native Test fileSetup. Test owns cleanup; business reset belongs in beforeEach. */
+/**
+ * Native Test fileSetup. Test owns cleanup; business reset belongs in beforeEach.
+ * @param {{
+ *   url: string,
+ *   cdp?: string,
+ *   mode?: 'new' | 'cdp-state' | 'cdp-tab',
+ *   headless?: boolean,
+ *   launch?: import('playwright').LaunchOptions,
+ *   agentOptions?: import('@midscene/web/playwright/agent').PlaywrightBrowserAgentOpt,
+ *   prepareStart?: (context: {
+ *     agent: import('@midscene/web/playwright/agent').PlaywrightBrowserAgent,
+ *     signal: AbortSignal
+ *   }) => unknown | Promise<unknown>
+ * }} options
+ */
 export function webFileSetup({
   url,
   cdp,
@@ -32,6 +46,7 @@ export function webFileSetup({
     throw new Error('Expected new, or cdp-state/cdp-tab with a CDP endpoint.');
   return {
     name: 'replay-web',
+    /** @param {{signal: AbortSignal, onTeardown(cleanup: () => Promise<void>): void}} context */
     async setup({ signal, onTeardown }) {
       signal.throwIfAborted();
       const [{ chromium }, { PlaywrightBrowserAgent }] = await Promise.all([
