@@ -81,7 +81,6 @@ export async function verify(
           : {}),
         caseName,
         out: dir,
-        manifest: { destination: frozen.destination, files: frozen.files },
       };
       const optionsFile = join(dir, 'options.json');
       writeFileSync(optionsFile, JSON.stringify(options, null, 2));

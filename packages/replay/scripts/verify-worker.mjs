@@ -1,16 +1,12 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { register } from 'node:module';
 import { join } from 'node:path';
 import { digest, imageBytes } from '../dist/es/tooling.mjs';
 import { trackModelRequests } from './metrics.mjs';
 import { loadTest } from './test-runner.mjs';
-import { guardCommonJs } from './verify-loader.mjs';
 import { describeWebPage } from './web-setup.mjs';
 
 const options = JSON.parse(readFileSync(process.argv[2], 'utf8'));
-const { out, manifest, ...runOptions } = options;
-register(new URL('./verify-loader.mjs', import.meta.url), { data: manifest });
-guardCommonJs(manifest);
+const { out, ...runOptions } = options;
 const metrics = trackModelRequests();
 const events = [];
 const evidence = [];

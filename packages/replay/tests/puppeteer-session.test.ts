@@ -80,7 +80,9 @@ it('follows a fresh Puppeteer popup from the source and checks its destination',
         await expect(
           withReplay(agent).tap('Reject a wrong destination', {
             candidates: [{ xpath: '//a[@id="wrong"]' }],
-            opensPage: { url: `${origin}/expected`, timeoutMs: 800 },
+            // Allow popup creation and action screenshots to complete before
+            // asserting the wrong destination, including on a cold CI browser.
+            opensPage: { url: `${origin}/expected`, timeoutMs: 3000 },
           }),
         ).rejects.toMatchObject({ code: 'WAIT_TIMEOUT' });
         expect(agent.activePage.url()).toBe(`${origin}/unexpected`);

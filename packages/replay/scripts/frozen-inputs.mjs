@@ -9,7 +9,8 @@ import {
   symlinkSync,
   writeFileSync,
 } from 'node:fs';
-import { dirname, join, relative, sep } from 'node:path';
+import { dirname, isAbsolute, join, relative, sep } from 'node:path';
+import { validateImports } from './verify-imports.mjs';
 
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const ignored = new Set([
@@ -20,13 +21,14 @@ const ignored = new Set([
   'coverage',
   'midscene_run',
   '.midscene',
-  '.trae-html-share-packages',
 ]);
-const within = (root, path) => {
-  const rel = relative(root, path);
+export const within = (root, path, paths = { relative, isAbsolute, sep }) => {
+  const rel = paths.relative(root, path);
   return (
     rel === '' ||
-    (rel !== '..' && !rel.startsWith(`..${sep}`) && !rel.startsWith(sep))
+    (rel !== '..' &&
+      !rel.startsWith(`..${paths.sep}`) &&
+      !paths.isAbsolute(rel))
   );
 };
 
@@ -64,9 +66,19 @@ export function freezeInputs(root, out) {
   out = realpathSync(out);
   if (root === out)
     throw new Error('Verification output cannot replace the input project.');
+  const packageFile = join(root, 'package.json');
+  if (
+    existsSync(join(root, 'pnpm-workspace.yaml')) ||
+    (existsSync(packageFile) &&
+      JSON.parse(readFileSync(packageFile, 'utf8')).workspaces)
+  )
+    throw new Error(
+      'VERIFY_PROJECT_TOO_BROAD: the Test config is at a workspace root. Put the config, YAML, helpers and fixtures in a dedicated authoring directory and pass --config <directory>/midscene.config.mjs. Installed dependencies can remain in the parent workspace.',
+    );
   const destination = join(out, 'inputs');
   const excluded = [out];
   const files = inventory(root, excluded);
+  validateImports(root, files, within);
   mkdirSync(destination);
   for (const file of Object.keys(files)) {
     const target = join(destination, file);
@@ -98,6 +110,8 @@ export function freezeInputs(root, out) {
     ),
     dependencyPolicy:
       'installed packages; package manifests and lockfiles are frozen; node_modules is not a security sandbox',
+    inputPolicy:
+      'static local imports checked before copying; source and snapshot hashes checked between rounds; arbitrary filesystem access and external state are not frozen',
   };
   writeFileSync(join(out, 'inputs.json'), JSON.stringify(manifest, null, 2));
   return {

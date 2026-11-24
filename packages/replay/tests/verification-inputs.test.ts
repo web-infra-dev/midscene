@@ -1,5 +1,5 @@
-import { spawnSync } from 'node:child_process';
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -7,9 +7,9 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, win32 } from 'node:path';
 import { expect, it } from '@rstest/core';
-import { freezeInputs } from '../scripts/frozen-inputs.mjs';
+import { freezeInputs, within } from '../scripts/frozen-inputs.mjs';
 
 it('freezes config, helpers and fixtures; excludes an output directory inside the input project', () => {
   const root = mkdtempSync(join(tmpdir(), 'replay-inputs-'));
@@ -31,44 +31,88 @@ it('freezes config, helpers and fixtures; excludes an output directory inside th
   }
 });
 
-it.each(['esm', 'cjs'])(
-  'rejects live helper imports outside frozen inputs through %s',
-  (format) => {
-    const root = mkdtempSync(join(tmpdir(), 'replay-loader-'));
+it.each([
+  "import '../live.cjs'",
+  "export * from '../live.cjs'",
+  "await import('../live.cjs')",
+  "require('../live.cjs')",
+  "module.require('../live.cjs')",
+])('rejects live helper imports before copying: %s', (source) => {
+  const root = mkdtempSync(join(tmpdir(), 'replay-loader-'));
+  try {
+    const src = join(root, 'project');
+    const out = join(root, 'output');
+    mkdirSync(src);
+    mkdirSync(out);
+    writeFileSync(join(src, 'step.mjs'), source);
+    expect(() => freezeInputs(src, out)).toThrow(
+      'VERIFY_IMPORT_OUTSIDE_INPUTS',
+    );
+    expect(existsSync(join(out, 'inputs'))).toBe(false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+it('keeps TS helpers and fixture data, ignores import-like strings, and rejects computed imports', () => {
+  const root = mkdtempSync(join(tmpdir(), 'replay-imports-'));
+  const out = join(root, 'verification');
+  mkdirSync(out);
+  try {
+    writeFileSync(join(root, 'helper.ts'), 'export const value: number = 1');
+    writeFileSync(join(root, 'fixture.json'), '{"expected":1}');
+    writeFileSync(
+      join(root, 'config.ts'),
+      `import {value} from './helper.js'; const text = "import '../not-code.js'"; export default {value, text};`,
+    );
+    const frozen = freezeInputs(root, out);
+    expect(Object.keys(frozen.files)).toEqual([
+      'config.ts',
+      'fixture.json',
+      'helper.ts',
+    ]);
+    writeFileSync(
+      join(frozen.destination, 'helper.ts'),
+      'export const value = 2',
+    );
+    expect(() => frozen.unchanged()).toThrow('VERIFY_INPUTS_CHANGED');
+    writeFileSync(
+      join(root, 'config.ts'),
+      'const path = "./helper.ts"; await import(path);',
+    );
+    expect(() => freezeInputs(root, out)).toThrow('VERIFY_DYNAMIC_IMPORT');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+it.each(['pnpm-workspace.yaml', 'package.json'])(
+  'rejects a workspace root before traversing or copying files: %s',
+  (marker) => {
+    const root = mkdtempSync(join(tmpdir(), 'replay-monorepo-'));
+    const out = join(root, 'verification');
+    mkdirSync(out);
     try {
-      const src = join(root, 'project');
-      const out = join(root, 'output');
-      mkdirSync(src);
-      mkdirSync(out);
-      const file = format === 'esm' ? 'step.mjs' : 'step.cjs';
       writeFileSync(
-        join(src, file),
-        format === 'esm' ? "import '../live.cjs';" : "require('../live.cjs');",
+        join(root, marker),
+        marker.endsWith('json')
+          ? '{"workspaces":["packages/*"]}'
+          : 'packages: [packages/*]',
       );
-      const frozen = freezeInputs(src, out);
-      writeFileSync(join(out, 'live.cjs'), "throw new Error('MUST_NOT_RUN');");
-      const loader = new URL('../scripts/verify-loader.mjs', import.meta.url)
-        .href;
-      const result = spawnSync(
-        process.execPath,
-        [
-          '--input-type=module',
-          '--eval',
-          `
-      import {register,createRequire} from 'node:module';
-      import {guardCommonJs} from ${JSON.stringify(loader)};
-      const manifest=${JSON.stringify({ destination: frozen.destination, files: frozen.files })};
-      register(${JSON.stringify(loader)},{data:manifest}); guardCommonJs(manifest);
-      ${format === 'esm' ? `await import(${JSON.stringify(join(frozen.destination, file))})` : `createRequire(import.meta.url)(${JSON.stringify(join(frozen.destination, file))})`};
-    `,
-        ],
-        { encoding: 'utf8' },
-      );
-      expect(result.status).toBe(1);
-      expect(result.stderr).toContain('VERIFY_IMPORT_OUTSIDE_INPUTS');
-      expect(result.stderr).not.toContain('Error: MUST_NOT_RUN');
+      expect(() => freezeInputs(root, out)).toThrow('VERIFY_PROJECT_TOO_BROAD');
+      expect(existsSync(join(out, 'inputs'))).toBe(false);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
   },
 );
+
+it('rejects sibling and cross-drive paths on Windows', () => {
+  expect(within('C:\\project', 'C:\\project\\steps\\run.mjs', win32)).toBe(
+    true,
+  );
+  expect(within('C:\\project', 'C:\\project-sibling\\run.mjs', win32)).toBe(
+    false,
+  );
+  expect(within('C:\\project', 'D:\\run.mjs', win32)).toBe(false);
+});

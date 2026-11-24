@@ -1379,6 +1379,9 @@ importers:
 
   packages/replay:
     dependencies:
+      '@babel/parser':
+        specifier: 7.29.13
+        version: 7.29.13
       '@midscene/core':
         specifier: workspace:*
         version: link:../core

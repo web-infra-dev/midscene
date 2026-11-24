@@ -58,11 +58,13 @@ pnpm exec midscene-replay verify case.yaml --case "审批 B 单" --runs 3
 | `strict` | 脚本失败则节点失败，同时关闭已声明的定位退路 |
 | `off` | 忽略脚本，执行原 ai*，包括其正常缓存行为 |
 
-项目默认值写为 `test: { replay: 'auto' }`，CLI 可覆盖。SDK 使用 `@midscene/test/config` 的 `runTestProject({configPath, replay})`。脚本结果复用原节点转换：aiQuery 数据、标量输出与 aiAssert 失败语义保持原样。取消和原生不可继续的资源错误不回退。不会保证零重复动作：auto 或原生 Case 重试可能重复脚本已执行的操作。
+项目默认值写为 `test: { replay: 'auto' }`，CLI 可覆盖。SDK 使用 `@midscene/test/config` 的 `runTestProject({configPath, replay})`。脚本结果复用原节点转换：aiQuery 数据、标量输出与 aiAssert 失败语义保持原样。已返回的断言失败（`{ pass: false }`）和不符合契约的返回值直接使节点失败，即使在 `auto` 下也不交给 AI 重判。取消和原生不可继续的资源错误不回退。不会保证零重复动作：auto 或原生 Case 重试可能重复脚本已执行的操作。
 
 `prepare-step` 执行初始化、hooks 和真实前缀，在目标节点前保留浏览器、变量和 Agent，打印准确 CDP 端点与 target ID。增加 `--record --out NEW_RECORDING` 可人工录制。按 Enter 结束交接后清理；目标节点和后缀不执行，原生报告记录主动停止，不宣称 Case 通过。
 
 `verify` 冻结编写项目，以 strict、retry 0 调用原生 Test，保留 HTML/机器结果、Replay 诊断、`steps.md`、`review.png` 和需要时的 `heal.json`。输入修改或任一轮失败使整组失效。编码 Agent 仍需结合原始目标逐步审阅截图。详见[验收边界](skills/midscene-replay/references/review.md)。
+
+请将配置、YAML、辅助代码和测试数据放在独立编写目录中。配置位于 workspace 根目录时，验收会在复制前报错，避免复制整个 monorepo；可传入 `--config ./replay-project/midscene.config.mjs`，依赖包仍可安装在上级 workspace。验收在复制前检查 JS/TS 中的字面量本地导入，并在每轮前后核对原文件与快照的哈希。计算得到的导入路径、绝对文件导入和 `#` 别名不支持，请改用相对导入。这不会冻结任意文件读取、已安装依赖或外部服务，也不是安全沙箱。
 
 ## 录制与登录
 

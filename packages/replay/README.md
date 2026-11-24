@@ -58,11 +58,13 @@ pnpm exec midscene-replay verify case.yaml --case "Approve B" --runs 3
 | `strict` | Script failure fails the node; declared locator fallback is also disabled |
 | `off` | Ignore scripts and use the original ai*, including its normal cache |
 
-Set the project default with `test: { replay: 'auto' }`; CLI overrides it. SDK users call `runTestProject({configPath, replay})` from `@midscene/test/config`. Script output passes through the original node conversion: aiQuery data, scalar insight values and aiAssert failure retain their native meanings. Cancellation and native terminal resource errors do not fall back. There is no zero-dispatch guarantee: auto or native Case retry can repeat an already-applied action.
+Set the project default with `test: { replay: 'auto' }`; CLI overrides it. SDK users call `runTestProject({configPath, replay})` from `@midscene/test/config`. Script output passes through the original node conversion: aiQuery data, scalar insight values and aiAssert failure retain their native meanings. Returned assertion failures (`{ pass: false }`) and invalid result types fail the node without AI fallback, including in `auto`. Cancellation and native terminal resource errors do not fall back. There is no zero-dispatch guarantee: auto or native Case retry can repeat an already-applied action.
 
 `prepare-step` runs setup/hooks and the actual prefix, then holds the active browser and variables before the selected node. It prints the exact CDP endpoint and target ID. Add `--record --out NEW_RECORDING` for manual capture. Enter ends the handoff and releases resources; the native report records an intentional stop, not a passed Case.
 
 `verify` snapshots the authored project, runs native Test in strict mode with retry 0, and retains native HTML/machine results, Replay diagnostics, `steps.md`, `review.png` and optional `heal.json`. A source change or any failed round invalidates the group. A coding Agent still reviews actual screenshots against the original goal. See [verification boundaries](skills/midscene-replay/references/review.md).
+
+Keep the config, YAML, helpers and fixtures in a dedicated authoring directory. Workspace-root configs are rejected before copying a monorepo; pass `--config ./replay-project/midscene.config.mjs`. Installed packages can remain in the parent workspace. Verification checks literal local JS/TS imports before copying and hashes source/snapshot files between rounds. Computed imports, absolute file imports and `#` aliases are rejected; use relative imports. This does not freeze arbitrary filesystem reads, installed packages or external services, and is not a sandbox.
 
 ## Recording and login
 
