@@ -79,12 +79,6 @@ Accepts all [shared Agent options](../reference/#agent-options), plus the follow
   - `'bulk'`: Sends the entire string in a single WDA text call. Requires `keyboardTypeDelay` to be omitted or set to `0`.
 - `customActions?: DeviceAction<any>[]` — Custom actions registered for the Agent planner to invoke. Pass this option to `new IOSDevice()` or `agentFromWebDriverAgent()`; see [Integrate with any interface](../integrate-with-any-interface) for details.
 
-To replace an existing nickname:
-
-```bash
-pnpm exec midscene-ios input --mode replace --locate '{"prompt":"Nickname field"}' --value 'New nickname'
-```
-
 ## Platform methods
 
 <a id="ios-agentlaunch"></a>

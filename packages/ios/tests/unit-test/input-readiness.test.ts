@@ -102,6 +102,80 @@ describe('iOS input focus readiness', () => {
     },
   );
 
+  it('bounds slow menu polls and stops when the remaining request time expires', async () => {
+    rs.useFakeTimers();
+    try {
+      request
+        .mockResolvedValueOnce({ value: [] }) // Menu closed
+        .mockResolvedValueOnce({ value: null }) // Open menu
+        .mockResolvedValueOnce({ value: [] }) // First poll
+        .mockImplementationOnce(async (_method, _path, _body, { timeout }) => {
+          expect(timeout).toBe(1100);
+          await new Promise((resolve) => setTimeout(resolve, timeout));
+          throw new WebDriverRequestError(`Request timeout after ${timeout}ms`);
+        });
+      const selected = client.selectAllFromMenu('field');
+      await rs.advanceTimersByTimeAsync(1200);
+      expect(await selected).toBe(false);
+      expect(request).toHaveBeenCalledTimes(4);
+    } finally {
+      rs.useRealTimers();
+    }
+  });
+
+  it('caps the last poll delay without starting another lookup after the deadline', async () => {
+    rs.useFakeTimers();
+    try {
+      request
+        .mockResolvedValueOnce({ value: [] })
+        .mockResolvedValueOnce({ value: null })
+        .mockImplementationOnce(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 1170));
+          return { value: [] };
+        });
+      const selected = client.selectAllFromMenu('field');
+      await rs.advanceTimersByTimeAsync(1200);
+      expect(await selected).toBe(false);
+      expect(request).toHaveBeenCalledTimes(3);
+    } finally {
+      rs.useRealTimers();
+    }
+  });
+
+  it('uses the remaining lookup budget for Select All after a slow opening gesture', async () => {
+    let now = 0;
+    rs.spyOn(Date, 'now').mockImplementation(() => now);
+    request
+      .mockImplementationOnce(async () => {
+        now += 250;
+        return { value: [] };
+      })
+      .mockImplementationOnce(async () => {
+        now += 2000;
+        return { value: null };
+      })
+      .mockImplementationOnce(async () => {
+        now += 450;
+        return { value: [{ ELEMENT: 'menu' }] };
+      })
+      .mockResolvedValueOnce({ value: [{ ELEMENT: 'select-all' }] })
+      .mockResolvedValueOnce({ value: null });
+    expect(await client.selectAllFromMenu('field')).toBe(true);
+    expect(request.mock.calls.map((call) => call[3]?.timeout)).toEqual([
+      1200,
+      undefined,
+      950,
+      500,
+      undefined,
+    ]);
+  });
+
+  it('propagates a WDA failure during menu discovery', async () => {
+    const failure = new WebDriverRequestError('invalid session', 404);
+    request.mockRejectedValueOnce(failure);
+    await expect(client.selectAllFromMenu()).rejects.toBe(failure);
+  });
+
   it('does not reopen a field when the original tap overlaps multiple inputs', async () => {
     request.mockResolvedValueOnce({
       value: [{ ELEMENT: 'first' }, { ELEMENT: 'second' }],

@@ -1,5 +1,5 @@
 import { getDebug } from '@midscene/shared/logger';
-import { WebDriverClient } from '@midscene/webdriver';
+import { WebDriverClient, WebDriverRequestError } from '@midscene/webdriver';
 import {
   type InputRequest,
   clearInputWithFocus,
@@ -329,22 +329,51 @@ export class IOSWebDriverClient extends WebDriverClient {
   }
 
   async selectAllFromMenu(inputId?: string): Promise<boolean> {
+    let deadline = Date.now() + 1200;
+    const lookup = async (predicate: string): Promise<string[] | undefined> => {
+      const timeout = deadline - Date.now();
+      if (timeout <= 0) return undefined;
+      try {
+        const response = await this.requestInput(
+          'POST',
+          '/elements',
+          { using: 'predicate string', value: predicate },
+          { timeout },
+        );
+        return this.getElementIds(response);
+      } catch (error) {
+        if (
+          error instanceof WebDriverRequestError &&
+          error.message === `Request timeout after ${timeout}ms`
+        )
+          return undefined;
+        throw error;
+      }
+    };
+
     if (inputId) {
-      const findMenu = () =>
-        this.findElementIds('predicate string', visibleEditMenuItem);
-      if (!(await findMenu()).length) {
+      let menu = await lookup(visibleEditMenuItem);
+      const remainingLookupTime = deadline - Date.now();
+      if (!menu || remainingLookupTime <= 0) return false;
+      if (!menu.length) {
+        // Budget menu discovery separately from the gesture that opens it.
         await this.clickElement(inputId);
-        const deadline = Date.now() + 1200;
-        while (!(await findMenu()).length && Date.now() < deadline) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
+        deadline = Date.now() + remainingLookupTime;
+        while (true) {
+          menu = await lookup(visibleEditMenuItem);
+          if (menu?.length) break;
+          const remaining = deadline - Date.now();
+          if (!menu || remaining <= 0) return false;
+          await new Promise((resolve) =>
+            setTimeout(resolve, Math.min(100, remaining)),
+          );
         }
       }
     }
-    const matches = await this.findElementIds(
-      'predicate string',
+    const matches = await lookup(
       `${visibleEditMenuItem} AND (name IN {"Select All", "全选", "全選"} OR label IN {"Select All", "全选", "全選"})`,
     );
-    if (!matches.length) return false;
+    if (!matches?.length || Date.now() >= deadline) return false;
     if (matches.length !== 1) {
       throw new Error(
         'Cannot clear the located input: the iOS Select All menu item is unavailable',

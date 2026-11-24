@@ -79,12 +79,6 @@ const agent = new IOSAgent(device);
   - `'bulk'`：整段文本仅调用一次 WDA 文本接口；使用此策略时，不能设置 `keyboardTypeDelay`（或须将其设为 `0`）。
 - `customActions?: DeviceAction<any>[]` —— 注册自定义动作，供 Agent 在规划时调用。可传入 `IOSDevice` 构造函数或 `agentFromWebDriverAgent()`，定义方式请参阅[自定义动作](../integrate-with-any-interface)。
 
-替换已有昵称的 CLI 示例：
-
-```bash
-pnpm exec midscene-ios input --mode replace --locate '{"prompt":"昵称输入框"}' --value '新昵称'
-```
-
 ## 平台方法
 
 <a id="ios-agentlaunch"></a>
