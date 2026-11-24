@@ -114,10 +114,16 @@ export class IOSDevice implements AbstractInterface {
         const replaceLocated = !!target && opts?.replace !== false;
         const typingApp =
           target && willType ? await this.appBeforeInput() : undefined;
+        let inputId: string | undefined;
         if (replaceLocated && !willType) {
           await this.clearInput(target);
-        } else if (target) {
-          await this.tapPoint({ x: target.center[0], y: target.center[1] });
+        } else if (focusRestorePoint) {
+          if (replaceLocated && typingApp)
+            inputId = await this.wdaBackend.findInputAt(
+              focusRestorePoint.x,
+              focusRestorePoint.y,
+            );
+          await this.tapPoint(focusRestorePoint);
         }
 
         if (opts?.focusOnly) {
@@ -131,6 +137,7 @@ export class IOSDevice implements AbstractInterface {
           resolvedInputOptions,
           typingApp,
           replaceLocated,
+          inputId,
         );
       },
       clearInput: (target) =>
@@ -275,8 +282,12 @@ export class IOSDevice implements AbstractInterface {
   private async clearInputAt(point?: PointerPoint): Promise<void> {
     this.invalidatePendingKeyboardFollowUp('clear input');
     const app = point ? await this.appBeforeInput() : undefined;
+    const inputId =
+      point && app
+        ? await this.wdaBackend.findInputAt(point.x, point.y)
+        : undefined;
     if (point) await this.tapPoint(point);
-    await this.prepareTextInput(app, 'clear', point);
+    await this.prepareTextInput(app, 'clear', point, inputId);
   }
 
   actionSpace(): DeviceAction<any>[] {
@@ -689,6 +700,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     typingApp: string | undefined,
     mode: 'clear' | 'replace' | 'typeOnly',
     point?: PointerPoint,
+    inputId?: string,
   ): Promise<void> {
     let nativeFocus = true;
     try {
@@ -719,7 +731,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
         point,
         'Cannot clear an unidentified input without a located target',
       );
-      const selected = await this.selectCustomInput(point, typingApp);
+      const selected = await this.selectCustomInput(typingApp, inputId);
       await this.checkInputApp(typingApp);
       if (selected && mode === 'clear')
         await this.wdaBackend.typeRawKeys(['\b']);
@@ -734,16 +746,11 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   private async selectCustomInput(
-    point: PointerPoint,
     app: string,
+    inputId?: string,
   ): Promise<boolean> {
     const { isFocusedInputEmpty } = this;
-    const selected = await this.wdaBackend.selectAllAt(
-      Math.round(point.x),
-      Math.round(point.y),
-      !isFocusedInputEmpty,
-    );
-    if (selected !== undefined) return selected;
+    if (await this.wdaBackend.selectAllFromMenu(inputId)) return true;
     assert(
       isFocusedInputEmpty,
       'Cannot clear input: the Select All menu item is unavailable',
@@ -771,6 +778,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     ),
     typingApp?: string,
     replaceLocated = false,
+    inputId?: string,
   ): Promise<void> {
     this.invalidatePendingKeyboardFollowUp('new text input');
     if (!text) return;
@@ -787,6 +795,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
         typingApp,
         replaceLocated ? 'replace' : 'typeOnly',
         focusRestorePoint,
+        inputId,
       );
 
       if (inputSequentially) {

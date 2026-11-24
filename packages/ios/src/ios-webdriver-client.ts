@@ -307,47 +307,44 @@ export class IOSWebDriverClient extends WebDriverClient {
     return clearInputWithFocus(this.requestInput);
   }
 
-  async selectAllAt(
-    x: number,
-    y: number,
-    openAtOriginalPoint = true,
-  ): Promise<boolean | undefined> {
-    if (openAtOriginalPoint) {
+  /** Capture the field before the keyboard can move it away from the tap point. */
+  async findInputAt(x: number, y: number): Promise<string | undefined> {
+    const fieldTypes =
+      'self::XCUIElementTypeTextField or self::XCUIElementTypeSecureTextField or self::XCUIElementTypeTextView or self::XCUIElementTypeSearchField';
+    // Menu reopening is optional. An expensive accessibility snapshot must not
+    // consume the input action's normal WDA request timeout.
+    try {
+      const fields = await this.findElementIds(
+        'xpath',
+        `//*[${fieldTypes}][@visible="true" and @enabled="true" and @x <= ${x} and @x + @width > ${x} and @y <= ${y} and @y + @height > ${y}]`,
+        { deadline: Date.now() + 1200 },
+      );
+      return fields.length === 1 ? fields[0] : undefined;
+    } catch (error) {
+      debugIOS(
+        `Cannot identify the field for reopening its edit menu: ${error}`,
+      );
+      return undefined;
+    }
+  }
+
+  async selectAllFromMenu(inputId?: string): Promise<boolean> {
+    if (inputId) {
       const findMenu = () =>
         this.findElementIds('predicate string', visibleEditMenuItem);
       if (!(await findMenu()).length) {
-        await this.tap(x, y);
+        await this.clickElement(inputId);
         const deadline = Date.now() + 1200;
         while (!(await findMenu()).length && Date.now() < deadline) {
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
       }
     }
-    return this.selectAllFromMenu();
-  }
-
-  async selectAllFromMenu(): Promise<boolean | undefined> {
     const matches = await this.findElementIds(
       'predicate string',
       `${visibleEditMenuItem} AND (name IN {"Select All", "全选", "全選"} OR label IN {"Select All", "全选", "全選"})`,
     );
-    if (!matches.length) {
-      // UIKit offers only insertion actions in the edit menu of an empty field.
-      const insertionActions =
-        'name IN {"Paste", "AutoFill", "AutoFill…", "粘贴", "贴上", "貼上", "自动填充", "自動填寫", "自動填入"}';
-      const insertionItems = await this.findElementIds(
-        'predicate string',
-        `${visibleEditMenuItem} AND (${insertionActions})`,
-      );
-      if (insertionItems.length) {
-        const otherItems = await this.findElementIds(
-          'predicate string',
-          `${visibleEditMenuItem} AND NOT (${insertionActions})`,
-        );
-        if (!otherItems.length) return false;
-      }
-    }
-    if (!matches.length) return undefined;
+    if (!matches.length) return false;
     if (matches.length !== 1) {
       throw new Error(
         'Cannot clear the located input: the iOS Select All menu item is unavailable',

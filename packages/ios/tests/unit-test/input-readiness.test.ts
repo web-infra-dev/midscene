@@ -1,5 +1,7 @@
 import { WebDriverRequestError } from '@midscene/webdriver';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
+import { IOSAgent } from '../../src/agent';
+import { IOSDevice } from '../../src/device';
 import { InputFocusUnavailableError } from '../../src/input-focus';
 import { IOSWebDriverClient } from '../../src/ios-webdriver-client';
 
@@ -30,37 +32,87 @@ describe('iOS input focus readiness', () => {
     expect(request.mock.calls[1][2].value).toContain('下一个键盘');
   });
 
-  it('opens the edit menu and clicks the unique Select All item', async () => {
-    const tap = rs.spyOn(client, 'tap').mockResolvedValue(undefined);
-    request
-      .mockResolvedValueOnce({ value: [] })
-      .mockResolvedValueOnce({ value: [{ ELEMENT: 'menu' }] })
-      .mockResolvedValueOnce({ value: [{ ELEMENT: 'select-all' }] })
-      .mockResolvedValueOnce({ value: null });
-    expect(await client.selectAllAt(10, 20)).toBe(true);
-    expect(tap).toHaveBeenCalledExactlyOnceWith(10, 20);
-    expect(request.mock.calls.at(-1)?.slice(0, 2)).toEqual([
-      'POST',
-      '/session/session/element/select-all/click',
-    ]);
-  });
-
-  it.each([true, false])(
-    'recognizes an insertion-only edit menu (other items: %s)',
-    async (hasOtherItems) => {
-      rs.spyOn(client, 'tap').mockResolvedValue(undefined);
-      request
-        .mockResolvedValueOnce({ value: [{ ELEMENT: 'menu' }] })
-        .mockResolvedValueOnce({ value: [] })
-        .mockResolvedValueOnce({ value: [{ ELEMENT: 'paste' }] })
-        .mockResolvedValueOnce({
-          value: hasOtherItems ? [{ ELEMENT: 'other' }] : [],
-        });
-      if (hasOtherItems)
-        expect(await client.selectAllAt(10, 20)).toBeUndefined();
-      else expect(await client.selectAllAt(10, 20)).toBe(false);
+  it.each(['closed menu', 'paste only', 'unidentified field'] as const)(
+    'handles %s through the Agent with its emptiness check installed',
+    async (scenario) => {
+      const device = new IOSDevice();
+      const agent = new IOSAgent(device, {
+        modelConfig: {
+          MIDSCENE_MODEL_NAME: 'mock',
+          MIDSCENE_MODEL_API_KEY: 'mock',
+          MIDSCENE_MODEL_BASE_URL: 'mock',
+          MIDSCENE_MODEL_FAMILY: 'doubao-vision',
+        },
+      });
+      const empty = rs.spyOn(agent, 'aiBoolean').mockResolvedValue(false);
+      const backend = (device as any).wdaBackend as IOSWebDriverClient;
+      (backend as any).sessionId = 'session';
+      rs.spyOn(backend, 'waitForInputFocus').mockRejectedValue(
+        new InputFocusUnavailableError('no focus'),
+      );
+      rs.spyOn(backend, 'isKeyboardVisible').mockResolvedValue(true);
+      let opened = false;
+      const clicks: string[] = [];
+      const keys: string[] = [];
+      const taps: unknown[] = [];
+      rs.spyOn(backend as any, 'makeRequest').mockImplementation(
+        async (_method, path, data) => {
+          const endpoint = String(path);
+          const body = data as { using?: string; value?: string };
+          if (endpoint.endsWith('/wda/activeAppInfo'))
+            return { value: { bundleId: 'app' } };
+          if (endpoint.endsWith('/wda/tap')) taps.push(body);
+          else if (endpoint.endsWith('/elements')) {
+            let match: string | undefined;
+            if (body.using === 'xpath')
+              match = scenario === 'unidentified field' ? undefined : 'field';
+            else if (opened) match = 'select-all';
+            else if (
+              scenario === 'paste only' &&
+              !body.value?.includes('Select All')
+            )
+              match = 'paste';
+            return { value: match ? [{ ELEMENT: match }] : [] };
+          } else if (endpoint.endsWith('/click')) {
+            clicks.push(endpoint);
+            if (endpoint.endsWith('/field/click')) opened = true;
+          } else if (endpoint.endsWith('/wda/keys'))
+            keys.push(...(data as { value: string[] }).value);
+          else throw new Error(`Unexpected WDA request: ${endpoint}`);
+          return { value: null };
+        },
+      );
+      const result = device.inputPrimitives.keyboard.typeText('new', {
+        target: { center: [10, 20] },
+        replace: true,
+        autoDismissKeyboard: false,
+      });
+      if (scenario === 'closed menu') {
+        await result;
+        expect(clicks).toEqual([
+          '/session/session/element/field/click',
+          '/session/session/element/select-all/click',
+        ]);
+        expect(keys.join('')).toBe('new');
+        expect(empty).not.toHaveBeenCalled();
+      } else {
+        await expect(result).rejects.toThrow(
+          'Cannot confirm the focused input is empty',
+        );
+        expect(empty).toHaveBeenCalledOnce();
+        expect(clicks).toEqual([]);
+        expect(keys).toEqual([]);
+      }
+      expect(taps).toEqual([{ x: 10, y: 20 }]);
     },
   );
+
+  it('does not reopen a field when the original tap overlaps multiple inputs', async () => {
+    request.mockResolvedValueOnce({
+      value: [{ ELEMENT: 'first' }, { ELEMENT: 'second' }],
+    });
+    expect(await client.findInputAt(10, 20)).toBeUndefined();
+  });
 
   it.each([
     { value: { 'element-6066-11e4-a52e-4f735466cecf': 'input' } },

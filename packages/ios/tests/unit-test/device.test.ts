@@ -45,8 +45,8 @@ describe('IOSDevice', () => {
       typeText: rs.fn().mockResolvedValue(undefined),
       typeRawKeys: rs.fn().mockResolvedValue(undefined),
       waitForInputFocus: rs.fn().mockResolvedValue(undefined),
-      selectAllFromMenu: rs.fn().mockResolvedValue(undefined),
-      selectAllAt: rs.fn().mockResolvedValue(true),
+      findInputAt: rs.fn().mockResolvedValue(undefined),
+      selectAllFromMenu: rs.fn().mockResolvedValue(true),
       clearActiveElement: rs.fn().mockResolvedValue(true),
       pressKey: rs.fn().mockResolvedValue(undefined),
       pressHomeButton: rs.fn().mockResolvedValue(undefined),
@@ -426,10 +426,8 @@ describe('IOSDevice', () => {
         new InputFocusUnavailableError('no focus'),
       );
       await device.clearInput({ center: [10, 20] } as any);
-      expect(mockWdaClient.selectAllAt).toHaveBeenCalledExactlyOnceWith(
-        10,
-        20,
-        true,
+      expect(mockWdaClient.selectAllFromMenu).toHaveBeenCalledExactlyOnceWith(
+        undefined,
       );
       expect(mockWdaClient.typeRawKeys).toHaveBeenCalledExactlyOnceWith(['\b']);
       expect(mockWdaClient.typeText).not.toHaveBeenCalled();
@@ -443,7 +441,7 @@ describe('IOSDevice', () => {
           async (empty) => {
             device.options = { customInputClearFallbackMaxDeleteCount: 40 };
             mockWdaClient.clearActiveElement.mockResolvedValue(false);
-            mockWdaClient.selectAllAt.mockResolvedValue(undefined);
+            mockWdaClient.selectAllFromMenu.mockResolvedValue(false);
             device.isFocusedInputEmpty = rs.fn().mockResolvedValue(empty);
             const action = device
               .actionSpace()
@@ -478,7 +476,7 @@ describe('IOSDevice', () => {
 
     it('stops without gestures or keys when WDA cannot select the nonempty input and Backspace is disabled', async () => {
       mockWdaClient.clearActiveElement.mockResolvedValue(false);
-      mockWdaClient.selectAllAt.mockResolvedValue(undefined);
+      mockWdaClient.selectAllFromMenu.mockResolvedValue(false);
       device.isFocusedInputEmpty = rs.fn().mockResolvedValue(false);
       await expect(
         device.inputPrimitives.keyboard.typeText('new', {
@@ -493,7 +491,7 @@ describe('IOSDevice', () => {
 
     it('does not delete or append when the selection fails', async () => {
       mockWdaClient.clearActiveElement.mockResolvedValue(false);
-      mockWdaClient.selectAllAt.mockRejectedValue(new Error('no menu'));
+      mockWdaClient.selectAllFromMenu.mockRejectedValue(new Error('no menu'));
       await expect(
         device.inputPrimitives.keyboard.typeText('new', {
           target: { center: [10, 20] },
@@ -532,7 +530,7 @@ describe('IOSDevice', () => {
         expect(mockWdaClient.typeText).toHaveBeenCalledExactlyOnceWith(
           'new text',
         );
-        expect(mockWdaClient.selectAllAt).toHaveBeenCalledTimes(
+        expect(mockWdaClient.selectAllFromMenu).toHaveBeenCalledTimes(
           replace ? 1 : 0,
         );
         expect(mockWdaClient.typeRawKeys).not.toHaveBeenCalled();
