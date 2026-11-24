@@ -1,7 +1,7 @@
 import type { Agent } from '@midscene/core';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, expect, it, rs } from '@rstest/core';
-import { withReplay } from '../src/experimental';
+import { withReplay } from '../src/index';
 import { createJevChecker } from '../src/runtime/jev';
 
 const { call, runtime } = rs.hoisted(() => ({

@@ -89,30 +89,65 @@ export function deadlineAfter(ms: number) {
   return performance.now() + ms;
 }
 
+/** Stop awaiting cooperative host work without allowing a late result to dispatch. */
+export async function withAbort<T>(
+  pending: Promise<T>,
+  signal?: AbortSignal,
+): Promise<T> {
+  if (!signal) return pending;
+  let abort!: () => void;
+  const cancelled = new Promise<never>((_, reject) => {
+    abort = () => reject(signal.reason);
+    signal.addEventListener('abort', abort, { once: true });
+    if (signal.aborted) abort();
+  });
+  try {
+    return await Promise.race([pending, cancelled]);
+  } finally {
+    signal.removeEventListener('abort', abort);
+  }
+}
+
+export async function pause(ms: number, signal?: AbortSignal) {
+  signal?.throwIfAborted();
+  await new Promise<void>((resolve, reject) => {
+    const finish = () => {
+      signal?.removeEventListener('abort', abort);
+      resolve();
+    };
+    const timer = setTimeout(finish, Math.max(0, ms));
+    const abort = () => {
+      clearTimeout(timer);
+      reject(signal?.reason);
+    };
+    signal?.addEventListener('abort', abort, { once: true });
+  });
+}
+
 export async function poll<T>(
   deadline: number,
   attempt: () => Promise<T | undefined>,
   onTimeout: () => never,
   retryError: (error: unknown) => boolean = isNavigationRace,
+  signal?: AbortSignal,
+  intervalMs = 50,
 ): Promise<T> {
   while (true) {
+    signal?.throwIfAborted();
     try {
       const result = await attempt();
+      signal?.throwIfAborted();
       if (result !== undefined) return result;
     } catch (error) {
       if (!retryError(error)) throw error;
       const remaining = deadline - performance.now();
       if (remaining <= 0) throw error;
-      await new Promise((resolve) =>
-        setTimeout(resolve, Math.min(50, remaining)),
-      );
+      await pause(Math.min(intervalMs, remaining), signal);
       continue;
     }
     const remaining = deadline - performance.now();
     if (remaining <= 0) onTimeout();
-    await new Promise((resolve) =>
-      setTimeout(resolve, Math.min(50, remaining)),
-    );
+    await pause(Math.min(intervalMs, remaining), signal);
   }
 }
 

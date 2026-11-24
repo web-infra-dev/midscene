@@ -1,0 +1,22 @@
+beforeEach:
+  - gotoUrl: https://todomvc.com/examples/react/dist/
+  # Configure a reset Node for a known empty list before formal verification.
+
+cases:
+  - name: 添加任务并完成
+    steps:
+      # 1. 添加任务
+      - aiAct:
+          prompt: 添加名为“买牛奶”的任务，确认任务出现在列表中
+          replay:
+            script: ./steps/add-todo.mjs
+            params:
+              todo: 买牛奶
+
+      # 2. 完成任务
+      - aiAct:
+          prompt: 勾选“买牛奶”，确认任务已完成且剩余任务数为零
+          replay:
+            script: ./steps/complete-todo.mjs
+            params:
+              todo: 买牛奶

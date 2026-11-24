@@ -88,6 +88,11 @@ export const resolveRunInput = (
 export async function prepareTestRun(
   options: TestProjectRunOptions,
 ): Promise<PreparedTestRunPlan> {
+  if (
+    options.retry !== undefined &&
+    (!Number.isSafeInteger(options.retry) || options.retry < 0)
+  )
+    throw new TypeError('retry must be a non-negative integer.');
   const startedAt = new Date();
   const runId = createTestRunId(startedAt);
   const input = resolveRunInput(options);
@@ -123,6 +128,8 @@ export async function prepareTestRun(
           definition.test.testTimeout,
           {
             testPath: input.testPath,
+            caseName: options.caseName,
+            retry: options.retry,
             ...discovery,
             excludedDirectories: [
               artifactDir,
@@ -152,6 +159,14 @@ export async function prepareTestRun(
       ),
     );
     return {
+      signal: options.signal,
+      replayExecution: {
+        replay: options.replay ?? definition.test.replay,
+        projectRoot: input.projectRoot,
+        onReplayEvent: options.onReplayEvent,
+        beforeAgentNode: options.beforeAgentNode,
+        afterAgentNode: options.afterAgentNode,
+      },
       startedAt,
       runId,
       projectRoot: input.projectRoot,

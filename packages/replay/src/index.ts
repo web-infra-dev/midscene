@@ -5,20 +5,11 @@ export {
 } from './runtime/actions';
 export { VerifyError, type Verdict } from './runtime/checks';
 export {
-  defineReplay,
   defineStep,
-  resolveReplayRange,
-  ReplayStepError,
-  type AttemptOutcome,
-  type FlowOutcome,
-  type ReplayFlow,
-  type ReplayMeta,
+  runReplayStep,
   type ReplayStep,
-  type RunOptions,
   type StepContext,
-  type StepOutcome,
-  type StepRetry,
-} from './runtime/flow';
+} from './runtime/step';
 export type { VerdictJudge, VerdictState } from './runtime/judge';
 export type { UrlMatch } from './runtime/web-page';
 export type {
@@ -32,6 +23,6 @@ export {
   checkReplayHost,
   withReplay,
   type Replay,
+  type ReplayOptions,
   type ReplayRequirements,
-  type StepRef,
 } from './runtime/with-replay';

@@ -1,5 +1,5 @@
 import type { Agent } from '@midscene/core';
-import { replayError } from './web-page';
+import { replayError, withAbort } from './web-page';
 
 /**
  * Popup following implemented with public BrowserAgent members only
@@ -85,6 +85,7 @@ export async function followPopup(
   agent: Agent,
   action: () => Promise<void>,
   timeoutMs: number,
+  signal?: AbortSignal,
 ) {
   assertPopupHost(agent);
   const host = agent as PopupAgent;
@@ -95,12 +96,14 @@ export async function followPopup(
   await action();
   let page: unknown;
   try {
-    page = await waiting;
+    page = await withAbort(waiting, signal);
   } catch (cause) {
+    signal?.throwIfAborted();
     throw Object.assign(replayError('POPUP_TIMEOUT', { timeoutMs }), {
       cause,
     });
   }
+  signal?.throwIfAborted();
   await host.setActivePage!(page);
   return page;
 }

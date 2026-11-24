@@ -7,7 +7,7 @@ import {
   type VerdictState,
   checkReplayHost,
   withReplay,
-} from '../src/experimental';
+} from '../src/index';
 
 function fixture(states: VerdictState[] = ['pass']) {
   const point = { identity: 'a', tag: 'button', x: 32, y: 16 };

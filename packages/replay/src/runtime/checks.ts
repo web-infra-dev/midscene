@@ -16,7 +16,8 @@ import {
   matchesUrl,
   normalizeUrlMatch,
   pageFunction,
-  poll,
+  pause,
+  poll as pollUntil,
   replayError,
 } from './web-page';
 import {
@@ -30,6 +31,7 @@ import type { ReplayEvidence } from './with-replay';
 type WaitOptions<Args extends unknown[]> = {
   args?: Args;
   timeoutMs?: number;
+  checkIntervalMs?: number;
   /** A business condition name for errors and timing evidence. */
   title?: string;
 };
@@ -51,16 +53,25 @@ export class VerifyError extends Error {
 
 export function createReplayChecks(
   agent: Agent,
-  options: { judge?: VerdictJudge },
+  options: {
+    judge?: VerdictJudge;
+    signal?: AbortSignal;
+    waitTimeoutMs?: number;
+    waitIntervalMs?: number;
+  },
   { publish, report }: ReplayEvidence,
 ) {
+  const poll: typeof pollUntil = (deadline, attempt, timeout, retry) =>
+    pollUntil(deadline, attempt, timeout, retry, options.signal);
   let judgePromise: Promise<VerdictJudge> | undefined;
+  const checkSignal = () => options.signal?.throwIfAborted();
   const checks = {
     /** Read page state without creating a Replay event or screenshot. */
     async read<Args extends unknown[], T>(
       read: (...args: Args) => T,
       options: { args?: Args } = {},
     ): Promise<T> {
+      checkSignal();
       return agent.evaluateJavaScript(
         pageFunction(read, options.args ?? ([] as unknown as Args)),
       );
@@ -97,8 +108,15 @@ export function createReplayChecks(
     },
     async waitFor<Args extends unknown[]>(
       expression: string | ((...args: Args) => unknown),
-      { timeoutMs = 0, args, title }: WaitOptions<Args> = {},
+      {
+        timeoutMs = options.waitTimeoutMs ?? 0,
+        checkIntervalMs = options.waitIntervalMs ?? 50,
+        args,
+        title,
+      }: WaitOptions<Args> = {},
     ) {
+      if (!Number.isFinite(checkIntervalMs) || checkIntervalMs <= 0)
+        throw new TypeError('Expected a positive check interval');
       const source =
         typeof expression === 'string'
           ? expression.trim()
@@ -112,7 +130,7 @@ export function createReplayChecks(
           : expression.name || 'page function');
       let status = 'failed';
       try {
-        await poll(
+        await pollUntil(
           deadlineAfter(timeoutMs),
           async () =>
             (await agent.evaluateJavaScript(`Boolean(${source})`))
@@ -121,6 +139,9 @@ export function createReplayChecks(
           () => {
             throw replayError('WAIT_TIMEOUT', { condition });
           },
+          undefined,
+          options.signal,
+          checkIntervalMs,
         );
         status = 'passed';
       } finally {
@@ -235,12 +256,14 @@ export function createReplayChecks(
       const judge = options.judge ?? (await judgePromise!);
       const until = performance.now() + settleTimeoutMs;
       while (true) {
+        checkSignal();
         const base64 = await agent.interface.screenshotBase64();
         let judged: Awaited<ReturnType<VerdictJudge['judge']>>;
         try {
           judged = await judge.judge({
             criterion,
             frames: [{ base64 }],
+            abortSignal: options.signal,
           });
         } catch (error) {
           const failed = error as {
@@ -259,6 +282,7 @@ export function createReplayChecks(
           );
           throw error;
         }
+        checkSignal();
         const { evaluatedImage = base64, preparation, ...result } = judged;
         const verdict = {
           ...result,
@@ -277,9 +301,7 @@ export function createReplayChecks(
         if (verdict.state === 'pass') return verdict;
         if (verdict.state !== 'pending' || performance.now() >= until)
           throw new VerifyError(verdict);
-        await new Promise((done) =>
-          setTimeout(done, Math.min(200, until - performance.now())),
-        );
+        await pause(Math.min(200, until - performance.now()), options.signal);
         if (performance.now() >= until) throw new VerifyError(verdict);
       }
     },

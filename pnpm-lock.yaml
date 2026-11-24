@@ -1395,6 +1395,9 @@ importers:
         specifier: ^0.35.5
         version: 0.35.5(@types/node@18.19.130)
     devDependencies:
+      '@midscene/test':
+        specifier: workspace:*
+        version: link:../test
       '@rslib/core':
         specifier: ~0.19.6
         version: 0.19.6(@microsoft/api-extractor@7.60.1(@types/node@18.19.130))(typescript@5.9.3)

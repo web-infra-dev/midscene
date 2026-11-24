@@ -46,14 +46,6 @@ export async function checkReplayHost(
       });
   }
 }
-/** Identity of the step currently executing, attached to every event. */
-export interface StepRef {
-  number: number;
-  id: string;
-  title: string;
-  attempt: number;
-}
-
 export const replayEvents = channel('midscene.replay');
 
 export interface ReplayEvidence {
@@ -69,27 +61,31 @@ export interface ReplayEvidence {
   ): Promise<never>;
 }
 
-type ReplayOptions = {
+export type ReplayOptions = {
   judge?: VerdictJudge;
   timeoutMs?: number;
   /** Budget for one AI locate fallback. Default 15000 ms. */
   fallbackTimeoutMs?: number;
   requires?: ReplayRequirements;
+  signal?: AbortSignal;
+  waitTimeoutMs?: number;
+  waitIntervalMs?: number;
+  onEvent?(event: Record<string, unknown>): void;
 };
 
-export function createReplayRuntime(agent: Agent, options: ReplayOptions) {
-  let step: StepRef | undefined;
-  let dispatches = 0;
+export function withReplay(agent: Agent, options: ReplayOptions = {}) {
   let preflight: Promise<void> | undefined;
-  const publish: ReplayEvidence['publish'] = (event) =>
-    replayEvents.publish({ agent, event: { ...event, step } });
+  const publish: ReplayEvidence['publish'] = (event) => {
+    options.onEvent?.(event);
+    replayEvents.publish({ agent, event });
+  };
 
   async function report(
     event: Record<string, unknown>,
     screenshot?: string,
     nativeTitle?: string,
   ) {
-    event = { ...event, ...(step ? { step } : {}) };
+    options.onEvent?.(event);
     replayEvents.publish({ agent, event, screenshot });
     // ActionSpace already records its actions. Page-native actions opt in
     // explicitly, since recordToReport captures a screenshot of its own.
@@ -101,13 +97,10 @@ export function createReplayRuntime(agent: Agent, options: ReplayOptions) {
       event.dispatch !== 'unknown'
     )
       return;
-    await agent.recordToReport(
-      `${step ? `${step.number}. ${step.title} · ` : ''}Replay · ${nativeTitle ?? event.type}`,
-      {
-        content: JSON.stringify(event),
-        ...(screenshot ? { screenshots: [{ base64: screenshot }] } : {}),
-      },
-    );
+    await agent.recordToReport(`Replay · ${nativeTitle ?? event.type}`, {
+      content: JSON.stringify(event),
+      ...(screenshot ? { screenshots: [{ base64: screenshot }] } : {}),
+    });
   }
   async function reportFailure(
     event: Record<string, unknown>,
@@ -122,6 +115,7 @@ export function createReplayRuntime(agent: Agent, options: ReplayOptions) {
   }
 
   async function preflightHost() {
+    options.signal?.throwIfAborted();
     if (options.requires) {
       preflight ??= checkReplayHost(agent, options.requires);
       await preflight;
@@ -132,22 +126,9 @@ export function createReplayRuntime(agent: Agent, options: ReplayOptions) {
   const checks = createReplayChecks(agent, options, evidence);
   const actions = createReplayActions(agent, options, evidence, {
     preflightHost,
-    markDispatch() {
-      dispatches++;
-    },
     waitFor: checks.waitFor,
   });
-  return {
-    replay: { ...actions, ...checks },
-    setStep(value: StepRef | undefined) {
-      step = value;
-    },
-    dispatches: () => dispatches,
-  };
-}
-
-export function withReplay(agent: Agent, options: ReplayOptions = {}) {
-  return createReplayRuntime(agent, options).replay;
+  return { ...actions, ...checks };
 }
 
 export type Replay = ReturnType<typeof withReplay>;

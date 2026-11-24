@@ -4,7 +4,7 @@ import type { AddressInfo } from 'node:net';
 import { PuppeteerBrowserAgent } from '@midscene/web/puppeteer';
 import { launchPuppeteerPage } from '@midscene/web/puppeteer-agent-launcher';
 import { expect, it, rs } from '@rstest/core';
-import { defineReplay, defineStep, withReplay } from '../src/experimental';
+import { defineStep, runReplayStep, withReplay } from '../src/index';
 
 it('follows a fresh Puppeteer popup from the source and checks its destination', async () => {
   const server = createServer((request, response) => {
@@ -58,25 +58,18 @@ it('follows a fresh Puppeteer popup from the source and checks its destination',
             return originalCall(...args);
           });
 
-        const flow = defineReplay({
-          meta: { platform: 'web', requires: { popups: true } },
-          steps: [
-            defineStep({
-              id: 'details',
-              title: 'Open product details',
-              run: (rp) =>
-                rp.tap('Open details', {
-                  candidates: [{ xpath: '//a[@id="good"]' }],
-                  opensPage: { url: `${origin}/expected` },
-                }),
-              done: (rp) => rp.expect({ xpath: '//h1' }, { text: '/expected' }),
-            }),
-          ],
-        });
-        const outcome = await flow.run(agent);
-        expect(outcome.steps[0].attempts).toEqual([
-          expect.objectContaining({ status: 'passed', dispatched: 1 }),
-        ]);
+        await runReplayStep(
+          agent,
+          defineStep({
+            run: (rp) =>
+              rp.tap('Open details', {
+                candidates: [{ xpath: '//a[@id="good"]' }],
+                opensPage: { url: `${origin}/expected` },
+              }),
+            done: (rp) => rp.expect({ xpath: '//h1' }, { text: '/expected' }),
+          }),
+          { requires: { popups: true } },
+        );
         expect(agent.activePage.url()).toBe(`${origin}/expected`);
         expect(await source.$eval('output', (out) => out.textContent)).toBe(
           '2',

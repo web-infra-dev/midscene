@@ -1,4 +1,4 @@
-import { defineStep } from '@midscene/replay/experimental';
+import { defineStep } from '@midscene/replay';
 
 const field = {
   candidates: [
@@ -12,10 +12,6 @@ const todoText = (params) => params.todo ?? '买牛奶';
 
 // 1. 添加任务
 export default defineStep({
-  id: 'add-todo',
-  title: '添加任务',
-  // Adding twice would duplicate the task: retry only if nothing was sent.
-  retry: 'before-dispatch',
   ready: (rp) =>
     rp.waitFor(() => Boolean(document.querySelector('.todoapp')), {
       timeoutMs: 5000,

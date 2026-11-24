@@ -1,7 +1,7 @@
 import { PlaywrightBrowserAgent } from '@midscene/web/playwright';
 import { afterAll, beforeAll, expect, it } from '@rstest/core';
 import { type Browser, chromium } from 'playwright';
-import { withReplay } from '../src/experimental';
+import { withReplay } from '../src/index';
 import type { StrictLocate } from '../src/runtime/web-target';
 
 let browser: Browser;

@@ -7,9 +7,9 @@
     "url": "https://github.com/web-infra-dev/midscene.git",
     "directory": "packages/replay"
   },
-  "main": "./dist/lib/experimental.js",
-  "module": "./dist/es/experimental.mjs",
-  "types": "./dist/types/experimental.d.ts",
+  "main": "./dist/lib/index.js",
+  "module": "./dist/es/index.mjs",
+  "types": "./dist/types/index.d.ts",
   "bin": {
     "midscene-replay": "./scripts/cli.mjs"
   },
@@ -19,11 +19,12 @@
       "import": "./dist/es/tooling.mjs",
       "require": "./dist/lib/tooling.js"
     },
-    "./experimental": {
-      "types": "./dist/types/experimental.d.ts",
-      "import": "./dist/es/experimental.mjs",
-      "require": "./dist/lib/experimental.js"
-    }
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/es/index.mjs",
+      "require": "./dist/lib/index.js"
+    },
+    "./web-setup": "./scripts/web-setup.mjs"
   },
   "files": ["dist", "scripts/*.mjs", "skills"],
   "scripts": {
@@ -38,7 +39,8 @@
     "@rslib/core": "~0.19.6",
     "@rstest/core": "0.12.0",
     "@types/node": "^18.0.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "@midscene/test": "workspace:*"
   },
   "engines": {
     "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
@@ -46,10 +48,18 @@
   "sideEffects": false,
   "license": "MIT",
   "dependencies": {
-    "playwright": "^1.65.0",
-    "sharp": "^0.35.5",
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
-    "@midscene/web": "workspace:*"
+    "@midscene/web": "workspace:*",
+    "playwright": "^1.65.0",
+    "sharp": "^0.35.5"
+  },
+  "peerDependencies": {
+    "@midscene/test": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@midscene/test": {
+      "optional": true
+    }
   }
 }

@@ -52,7 +52,6 @@ import {
 } from '../types';
 import type { MidsceneYamlScript } from '../yaml';
 import {
-  YamlExecutionOwnershipError,
   currentYamlSignal,
   enterYamlAction,
   enterYamlExecution,
@@ -96,6 +95,7 @@ import { ActionReadiness, isActionReadinessError } from './action-readiness';
 import { normalizeAgentOptions, withAgentDefaults } from './agent-options';
 import { AgentReportManager } from './agent-report-manager';
 import { normalizeAgentCacheConfig } from './cache-config';
+import { isNativeExecutionTerminalError } from './execution-error';
 import { FileChooserAccepter } from './file-chooser';
 import { Insight } from './insight';
 import { MetricsCollector, type MidsceneUsageMetrics } from './metrics';
@@ -1399,11 +1399,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
           });
           return;
         } catch (error) {
-          if (
-            error instanceof YamlExecutionOwnershipError ||
-            isActionReadinessError(error)
-          )
-            throw error;
+          if (isNativeExecutionTerminalError(error)) throw error;
           abortSignal?.throwIfAborted();
           cachedYamlFailed = true;
           warn(

@@ -7,6 +7,17 @@ import type { LocateOption, ScrollParam } from '../yaml';
 import { buildDetailedLocateParam } from '../yaml/utils';
 import type { Agent } from './agent';
 import { executeObserve } from './observe-node';
+export { isNativeExecutionTerminalError } from './execution-error';
+
+/** Optional implementation of a native AI node, resolved by Midscene Test. */
+export const stepReplayInputSchema = z.union([
+  z.string().regex(/\S/),
+  z.strictObject({
+    script: z.string().regex(/\S/),
+    params: z.record(z.string(), z.unknown()).optional(),
+  }),
+]);
+export type StepReplayInput = z.output<typeof stepReplayInputSchema>;
 
 export interface AgentTestRunnerNodeResult<TData = unknown> {
   summary?: string;
@@ -28,6 +39,11 @@ export interface AgentTestRunnerNodeDefinition<
   /** Node input field populated by YAML string shorthand; omit to disable. */
   stringInputKey?: string | false;
   inputSchema: z.ZodObject;
+  /** Reuse the native method's output conversion after a script succeeds. */
+  replayResult?(
+    result: unknown,
+    input: TInput,
+  ): AgentTestRunnerNodeResult<TData> | undefined;
   execute(
     agent: unknown,
     input: TInput,
@@ -98,8 +114,27 @@ export const createAgentTestRunnerNodeDefinition =
     ...(definition.stringInputKey === undefined
       ? {}
       : { stringInputKey: definition.stringInputKey }),
-    inputSchema: definition.inputSchema,
+    inputSchema: supportsReplay(definition.name ?? definition.method)
+      ? definition.inputSchema.extend({
+          replay: stepReplayInputSchema.optional(),
+        })
+      : definition.inputSchema,
+    ...(supportsReplay(definition.name ?? definition.method)
+      ? {
+          replayResult(result: unknown, input: Record<string, unknown>) {
+            validateReplayResult(definition.name ?? definition.method, result);
+            return definition.toResult?.(
+              result as Awaited<ReturnType<AgentMethod<TAgent, TMethod>>>,
+              input as z.output<TSchema>,
+            );
+          },
+        }
+      : {}),
     async execute(agent, input, context) {
+      if (input.replay !== undefined)
+        throw new Error(
+          'replay requires @midscene/test; this execution entry does not support script implementations.',
+        );
       if (
         typeof agent !== 'object' ||
         agent === null ||
@@ -124,6 +159,50 @@ export const createAgentTestRunnerNodeDefinition =
       return definition.toResult?.(result, typedInput);
     },
   });
+
+const supportsReplay = (name: string) =>
+  name.startsWith('ai') || name === 'runGherkinScenario';
+
+function validateReplayResult(name: string, result: unknown) {
+  const scalar = {
+    aiBoolean: 'boolean',
+    aiNumber: 'number',
+    aiString: 'string',
+    aiAsk: 'string',
+  }[name];
+  if (
+    scalar &&
+    (!{
+      boolean: typeof result === 'boolean',
+      number: typeof result === 'number',
+      string: typeof result === 'string',
+    }[scalar] ||
+      (scalar === 'number' && !Number.isFinite(result)))
+  )
+    throw new TypeError(`${name} replay must return a ${scalar}.`);
+  if (name === 'aiAct' && result !== undefined && typeof result !== 'string')
+    throw new TypeError('aiAct replay must return a string or undefined.');
+  if (
+    name === 'aiAssert' &&
+    (!result ||
+      typeof result !== 'object' ||
+      typeof (result as { pass?: unknown }).pass !== 'boolean')
+  )
+    throw new TypeError(
+      'aiAssert replay must return { pass: boolean, thought?: string, message?: string }.',
+    );
+  if (name === 'aiLocate') {
+    const center = (result as { center?: unknown })?.center;
+    if (
+      !Array.isArray(center) ||
+      center.length !== 2 ||
+      !center.every(Number.isFinite)
+    )
+      throw new TypeError(
+        'aiLocate replay must return a native locate result with center: [x, y].',
+      );
+  }
+}
 
 const nonBlankText = (description: string) =>
   z

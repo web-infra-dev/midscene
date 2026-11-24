@@ -29,7 +29,7 @@ export default defineConfig({
   source: {
     tsconfigPath: 'tsconfig.build.json',
     entry: {
-      experimental: './src/experimental.ts',
+      index: './src/index.ts',
       tooling: './src/tooling.ts',
     },
   },

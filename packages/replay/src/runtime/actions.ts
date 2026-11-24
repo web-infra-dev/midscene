@@ -14,7 +14,7 @@ import {
   isNavigationRace,
   matchesUrl,
   normalizeUrlMatch,
-  poll,
+  poll as pollUntil,
   replayError,
 } from './web-page';
 import {
@@ -61,18 +61,22 @@ export function withoutReplayFallback<T>(operation: () => T): T {
 
 export function createReplayActions(
   agent: Agent,
-  options: { timeoutMs?: number; fallbackTimeoutMs?: number },
+  options: {
+    timeoutMs?: number;
+    fallbackTimeoutMs?: number;
+    signal?: AbortSignal;
+  },
   { publish, report, reportFailure }: ReplayEvidence,
   {
     preflightHost,
-    markDispatch,
     waitFor,
   }: {
     preflightHost(): Promise<void>;
-    markDispatch(): void;
     waitFor(expression: string, options: { timeoutMs: number }): Promise<void>;
   },
 ) {
+  const poll: typeof pollUntil = (deadline, attempt, timeout, retry) =>
+    pollUntil(deadline, attempt, timeout, retry, options.signal);
   let scale:
     | { page: Agent['interface']; key: string; ratio: number }
     | undefined;
@@ -216,6 +220,7 @@ export function createReplayActions(
           recovery = await recoverTarget(agent, prompt, action, located, {
             timeoutMs: options.fallbackTimeoutMs ?? 15000,
             ratio: screenshotRatio,
+            signal: options.signal,
           });
         } catch (cause) {
           const reason = describeError(cause);
@@ -256,7 +261,7 @@ export function createReplayActions(
     try {
       const send = async () => {
         dispatchState = 'unknown';
-        markDispatch();
+        options.signal?.throwIfAborted();
         await agent.callActionInActionSpace(
           action,
           {
@@ -269,7 +274,7 @@ export function createReplayActions(
             },
             ...parameters,
           },
-          undefined,
+          options.signal,
           { skipDefaultWait: true, deferModelResolution: true },
         );
         dispatchState = 'completed';
@@ -300,6 +305,7 @@ export function createReplayActions(
       readyMs,
       durationMs: performance.now() - started,
     });
+    options.signal?.throwIfAborted();
     await afterAction?.();
     await checkPostcondition(action, prompt, resolvedBy, postcondition);
   }
@@ -343,7 +349,7 @@ export function createReplayActions(
         async (send) => {
           // Readiness has its own budget. Listen immediately before the click.
           started = performance.now();
-          await followPopup(agent, send, timeoutMs);
+          await followPopup(agent, send, timeoutMs, options.signal);
         },
         async () => {
           const event = { type: 'new-page', prompt, url };
@@ -441,6 +447,7 @@ export function createReplayActions(
           retryable,
         );
         const source = sampleExpression(located, 'select', undefined, option);
+        options.signal?.throwIfAborted();
         mayHaveDispatched = true;
         const result: TargetSample = await agent.evaluateJavaScript(source);
         if (result.error) {
@@ -450,7 +457,6 @@ export function createReplayActions(
         if (!result.point) throw replayError('INVALID_SELECT_RESULT');
         sample = result;
       } catch (error) {
-        if (mayHaveDispatched) markDispatch();
         return reportFailure(
           {
             ...details,
@@ -460,7 +466,7 @@ export function createReplayActions(
           error,
         );
       }
-      markDispatch();
+      options.signal?.throwIfAborted();
       await report(
         {
           ...details,

@@ -31,6 +31,7 @@ export function prepareDependencies(out) {
   for (const [name, entry] of [
     ['@midscene/web', '@midscene/web/playwright/agent'],
     ['playwright', 'playwright'],
+    ['@midscene/test', '@midscene/test/config'],
   ]) {
     let resolved;
     try {
@@ -64,7 +65,7 @@ export function prepareDependencies(out) {
     [
       '--input-type=module',
       '--eval',
-      "await import('@midscene/replay/experimental'); await import('@midscene/web/playwright/agent'); await import('playwright');",
+      "await import('@midscene/replay'); await import('@midscene/web/playwright/agent'); await import('playwright');",
     ],
     { cwd: out, encoding: 'utf8' },
   );

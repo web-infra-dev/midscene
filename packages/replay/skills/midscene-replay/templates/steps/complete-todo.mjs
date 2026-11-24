@@ -1,4 +1,4 @@
-import { defineStep } from '@midscene/replay/experimental';
+import { defineStep } from '@midscene/replay';
 
 const rowOf = (text) => {
   const normalized = text.trim().replace(/\s+/g, ' ');
@@ -7,9 +7,7 @@ const rowOf = (text) => {
     parts.length === 1 ? parts[0] : `concat(${parts.join(`, '"', `)})`;
   return `//ul[contains(@class,"todo-list")]/li[.//label[normalize-space(.)=${literal}]]`;
 };
-// Prefer the previous step's result; fall back to params when started here.
-const todoText = ({ results, params }) =>
-  results['add-todo'] ?? params.todo ?? '买牛奶';
+const todoText = ({ params }) => params.todo ?? '买牛奶';
 const checkbox = (ctx) => ({
   within: { xpath: rowOf(todoText(ctx)) },
   candidates: [{ xpath: './/div//input[@type="checkbox"]' }],
@@ -27,11 +25,6 @@ const isComplete = (text, expected) => {
 
 // 2. 勾选完成该任务
 export default defineStep({
-  id: 'complete-todo',
-  title: '勾选完成该任务',
-  // Toggling twice would undo it: never repeat after dispatch.
-  retry: 'before-dispatch',
-  // Entry check: required to start a run at this step.
   ready: (rp, ctx) =>
     rp.waitFor(isComplete, {
       args: [todoText(ctx), false],

@@ -37,6 +37,7 @@ it('makes an external authoring directory import the SDK without the Playwright 
     const versions = JSON.parse(child.stdout);
     expect(Object.keys(versions).sort()).toEqual([
       '@midscene/replay',
+      '@midscene/test',
       '@midscene/web',
       'playwright',
     ]);

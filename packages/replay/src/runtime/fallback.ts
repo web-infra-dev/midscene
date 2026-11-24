@@ -1,5 +1,5 @@
 import type { Agent } from '@midscene/core';
-import { replayError } from './web-page';
+import { replayError, withAbort } from './web-page';
 import {
   type Resolution,
   type StrictLocate,
@@ -73,8 +73,12 @@ export async function recoverByGuard(
 function bounded<T>(
   ms: number,
   fn: (signal: AbortSignal) => Promise<T>,
+  parent?: AbortSignal,
 ): Promise<T> {
+  parent?.throwIfAborted();
   const controller = new AbortController();
+  const abort = () => controller.abort(parent?.reason);
+  parent?.addEventListener('abort', abort, { once: true });
   let timer: ReturnType<typeof setTimeout>;
   const expiration = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
@@ -85,8 +89,14 @@ function bounded<T>(
   });
   return Promise.race([
     expiration,
-    Promise.resolve().then(() => fn(controller.signal)),
-  ]).finally(() => clearTimeout(timer));
+    withAbort(
+      Promise.resolve().then(() => fn(controller.signal)),
+      controller.signal,
+    ),
+  ]).finally(() => {
+    clearTimeout(timer);
+    parent?.removeEventListener('abort', abort);
+  });
 }
 
 /** Model tier: one bounded aiLocate; the answer must satisfy scope and guard. */
@@ -96,6 +106,7 @@ async function recoverByLocate(
   target: StrictLocate,
   editable: boolean,
   timeoutMs: number,
+  signal?: AbortSignal,
 ) {
   const source = agent.interface;
   const page = (source as { underlyingPage?: unknown }).underlyingPage;
@@ -110,43 +121,50 @@ async function recoverByLocate(
     )
       throw replayError('FALLBACK_PAGE_CHANGED');
   };
-  return bounded(timeoutMs, async (signal) => {
-    const before = await sampleTarget(agent, target, 'fallback-context');
-    const uiContext = await agent.getUIContext();
-    const ratio = uiContext.shrunkShotToLogicalRatio;
-    if (!Number.isFinite(ratio) || ratio <= 0)
-      throw replayError('INVALID_SCREENSHOT_SCALE');
-    unchanged(before, await sampleTarget(agent, target, 'fallback-context'));
-    signal.throwIfAborted();
-    const constraints = [
-      target.guard?.role && `role ${target.guard.role}`,
-      target.guard?.tag && `<${target.guard.tag}> element`,
-      target.guard?.text !== undefined &&
-        `text ${JSON.stringify(target.guard.text)}`,
-      ...Object.entries(target.guard?.attr ?? {}).map(
-        ([key, value]) => `${key}=${JSON.stringify(value)}`,
-      ),
-      editable && 'editable field',
-    ].filter(Boolean);
-    const located = await agent.aiLocate(
-      constraints.length ? `${prompt} (${constraints.join(', ')})` : prompt,
-      { uiContext, cacheable: false, abortSignal: signal },
-    );
-    signal.throwIfAborted();
-    if (located?.center?.length !== 2 || !located.center.every(Number.isFinite))
-      throw replayError('FALLBACK_NO_POINT');
-    // aiLocate returns screenshot pixels; Replay samples CSS pixels.
-    const resolution: Resolution = {
-      by: 'point',
-      x: located.center[0] / ratio,
-      y: located.center[1] / ratio,
-      editable,
-    };
-    const sample = await stable(agent, target, resolution);
-    signal.throwIfAborted();
-    unchanged(before, await sampleTarget(agent, target, 'fallback-context'));
-    return { sample, ratio };
-  });
+  return bounded(
+    timeoutMs,
+    async (signal) => {
+      const before = await sampleTarget(agent, target, 'fallback-context');
+      const uiContext = await agent.getUIContext();
+      const ratio = uiContext.shrunkShotToLogicalRatio;
+      if (!Number.isFinite(ratio) || ratio <= 0)
+        throw replayError('INVALID_SCREENSHOT_SCALE');
+      unchanged(before, await sampleTarget(agent, target, 'fallback-context'));
+      signal.throwIfAborted();
+      const constraints = [
+        target.guard?.role && `role ${target.guard.role}`,
+        target.guard?.tag && `<${target.guard.tag}> element`,
+        target.guard?.text !== undefined &&
+          `text ${JSON.stringify(target.guard.text)}`,
+        ...Object.entries(target.guard?.attr ?? {}).map(
+          ([key, value]) => `${key}=${JSON.stringify(value)}`,
+        ),
+        editable && 'editable field',
+      ].filter(Boolean);
+      const located = await agent.aiLocate(
+        constraints.length ? `${prompt} (${constraints.join(', ')})` : prompt,
+        { uiContext, cacheable: false, abortSignal: signal },
+      );
+      signal.throwIfAborted();
+      if (
+        located?.center?.length !== 2 ||
+        !located.center.every(Number.isFinite)
+      )
+        throw replayError('FALLBACK_NO_POINT');
+      // aiLocate returns screenshot pixels; Replay samples CSS pixels.
+      const resolution: Resolution = {
+        by: 'point',
+        x: located.center[0] / ratio,
+        y: located.center[1] / ratio,
+        editable,
+      };
+      const sample = await stable(agent, target, resolution);
+      signal.throwIfAborted();
+      unchanged(before, await sampleTarget(agent, target, 'fallback-context'));
+      return { sample, ratio };
+    },
+    signal,
+  );
 }
 
 export async function recoverTarget(
@@ -154,7 +172,11 @@ export async function recoverTarget(
   prompt: string,
   action: string,
   target: StrictLocate,
-  options: { timeoutMs: number; ratio: () => Promise<number> },
+  options: {
+    timeoutMs: number;
+    ratio: () => Promise<number>;
+    signal?: AbortSignal;
+  },
 ): Promise<Recovery> {
   const editable = action === 'Input';
   let guardFailure: unknown;
@@ -186,6 +208,7 @@ export async function recoverTarget(
     target,
     editable,
     options.timeoutMs,
+    options.signal,
   );
   return {
     point: sample.point!,

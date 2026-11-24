@@ -156,9 +156,12 @@ export const matchesTags = (
 const filterDocumentCases = (
   document: CollectedWorkflowDocument,
   project: LoadedExecutionProject,
+  caseName?: string,
 ): { document?: CollectedWorkflowDocument; filtered: number } => {
-  const cases = document.cases.filter((item) =>
-    matchesTags(item.definition.tags ?? [], project.tags),
+  const cases = document.cases.filter(
+    (item) =>
+      matchesTags(item.definition.tags ?? [], project.tags) &&
+      (!caseName || item.definition.name === caseName),
   );
   const filtered = document.cases.length - cases.length;
   return cases.length === 0
@@ -273,12 +276,12 @@ export async function prepareProject(
       const filtered =
         source.absolutePath === prerequisiteFile
           ? { document, filtered: 0 }
-          : filterDocumentCases(document, project);
+          : filterDocumentCases(document, project, options.caseName);
       const plan = buildTestRunReportPlan(document, {
         selectedCaseIds:
           filtered.document?.cases.map((item) => item.caseId) ?? [],
         defaultTimeoutMs,
-        retry: { scope: 'case', count: project.retry },
+        retry: { scope: 'case', count: options.retry ?? project.retry },
       });
       plans.push(plan);
       filteredCaseCount += filtered.filtered;
@@ -286,7 +289,7 @@ export async function prepareProject(
         invocations.push({
           plan,
           document: filtered.document,
-          retry: { scope: 'case', count: project.retry },
+          retry: { scope: 'case', count: options.retry ?? project.retry },
           defaultTimeoutMs,
           reportEnabled: true,
           bindings: {

@@ -7,11 +7,11 @@ import { PlaywrightBrowserAgent } from '@midscene/web/playwright';
 import { afterAll, beforeAll, expect, it } from '@rstest/core';
 import { type Browser, chromium } from 'playwright';
 import {
-  defineReplay,
   defineStep,
+  runReplayStep,
   withReplay,
   withoutReplayFallback,
-} from '../src/experimental';
+} from '../src/index';
 import { WebRecorder } from '../src/recording/recorder';
 import { readTrace } from '../src/recording/trace-io';
 import type { StrictLocate } from '../src/runtime/web-target';
@@ -56,21 +56,15 @@ it('runs both Todo templates after their action XPaths drift', async () => {
     const step = async (name: string) => {
       const path = join(
         __dirname,
-        '../skills/midscene-replay/templates/replay/steps',
+        '../skills/midscene-replay/templates/steps',
         name,
       );
       return (await import(/* webpackIgnore: true */ pathToFileURL(path).href))
         .default;
     };
-    const flow = defineReplay({
-      meta: { platform: 'web' },
-      steps: [await step('add-todo.mjs'), await step('complete-todo.mjs')],
-    });
     const params = { todo: '买"牛奶' };
-    await expect(flow.run(agent, { params })).resolves.toMatchObject({
-      status: 'passed',
-      steps: [{ status: 'passed' }, { status: 'passed' }],
-    });
+    await runReplayStep(agent, await step('add-todo.mjs'), { params });
+    await runReplayStep(agent, await step('complete-todo.mjs'), { params });
     await expect(
       page.locator('.todo-list li.completed label').textContent(),
     ).resolves.toBe(params.todo);
@@ -140,35 +134,27 @@ it('records a native sort and replays one selection with business and native rep
       candidates: [{ xpath: '//select[@id="sort"]' }],
       guard: { tag: 'select', attr: { id: 'sort' } },
     };
-    const flow = defineReplay({
-      meta: { platform: 'web' },
-      steps: [
-        defineStep({
-          id: 'sort',
-          title: 'Sort by price',
-          run: (rp) =>
-            rp.select('Choose price ascending', {
-              ...sort,
-              option: { value: 'price' },
-            }),
-          async done(rp) {
-            await rp.expect(sort, { value: 'price' });
-            expect(
-              await rp.read(() =>
-                Array.from(
-                  document.querySelectorAll('#products li'),
-                  (row) => row.textContent,
-                ),
+    await runReplayStep(
+      agent,
+      defineStep({
+        run: (rp) =>
+          rp.select('Choose price ascending', {
+            ...sort,
+            option: { value: 'price' },
+          }),
+        async done(rp) {
+          await rp.expect(sort, { value: 'price' });
+          expect(
+            await rp.read(() =>
+              Array.from(
+                document.querySelectorAll('#products li'),
+                (row) => row.textContent,
               ),
-            ).toEqual(['Pen', 'Book']);
-          },
-        }),
-      ],
-    });
-    const outcome = await flow.run(agent);
-    expect(outcome.steps[0].attempts).toEqual([
-      expect.objectContaining({ status: 'passed', dispatched: 1 }),
-    ]);
+            ),
+          ).toEqual(['Pen', 'Book']);
+        },
+      }),
+    );
     expect(await page.locator('#events').textContent()).toBe('input change ');
     const dump = JSON.parse(agent.dumpDataString({ inlineScreenshots: true }));
     expect(dump.executions).toEqual([
