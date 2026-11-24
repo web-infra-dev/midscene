@@ -1039,18 +1039,24 @@ export class Page<
         debugPage(
           `begin mouse drag from ${from.x}, ${from.y} to ${to.x}, ${to.y}`,
         );
-        await (this.underlyingPage as PlaywrightPage).mouse.move(
-          from.x,
-          from.y,
-        );
+        const mouse = this.underlyingPage.mouse;
+        await mouse.move(from.x, from.y);
         await sleep(200);
-        await (this.underlyingPage as PlaywrightPage).mouse.down();
-        await sleep(300);
-        await (this.underlyingPage as PlaywrightPage).mouse.move(to.x, to.y, {
-          steps: 20,
-        });
-        await sleep(500);
-        await (this.underlyingPage as PlaywrightPage).mouse.up();
+        await mouse.down();
+        try {
+          await sleep(300);
+          await mouse.move(to.x, to.y, { steps: 20 });
+          await sleep(500);
+        } catch (error) {
+          await mouse.up().catch((releaseError) => {
+            debugPage(
+              'mouse release after failed drag also failed',
+              releaseError,
+            );
+          });
+          throw error;
+        }
+        await mouse.up();
         await sleep(200);
         debugPage(
           `end mouse drag from ${from.x}, ${from.y} to ${to.x}, ${to.y}`,
