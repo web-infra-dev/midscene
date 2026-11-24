@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>Midscene Screen Relay E2E Fixture</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #121826;
+      color: #f8fafc;
+      font-family: sans-serif;
+      padding: 24px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: 110px 180px 220px;
+      gap: 20px;
+      width: 100%;
+      height: 100%;
+    }
+    .full-row {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: #1e293b;
+      padding: 16px;
+      border-radius: 12px;
+    }
+    #text-input {
+      flex: 1;
+      height: 56px;
+      font-size: 24px;
+      padding: 0 16px;
+      border-radius: 8px;
+      border: 3px solid #38bdf8;
+      background: #0f172a;
+      color: #f8fafc;
+      user-select: text;
+    }
+    #enter-badge {
+      min-width: 180px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background: #334155;
+      font-weight: 700;
+      font-size: 18px;
+    }
+    .box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      font-size: 22px;
+      font-weight: 700;
+      background: #1e293b;
+      border: 3px solid #475569;
+    }
+    #scroll-box {
+      overflow: auto;
+      display: block;
+      padding: 16px;
+      background: #1e293b;
+      border: 3px solid #3b82f6;
+      border-radius: 12px;
+    }
+    #scroll-inner {
+      width: 1800px;
+      height: 1200px;
+      background: linear-gradient(135deg, #1d4ed8 0%, #dc2626 50%, #16a34a 100%);
+      padding: 16px;
+      font-size: 22px;
+      font-weight: 700;
+    }
+    #drag-arena {
+      grid-column: 2 / 4;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      background: #1e293b;
+      border: 3px solid #64748b;
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .drag-node {
+      width: 200px;
+      height: 140px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    #drag-source { background: #0891b2; }
+    #drop-target { background: #be123c; }
+  </style>
+</head>
+<body>
+  <div class="grid">
+    <div class="full-row">
+      <input id="text-input" type="text" value="initial" autocomplete="off" />
+      <div id="enter-badge">IDLE</div>
+    </div>
+
+    <div id="hover-box" class="box">HOVER</div>
+    <div id="dblclick-box" class="box">DBLCLICK</div>
+    <div id="rightclick-box" class="box">RIGHTCLICK</div>
+
+    <div id="scroll-box">
+      <div id="scroll-inner">SCROLL AREA</div>
+    </div>
+
+    <div id="drag-arena">
+      <div id="drag-source" class="drag-node">DRAG SOURCE</div>
+      <div id="drop-target" class="drag-node">DROP TARGET</div>
+    </div>
+  </div>
+
+  <script>
+    function postJson(url, payload) {
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }).catch(() => {});
+    }
+
+    function screenCenterOf(id) {
+      const rect = document.getElementById(id).getBoundingClientRect();
+      const chromeOffsetX = window.screenX + Math.max(0, window.outerWidth - window.innerWidth);
+      const chromeOffsetY = window.screenY + Math.max(0, window.outerHeight - window.innerHeight);
+      return [
+        Math.round(chromeOffsetX + rect.left + rect.width / 2),
+        Math.round(chromeOffsetY + rect.top + rect.height / 2),
+      ];
+    }
+
+    const inputEl = document.getElementById('text-input');
+    const enterBadge = document.getElementById('enter-badge');
+    inputEl.addEventListener('input', () => {
+      enterBadge.style.background = '#0284c7';
+      enterBadge.textContent = inputEl.value || 'EMPTY';
+      postJson('/event', { type: 'input', value: inputEl.value });
+    });
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        enterBadge.style.background = '#16a34a';
+        enterBadge.textContent = 'ENTER:' + inputEl.value;
+        postJson('/event', { type: 'enter', value: inputEl.value });
+      }
+    });
+
+    const hoverBox = document.getElementById('hover-box');
+    hoverBox.addEventListener('pointermove', () => {
+      hoverBox.style.background = '#15803d';
+      hoverBox.textContent = 'HOVERED';
+      postJson('/event', { type: 'hover' });
+    });
+
+    const dblBox = document.getElementById('dblclick-box');
+    dblBox.addEventListener('dblclick', () => {
+      dblBox.style.background = '#ea580c';
+      dblBox.textContent = 'DOUBLE_CLICKED';
+      postJson('/event', { type: 'dblclick' });
+    });
+
+    const rightBox = document.getElementById('rightclick-box');
+    rightBox.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      rightBox.style.background = '#7e22ce';
+      rightBox.textContent = 'RIGHT_CLICKED';
+      postJson('/event', { type: 'rightclick' });
+    });
+
+    const scrollBox = document.getElementById('scroll-box');
+    scrollBox.addEventListener('scroll', () => {
+      scrollBox.style.borderColor = '#facc15';
+      postJson('/event', {
+        type: 'scroll',
+        scrollTop: scrollBox.scrollTop,
+        scrollLeft: scrollBox.scrollLeft,
+      });
+    });
+
+    let dragActive = false;
+    const dragSource = document.getElementById('drag-source');
+    const dropTarget = document.getElementById('drop-target');
+
+    dragSource.addEventListener('pointerdown', (e) => {
+      if (e.button === 0) {
+        dragActive = true;
+        dragSource.style.background = '#0284c7';
+        postJson('/event', { type: 'drag-started' });
+      }
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!dragActive) return;
+      if ((e.buttons & 1) === 0) {
+        dragActive = false;
+        postJson('/event', { type: 'drag-lost-button' });
+        return;
+      }
+      const r = dropTarget.getBoundingClientRect();
+      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+        dropTarget.style.background = '#ca8a04';
+        postJson('/event', { type: 'target-held' });
+      }
+    });
+
+    window.addEventListener('pointerup', (e) => {
+      if (!dragActive) return;
+      dragActive = false;
+      const r = dropTarget.getBoundingClientRect();
+      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+        dropTarget.style.background = '#16a34a';
+        dropTarget.textContent = 'DROPPED';
+        postJson('/event', { type: 'dropped' });
+      } else {
+        postJson('/event', { type: 'drop-missed', x: e.clientX, y: e.clientY });
+      }
+    });
+
+    window.addEventListener('load', () => {
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          postJson('/ready', {
+            targets: {
+              input: screenCenterOf('text-input'),
+              hover: screenCenterOf('hover-box'),
+              dblclick: screenCenterOf('dblclick-box'),
+              rightclick: screenCenterOf('rightclick-box'),
+              scroll: screenCenterOf('scroll-box'),
+              dragSource: screenCenterOf('drag-source'),
+              dropTarget: screenCenterOf('drop-target'),
+            },
+          });
+        }, 150);
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+# Remote desktop (Screen Relay) environment setup
+
+`@midscene/screen-relay` connects Midscene to a desktop over HTTP and WebSocket through [`screen-relay`](https://github.com/vercel-labs/screen-relay), supporting local desktops, remote machines, and Docker containers without installing native input dependencies on the machine running Midscene.
+
+Whereas [`@midscene/computer`](./desktop) drives the local desktop through native mouse/keyboard bindings (plus RDP for remote Windows), `@midscene/screen-relay` runs screen capture and input injection on the remote machine and talks to it over HTTP/WebSocket—useful when automating remote macOS/Linux/Windows hosts, Docker or CI containers, or environments where installing native desktop libraries on the controller machine is undesirable.
+
+For supported operating systems (Windows, macOS, Linux) and display backends, see the [`screen-relay` documentation](https://github.com/vercel-labs/screen-relay). This guide covers starting `screen-relay` and verifying the connection.
+
+## Prepare the target desktop {#connect-device}
+
+Install `screen-relay` on the machine or container you want to control (requires Node.js 22+):
+
+```bash
+npm install -g screen-relay
+```
+
+### Desktop machine (macOS, Windows, or Linux with GUI)
+
+```bash
+screen-relay install --yes
+screen-relay up -d
+```
+
+### Headless Linux server or Docker container
+
+To run without installing a full desktop environment, use the X11 virtual display backend:
+
+```bash
+screen-relay install --backend x11 --desktop none --yes
+screen-relay up --backend x11 --desktop none -d
+```
+
+`screen-relay up` prints a Viewer URL (default `http://127.0.0.1:8080`). When non-loopback access or `--allow-origin` is enabled, the URL includes `#token=<session-token>`—copy the full URL or token for Midscene.
+
+:::warning
+Do not expose `screen-relay` directly to untrusted networks. Prefer SSH port forwarding or firewall restrictions, and keep the session token private.
+:::
+
+### macOS permissions
+
+When `screen-relay` runs on macOS, grant **Screen Recording** and **Accessibility** permissions to the terminal or service running `screen-relay` under **System Settings > Privacy & Security** on that Mac, then restart `screen-relay`.
+
+## Verify {#verify}
+
+Check connectivity and screen capture from the machine running Midscene:
+
+```bash
+export MIDSCENE_SCREEN_RELAY_URL="http://127.0.0.1:8080"
+export MIDSCENE_SCREEN_RELAY_TOKEN="<your-token>" # omit if token auth is disabled on localhost
+
+npx @midscene/screen-relay capabilities
+npx @midscene/screen-relay take_screenshot
+```
+
+Once `capabilities` returns the backend info and `take_screenshot` succeeds, configure a model in [Use a model API Key](../model-api-setup) and continue with the [Screen Relay JavaScript SDK](../sdk/screen-relay).
+
+## FAQ {#faq}
+
+### Automated actions fail while "Take control" is active
+
+Clicking **Take control** in the `screen-relay` browser viewer pauses automated input (returning `control_taken` or `busy`) so human and Agent actions do not conflict. Release control in the viewer before resuming.
+
+### macOS: Blank screenshots or unresponsive input
+
+Verify that **Screen Recording** and **Accessibility** are enabled on the Mac running `screen-relay`, then run `screen-relay down && screen-relay up -d`.
+
+### Linux X11: Typing CJK or non-ASCII text
+
+When the remote X11 backend reports `ime: false` and `clipboard: true`, `@midscene/screen-relay` enters non-Latin-1 text via the remote clipboard and restores the previous clipboard text afterward. Ensure `xclip` or `xsel` is installed on the Linux machine running `screen-relay` (installed by `screen-relay install`).

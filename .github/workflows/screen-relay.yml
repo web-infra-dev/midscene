@@ -1,0 +1,235 @@
+name: Screen Relay
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/screen-relay.yml'
+      - '.github/actions/**'
+      - '.github/actions/ai-ci/**'
+      - 'apps/report/**'
+      - 'packages/screen-relay/**'
+      - 'packages/core/**'
+      - 'packages/shared/**'
+      - '!**/*.md'
+      - '!**/*.mdx'
+      - 'scripts/report-template-utils.mjs'
+      - 'nx.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to checkout'
+        required: false
+        default: 'main'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+jobs:
+  screen-relay-linux-e2e:
+    runs-on: ubuntu-22.04
+    env:
+      CI: "1"
+      MIDSCENE_REPORT_QUIET: "true"
+      MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run
+
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      with:
+        ref: ${{ github.event.inputs.branch || github.ref }}
+
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
+
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile --ignore-scripts
+
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+
+    - name: Setup headless browser and Chinese fonts
+      uses: ./.github/actions/setup-headless-browser
+
+    - name: Cache compiled screen-relay engine
+      id: sr-engine-cache
+      uses: ./.github/actions/cache/restore
+      with:
+        path: ~/.local/share/screen-relay
+        key: screen-relay-engine-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('packages/screen-relay/package.json') }}
+
+    - name: Build report and screen-relay packages
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/screen-relay" --skip-nx-cache
+
+    - name: Validate CJS, ESM, and CLI exports
+      run: |
+        set -euo pipefail
+        node -e "const mod=require('./packages/screen-relay/dist/lib/index.js'); if(typeof mod.ScreenRelayDevice!=='function'||typeof mod.agentForScreenRelay!=='function') throw new Error('invalid CJS exports')"
+        node --input-type=module -e "const mod=await import('./packages/screen-relay/dist/es/index.mjs'); if(typeof mod.ScreenRelayDevice!=='function'||typeof mod.agentForScreenRelay!=='function') throw new Error('invalid ESM exports')"
+        test -f packages/screen-relay/dist/types/index.d.ts
+        actual_cli_version=$(node packages/screen-relay/bin/midscene-screen-relay --version)
+        package_version=$(node -p "require('./packages/screen-relay/package.json').version")
+        expected_cli_version="midscene-screen-relay v${package_version}"
+        if [ "$actual_cli_version" != "$expected_cli_version" ]; then
+          echo "Expected '$expected_cli_version', got '$actual_cli_version'"
+          exit 1
+        fi
+
+    - name: Run unit tests
+      run: pnpm --filter @midscene/screen-relay test
+
+    - name: Install and start minimal X11 virtual display via screen-relay
+      run: |
+        set -euo pipefail
+        SR_BIN="./packages/screen-relay/node_modules/.bin/screen-relay"
+        "$SR_BIN" install --backend x11 --desktop none --yes
+        output=$(SCREEN_RELAY_RESOLUTION=1280x720 "$SR_BIN" up -d --backend x11 --desktop none --port 18080 --allow-origin http://127.0.0.1:18080 --yes 2>&1)
+        token=$(printf '%s\n' "$output" | sed -n 's/.*#token=\([0-9a-f]\{64\}\).*/\1/p' | head -n 1)
+        if [ -z "$token" ]; then
+          echo "Failed to extract screen-relay session token from startup output."
+          exit 1
+        fi
+        echo "::add-mask::$token"
+        echo "MIDSCENE_SCREEN_RELAY_URL=http://127.0.0.1:18080" >> "$GITHUB_ENV"
+        echo "MIDSCENE_SCREEN_RELAY_TOKEN=$token" >> "$GITHUB_ENV"
+
+    - name: Save compiled screen-relay engine cache
+      if: steps.sr-engine-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/cache/save
+      with:
+        path: ~/.local/share/screen-relay
+        key: screen-relay-engine-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('packages/screen-relay/package.json') }}
+
+    - name: Run deterministic real-desktop tests
+      run: AI_TEST_TYPE=screen-relay pnpm exec nx test @midscene/screen-relay --skip-nx-cache -- tests/ai/real-session.test.ts --retry=0
+      timeout-minutes: 5
+
+    - name: Verify CLI against live desktop
+      run: |
+        set -euo pipefail
+        node packages/screen-relay/bin/midscene-screen-relay capabilities
+        node packages/screen-relay/bin/midscene-screen-relay take_screenshot
+      timeout-minutes: 3
+
+    - name: Print screen-relay diagnostics on failure
+      if: failure()
+      run: ./packages/screen-relay/node_modules/.bin/screen-relay logs || true
+
+    - name: Stop virtual desktop
+      if: always()
+      run: ./packages/screen-relay/node_modules/.bin/screen-relay down || true
+
+    - name: Upload Midscene Screen Relay E2E report
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        if-no-files-found: warn
+        name: screen-relay-midscene-report
+        path: midscene_run/report/screen-relay-ci-e2e.html
+        retention-days: 7
+
+  screen-relay-linux-ai:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    env:
+      CI: "1"
+      MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
+      MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
+      MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
+      MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
+      MIDSCENE_MODEL_RETRY_COUNT: "2"
+      MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
+      MIDSCENE_REPORT_QUIET: "true"
+      MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run
+
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      with:
+        ref: ${{ github.event.inputs.branch || github.ref }}
+
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
+
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile --ignore-scripts
+
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+
+    - name: Setup headless browser and Chinese fonts
+      uses: ./.github/actions/setup-headless-browser
+
+    - name: Cache compiled screen-relay engine
+      id: sr-engine-cache
+      uses: ./.github/actions/cache/restore
+      with:
+        path: ~/.local/share/screen-relay
+        key: screen-relay-engine-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('packages/screen-relay/package.json') }}
+
+    - name: Build report and screen-relay packages
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/screen-relay" --skip-nx-cache
+
+    - name: Install and start minimal X11 virtual display via screen-relay
+      run: |
+        set -euo pipefail
+        SR_BIN="./packages/screen-relay/node_modules/.bin/screen-relay"
+        "$SR_BIN" install --backend x11 --desktop none --yes
+        output=$(SCREEN_RELAY_RESOLUTION=1280x720 "$SR_BIN" up -d --backend x11 --desktop none --port 18080 --allow-origin http://127.0.0.1:18080 --yes 2>&1)
+        token=$(printf '%s\n' "$output" | sed -n 's/.*#token=\([0-9a-f]\{64\}\).*/\1/p' | head -n 1)
+        if [ -z "$token" ]; then
+          echo "Failed to extract screen-relay session token from startup output."
+          exit 1
+        fi
+        echo "::add-mask::$token"
+        echo "MIDSCENE_SCREEN_RELAY_URL=http://127.0.0.1:18080" >> "$GITHUB_ENV"
+        echo "MIDSCENE_SCREEN_RELAY_TOKEN=$token" >> "$GITHUB_ENV"
+
+    - name: Save compiled screen-relay engine cache
+      if: steps.sr-engine-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/cache/save
+      with:
+        path: ~/.local/share/screen-relay
+        key: screen-relay-engine-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('packages/screen-relay/package.json') }}
+
+    - name: Run screen-relay AI vision smoke test
+      timeout-minutes: 10
+      uses: ./.github/actions/ai-ci
+      with:
+        shell: bash
+        command: AI_TEST_TYPE=screen-relay pnpm exec nx test @midscene/screen-relay --skip-nx-cache -- tests/ai/ai-smoke.test.ts
+
+    - name: Print screen-relay diagnostics on failure
+      if: failure()
+      run: ./packages/screen-relay/node_modules/.bin/screen-relay logs || true
+
+    - name: Stop virtual desktop
+      if: always()
+      run: ./packages/screen-relay/node_modules/.bin/screen-relay down || true
+
+    - name: Upload Midscene Screen Relay AI report
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        if-no-files-found: warn
+        name: screen-relay-ai-report
+        path: midscene_run/report/screen-relay-ai-smoke.html
+        retention-days: 7

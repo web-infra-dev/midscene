@@ -1,0 +1,44 @@
+{
+  "name": "@midscene/screen-relay",
+  "version": "1.18.2",
+  "description": "Midscene.js Remote Desktop Automation via screen-relay",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/midscene.git",
+    "directory": "packages/screen-relay"
+  },
+  "main": "./dist/lib/index.js",
+  "module": "./dist/es/index.mjs",
+  "types": "./dist/types/index.d.ts",
+  "bin": {
+    "midscene-screen-relay": "./bin/midscene-screen-relay"
+  },
+  "files": ["bin", "dist", "README.md"],
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/es/index.mjs",
+      "require": "./dist/lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "rslib build",
+    "dev": "rslib build --watch",
+    "test": "rstest",
+    "test:ai": "AI_TEST_TYPE=screen-relay rstest"
+  },
+  "dependencies": {
+    "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*",
+    "screen-relay": "0.1.5"
+  },
+  "devDependencies": {
+    "@rslib/core": "~0.19.6",
+    "@rstest/core": "0.12.0",
+    "@types/node": "^18.0.0",
+    "dotenv": "^16.4.5",
+    "typescript": "^5.8.3"
+  }
+}

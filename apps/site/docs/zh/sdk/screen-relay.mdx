@@ -1,0 +1,98 @@
+# Screen Relay JavaScript SDK
+
+`@midscene/screen-relay` 提供 `ScreenRelayDevice` 与 `ScreenRelayAgent`，用于控制运行了 [`screen-relay`](https://github.com/vercel-labs/screen-relay) 的桌面环境。`ScreenRelayAgent` 继承基础 `Agent` 的全部 [AI 方法](../reference/#interaction-methods)。被控端部署方式见 [Screen Relay 环境配置](../platforms/screen-relay)。
+
+## 导入
+
+```typescript
+import {
+  ScreenRelayAgent,
+  ScreenRelayDevice,
+  ScreenRelayMidsceneTools,
+  agentForScreenRelay,
+} from '@midscene/screen-relay';
+```
+
+## `agentForScreenRelay()`
+
+```typescript
+agentForScreenRelay(options?: AgentForScreenRelayOpt): Promise<ScreenRelayAgent>
+```
+
+一步完成 `ScreenRelayDevice` 的创建与连接，并返回 `ScreenRelayAgent`。`options` 同时接受[通用 Agent 配置](../reference/#agent-options)与 `ScreenRelayDevice` 配置。在 `url` 中直接传入含 `#token=...` 的 Viewer URL 时会自动提取 `token`。
+
+```typescript
+import { agentForScreenRelay } from '@midscene/screen-relay';
+
+const agent = await agentForScreenRelay({
+  url: 'http://127.0.0.1:8080/#token=<your-token>',
+});
+
+try {
+  await agent.aiAct('打开终端并执行 echo hello');
+  await agent.aiAssert('终端中显示了 hello');
+} finally {
+  await agent.destroy();
+}
+```
+
+## `ScreenRelayDevice` / `ScreenRelayAgent`
+
+```typescript
+new ScreenRelayDevice(options?: ScreenRelayDeviceOpt)
+new ScreenRelayAgent(device, options?)
+```
+
+分别构造时，先调用 `await device.connect()` 再传给 `ScreenRelayAgent`：
+
+```typescript
+const device = new ScreenRelayDevice({
+  url: 'http://127.0.0.1:8080',
+  token: process.env.MIDSCENE_SCREEN_RELAY_TOKEN,
+});
+await device.connect();
+
+const agent = new ScreenRelayAgent(device);
+```
+
+## 配置选项
+
+`agentForScreenRelay()` 与 `new ScreenRelayDevice()` 支持以下选项：
+
+- `url?: string` —— 服务端地址或完整 Viewer URL（支持 `#token=` 与 `?token=`）。默认值：`process.env.MIDSCENE_SCREEN_RELAY_URL` 或 `'http://127.0.0.1:8080'`。
+- `token?: string` —— 会话 `token`（优先级高于 `url` 中的 `token`）。默认值：`url` 中解析出的 `token`，或 `process.env.MIDSCENE_SCREEN_RELAY_TOKEN`。
+- `timeoutMs?: number` —— 单次请求超时时间（毫秒，有限正数）。默认值：`15000`。
+- `customActions?: DeviceAction<any>[]` —— 注册给 Agent 规划调用的自定义动作，详见[与任意界面集成](../integrate-with-any-interface)。
+
+## `device.getCapabilities()`
+
+```typescript
+device.getCapabilities(): ScreenRelayCapabilities | undefined
+```
+
+返回 `connect()` 时获取的被控桌面能力信息（后端类型、分辨率、剪贴板、IME 与支持的输入项）。`ScreenRelayDevice` 会据此自动裁剪 `actionSpace()` 中不受支持的动作。
+
+## CLI
+
+```bash
+export MIDSCENE_SCREEN_RELAY_URL="http://127.0.0.1:8080"
+export MIDSCENE_SCREEN_RELAY_TOKEN="<your-token>"
+
+npx @midscene/screen-relay connect
+npx @midscene/screen-relay capabilities
+npx @midscene/screen-relay act --prompt "点击搜索框并输入 hello"
+npx @midscene/screen-relay take_screenshot
+npx @midscene/screen-relay disconnect
+```
+
+建议通过 `MIDSCENE_SCREEN_RELAY_TOKEN` 传递 `token`，避免进入 Shell 历史或进程参数；若通过命令行传入 `--token` 或 `#token=`，CLI 会在调试日志中自动脱敏。
+
+## 生命周期
+
+```typescript
+agent.destroy(): Promise<void>
+```
+
+每个 `ScreenRelayDevice` 实例只能归属于一个 `Agent`，请勿在多个 Agent 间共享或在 `destroy()` 后复用。
+
+调用 `await agent.destroy()` 会触发 `device.destroy()` 并完成报告写入，仅清理本地客户端状态，不会停止远端 `screen-relay` 服务或桌面应用。如需重新连接，请再次调用 `agentForScreenRelay()` 或新建 `ScreenRelayDevice` 实例。

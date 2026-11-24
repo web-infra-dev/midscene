@@ -261,6 +261,10 @@ export default defineConfig(async () => {
                 text: 'Desktop',
                 link: '/platforms/desktop',
               },
+              {
+                text: 'Remote desktop (Screen Relay)',
+                link: '/platforms/screen-relay',
+              },
             ],
           },
           {
@@ -365,6 +369,10 @@ export default defineConfig(async () => {
               {
                 text: 'Desktop',
                 link: '/sdk/desktop',
+              },
+              {
+                text: 'Remote desktop (Screen Relay)',
+                link: '/sdk/screen-relay',
               },
             ],
           },
@@ -536,6 +544,10 @@ export default defineConfig(async () => {
                 text: '桌面端',
                 link: '/zh/platforms/desktop',
               },
+              {
+                text: '远程桌面（Screen Relay）',
+                link: '/zh/platforms/screen-relay',
+              },
             ],
           },
           {
@@ -640,6 +652,10 @@ export default defineConfig(async () => {
               {
                 text: '桌面端',
                 link: '/zh/sdk/desktop',
+              },
+              {
+                text: '远程桌面（Screen Relay）',
+                link: '/zh/sdk/screen-relay',
               },
             ],
           },
