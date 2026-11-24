@@ -35,6 +35,10 @@ export const jevLocate: LocateFn = async ({
   return {
     rawResponse: response.content,
     usage: response.usage,
-    locatedPixelResult: mapJevBox(answers.target.box, locateImage),
+    locatedPixelResult: mapJevBox(
+      answers.target.box,
+      locateImage,
+      image.preparation,
+    ),
   };
 };
