@@ -451,7 +451,7 @@ describe('IOSDevice', () => {
             mockExecutorContext,
           );
         expect(mockWdaClient.typeRawKeys).toHaveBeenCalledExactlyOnceWith([
-          '\b'.repeat(40),
+          '\b'.repeat(100),
         ]);
         expect(mockWdaClient.tap).toHaveBeenCalledTimes(1);
         expect(mockWdaClient.longPress).not.toHaveBeenCalled();

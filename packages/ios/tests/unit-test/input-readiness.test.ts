@@ -95,7 +95,7 @@ describe('iOS input focus readiness', () => {
         expect(keys.join('')).toBe('new');
       } else {
         expect(clicks).toEqual([]);
-        expect(keys).toEqual(['\b'.repeat(40), 'n', 'e', 'w']);
+        expect(keys).toEqual(['\b'.repeat(100), 'n', 'e', 'w']);
       }
       expect(empty).not.toHaveBeenCalled();
       expect(taps).toEqual([{ x: 10, y: 20 }]);

@@ -51,7 +51,8 @@ export const WDA_HTTP_METHODS = ['GET', 'POST', 'DELETE', 'PUT'] as const;
 export type WDAHttpMethod = (typeof WDA_HTTP_METHODS)[number];
 
 const DEFAULT_WDA_MJPEG_PORT = 9100;
-const customInputBackspaceCount = 40;
+// Bound the time spent synthesizing keys when WDA cannot select the text.
+const customInputBackspaceCount = 100;
 const keyboardFollowUpMaxAgeMs = 30_000;
 const keyboardFollowUpKeys: ReadonlySet<string> = new Set([
   'enter',
