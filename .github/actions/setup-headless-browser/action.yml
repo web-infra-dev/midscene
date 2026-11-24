@@ -24,6 +24,12 @@ runs:
       run: |
         set -euo pipefail
 
+        source /etc/os-release
+        desktop_libs=(libasound2 libatk-bridge2.0-0 libgtk-3-0)
+        if [[ "${VERSION_CODENAME:-}" == noble ]]; then
+          desktop_libs=(libasound2t64 libatk-bridge2.0-0t64 libgtk-3-0t64)
+        fi
+
         packages=(
           xvfb
           x11-xserver-utils
@@ -31,11 +37,9 @@ runs:
           fontconfig
           fonts-liberation
           fonts-wqy-zenhei
-          libasound2
-          libatk-bridge2.0-0
+          "${desktop_libs[@]}"
           libdrm2
           libgbm1
-          libgtk-3-0
           libnss3
           libpango-1.0-0
           libvulkan1

@@ -37,7 +37,7 @@ env:
 
 jobs:
   screen-relay-linux-e2e:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       CI: "1"
       MIDSCENE_REPORT_QUIET: "true"
@@ -67,7 +67,7 @@ jobs:
       uses: ./.github/actions/cache/restore
       with:
         path: ~/.local/share/screen-relay
-        key: screen-relay-engine-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('packages/screen-relay/package.json') }}
+        key: screen-relay-engine-ubuntu-24.04-${{ runner.arch }}-${{ hashFiles('packages/screen-relay/package.json') }}
 
     - name: Build report and screen-relay packages
       run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/screen-relay" --skip-nx-cache
@@ -123,7 +123,7 @@ jobs:
       uses: ./.github/actions/cache/save
       with:
         path: ~/.local/share/screen-relay
-        key: screen-relay-engine-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('packages/screen-relay/package.json') }}
+        key: screen-relay-engine-ubuntu-24.04-${{ runner.arch }}-${{ hashFiles('packages/screen-relay/package.json') }}
 
     - name: Run deterministic real-desktop tests
       run: AI_TEST_TYPE=screen-relay pnpm exec nx test @midscene/screen-relay --skip-nx-cache -- tests/ai/real-session.test.ts --retry=0
@@ -155,7 +155,7 @@ jobs:
 
   screen-relay-linux-ai:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    runs-on: ubuntu-24.04
     env:
       CI: "1"
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
@@ -194,7 +194,7 @@ jobs:
       uses: ./.github/actions/cache/restore
       with:
         path: ~/.local/share/screen-relay
-        key: screen-relay-engine-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('packages/screen-relay/package.json') }}
+        key: screen-relay-engine-ubuntu-24.04-${{ runner.arch }}-${{ hashFiles('packages/screen-relay/package.json') }}
 
     - name: Build report and screen-relay packages
       run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/screen-relay" --skip-nx-cache
@@ -206,7 +206,7 @@ jobs:
       uses: ./.github/actions/cache/save
       with:
         path: ~/.local/share/screen-relay
-        key: screen-relay-engine-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('packages/screen-relay/package.json') }}
+        key: screen-relay-engine-ubuntu-24.04-${{ runner.arch }}-${{ hashFiles('packages/screen-relay/package.json') }}
 
     - name: Run screen-relay AI vision smoke test
       timeout-minutes: 10
