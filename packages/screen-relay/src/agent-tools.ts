@@ -1,22 +1,18 @@
-import { z } from '@midscene/core';
+import { type DeviceAction, z } from '@midscene/core';
 import {
   type AgentBehaviorInitArgs,
   agentBehaviorInitArgShape,
-  extractAgentBehaviorInitArgs,
-  getAgentInitArgsSignature,
-  shouldRebuildAgentForInitArgs,
 } from '@midscene/shared/agent-tools/agent-behavior-init-args';
 import {
   BaseMidsceneTools,
   type InitArgSpec,
 } from '@midscene/shared/agent-tools/base-tools';
+import { stripBehaviorFlags } from '@midscene/shared/agent-tools/tool-defaults';
 import type { ToolDefinition } from '@midscene/shared/agent-tools/types';
-import { getDebug } from '@midscene/shared/logger';
-import { type ScreenRelayAgent, agentForScreenRelay } from './agent';
+import { CLIError, parseCliArgs, stripVerboseFlag } from '@midscene/shared/cli';
+import { ScreenRelayAgent, agentForScreenRelay } from './agent';
 import { ScreenRelayDevice, type ScreenRelayDeviceOpt } from './device';
-import { parseScreenRelayTarget } from './target';
-
-const debug = getDebug('agent-tools:screen-relay');
+import { DEFAULT_SCREEN_RELAY_URL, MIDSCENE_SCREEN_RELAY_URL } from './target';
 
 const screenRelayInitArgShape = {
   url: z
@@ -40,20 +36,49 @@ const screenRelayInitArgShape = {
   ...agentBehaviorInitArgShape,
 };
 
-export type ScreenRelayInitArgs = Pick<
+type ScreenRelayInitArgs = Pick<
   ScreenRelayDeviceOpt,
   'url' | 'token' | 'timeoutMs'
 > &
   AgentBehaviorInitArgs;
 
+/**
+ * Hoist `--help` / `-h` to index 0 when only options (no subcommand) precede it,
+ * so `midscene-screen-relay --url http://... --help` behaves identically to
+ * `midscene-screen-relay --help --url http://...`.
+ */
+export function normalizeScreenRelayHelpArgv(
+  argv: readonly string[],
+): string[] {
+  const { rawArgs: withoutVerbose } = stripVerboseFlag([...argv]);
+  const { rawArgs: coreArgs } = stripBehaviorFlags(withoutVerbose);
+  const hasHelp = coreArgs.some((arg) => arg === '--help' || arg === '-h');
+  if (
+    hasHelp &&
+    coreArgs[0]?.startsWith('-') &&
+    coreArgs[0] !== '--help' &&
+    coreArgs[0] !== '-h'
+  ) {
+    return [
+      '--help',
+      ...argv.filter((arg) => arg !== '--help' && arg !== '-h'),
+    ];
+  }
+  return [...argv];
+}
+
 export class ScreenRelayMidsceneTools extends BaseMidsceneTools<
   ScreenRelayAgent,
   ScreenRelayInitArgs
 > {
-  private lastInitArgsSignature?: string;
+  private device?: ScreenRelayDevice;
+  private discoveredActions?: DeviceAction<any>[];
 
-  protected getCliReportSessionName() {
-    return 'midscene-screen-relay';
+  constructor(
+    private readonly argv: string[],
+    private readonly cliToken?: string,
+  ) {
+    super();
   }
 
   protected readonly initArgSpec: InitArgSpec<ScreenRelayInitArgs> = {
@@ -65,114 +90,173 @@ export class ScreenRelayMidsceneTools extends BaseMidsceneTools<
   };
 
   protected createTemporaryDevice() {
-    return new ScreenRelayDevice({});
+    if (this.discoveredActions) {
+      const actions = this.discoveredActions;
+      return { actionSpace: () => actions };
+    }
+    return new ScreenRelayDevice({ url: DEFAULT_SCREEN_RELAY_URL });
   }
 
-  protected async ensureAgent(
-    opts?: ScreenRelayInitArgs,
-  ): Promise<ScreenRelayAgent> {
-    const nextSignature = getAgentInitArgsSignature(opts);
-
-    if (
-      this.agent &&
-      shouldRebuildAgentForInitArgs(this.lastInitArgsSignature, nextSignature)
-    ) {
-      try {
-        await this.agent.destroy?.();
-      } catch (error) {
-        debug('Failed to destroy agent during cleanup:', error);
-      }
-      this.agent = undefined;
-    }
-
-    if (this.agent) {
-      return this.agent;
-    }
-
-    const reportOptions = this.readCliReportAgentOptions();
-    const agentOpts = {
-      ...(opts?.url ? { url: opts.url } : {}),
-      ...(opts?.token ? { token: opts.token } : {}),
-      ...(opts?.timeoutMs !== undefined ? { timeoutMs: opts.timeoutMs } : {}),
-      ...(extractAgentBehaviorInitArgs(opts) ?? {}),
-      ...(reportOptions ?? {}),
-    };
-
-    const agent = await agentForScreenRelay(
-      Object.keys(agentOpts).length > 0 ? agentOpts : undefined,
-    );
-    this.agent = agent;
-    this.lastInitArgsSignature = nextSignature;
-    return agent;
+  protected override extractAgentInitParam(args: Record<string, unknown>) {
+    const opts = super.extractAgentInitParam(args);
+    return this.cliToken ? { ...opts, token: this.cliToken } : opts;
   }
 
-  protected preparePlatformTools(): ToolDefinition[] {
+  public override getCliToolDefinitions(): ToolDefinition[] {
     return [
+      ...super.getCliToolDefinitions(),
       {
-        name: 'screen_relay_connect',
+        name: 'playground',
         description:
-          'Connect to a remote or local desktop running screen-relay. Supports pasting the full Viewer URL with #token=... directly into url.',
-        schema: this.getAgentInitArgSchema(),
-        cli: this.getAgentInitArgCliMetadata(),
-        handler: async (args: Record<string, unknown>) => {
-          const initArgs = this.extractAgentInitParam(args);
-          const resolved = parseScreenRelayTarget({
-            url: initArgs?.url,
-            token: initArgs?.token,
-          });
-          const reportSession = this.createNewCliReportSession(resolved.url);
-          this.commitCliReportSession(reportSession);
-
-          if (this.agent) {
-            try {
-              await this.agent.destroy?.();
-            } catch (error) {
-              debug('Failed to destroy agent during connect:', error);
-            }
-            this.agent = undefined;
-            this.lastInitArgsSignature = undefined;
-          }
-
-          const agent = await this.ensureAgent(initArgs);
-          const screenshot = await agent.interface.screenshotBase64();
-
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Connected to ${agent.interface.describe()}`,
-              },
-              ...this.buildScreenshotContent(screenshot),
-            ],
-          };
+          'Open the Midscene Playground for this screen-relay desktop.',
+        schema: {
+          ...this.getAgentInitArgSchema(),
+          port: z
+            .number()
+            .int()
+            .min(1)
+            .max(65535)
+            .optional()
+            .describe('Local Playground server port (default 5800).'),
+          'no-open': z
+            .boolean()
+            .optional()
+            .describe('Print the Playground URL without opening a browser.'),
         },
-      },
-      {
-        name: 'screen_relay_disconnect',
-        description: 'Disconnect from screen-relay and release resources',
-        schema: {},
-        handler: this.createDisconnectHandler('screen-relay'),
-      },
-      {
-        name: 'screen_relay_capabilities',
-        description:
-          'Query capabilities of the connected screen-relay desktop (backend, resolution, and supported input features)',
-        schema: this.getAgentInitArgSchema(),
         cli: this.getAgentInitArgCliMetadata(),
-        handler: async (args: Record<string, unknown>) => {
-          const initArgs = this.extractAgentInitParam(args);
-          const agent = await this.ensureAgent(initArgs);
-          const caps = agent.interface.getCapabilities();
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(caps ?? {}, null, 2),
-              },
-            ],
-          };
+        handler: async (args) => {
+          const { playgroundForAgentFactory, buildPlaygroundBrowserUrl } =
+            await import('@midscene/playground');
+          const opts = this.extractAgentInitParam(args);
+          const playground = await playgroundForAgentFactory(() =>
+            agentForScreenRelay(opts),
+          ).launch({
+            port: typeof args.port === 'number' ? args.port : undefined,
+            openBrowser: !args['no-open'],
+          });
+          console.log(
+            `Playground: ${buildPlaygroundBrowserUrl(playground.host, playground.port)} (Ctrl+C to stop)`,
+          );
+          await new Promise<void>((resolve) => {
+            const stop = () => {
+              process.off('SIGINT', stop);
+              process.off('SIGTERM', stop);
+              resolve();
+            };
+            process.once('SIGINT', stop);
+            process.once('SIGTERM', stop);
+          });
+          await playground.close();
+          return { content: [] };
         },
       },
     ];
+  }
+
+  public override async initTools() {
+    this.discoveredActions = undefined;
+    const normalized = normalizeScreenRelayHelpArgv(this.argv);
+    const { rawArgs } = stripVerboseFlag(normalized);
+    await this.discoverDeviceActions(stripBehaviorFlags(rawArgs).rawArgs);
+    await super.initTools();
+  }
+
+  private async discoverDeviceActions([command, ...args]: string[]) {
+    const name = command?.toLowerCase();
+    if (name === '--version' || name === '-v' || name === 'version') {
+      return;
+    }
+
+    const rootHelp = !name || name === '--help' || name === '-h';
+    const subcommandHelp =
+      !rootHelp && args.some((arg) => arg === '--help' || arg === '-h');
+    if (subcommandHelp) {
+      return;
+    }
+
+    const options = parseCliArgs(args);
+    const url = options.url;
+    const timeoutMs = options['timeout-ms'] ?? options.timeoutMs;
+    const token =
+      this.cliToken ??
+      (typeof options.token === 'string' ? options.token : undefined);
+
+    if (rootHelp) {
+      const explicitTarget =
+        url !== undefined
+          ? url
+          : process.env[MIDSCENE_SCREEN_RELAY_URL]?.trim();
+      if (!explicitTarget) {
+        return;
+      }
+      if (url !== undefined && typeof url !== 'string') {
+        throw new CLIError('Expected a URL after --url.');
+      }
+      if (timeoutMs !== undefined && typeof timeoutMs !== 'number') {
+        throw new CLIError('Expected a number after --timeout-ms.');
+      }
+      const probeDevice = new ScreenRelayDevice({
+        url,
+        timeoutMs,
+        token,
+      });
+      try {
+        await probeDevice.connect();
+        this.discoveredActions = probeDevice.actionSpace();
+      } finally {
+        await probeDevice.destroy();
+      }
+      return;
+    }
+
+    // Common and local commands have their own handlers. Only native actions
+    // need discovery before the CLI can dispatch them.
+    const catalog = new ScreenRelayDevice({ url: DEFAULT_SCREEN_RELAY_URL });
+    const known = catalog
+      .actionSpace()
+      .some((action) => action.name.toLowerCase() === name);
+    await catalog.destroy();
+    if (!known) return;
+
+    if (url !== undefined && typeof url !== 'string') {
+      throw new CLIError('Expected a URL after --url.');
+    }
+    if (timeoutMs !== undefined && typeof timeoutMs !== 'number') {
+      throw new CLIError('Expected a number after --timeout-ms.');
+    }
+    const device = new ScreenRelayDevice({
+      url,
+      timeoutMs,
+      token,
+    });
+    await device.connect();
+    const actions = device.actionSpace();
+    if (!actions.some((action) => action.name.toLowerCase() === name)) {
+      await device.destroy();
+      throw new CLIError(
+        `The current screen-relay device does not support "${command}".`,
+      );
+    }
+    this.device = device;
+    this.discoveredActions = actions;
+  }
+
+  protected override async ensureAgent(opts?: ScreenRelayInitArgs) {
+    this.agent ??= this.device
+      ? new ScreenRelayAgent(this.device, opts)
+      : await agentForScreenRelay(opts);
+    return this.agent;
+  }
+
+  public override async destroy(): Promise<void> {
+    const agent = this.agent;
+    const device = this.device;
+    this.agent = undefined;
+    this.device = undefined;
+    try {
+      await agent?.destroy?.();
+    } finally {
+      await device?.destroy();
+    }
   }
 }

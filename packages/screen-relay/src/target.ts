@@ -108,7 +108,7 @@ export function sanitizeScreenRelayCliArgs(argv: readonly string[]): {
       continue;
     }
     if (arg === '--url' || arg === '--screen-relay-url') {
-      sanitizedArgv.push(arg);
+      sanitizedArgv.push('--url');
       const next = argv[i + 1];
       if (next !== undefined && !next.startsWith('-')) {
         sanitizedArgv.push(stripUrlToken(next));
@@ -122,7 +122,7 @@ export function sanitizeScreenRelayCliArgs(argv: readonly string[]): {
     }
     if (arg.startsWith('--screen-relay-url=')) {
       sanitizedArgv.push(
-        `--screen-relay-url=${stripUrlToken(arg.slice('--screen-relay-url='.length))}`,
+        `--url=${stripUrlToken(arg.slice('--screen-relay-url='.length))}`,
       );
       continue;
     }

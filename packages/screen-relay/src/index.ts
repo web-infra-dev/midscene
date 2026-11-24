@@ -11,11 +11,6 @@ export {
 } from './agent';
 
 export {
-  ScreenRelayMidsceneTools,
-  type ScreenRelayInitArgs,
-} from './agent-tools';
-
-export {
   formatScreenRelayError,
   isRelayError,
   type ScreenRelayCapabilities,

@@ -8,7 +8,6 @@
 import {
   ScreenRelayAgent,
   ScreenRelayDevice,
-  ScreenRelayMidsceneTools,
   agentForScreenRelay,
 } from '@midscene/screen-relay';
 ```
@@ -74,18 +73,29 @@ device.getCapabilities(): ScreenRelayCapabilities | undefined
 
 ## CLI
 
+执行命令时会自动连接。离线运行 `--help` 可查看全部命令；传入 `--url`（或设置 `MIDSCENE_SCREEN_RELAY_URL`）时，`--help` 会按该桌面实际支持的输入能力过滤命令。
+
 ```bash
 export MIDSCENE_SCREEN_RELAY_URL="http://127.0.0.1:8080"
 export MIDSCENE_SCREEN_RELAY_TOKEN="<your-token>"
 
-npx @midscene/screen-relay connect
-npx @midscene/screen-relay capabilities
+npx @midscene/screen-relay --help
 npx @midscene/screen-relay act --prompt "点击搜索框并输入 hello"
 npx @midscene/screen-relay take_screenshot
-npx @midscene/screen-relay disconnect
 ```
 
 建议通过 `MIDSCENE_SCREEN_RELAY_TOKEN` 传递 `token`，避免进入 Shell 历史或进程参数；若通过命令行传入 `--token` 或 `#token=`，CLI 会在调试日志中自动脱敏。
+
+### Playground
+
+在浏览器中打开 Midscene Playground，通过 `ScreenRelayAgent` 查看和操作桌面。命令会从环境变量或当前目录的 `.env` 读取 `MIDSCENE_SCREEN_RELAY_URL` 和 `MIDSCENE_SCREEN_RELAY_TOKEN`。也可以传入完整 Viewer URL，或分别指定 `--url` 和 `--token`。
+
+```bash
+npx @midscene/screen-relay playground
+npx @midscene/screen-relay playground --url 'http://127.0.0.1:18081/#token=<token>'
+```
+
+Playground 默认自动打开浏览器。用 `--port` 指定本地端口，`--no-open` 仅打印地址，按 Ctrl+C 停止服务。
 
 ## 生命周期
 

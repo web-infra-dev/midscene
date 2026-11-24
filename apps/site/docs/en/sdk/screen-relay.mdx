@@ -8,7 +8,6 @@
 import {
   ScreenRelayAgent,
   ScreenRelayDevice,
-  ScreenRelayMidsceneTools,
   agentForScreenRelay,
 } from '@midscene/screen-relay';
 ```
@@ -74,18 +73,29 @@ Returns the capability descriptor fetched during `connect()` (backend name, scre
 
 ## CLI
 
+Each command connects automatically. Run `--help` offline to list all commands, or pass `--url` (or set `MIDSCENE_SCREEN_RELAY_URL`) to filter `--help` to the input actions supported by that desktop.
+
 ```bash
 export MIDSCENE_SCREEN_RELAY_URL="http://127.0.0.1:8080"
 export MIDSCENE_SCREEN_RELAY_TOKEN="<your-token>"
 
-npx @midscene/screen-relay connect
-npx @midscene/screen-relay capabilities
+npx @midscene/screen-relay --help
 npx @midscene/screen-relay act --prompt "Click the Search box and type hello"
 npx @midscene/screen-relay take_screenshot
-npx @midscene/screen-relay disconnect
 ```
 
 Pass the token via `MIDSCENE_SCREEN_RELAY_TOKEN` to keep it out of shell history and process arguments; `--token` and `#token=` passed on the command line are redacted from CLI debug logs.
+
+### Playground
+
+Open the Midscene Playground in your browser to view and operate the desktop through `ScreenRelayAgent`. The command reads `MIDSCENE_SCREEN_RELAY_URL` and `MIDSCENE_SCREEN_RELAY_TOKEN` from the environment or the current directory’s `.env`. You can also pass a Viewer URL or supply `--url` and `--token` separately.
+
+```bash
+npx @midscene/screen-relay playground
+npx @midscene/screen-relay playground --url 'http://127.0.0.1:18081/#token=<token>'
+```
+
+The Playground opens automatically. Use `--port` to change its local port, `--no-open` to print the address without opening a browser, and Ctrl+C to stop it.
 
 ## Lifecycle
 

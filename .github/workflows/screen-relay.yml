@@ -8,6 +8,7 @@ on:
       - '.github/actions/ai-ci/**'
       - 'apps/report/**'
       - 'packages/screen-relay/**'
+      - 'packages/playground/**'
       - 'packages/core/**'
       - 'packages/shared/**'
       - '!**/*.md'
@@ -132,7 +133,7 @@ jobs:
     - name: Verify CLI against live desktop
       run: |
         set -euo pipefail
-        node packages/screen-relay/bin/midscene-screen-relay capabilities
+        node packages/screen-relay/bin/midscene-screen-relay --help
         node packages/screen-relay/bin/midscene-screen-relay take_screenshot
       timeout-minutes: 3
 

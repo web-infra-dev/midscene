@@ -5,6 +5,11 @@ import { version } from './package.json';
 export default defineConfig({
   lib: [
     {
+      source: {
+        entry: {
+          index: './src/index.ts',
+        },
+      },
       output: {
         distPath: { root: 'dist/lib' },
       },
@@ -12,6 +17,12 @@ export default defineConfig({
       syntax: 'es2020',
     },
     {
+      source: {
+        entry: {
+          index: './src/index.ts',
+          cli: './src/cli.ts',
+        },
+      },
       output: {
         distPath: { root: 'dist/es' },
       },
@@ -25,10 +36,6 @@ export default defineConfig({
   ],
   source: {
     tsconfigPath: 'tsconfig.build.json',
-    entry: {
-      index: './src/index.ts',
-      cli: './src/cli.ts',
-    },
     define: {
       __VERSION__: JSON.stringify(version),
     },

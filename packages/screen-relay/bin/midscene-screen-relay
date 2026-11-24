@@ -1,2 +1,5 @@
 #!/usr/bin/env node
-require('../dist/lib/cli.js');
+import('../dist/es/cli.mjs').catch((error) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
+});

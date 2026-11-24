@@ -31,6 +31,7 @@
   },
   "dependencies": {
     "@midscene/core": "workspace:*",
+    "@midscene/playground": "workspace:*",
     "@midscene/shared": "workspace:*",
     "screen-relay": "0.1.5"
   },

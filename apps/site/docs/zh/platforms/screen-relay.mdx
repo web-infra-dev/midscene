@@ -48,11 +48,11 @@ screen-relay up --backend x11 --desktop none -d
 export MIDSCENE_SCREEN_RELAY_URL="http://127.0.0.1:8080"
 export MIDSCENE_SCREEN_RELAY_TOKEN="<your-token>" # 本机无 token 模式可省略
 
-npx @midscene/screen-relay capabilities
+npx @midscene/screen-relay --help
 npx @midscene/screen-relay take_screenshot
 ```
 
-确认 `capabilities` 返回后端信息且 `take_screenshot` 正常出图后，即可参考[使用模型 API Key](../model-api-setup) 配置模型，并在 [Screen Relay JavaScript SDK](../sdk/screen-relay) 中编写脚本。
+确认 `--help` 列出桌面支持的动作且 `take_screenshot` 正常出图后，即可参考[使用模型 API Key](../model-api-setup) 配置模型，并在 [Screen Relay JavaScript SDK](../sdk/screen-relay) 中编写脚本。
 
 ## 常见问题 {#faq}
 

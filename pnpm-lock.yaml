@@ -1382,6 +1382,9 @@ importers:
       '@midscene/core':
         specifier: workspace:*
         version: link:../core
+      '@midscene/playground':
+        specifier: workspace:*
+        version: link:../playground
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
