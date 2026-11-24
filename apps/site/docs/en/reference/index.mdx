@@ -667,7 +667,7 @@ function aiInput(
       - `'typeOnly'`: Enter the text directly without clearing the field first.
       - `'clear'`: Clear the input field without entering new text.
 
-  On iOS, when WDA cannot identify a located input, `clear` and `replace` can use a Select All item exposed by WDA. If that item is unavailable, the Agent can check the focused field for emptiness using a screenshot. Remaining text or an inconclusive check stops the action before replacement text is sent.
+  On iOS, when WDA cannot identify a located input, `clear` and `replace` can use a Select All item exposed by WDA. If that item is unavailable, the Agent checks a screenshot to confirm the field is empty. You can enable a [bounded batch of Backspaces](../sdk/ios#device-options) before this check. For this fallback, remaining text or an inconclusive check stops the action before replacement text is sent. The Agent does not use AI to click the menu. `typeOnly` types at the cursor without clearing the field.
 
   Platform-specific behavior under the default `inputStrategy: 'legacy'`:
 
