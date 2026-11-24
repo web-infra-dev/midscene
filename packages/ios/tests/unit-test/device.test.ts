@@ -435,92 +435,59 @@ describe('IOSDevice', () => {
       expect(mockWdaClient.typeText).not.toHaveBeenCalled();
     });
 
-    it.each([true, false])(
-      'uses the current field position and verifies the selection before deleting (confirmed=%s)',
-      async (confirmed) => {
-        mockWdaClient.waitForInputFocus.mockRejectedValue(
-          new InputFocusUnavailableError('no focus'),
-        );
-        mockWdaClient.selectAllAt.mockResolvedValue(undefined);
-        device.visualEditMenu = {
-          inspect: rs
-            .fn()
-            .mockResolvedValueOnce({ action: 'open', point: { x: 30, y: 40 } })
-            .mockResolvedValueOnce({
-              action: 'select',
-              point: { x: 50, y: 60 },
-            }),
-          selectionCoversText: rs.fn().mockResolvedValue(confirmed),
-        };
-        const clear = device.clearInput({ center: [10, 20] } as any);
-        if (confirmed) await clear;
-        else await expect(clear).rejects.toThrow('Cannot confirm selection');
-        expect(mockWdaClient.longPress).toHaveBeenCalledWith(30, 40, 900);
-        expect(mockWdaClient.tap.mock.calls).toEqual([
-          [10, 20],
-          [50, 60],
-        ]);
-        expect(mockWdaClient.typeRawKeys).toHaveBeenCalledTimes(
-          confirmed ? 1 : 0,
-        );
-      },
-    );
-
-    it.each(['clear', 'replace'] as const)(
-      'finishes %s only after checking the Backspace result',
-      async (mode) => {
-        device.options = { customInputClearFallbackMaxDeleteCount: 40 };
-        mockWdaClient.waitForInputFocus.mockRejectedValue(
-          new InputFocusUnavailableError('no focus'),
-        );
-        mockWdaClient.selectAllAt.mockResolvedValue(undefined);
-        mockWdaClient.selectAllFromMenu.mockResolvedValue(true);
-        device.visualEditMenu = {
-          inspect: rs
-            .fn()
-            .mockResolvedValue({ action: 'open', point: { x: 30, y: 40 } }),
-          selectionCoversText: rs.fn(),
-        };
-        await device
-          .actionSpace()
-          .find((a) => a.name === 'Input')!
-          .call(
-            {
-              locate: { center: [10, 20] },
-              value: 'new',
-              mode,
-              autoDismissKeyboard: false,
-            } as any,
-            mockExecutorContext,
-          );
-        expect(device.visualEditMenu.inspect).toHaveBeenCalledOnce();
-        expect(mockWdaClient.typeRawKeys.mock.calls).toEqual(
-          mode === 'clear'
-            ? [[['\b'.repeat(40)]], [['\b']]]
-            : [[['\b'.repeat(40)]]],
-        );
-        expect(mockWdaClient.typeText).toHaveBeenCalledTimes(
-          mode === 'replace' ? 1 : 0,
+    describe.each(['clear', 'replace'] as const)(
+      '%s without a WDA Select All item',
+      (mode) => {
+        it.each([true, false])(
+          'checks whether the field is empty after bounded Backspace (empty=%s)',
+          async (empty) => {
+            device.options = { customInputClearFallbackMaxDeleteCount: 40 };
+            mockWdaClient.clearActiveElement.mockResolvedValue(false);
+            mockWdaClient.selectAllAt.mockResolvedValue(undefined);
+            device.isFocusedInputEmpty = rs.fn().mockResolvedValue(empty);
+            const action = device
+              .actionSpace()
+              .find((a) => a.name === 'Input')!
+              .call(
+                {
+                  locate: { center: [10, 20] },
+                  mode,
+                  value: 'new',
+                  autoDismissKeyboard: false,
+                } as any,
+                mockExecutorContext,
+              );
+            if (empty) await action;
+            else
+              await expect(action).rejects.toThrow(
+                'Cannot confirm the focused input is empty',
+              );
+            expect(mockWdaClient.typeRawKeys).toHaveBeenCalledExactlyOnceWith([
+              '\b'.repeat(40),
+            ]);
+            expect(device.isFocusedInputEmpty).toHaveBeenCalledOnce();
+            expect(mockWdaClient.tap).toHaveBeenCalledTimes(1);
+            expect(mockWdaClient.longPress).not.toHaveBeenCalled();
+            expect(mockWdaClient.typeText).toHaveBeenCalledTimes(
+              empty && mode === 'replace' ? 1 : 0,
+            );
+          },
         );
       },
     );
 
-    it('does not type when the post-Backspace inspection fails', async () => {
-      device.options = { customInputClearFallbackMaxDeleteCount: 40 };
+    it('stops without gestures or keys when WDA cannot select the nonempty input and Backspace is disabled', async () => {
       mockWdaClient.clearActiveElement.mockResolvedValue(false);
       mockWdaClient.selectAllAt.mockResolvedValue(undefined);
-      device.visualEditMenu = {
-        inspect: rs.fn().mockRejectedValue(new Error('unknown field')),
-        selectionCoversText: rs.fn(),
-      };
+      device.isFocusedInputEmpty = rs.fn().mockResolvedValue(false);
       await expect(
         device.inputPrimitives.keyboard.typeText('new', {
           target: { center: [10, 20] },
         }),
-      ).rejects.toThrow('unknown field');
-      expect(mockWdaClient.typeRawKeys).toHaveBeenCalledExactlyOnceWith([
-        '\b'.repeat(40),
-      ]);
+      ).rejects.toThrow('Cannot confirm the focused input is empty');
+      expect(mockWdaClient.tap).toHaveBeenCalledTimes(1);
+      expect(mockWdaClient.longPress).not.toHaveBeenCalled();
+      expect(mockWdaClient.typeRawKeys).not.toHaveBeenCalled();
       expect(mockWdaClient.typeText).not.toHaveBeenCalled();
     });
 

@@ -64,13 +64,8 @@ type PendingKeyboardFollowUp = {
 };
 
 export class IOSDevice implements AbstractInterface {
-  /** Used by the agent when the edit menu is drawn outside the accessibility tree. */
-  visualEditMenu?: {
-    inspect(): Promise<
-      'empty' | { action: 'open' | 'select'; point: PointerPoint }
-    >;
-    selectionCoversText(): Promise<boolean>;
-  };
+  /** Read-only agent check for fields whose value WDA cannot inspect. */
+  isFocusedInputEmpty?: () => Promise<boolean>;
   private deviceId: string;
   private devicePixelRatio = 1;
   private devicePixelRatioInitialized = false;
@@ -742,15 +737,15 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     point: PointerPoint,
     app: string,
   ): Promise<boolean> {
-    const { visualEditMenu } = this;
+    const { isFocusedInputEmpty } = this;
     const selected = await this.wdaBackend.selectAllAt(
       Math.round(point.x),
       Math.round(point.y),
-      !visualEditMenu,
+      !isFocusedInputEmpty,
     );
     if (selected !== undefined) return selected;
     assert(
-      visualEditMenu,
+      isFocusedInputEmpty,
       'Cannot clear input: the Select All menu item is unavailable',
     );
 
@@ -759,37 +754,11 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       await this.checkInputApp(app);
       await this.wdaBackend.typeRawKeys(['\b'.repeat(count)]);
     }
-    // A successful key request does not prove the field is empty: Backspace
-    // leaves the suffix after the caret and may exhaust the caller's budget.
-    let menu = await visualEditMenu.inspect();
-    if (menu !== 'empty' && menu.action === 'open') {
-      await this.checkInputApp(app);
-      // After deletion the caret may still be at the start of a suffix.
-      // Tapping its freshly located end can open the native menu directly.
-      if (count !== undefined) {
-        await this.tapPoint(menu.point);
-        await this.checkInputApp(app);
-        const tapped = await this.wdaBackend.selectAllFromMenu();
-        if (tapped === true) return true;
-      }
-      await this.longPressPoint(menu.point, 900);
-      await this.checkInputApp(app);
-      const nativeSelection = await this.wdaBackend.selectAllFromMenu();
-      if (nativeSelection === true) return true;
-      menu = await visualEditMenu.inspect();
-    }
-    if (menu === 'empty') return false;
     assert(
-      menu.action === 'select',
-      'Cannot find Select All for the focused input',
+      await isFocusedInputEmpty(),
+      'Cannot confirm the focused input is empty: WDA could not select all text',
     );
-    await this.checkInputApp(app);
-    await this.tapPoint(menu.point);
-    assert(
-      await visualEditMenu.selectionCoversText(),
-      'Cannot confirm selection in the focused input',
-    );
-    return true;
+    return false;
   }
 
   private async typeText(
