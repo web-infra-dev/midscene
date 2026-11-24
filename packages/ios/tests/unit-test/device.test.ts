@@ -433,36 +433,30 @@ describe('IOSDevice', () => {
       expect(mockWdaClient.typeText).not.toHaveBeenCalled();
     });
 
-    describe.each(['clear', 'replace'] as const)(
-      '%s without a WDA Select All item',
-      (mode) => {
-        it.each([undefined, 7])(
-          'deletes in one batch with the configured budget (%s)',
-          async (count) => {
-            device.options = { customInputClearFallbackMaxDeleteCount: count };
-            mockWdaClient.clearActiveElement.mockResolvedValue(false);
-            mockWdaClient.selectAllFromMenu.mockResolvedValue(false);
-            await device
-              .actionSpace()
-              .find((a) => a.name === 'Input')!
-              .call(
-                {
-                  locate: { center: [10, 20] },
-                  mode,
-                  value: 'new',
-                  autoDismissKeyboard: false,
-                } as any,
-                mockExecutorContext,
-              );
-            expect(mockWdaClient.typeRawKeys).toHaveBeenCalledExactlyOnceWith([
-              '\b'.repeat(count ?? 40),
-            ]);
-            expect(mockWdaClient.tap).toHaveBeenCalledTimes(1);
-            expect(mockWdaClient.longPress).not.toHaveBeenCalled();
-            expect(mockWdaClient.typeText).toHaveBeenCalledTimes(
-              mode === 'replace' ? 1 : 0,
-            );
-          },
+    it.each(['clear', 'replace'] as const)(
+      '%s sends one batch of Backspaces when WDA cannot select all',
+      async (mode) => {
+        mockWdaClient.clearActiveElement.mockResolvedValue(false);
+        mockWdaClient.selectAllFromMenu.mockResolvedValue(false);
+        await device
+          .actionSpace()
+          .find((a) => a.name === 'Input')!
+          .call(
+            {
+              locate: { center: [10, 20] },
+              mode,
+              value: 'new',
+              autoDismissKeyboard: false,
+            } as any,
+            mockExecutorContext,
+          );
+        expect(mockWdaClient.typeRawKeys).toHaveBeenCalledExactlyOnceWith([
+          '\b'.repeat(40),
+        ]);
+        expect(mockWdaClient.tap).toHaveBeenCalledTimes(1);
+        expect(mockWdaClient.longPress).not.toHaveBeenCalled();
+        expect(mockWdaClient.typeText).toHaveBeenCalledTimes(
+          mode === 'replace' ? 1 : 0,
         );
       },
     );

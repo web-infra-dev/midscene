@@ -667,7 +667,7 @@ function aiInput(
       - `'typeOnly'`: Enter the text directly without clearing the field first.
       - `'clear'`: Clear the input field without entering new text.
 
-  On iOS, when WDA cannot identify a located input, `clear` and `replace` can use a Select All item exposed by WDA. If the menu is closed, WDA can reopen it using a unique input element identified before the tap. If Select All is unavailable, WDA sends a [bounded batch of Backspaces](../sdk/ios#device-options). Clearing is best effort and skips model verification. A successful deletion request allows replacement to proceed even if some text remains. WDA errors propagate. `typeOnly` types at the cursor without clearing.
+  On iOS, when WDA cannot identify a located input, `clear` and `replace` can use a Select All item exposed by WDA. If the menu is closed, WDA can reopen it using a unique input element identified before the tap. If Select All is unavailable, WDA sends a single batch of Backspaces. Clearing is best effort and skips model verification. A successful deletion request allows replacement to proceed even if some text remains. WDA errors propagate. `typeOnly` types at the cursor without clearing.
 
   Platform-specific behavior under the default `inputStrategy: 'legacy'`:
 

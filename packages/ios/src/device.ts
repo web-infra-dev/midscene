@@ -51,6 +51,7 @@ export const WDA_HTTP_METHODS = ['GET', 'POST', 'DELETE', 'PUT'] as const;
 export type WDAHttpMethod = (typeof WDA_HTTP_METHODS)[number];
 
 const DEFAULT_WDA_MJPEG_PORT = 9100;
+const customInputBackspaceCount = 40;
 const keyboardFollowUpMaxAgeMs = 30_000;
 const keyboardFollowUpKeys: ReadonlySet<string> = new Set([
   'enter',
@@ -356,12 +357,6 @@ export class IOSDevice implements AbstractInterface {
 
   constructor(options?: IOSDeviceOpt) {
     assertWdaConnectionOptions(options);
-    const count = options?.customInputClearFallbackMaxDeleteCount;
-    if (count !== undefined)
-      assert(
-        Number.isInteger(count) && count >= 1 && count <= 256,
-        'customInputClearFallbackMaxDeleteCount must be an integer from 1 to 256',
-      );
     // deviceId will be auto-detected from WebDriverAgent connection
     this.deviceId = 'pending-connection';
     this.options = options;
@@ -732,9 +727,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       const selected = await this.wdaBackend.selectAllFromMenu(inputId);
       await this.checkInputApp(typingApp);
       if (!selected) {
-        const count =
-          this.options?.customInputClearFallbackMaxDeleteCount ?? 40;
-        await this.wdaBackend.typeRawKeys(['\b'.repeat(count)]);
+        await this.wdaBackend.typeRawKeys([
+          '\b'.repeat(customInputBackspaceCount),
+        ]);
         if (mode === 'replace') await this.checkInputApp(typingApp);
       } else if (mode === 'clear') {
         await this.wdaBackend.typeRawKeys(['\b']);

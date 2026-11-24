@@ -188,8 +188,6 @@ export type IOSDeviceInputOpt = {
  * iOS device options
  */
 export type IOSDeviceOpt = {
-  /** Backspaces to send when WDA cannot select all text in a located custom field (1–256, default 40). */
-  customInputClearFallbackMaxDeleteCount?: number;
   /**
    * Optional npm module path used to override the default iOS device implementation.
    * The target module must export an `IOSDevice` class (or default export) compatible with Midscene's iOS device interface.
