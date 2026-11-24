@@ -62,9 +62,6 @@ jobs:
       if: steps.pnpm-cache.outputs.cache-hit != 'true'
       uses: ./.github/actions/pnpm-cache/save
 
-    - name: Setup headless browser and Chinese fonts
-      uses: ./.github/actions/setup-headless-browser
-
     - name: Cache compiled screen-relay engine
       id: sr-engine-cache
       uses: ./.github/actions/cache/restore
@@ -92,20 +89,34 @@ jobs:
     - name: Run unit tests
       run: pnpm --filter @midscene/screen-relay test
 
-    - name: Install and start minimal X11 virtual display via screen-relay
+    - name: Setup headless browser and Chinese fonts
+      uses: ./.github/actions/setup-headless-browser
+
+    - &start-relay
+      name: Install and start minimal X11 virtual display via screen-relay
+      shell: bash
       run: |
         set -euo pipefail
-        SR_BIN="./packages/screen-relay/node_modules/.bin/screen-relay"
-        "$SR_BIN" install --backend x11 --desktop none --yes
-        output=$(SCREEN_RELAY_RESOLUTION=1280x720 "$SR_BIN" up -d --backend x11 --desktop none --port 18080 --allow-origin http://127.0.0.1:18080 --yes 2>&1)
-        token=$(printf '%s\n' "$output" | sed -n 's/.*#token=\([0-9a-f]\{64\}\).*/\1/p' | head -n 1)
-        if [ -z "$token" ]; then
-          echo "Failed to extract screen-relay session token from startup output."
+
+        relay=./packages/screen-relay/node_modules/.bin/screen-relay
+        port=18080
+        url="http://127.0.0.1:$port"
+
+        "$relay" install --backend x11 --desktop none --yes
+        if ! output=$(SCREEN_RELAY_RESOLUTION=1280x720 "$relay" up -d --backend x11 \
+          --desktop none --port "$port" --allow-origin "$url" --yes 2>&1); then
+          printf '%s\n' "$output" | sed -E 's/[[:xdigit:]]{64}/[REDACTED]/g' >&2
           exit 1
         fi
+
+        token_pattern='#token=([0-9a-f]{64})'
+        if [[ ! $output =~ $token_pattern ]]; then
+          echo 'No session token in screen-relay startup output.' >&2
+          exit 1
+        fi
+        token=${BASH_REMATCH[1]}
         echo "::add-mask::$token"
-        echo "MIDSCENE_SCREEN_RELAY_URL=http://127.0.0.1:18080" >> "$GITHUB_ENV"
-        echo "MIDSCENE_SCREEN_RELAY_TOKEN=$token" >> "$GITHUB_ENV"
+        printf 'MIDSCENE_SCREEN_RELAY_URL=%s\nMIDSCENE_SCREEN_RELAY_TOKEN=%s\n' "$url" "$token" >> "$GITHUB_ENV"
 
     - name: Save compiled screen-relay engine cache
       if: steps.sr-engine-cache.outputs.cache-hit != 'true'
@@ -188,20 +199,7 @@ jobs:
     - name: Build report and screen-relay packages
       run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/screen-relay" --skip-nx-cache
 
-    - name: Install and start minimal X11 virtual display via screen-relay
-      run: |
-        set -euo pipefail
-        SR_BIN="./packages/screen-relay/node_modules/.bin/screen-relay"
-        "$SR_BIN" install --backend x11 --desktop none --yes
-        output=$(SCREEN_RELAY_RESOLUTION=1280x720 "$SR_BIN" up -d --backend x11 --desktop none --port 18080 --allow-origin http://127.0.0.1:18080 --yes 2>&1)
-        token=$(printf '%s\n' "$output" | sed -n 's/.*#token=\([0-9a-f]\{64\}\).*/\1/p' | head -n 1)
-        if [ -z "$token" ]; then
-          echo "Failed to extract screen-relay session token from startup output."
-          exit 1
-        fi
-        echo "::add-mask::$token"
-        echo "MIDSCENE_SCREEN_RELAY_URL=http://127.0.0.1:18080" >> "$GITHUB_ENV"
-        echo "MIDSCENE_SCREEN_RELAY_TOKEN=$token" >> "$GITHUB_ENV"
+    - *start-relay
 
     - name: Save compiled screen-relay engine cache
       if: steps.sr-engine-cache.outputs.cache-hit != 'true'
