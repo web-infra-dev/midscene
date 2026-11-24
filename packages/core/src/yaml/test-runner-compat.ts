@@ -99,8 +99,6 @@ function normalizeLegacyLocateInput(
   rawOptions: Record<string, any>,
 ) {
   const { images, convertHttpImage2Base64, ...options } = rawOptions;
-  // Targetless actions used to ignore image fields. Do not pass them through
-  // to the SDK, where image fields in locate options are now rejected.
   if (!prompt) {
     return { prompt, options };
   }
@@ -323,56 +321,37 @@ function compileLegacyFlowItemInternal(
     );
   }
   if ('aiTap' in flow) {
-    const { aiTap, prompt, locate, ...tapOptions } = raw;
-    const nested =
-      locate ??
-      (typeof aiTap === 'object' && aiTap !== null ? aiTap.locate : undefined);
-    if (
-      !(typeof aiTap === 'string' && aiTap) &&
-      nested &&
-      typeof nested === 'object' &&
-      nested.prompt &&
-      typeof nested.prompt !== 'string'
-    ) {
+    const { aiTap, prompt, locate, ...tapOptions } = flow;
+    if (typeof aiTap === 'string' && aiTap) {
+      // Legacy YAML uses the text target and ignores the entire sibling locate.
+      return step('aiTap', normalizeLegacyLocateInput(aiTap, tapOptions));
+    }
+    const { locate: embeddedLocate, ...directTarget } =
+      typeof aiTap === 'object' && aiTap !== null ? aiTap : {};
+    const locateBlock = locate ?? embeddedLocate;
+    if (locateBlock?.prompt && typeof locateBlock.prompt !== 'string') {
       return invalid(
         'aiTap locate.prompt must be a string. Put images alongside locate.prompt, not inside another prompt object.',
       );
     }
-    const { prompt: locatePrompt, options } = (() => {
-      if (typeof aiTap === 'string' && aiTap) {
-        return { prompt: aiTap, options: tapOptions };
-      }
-      if (nested && typeof nested === 'object' && nested.prompt) {
-        const { prompt: nestedPrompt, ...nestedOptions } = nested;
-        assertNoDuplicateImageFields(nestedOptions, tapOptions);
-        return normalizeLegacyLocateInput(nestedPrompt, {
-          ...nestedOptions,
+    const target = locateBlock?.prompt ? locateBlock : directTarget;
+    if (typeof target.prompt === 'string' && target.prompt) {
+      const { prompt: targetText, ...targetOptions } = target;
+      assertNoDuplicateImageFields(targetOptions, tapOptions);
+      return step(
+        'aiTap',
+        normalizeLegacyLocateInput(targetText, {
+          ...targetOptions,
           ...tapOptions,
-        });
-      }
-      if (
-        aiTap &&
-        typeof aiTap === 'object' &&
-        typeof aiTap.prompt === 'string' &&
-        aiTap.prompt
-      ) {
-        // Keep structured image prompts intact; prompt-only objects retain
-        // the normalized string form used by cached-plan inputs.
-        return {
-          prompt:
-            Object.hasOwn(aiTap, 'images') ||
-            Object.hasOwn(aiTap, 'convertHttpImage2Base64')
-              ? aiTap
-              : aiTap.prompt,
-          options: tapOptions,
-        };
-      }
-      return { prompt: prompt || nested, options: tapOptions };
-    })();
-    if (!locatePrompt) {
-      return invalid('missing prompt for aiTap');
+        }),
+      );
     }
-    return step('aiTap', normalizeLegacyLocateInput(locatePrompt, options));
+
+    // Older scripts use a sibling prompt; cached plans can emit a string locate.
+    const fallbackPrompt = prompt || locateBlock;
+    return fallbackPrompt
+      ? step('aiTap', normalizeLegacyLocateInput(fallbackPrompt, tapOptions))
+      : invalid('missing prompt for aiTap');
   }
   if (typeof flow.runAdbShell === 'string' && typeof flow.timeout === 'number')
     return step(
@@ -390,7 +369,7 @@ function compileLegacyFlowItemInternal(
     action?.interfaceAlias && Object.hasOwn(flow, action.interfaceAlias)
       ? action.interfaceAlias
       : action.name;
-  const value = flow[key];
+  const { [key]: value, ...siblingParams } = flow;
   if (typeof value === 'string') {
     const shortcut = buildShortcutActionParam(
       action.name,
@@ -409,10 +388,13 @@ function compileLegacyFlowItemInternal(
     if (isStringParamSchema(action.paramSchema))
       return step('action', { name: action.name, params: value }, true);
   }
-  const { prompt, ...options } =
-    value && typeof value === 'object' ? value : flow;
+  const params = value && typeof value === 'object' ? value : siblingParams;
+  const { prompt, ...options } = params;
   const locatePrompt =
     typeof value === 'string' && value ? value : prompt || options.locate;
+  if (!locatePrompt) {
+    return step('action', { name: action.name, params }, true);
+  }
   const input = normalizeLegacyLocateInput(locatePrompt, options);
   const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
     input.prompt ?? '',

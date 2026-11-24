@@ -1,7 +1,10 @@
 import { Agent } from '@/agent';
+import { parseActionParam } from '@/common';
+import { ActionPinchParamSchema } from '@/device';
 import { ScriptPlayer } from '@/yaml/player';
 import { compileLegacyFlowItem } from '@/yaml/test-runner-compat';
 import { describe, expect, it, rs } from '@rstest/core';
+import { z } from 'zod';
 import { installAgentReportManager } from './test-helpers/agent-report-manager';
 
 const referenceImages = [
@@ -61,6 +64,46 @@ describe('multimodal locate prompt regression', () => {
     },
   );
 
+  it('forwards targetless action parameters unchanged', async () => {
+    const paramSchema = z
+      .object({
+        images: z.array(z.object({ name: z.string(), url: z.string() })),
+        convertHttpImage2Base64: z.boolean(),
+        context: z.string(),
+      })
+      .strict();
+    const params = {
+      images: referenceImages,
+      convertHttpImage2Base64: false,
+      context: 'asset publication',
+    };
+    const flow = [{ PublishAssets: params }];
+    const player = new ScriptPlayer(
+      { tasks: [{ name: 'publish', flow }] } as any,
+      async () => ({ agent: {} as any, freeFn: [] }),
+      undefined,
+    );
+    const agent = createAgentStub();
+    agent.getActionSpace = rs
+      .fn()
+      .mockResolvedValue([{ name: 'PublishAssets', paramSchema }]);
+    const publish = rs.fn();
+    agent.callActionInActionSpace = rs.fn(async (_name, input) =>
+      publish(paramSchema.parse(input)),
+    );
+    await player.playTask(
+      {
+        name: 'publish',
+        flow,
+        index: 0,
+        status: 'running',
+        totalSteps: 1,
+      } as any,
+      agent,
+    );
+    expect(publish).toHaveBeenCalledWith(params);
+  });
+
   it.each([
     { images: referenceImages },
     { convertHttpImage2Base64: false },
@@ -87,11 +130,88 @@ describe('multimodal locate prompt regression', () => {
 
       const pinch = compileLegacyFlowItem(
         { aiPinch: { direction: 'in', ...options } } as any,
-        [{ name: 'Pinch', interfaceAlias: 'aiPinch' }],
+        [
+          {
+            name: 'Pinch',
+            interfaceAlias: 'aiPinch',
+            paramSchema: ActionPinchParamSchema,
+          },
+        ],
       );
-      expect(pinch.input).toStrictEqual({
-        name: 'Pinch',
-        params: { direction: 'in', locate: undefined },
+      expect(pinch.input.params).toStrictEqual({ direction: 'in', ...options });
+      expect(
+        parseActionParam(
+          pinch.input.params as Record<string, unknown>,
+          ActionPinchParamSchema,
+        ),
+      ).toStrictEqual({ direction: 'in' });
+    },
+  );
+
+  it.each([
+    { prompt: 'Cancel', images: referenceImages },
+    { deepLocate: true, cacheable: false },
+    { prompt: { prompt: 'Cancel' } },
+  ])('uses a text aiTap and ignores its sibling locate: %j', (locate) => {
+    const step = compileLegacyFlowItem({
+      aiTap: 'Submit',
+      locate,
+      xpath: '//button',
+    } as any);
+    expect(step.node).toBe('aiTap');
+    expect(step.input).toStrictEqual({
+      prompt: 'Submit',
+      options: { xpath: '//button' },
+    });
+  });
+
+  it.each([
+    {
+      aiTap: { prompt: 'direct', locate: { prompt: 'nested' } },
+      locate: { prompt: 'sibling' },
+      expected: 'sibling',
+    },
+    {
+      aiTap: { prompt: 'direct', locate: { prompt: 'nested' } },
+      expected: 'nested',
+    },
+    { aiTap: { prompt: 'direct' }, prompt: 'fallback', expected: 'direct' },
+    { aiTap: null, prompt: 'fallback', locate: 'cached', expected: 'fallback' },
+    { aiTap: '', locate: 'cached', expected: 'cached' },
+  ])('selects the legacy tap target: %j', ({ expected, ...flow }) => {
+    expect(compileLegacyFlowItem(flow as any).input).toEqual({
+      prompt: expected,
+      options: {},
+    });
+  });
+
+  it.each(['direct', 'sibling', 'nested'])(
+    'separates prompt fields and options for %s tap targets',
+    (form) => {
+      const target = {
+        prompt: 'Submit',
+        images: referenceImages,
+        deepLocate: true,
+        cacheable: true,
+      };
+      const flow =
+        form === 'direct'
+          ? { aiTap: target }
+          : form === 'nested'
+            ? { aiTap: { locate: target } }
+            : { aiTap: null, locate: target };
+      const step = compileLegacyFlowItem({
+        ...flow,
+        cacheable: false,
+        convertHttpImage2Base64: false,
+      } as any);
+      expect(step.input).toStrictEqual({
+        prompt: {
+          prompt: 'Submit',
+          images: referenceImages,
+          convertHttpImage2Base64: false,
+        },
+        options: { deepLocate: true, cacheable: false },
       });
     },
   );
