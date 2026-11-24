@@ -2,10 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const semver = require('semver');
 const dayjs = require('dayjs');
-const args = require('minimist')(process.argv.slice(2), {
-  boolean: ['publish-replay-beta'],
-});
-const publishReplayBeta = args['publish-replay-beta'];
+const args = require('minimist')(process.argv.slice(2));
 const { execa } = require('@esm2cjs/execa');
 const chalk = require('chalk');
 
@@ -39,8 +36,6 @@ const actionPublishCanary =
   ['preminor', 'prepatch'].includes(args.version) && process.env.CI;
 
 async function main() {
-  if (publishReplayBeta && (args.version !== 'prepatch' || !process.env.CI))
-    throw new Error('--publish-replay-beta requires --version=prepatch in CI');
   try {
     const { readHighlights, prepareReleaseNotes } = await import(
       './release-notes.mjs'
@@ -287,7 +282,6 @@ async function publish(version) {
     // already creates the transparency-log entry for trusted publishing, and
     // an extra flag can make the publish fail with a duplicate tlog entry.
     let publishArgs = [
-      ...(publishReplayBeta ? [] : ['--filter', '!@midscene/replay']),
       '-r',
       'publish',
       '--access',

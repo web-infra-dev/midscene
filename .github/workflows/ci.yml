@@ -158,6 +158,10 @@ jobs:
     - name: Check Report build feedback loop
       run: pnpm run check:report-build-feedback-loop
 
+    - name: Check installed Test and Replay packages
+      timeout-minutes: 8
+      run: node scripts/check-replay-package.mjs
+
     - name: Check CLI CJS bundle on minimum supported Node
       run: |
         node - <<'EOF'
