@@ -114,6 +114,10 @@ midscene_run
 midscene_run/report
 midscene_run/dump
 
+# Local Replay validation, recording and design-review exports
+/.midscene/
+/packages/replay/.midscene/
+
 local-benchmark
 
 *.ignore.png

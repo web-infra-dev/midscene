@@ -10,6 +10,10 @@ on:
         description: 'Release Branch(confirm release branch)'
         required: true
         default: 'main'
+      publish_replay_beta:
+        description: 'Include @midscene/replay in a prepatch npm release'
+        type: boolean
+        default: false
       notify_stable_release:
         description: 'Send IM notifications when this is a stable release'
         required: true
@@ -48,6 +52,12 @@ jobs:
       FORCE_COLOR: '0'
       NO_COLOR: '1'
     steps:
+    - name: Validate Replay release input
+      if: inputs.publish_replay_beta && inputs.version != 'prepatch'
+      run: |
+        echo "::error::publish_replay_beta requires version=prepatch"
+        exit 1
+
     - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0
       with:
         ref: ${{ github.event.inputs.branch }}
@@ -125,14 +135,19 @@ jobs:
       # otherwise valid publishes with duplicate-entry 409s, which blocks the
       # Studio artifact packaging jobs.
       env:
-        RELEASE_VERSION_INPUT: ${{ github.event.inputs.version }}
+        RELEASE_VERSION_INPUT: ${{ inputs.version }}
+        PUBLISH_REPLAY_BETA: ${{ inputs.publish_replay_beta }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         if [[ "$RELEASE_VERSION_INPUT" == pre* ]]; then
           export NPM_CONFIG_PROVENANCE=false
           echo "Disabled npm provenance for prerelease workflow dispatch."
         fi
-        node ./scripts/release.js --version="$RELEASE_VERSION_INPUT"
+        release_args=(--version="$RELEASE_VERSION_INPUT")
+        if [[ "$PUBLISH_REPLAY_BETA" == "true" ]]; then
+          release_args+=(--publish-replay-beta)
+        fi
+        node ./scripts/release.js "${release_args[@]}"
 
     - name: Get version from core package
       id: get_version

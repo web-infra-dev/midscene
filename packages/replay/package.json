@@ -1,0 +1,55 @@
+{
+  "name": "@midscene/replay",
+  "version": "1.18.2",
+  "description": "Record Web workflows, execute step-based Midscene replays, and support Agent-led review.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/midscene.git",
+    "directory": "packages/replay"
+  },
+  "main": "./dist/lib/experimental.js",
+  "module": "./dist/es/experimental.mjs",
+  "types": "./dist/types/experimental.d.ts",
+  "bin": {
+    "midscene-replay": "./scripts/cli.mjs"
+  },
+  "exports": {
+    "./tooling": {
+      "types": "./dist/types/tooling.d.ts",
+      "import": "./dist/es/tooling.mjs",
+      "require": "./dist/lib/tooling.js"
+    },
+    "./experimental": {
+      "types": "./dist/types/experimental.d.ts",
+      "import": "./dist/es/experimental.mjs",
+      "require": "./dist/lib/experimental.js"
+    }
+  },
+  "files": ["dist", "scripts/*.mjs", "skills"],
+  "scripts": {
+    "build": "rslib build",
+    "build:watch": "rslib build --watch --no-clean",
+    "test": "rstest",
+    "lint": "biome check .",
+    "record": "node scripts/cli.mjs record web",
+    "replay": "node scripts/cli.mjs"
+  },
+  "devDependencies": {
+    "@rslib/core": "~0.19.6",
+    "@rstest/core": "0.12.0",
+    "@types/node": "^18.0.0",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+  },
+  "sideEffects": false,
+  "license": "MIT",
+  "dependencies": {
+    "playwright": "^1.65.0",
+    "sharp": "^0.35.5",
+    "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*",
+    "@midscene/web": "workspace:*"
+  }
+}
