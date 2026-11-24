@@ -330,6 +330,43 @@ describe('service-caller reasoning fallback', () => {
     );
     expect(retryFeedback?.content).toContain('not JSON');
     expect(response.content).toEqual({ bbox: [100, 200, 300, 400] });
+    expect(response.usage).toMatchObject({
+      request_retry_count: 0,
+      parse_retry_count: 1,
+    });
+  });
+
+  it('preserves both retry counts when parsing still fails after a request retry', async () => {
+    mockCreate
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'not JSON' } }],
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      })
+      .mockRejectedValueOnce(new Error('connection failed'))
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'still not JSON' } }],
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      });
+
+    const runtime = getModelRuntime({
+      ...baseModelConfig,
+      retryCount: 1,
+      retryInterval: 0,
+    });
+    runtime.onUsage = rs.fn();
+    await expect(
+      callAIWithObjectResponse(
+        [{ role: 'user', content: 'locate element' }],
+        runtime,
+        { jsonParserSource: 'locate', retryTimes: 1 },
+      ),
+    ).rejects.toMatchObject({
+      usage: { request_retry_count: 1, parse_retry_count: 1 },
+    });
+    expect(mockCreate).toHaveBeenCalledTimes(3);
+    expect(runtime.onUsage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ request_retry_count: 1, parse_retry_count: 1 }),
+    );
   });
 
   it('keeps a non-zero adapter temperature during JSON parsing retries', async () => {

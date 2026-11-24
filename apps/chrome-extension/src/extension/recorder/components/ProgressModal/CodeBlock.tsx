@@ -123,7 +123,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
                 💡 Learn how to integrate Playwright with Midscene.js
                 <a
                   target="_blank"
-                  href="https://midscenejs.com/integrate-with-playwright.html"
+                  href="https://www.midscenejs.com/integrate-with-playwright.html"
                   rel="noreferrer"
                 >
                   {' '}
@@ -136,7 +136,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
                 💡 Learn how to integrate YAML scripts with Midscene.js
                 <a
                   target="_blank"
-                  href="https://midscenejs.com/automate-with-scripts-in-yaml.html"
+                  href="https://www.midscenejs.com/automate-with-scripts-in-yaml.html"
                   rel="noreferrer"
                 >
                   {' '}

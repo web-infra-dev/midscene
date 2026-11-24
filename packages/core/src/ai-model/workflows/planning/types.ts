@@ -9,7 +9,7 @@ import type { PreparedUserPrompt } from '../../shared/multimodal-prompt';
 import type { ConversationHistory } from './conversation-history';
 
 export interface PlanOptions {
-  context: UIContext;
+  uiContext: UIContext;
   actionSpace: DeviceAction<any>[];
   actionContext?: string;
   /** Advisory guidance from a previous planner, not a user instruction. */

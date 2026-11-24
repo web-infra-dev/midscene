@@ -3,9 +3,11 @@ import { isOpenRouter } from '../model-adapter/is-openrouter';
 import { buildOpenRouterReasoningParams } from '../model-adapter/openrouter-reasoning';
 import type {
   ChatCompletionCallContext,
+  ChatCompletionDefinition,
   ChatCompletionParamsResult,
   ModelAdapterDefinition,
 } from '../model-adapter/types';
+import { type JsonParser, parseModelResponseJson } from '../shared/json';
 import {
   type LocateResultValue,
   createLocateResultValue,
@@ -22,7 +24,7 @@ const qwen25PointCoordinatesMeta = {
   order: 'xy',
   rounding: 'round',
 } as const;
-const qwen3BboxCoordinatesMeta = {
+const qwenNormalizedBboxCoordinatesMeta = {
   shape: 'bbox',
   order: 'xy',
   normalizedBy: 1000,
@@ -130,6 +132,59 @@ const buildQwen3ChatCompletionParams = (
   };
 };
 
+const buildQwen4ChatCompletionParams = (
+  input: ChatCompletionCallContext,
+): ChatCompletionParamsResult => {
+  const { baseURL, midsceneDefaults, userConfig } = input;
+  const {
+    reasoningEnabled = false,
+    reasoningEffort,
+    reasoningBudget,
+  } = userConfig;
+
+  const commonOverrideConfig: Record<string, unknown> = {};
+
+  if (userConfig.temperature !== undefined) {
+    commonOverrideConfig.temperature = userConfig.temperature;
+  }
+
+  if (
+    input.expectedJsonObjectResponse &&
+    userConfig.responseFormat !== 'none'
+  ) {
+    commonOverrideConfig.response_format = { type: 'json_object' };
+  }
+
+  const modelSpecificConfig: Record<string, unknown> = {};
+
+  if (isOpenRouter(baseURL)) {
+    Object.assign(
+      modelSpecificConfig,
+      buildOpenRouterReasoningParams(userConfig),
+    );
+  } else {
+    if (reasoningEnabled !== 'default') {
+      modelSpecificConfig.enable_thinking = reasoningEnabled;
+    }
+    if (reasoningEnabled === true) {
+      if (reasoningEffort !== undefined) {
+        modelSpecificConfig.reasoning_effort = reasoningEffort;
+      }
+      if (reasoningBudget !== undefined) {
+        modelSpecificConfig.thinking_budget = reasoningBudget;
+      }
+    }
+  }
+
+  return {
+    config: {
+      ...midsceneDefaults,
+      ...commonOverrideConfig,
+      ...modelSpecificConfig,
+    },
+  };
+};
+
 const buildQwen25ChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
@@ -149,49 +204,79 @@ const buildQwen25ChatCompletionParams = (
   };
 };
 
+// DashScope returns thinking as `reasoning_content`. vLLM is moving to
+// `reasoning`: https://github.com/vllm-project/vllm/issues/27755
+const qwenMessageExtraction = {
+  kind: 'default',
+  reasoningContentKeys: ['reasoning_content', 'reasoning'],
+} satisfies NonNullable<ChatCompletionDefinition['messageExtraction']>;
+
+const qwenNormalizedBboxLocate = {
+  element: {
+    resultFormat: {
+      resultKey: 'bbox_2d',
+      resultKeyAliases: ['bbox'],
+      coordinates: qwenNormalizedBboxCoordinatesMeta,
+    },
+  },
+} satisfies NonNullable<ModelAdapterDefinition['locate']>;
+
 const qwen3VlAdapter: ModelAdapterDefinition = {
   chatCompletion: {
     buildChatCompletionParams: buildQwen3VlChatCompletionParams,
-    messageExtraction: {
-      kind: 'default',
-      // DashScope returns Qwen thinking as `reasoning_content`. vLLM's
-      // OpenAI-compatible server is migrating the recommended field to
-      // `reasoning`, so Qwen adapters accept both serving conventions:
-      // https://github.com/vllm-project/vllm/issues/27755
-      reasoningContentKeys: ['reasoning_content', 'reasoning'],
-    },
+    messageExtraction: qwenMessageExtraction,
     useReasoningAsContentFallback: true,
   },
-  locate: {
-    element: {
-      resultFormat: {
-        resultKey: 'bbox_2d',
-        resultKeyAliases: ['bbox'],
-        coordinates: qwen3BboxCoordinatesMeta,
-      },
-    },
-  },
+  locate: qwenNormalizedBboxLocate,
+};
+
+const parseQwenLocateJson: JsonParser = (raw, context) => {
+  const parsed = parseModelResponseJson(raw, context);
+  // Qwen3 and Qwen4 can wrap a locate result in a single-item array:
+  // [{"bbox_2d":[562,653,574,671],"label":"Approve checkbox"}]
+  // [{"point_2d":[568,661],"label":"Approve checkbox"}]
+  // Unwrap the object and let the locate protocol validate the coordinate field.
+  if (
+    (context?.source === 'locate' || context?.source === 'section-locator') &&
+    Array.isArray(parsed) &&
+    parsed.length === 1
+  ) {
+    const [entry] = parsed;
+    if (entry !== null && typeof entry === 'object' && !Array.isArray(entry)) {
+      return entry;
+    }
+  }
+  return parsed;
 };
 
 const qwen3Adapter: ModelAdapterDefinition = {
+  jsonParser: parseQwenLocateJson,
   chatCompletion: {
     buildChatCompletionParams: buildQwen3ChatCompletionParams,
-    messageExtraction: {
-      kind: 'default',
-      // DashScope returns Qwen thinking as `reasoning_content`. vLLM's
-      // OpenAI-compatible server is migrating the recommended field to
-      // `reasoning`, so Qwen adapters accept both serving conventions:
-      // https://github.com/vllm-project/vllm/issues/27755
-      reasoningContentKeys: ['reasoning_content', 'reasoning'],
-    },
+    messageExtraction: qwenMessageExtraction,
+    useReasoningAsContentFallback: true,
+  },
+  locate: qwenNormalizedBboxLocate,
+};
+
+const qwen4Adapter: ModelAdapterDefinition = {
+  jsonParser: parseQwenLocateJson,
+  chatCompletion: {
+    buildChatCompletionParams: buildQwen4ChatCompletionParams,
+    messageExtraction: qwenMessageExtraction,
     useReasoningAsContentFallback: true,
   },
   locate: {
     element: {
       resultFormat: {
-        resultKey: 'bbox_2d',
-        resultKeyAliases: ['bbox'],
-        coordinates: qwen3BboxCoordinatesMeta,
+        resultKey: 'point',
+        resultKeyAliases: ['point_2d'],
+        coordinates: {
+          shape: 'point',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round',
+        },
       },
     },
   },
@@ -220,7 +305,8 @@ export const qwenAdapters = {
   qwen3: qwen3Adapter,
   'qwen3.5': qwen3Adapter,
   'qwen3.6': qwen3Adapter,
+  qwen4: qwen4Adapter,
 } satisfies Pick<
   Record<TModelFamily, ModelAdapterDefinition>,
-  'qwen2.5-vl' | 'qwen3-vl' | 'qwen3' | 'qwen3.5' | 'qwen3.6'
+  'qwen2.5-vl' | 'qwen3-vl' | 'qwen3' | 'qwen3.5' | 'qwen3.6' | 'qwen4'
 >;

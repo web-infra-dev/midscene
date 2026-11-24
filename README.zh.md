@@ -5,14 +5,14 @@
 </p>
 
 <p align="center">
-  <a href="https://midscenejs.com/zh/">官网</a> · <a href="./README.md">English</a> / 简体中文
+  <a href="https://www.midscenejs.com/zh/">官网</a> · <a href="./README.md">English</a> / 简体中文
 </p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@midscene/web"><img src="https://img.shields.io/npm/v/@midscene/web?style=flat-square&color=00a8f0" alt="npm version" /></a>
   <a href="https://npm-compare.com/@midscene/web/#timeRange=THREE_YEARS"><img src="https://img.shields.io/npm/dm/@midscene/web.svg?style=flat-square&color=00a8f0" alt="downloads" /></a>
   <a href="https://github.com/web-infra-dev/midscene/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" /></a>
-  <a href="https://midscenejs.com/zh/"><img src="https://badge.midscenejs.com/by-midscene" alt="E2E by Midscene.js" /></a>
+  <a href="https://www.midscenejs.com/zh/"><img src="https://badge.midscenejs.com/by-midscene" alt="E2E by Midscene.js" /></a>
   <a href="https://trendshift.io/repositories/12524"><img src="https://img.shields.io/badge/GitHub_Trending-featured-00a8f0?style=flat-square&logo=github" alt="Featured on GitHub Trending" /></a>
 </p>
 
@@ -22,7 +22,7 @@ Midscene.js 将 AI 视觉引入 E2E 测试。用自然语言描述界面操作�
 
 ### 使用 Midscene Test 编写 YAML 用例
 
-[创建 Midscene Test 项目](https://midscenejs.com/zh/midscene-test/use)，配置好模型和 Web 运行环境后，就可以编写下面这样的用例。请将示例网址替换为你的应用地址：
+[创建 Midscene Test 项目](https://www.midscenejs.com/zh/midscene-test/use)，配置好模型和 Web 运行环境后，就可以编写下面这样的用例。请将示例网址替换为你的应用地址：
 
 ```yaml
 beforeEach:
@@ -50,7 +50,7 @@ await agent.aiWaitFor('筛选后的搜索结果已显示');
 await agent.aiAssert('搜索结果中有商品，且每件商品价格都低于 100 美元');
 ```
 
-移动端和桌面端应用可以通过 [Rstest](https://midscenejs.com/zh/sdk/rstest) 或 [Vitest](https://midscenejs.com/zh/sdk/vitest) 使用对应平台的 Agent。打开生成的 HTML 报告，即可查看截图、元素定位、AI 决策过程，以及操作和断言结果。
+移动端和桌面端应用可以通过 [Rstest](https://www.midscenejs.com/zh/sdk/rstest) 或 [Vitest](https://www.midscenejs.com/zh/sdk/vitest) 使用对应平台的 Agent。打开生成的 HTML 报告，即可查看截图、元素定位、AI 决策过程，以及操作和断言结果。
 
 ## 👁️ 像人一样观察、操作并验证结果
 
@@ -75,34 +75,34 @@ await agent.aiAssert('邮箱输入框下方显示了错误提示');
 
 | 平台 | 接入方式 |
 | --- | --- |
-| Web | [Playwright](https://midscenejs.com/zh/integrate-with-playwright)、[Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer) 或[桌面 Chrome](https://midscenejs.com/zh/bridge-mode) |
-| Android | [通过 ADB 连接真机或模拟器](https://midscenejs.com/zh/platforms/android) |
-| iOS | [通过 WebDriverAgent 连接真机或模拟器](https://midscenejs.com/zh/platforms/ios) |
-| HarmonyOS | [通过 HDC 连接 HarmonyOS NEXT](https://midscenejs.com/zh/platforms/harmonyos) |
-| 桌面 | [macOS、Windows、Linux，支持远程 RDP](https://midscenejs.com/zh/platforms/desktop) |
-| 自定义界面 | [提供截图与操作能力，即可接入](https://midscenejs.com/zh/integrate-with-any-interface) |
+| Web | [Playwright](https://www.midscenejs.com/zh/integrate-with-playwright)、[Puppeteer](https://www.midscenejs.com/zh/integrate-with-puppeteer) 或[桌面 Chrome](https://www.midscenejs.com/zh/bridge-mode) |
+| Android | [通过 ADB 连接真机或模拟器](https://www.midscenejs.com/zh/platforms/android) |
+| iOS | [通过 WebDriverAgent 连接真机或模拟器](https://www.midscenejs.com/zh/platforms/ios) |
+| HarmonyOS | [通过 HDC 连接 HarmonyOS NEXT](https://www.midscenejs.com/zh/platforms/harmonyos) |
+| 桌面 | [macOS、Windows、Linux，支持远程 RDP](https://www.midscenejs.com/zh/platforms/desktop) |
+| 自定义界面 | [提供截图与操作能力，即可接入](https://www.midscenejs.com/zh/integrate-with-any-interface) |
 
 ## 📊 模型、成本与 Benchmark
 
 ### 按效果与预算选择模型
 
-基于截图的 UI 操作无需向模型发送庞大的 DOM 树。在 AppControlBench 评测中，Midscene 搭配豆包 Seed 2.1 Turbo，**60 项任务通过 58 项，模型调用总费用为 0.59 美元**。[评测报告](https://midscenejs.com/zh/app-control-bench-report)提供了逐任务费用与不同模型的对比。
+基于截图的 UI 操作无需向模型发送庞大的 DOM 树。在 AppControlBench 评测中，Midscene 搭配豆包 Seed 2.1 Turbo，**60 项任务通过 58 项，模型调用总费用为 0.59 美元**。[评测报告](https://www.midscenejs.com/zh/app-control-bench-report)提供了逐任务费用与不同模型的对比。
 
-Midscene 支持豆包 Seed、千问 Qwen、DeepSeek、Gemini、GPT、Kimi 等模型，也包括可自托管的开源选项。通过[模型选择指南](https://midscenejs.com/zh/model-selection)选择适合的模型，再按照[模型配置指南](https://midscenejs.com/zh/model-api-setup)完成配置。
+Midscene 支持豆包 Seed、千问 Qwen、DeepSeek、Gemini、GPT、Kimi 等模型，也包括可自托管的开源选项。通过[模型选择指南](https://www.midscenejs.com/zh/model-selection)选择适合的模型，再按照[模型配置指南](https://www.midscenejs.com/zh/model-api-setup)完成配置。
 
 ### Benchmark
 
 | Benchmark | Pass@1 | 对应评测使用的模型 |
 | --- | --- | --- |
-| [AndroidWorld](https://midscenejs.com/zh/android-world-benchmark-report) | 93.1% | Gemini-3.5-Flash |
-| [MobileWorld](https://midscenejs.com/zh/mobile-world-benchmark-report) | 78.6% | Gemini-3.6-Flash |
-| [AppControlBench](https://midscenejs.com/zh/app-control-bench-report) | 96.7% | Doubao Seed 2.1 Turbo |
+| [AndroidWorld](https://www.midscenejs.com/zh/android-world-benchmark-report) | 93.1% | Gemini-3.5-Flash |
+| [MobileWorld](https://www.midscenejs.com/zh/mobile-world-benchmark-report) | 78.6% | Gemini-3.6-Flash |
+| [AppControlBench](https://www.midscenejs.com/zh/app-control-bench-report) | 96.7% | Doubao Seed 2.1 Turbo |
 
-各报告包含运行配置与任务结果；AndroidWorld 报告还说明了环境与校验器的调整。查看[跨平台案例](https://midscenejs.com/zh/showcases)，了解 Web 表单校验、移动端操作流程，以及社区构建的车机测试方案。
+各报告包含运行配置与任务结果；AndroidWorld 报告还说明了环境与校验器的调整。查看[跨平台案例](https://www.midscenejs.com/zh/showcases)，了解 Web 表单校验、移动端操作流程，以及社区构建的车机测试方案。
 
 ## 🧩 Midscene Test：面向自然语言的 E2E 测试框架
 
-[Midscene Test](https://midscenejs.com/zh/midscene-test/overview)（`@midscene/test`）是面向自然语言的 E2E 测试框架。用 YAML 描述操作和预期，需要精确控制的逻辑交给 TypeScript。
+[Midscene Test](https://www.midscenejs.com/zh/midscene-test/overview)（`@midscene/test`）是面向自然语言的 E2E 测试框架。用 YAML 描述操作和预期，需要精确控制的逻辑交给 TypeScript。
 
 ### 让人和 AI 共同维护测试用例
 
@@ -117,23 +117,23 @@ Midscene 支持豆包 Seed、千问 Qwen、DeepSeek、Gemini、GPT、Kimi 等模
 - **并发与隔离**：`maxConcurrentFiles` 控制并发，`fileSetup` 为每个文件准备独立的页面、Agent 或设备。
 - **精确到步骤的报告**：每个步骤的截图、输入、输出和 Agent 回放，`#runner-step=last-error` 深度链接，以及供脚本和 AI Agent 读取的 `summary.json`。
 
-从[创建和使用测试项目](https://midscenejs.com/zh/midscene-test/use)开始，再了解如何[编写自定义 Node](https://midscenejs.com/zh/midscene-test/extend)，以及如何控制[生命周期与并发](https://midscenejs.com/zh/midscene-test/execution)。
+从[创建和使用测试项目](https://www.midscenejs.com/zh/midscene-test/use)开始，再了解如何[编写自定义 Node](https://www.midscenejs.com/zh/midscene-test/extend)，以及如何控制[生命周期与并发](https://www.midscenejs.com/zh/midscene-test/execution)。
 
-报告、Test 结果、缓存和日志保存在 `midscene_run/`。路径配置与 CI 归档方式见[产物目录](https://midscenejs.com/zh/midscene-test/running#统一产物根与迁移)。
+报告、Test 结果、缓存和日志保存在 `midscene_run/`。路径配置与 CI 归档方式见[产物目录](https://www.midscenejs.com/zh/midscene-test/running#统一产物根与迁移)。
 
 ## 🚀 开始使用
 
-- **编写 YAML 测试用例**：[创建 Midscene Test 项目](https://midscenejs.com/zh/midscene-test/use)。
-- **为现有测试引入视觉能力**：Web 应用接入 [Playwright](https://midscenejs.com/zh/integrate-with-playwright)，移动端和桌面端应用接入 [Rstest](https://midscenejs.com/zh/sdk/rstest) 或 [Vitest](https://midscenejs.com/zh/sdk/vitest)。
-- **编写测试前先体验**：使用 [Chrome 插件](https://midscenejs.com/zh/get-started?scene=playground&platform=web)或[移动端、桌面端 Playground](https://midscenejs.com/zh/platforms)。
-- **运行独立的自动化脚本**：使用 [JavaScript SDK](https://midscenejs.com/zh/sdk/standalone)。
-- **让 AI Agent 操作界面**：安装 [Midscene Skills](https://midscenejs.com/zh/skills)。
+- **编写 YAML 测试用例**：[创建 Midscene Test 项目](https://www.midscenejs.com/zh/midscene-test/use)。
+- **为现有测试引入视觉能力**：Web 应用接入 [Playwright](https://www.midscenejs.com/zh/integrate-with-playwright)，移动端和桌面端应用接入 [Rstest](https://www.midscenejs.com/zh/sdk/rstest) 或 [Vitest](https://www.midscenejs.com/zh/sdk/vitest)。
+- **编写测试前先体验**：使用 [Chrome 插件](https://www.midscenejs.com/zh/get-started?scene=playground&platform=web)或[移动端、桌面端 Playground](https://www.midscenejs.com/zh/platforms)。
+- **运行独立的自动化脚本**：使用 [JavaScript SDK](https://www.midscenejs.com/zh/sdk/standalone)。
+- **让 AI Agent 操作界面**：安装 [Midscene Skills](https://www.midscenejs.com/zh/skills)。
 
 ## 📄 资源
 
-* 文档：[https://midscenejs.com/zh](https://midscenejs.com/zh)
+* 文档：[https://www.midscenejs.com/zh](https://www.midscenejs.com/zh)
 * 示例项目：[midscene-example](https://github.com/web-infra-dev/midscene-example)
-* API 参考：[https://midscenejs.com/zh/reference/#common](https://midscenejs.com/zh/reference/#common)
+* API 参考：[https://www.midscenejs.com/zh/reference/#common](https://www.midscenejs.com/zh/reference/#common)
 
 ## 🤝 社区
 

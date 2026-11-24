@@ -62,7 +62,9 @@ export type AIUsageInfo = Record<string, any> & {
   /** Request duration including all attempts and retry waits, excluding preparation, in milliseconds. */
   total_time_cost?: number;
   /** Request retries performed within this call; excludes semantic parse retries. */
-  retry_count?: number;
+  request_retry_count?: number;
+  /** Additional model calls caused by parsing failures before this call in the current parse loop. */
+  parse_retry_count?: number;
   /** Actual protocol used for the model call, resolved by Midscene. */
   request_kind?: 'chat-completion' | 'responses' | 'codex' | 'system-one';
   /** Why a task uses the default model instead of its configured specialist. */

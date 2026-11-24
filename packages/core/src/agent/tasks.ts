@@ -1,7 +1,11 @@
 import { AIResponseParseError, ConversationHistory } from '@/ai-model';
 import type { ModelRuntime } from '@/ai-model/models';
 import { buildTypeQueryDemandValue } from '@/ai-model/prompt/insight';
-import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
+import {
+  type PreparedUserPrompt,
+  prepareReferenceImages,
+  prepareUserPrompt,
+} from '@/ai-model/shared/multimodal-prompt';
 import { standardPlan } from '@/ai-model/workflows/planning';
 import { scrollReviewFeedback } from '@/ai-model/workflows/planning/scroll-review';
 import {
@@ -12,6 +16,7 @@ import {
   userPromptToString,
 } from '@/common';
 import { type AbstractInterface, defineActionSleep } from '@/device';
+import type { DistanceUnit } from '@/distance-schema';
 import type Service from '@/service';
 import type {
   ExecutionReferenceImage,
@@ -349,6 +354,7 @@ export class TaskExecutor {
     locateModel: ModelRuntime,
     options?: {
       observeScrollProgress?: boolean;
+      distanceUnit?: DistanceUnit;
       cacheable?: boolean;
       multimodalPrompt?: TMultimodalPrompt;
       deepLocate?: boolean;
@@ -454,7 +460,7 @@ export class TaskExecutor {
       plans,
       executionPlanningModel,
       executionLocateModel,
-      { abortSignal },
+      { distanceUnit: 'device-logical', abortSignal },
     );
     const result = await session.appendAndRun(tasks);
     const { output } = result ?? {};
@@ -653,11 +659,26 @@ export class TaskExecutor {
       );
     }
     const getPreparedUserPrompt = (() => {
-      let promise: ReturnType<typeof prepareUserPrompt> | undefined;
+      let preparedPromptPromise:
+        | ReturnType<typeof prepareUserPrompt>
+        | undefined;
+      let jevPrompt: PreparedUserPrompt | undefined;
 
-      return () => {
-        promise ??= prepareUserPrompt(userPrompt);
-        return promise;
+      return async (modelRuntime: ModelRuntime) => {
+        preparedPromptPromise ??= prepareUserPrompt(userPrompt);
+        const preparedPrompt = await preparedPromptPromise;
+        if (modelRuntime.config.modelFamily !== 'jev') {
+          return preparedPrompt;
+        }
+        // Jev needs inline images; reuse them across planning rounds in this action.
+        jevPrompt ??= {
+          ...preparedPrompt,
+          referenceImages: await prepareReferenceImages({
+            images: preparedPrompt.referenceImages,
+            convertHttpImage2Base64: true,
+          }),
+        };
+        return jevPrompt;
       };
     })();
 
@@ -779,17 +800,18 @@ export class TaskExecutor {
 
             let planResult: Awaited<ReturnType<typeof planImpl>>;
             try {
-              const preparedUserPrompt = await getPreparedUserPrompt();
+              const preparedUserPrompt =
+                await getPreparedUserPrompt(modelRuntime);
 
               setTimingFieldOnce(timing, 'callAiStart');
               planResult = await planImpl(preparedUserPrompt, {
-                context: planningUiContext,
+                uiContext: planningUiContext,
                 actionContext: renderAIContext(aiActContext),
                 actionSpace,
                 modelRuntime,
                 planningAdvice,
                 executionFeedback: !delegation
-                  ? scrollRecovery?.planningFeedback()
+                  ? scrollRecovery?.planningFeedback(planningUiContext)
                   : undefined,
                 getDefaultModelRuntime: this.getDefaultModelRuntime,
                 conversationHistory,
@@ -923,6 +945,7 @@ export class TaskExecutor {
             planningModel,
             locateModel,
             {
+              distanceUnit: 'model-input-image-pixel',
               cacheable,
               observeScrollProgress: scrollRecovery !== undefined,
               multimodalPrompt: userPromptToMultimodalPrompt(userPrompt),
@@ -1033,7 +1056,7 @@ export class TaskExecutor {
       ++replanCount;
 
       if (replanCount > replanningCycleLimit) {
-        const errorMsg = `Task stopped: the planning cycle limit (${replanningCycleLimit}) has been reached. This limit prevents the model from getting stuck in an endless planning loop. If your task requires more planning cycles, increase replanningCycleLimit or set the environment variable MIDSCENE_REPLANNING_CYCLE_LIMIT to a higher value. See https://midscenejs.com/zh/reference/#common for details.`;
+        const errorMsg = `Task stopped: the planning cycle limit (${replanningCycleLimit}) has been reached. This limit prevents the model from getting stuck in an endless planning loop. If your task requires more planning cycles, increase replanningCycleLimit or set the environment variable MIDSCENE_REPLANNING_CYCLE_LIMIT to a higher value. See https://www.midscenejs.com/zh/reference/#common for details.`;
         return appendFailedPlan(errorMsg, planIndex);
       }
 
@@ -1385,6 +1408,10 @@ export function recordAndReleaseScreenshotSequence(
   uiContext: UIContext | undefined,
 ): void {
   const frames = uiContext?.screenshotSequence;
+  // The execution dump outlives the observation's temporary directory, even
+  // without automatic reports. Retain every frame, including the representative
+  // already referenced by the task. Report persistence can later release memory.
+  for (const frame of frames ?? []) frame.retainForRecording();
   if (frames && frames.length > 1) {
     const recorderItems: ExecutionRecorderItem[] = [];
     for (let i = 0; i < frames.length - 1; i++) {

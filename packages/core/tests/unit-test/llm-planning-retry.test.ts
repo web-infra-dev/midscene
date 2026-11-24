@@ -129,7 +129,7 @@ describe('plan XML parse retry', () => {
         { index: 1, description: 'Save', status: 'running' },
       ]);
       const result = await standardPlan('tap Save', {
-        context: mockContext(),
+        uiContext: mockContext(),
         actionSpace: mockActionSpace(),
         modelRuntime: getModelRuntime({
           ...mockModelConfig(),
@@ -159,7 +159,7 @@ describe('plan XML parse retry', () => {
       ),
     );
     const result = await standardPlan('Fill the named input', {
-      context: mockContext(),
+      uiContext: mockContext(),
       actionSpace: [
         {
           name: 'FillBoundInput',
@@ -224,7 +224,7 @@ describe('plan XML parse retry', () => {
         mockAIResponse('<complete success="true">Done</complete>'),
       );
     const result = await standardPlan('tap the menu', {
-      context: mockContext(),
+      uiContext: mockContext(),
       actionSpace: mockActionSpace(),
       modelRuntime: getModelRuntime({ ...mockModelConfig(), retryInterval: 0 }),
       conversationHistory: new ConversationHistory(),
@@ -246,7 +246,7 @@ describe('plan XML parse retry', () => {
   ])('accepts valid responses without actions: %s', async (content) => {
     rs.mocked(callGenerativeAI).mockResolvedValueOnce(mockAIResponse(content));
     const result = await standardPlan('tap the menu', {
-      context: mockContext(),
+      uiContext: mockContext(),
       actionSpace: mockActionSpace(),
       modelRuntime: getModelRuntime({ ...mockModelConfig(), retryInterval: 0 }),
       conversationHistory: new ConversationHistory(),
@@ -269,7 +269,7 @@ describe('plan XML parse retry', () => {
     );
     await expect(
       standardPlan('tap the menu', {
-        context: mockContext(),
+        uiContext: mockContext(),
         actionSpace: mockActionSpace(),
         modelRuntime: getModelRuntime({
           ...mockModelConfig(),
@@ -300,7 +300,7 @@ describe('plan XML parse retry', () => {
       );
 
     const result = await standardPlan('tap submit', {
-      context: mockContext(),
+      uiContext: mockContext(),
       actionSpace: [
         {
           name: 'Tap',
@@ -348,7 +348,7 @@ describe('plan XML parse retry', () => {
 <action-param-json>${JSON.stringify({ locate: encodedLocate })}</action-param-json>`),
       );
       const result = await standardPlan('tap submit', {
-        context: mockContext(),
+        uiContext: mockContext(),
         actionSpace: [
           {
             name: 'Tap',
@@ -403,7 +403,7 @@ describe('plan XML parse retry', () => {
 <action-param-json>{"locate":{"prompt":"submit","bbox":[100,200,300,400]}}</action-param-json>`),
       );
     const result = await standardPlan('tap submit', {
-      context: mockContext(),
+      uiContext: mockContext(),
       actionSpace: [
         {
           name: 'Tap',
@@ -439,7 +439,7 @@ describe('plan XML parse retry', () => {
 
     await expect(
       standardPlan('input text', {
-        context: mockContext(),
+        uiContext: mockContext(),
         actionSpace: [
           {
             name: 'Input',
@@ -468,7 +468,7 @@ describe('plan XML parse retry', () => {
 <action-param-json>{"value":"hello"}</action-param-json>`),
     );
     const result = await standardPlan('input hello', {
-      context: mockContext(),
+      uiContext: mockContext(),
       actionSpace: [
         {
           name: 'Input',
@@ -504,7 +504,7 @@ describe('plan XML parse retry', () => {
 
     await expect(
       standardPlan('tap submit', {
-        context: mockContext(),
+        uiContext: mockContext(),
         actionSpace: mockActionSpace(),
         modelRuntime: getModelRuntime({
           ...mockModelConfig(),
@@ -527,7 +527,7 @@ describe('plan XML parse retry', () => {
       .mockResolvedValueOnce(mockAIResponse('<action-type>Tap</action-type>'));
 
     const result = await standardPlan('tap submit', {
-      context: mockContext(),
+      uiContext: mockContext(),
       actionSpace: mockActionSpace(),
       modelRuntime: getModelRuntime({ ...mockModelConfig(), retryInterval: 0 }),
       conversationHistory: new ConversationHistory(),
@@ -551,7 +551,7 @@ describe('plan XML parse retry', () => {
     );
 
     const result = await standardPlan('tap the button', {
-      context: mockContext(),
+      uiContext: mockContext(),
       actionSpace: mockActionSpace(),
       modelRuntime: getModelRuntime(mockModelConfig()),
       conversationHistory: new ConversationHistory(),
@@ -584,7 +584,7 @@ describe('plan XML parse retry', () => {
       ),
     );
     await standardPlan('Find the item', {
-      context: mockContext(),
+      uiContext: mockContext(),
       actionSpace: mockActionSpace(),
       modelRuntime: getModelRuntime(mockModelConfig()),
       conversationHistory: history,
@@ -612,7 +612,7 @@ describe('plan XML parse retry', () => {
     );
     for (const distance of [100, 70]) {
       await standardPlan('Find the item', {
-        context: mockContext(),
+        uiContext: mockContext(),
         actionSpace: mockActionSpace(),
         modelRuntime: getModelRuntime(mockModelConfig()),
         conversationHistory: history,
@@ -641,7 +641,7 @@ describe('plan XML parse retry', () => {
 <action-param-json>{}</action-param-json>`),
     );
     await standardPlan('submit the form', {
-      context: mockContext(),
+      uiContext: mockContext(),
       actionSpace: mockActionSpace(),
       actionContext: 'User-provided context',
       planningAdvice: 'Consider clicking submit',
@@ -682,7 +682,7 @@ describe('plan XML parse retry', () => {
         ],
       },
       {
-        context: mockContext(),
+        uiContext: mockContext(),
         actionSpace: mockActionSpace(),
         modelRuntime: getModelRuntime(mockModelConfig()),
         conversationHistory: new ConversationHistory(),
@@ -724,7 +724,7 @@ describe('plan XML parse retry', () => {
       );
 
     const result = await standardPlan('tap the button', {
-      context: mockContext(),
+      uiContext: mockContext(),
       actionSpace: mockActionSpace(),
       modelRuntime: getModelRuntime({
         ...mockModelConfig(),
@@ -768,7 +768,7 @@ describe('plan XML parse retry', () => {
         mockAIResponse('<action-type>Tap</action-type>'),
       );
       const options = {
-        context: mockContext(),
+        uiContext: mockContext(),
         actionSpace: mockActionSpace(),
         modelRuntime: getModelRuntime(mockModelConfig()),
         conversationHistory,
@@ -835,7 +835,7 @@ describe('plan XML parse retry', () => {
         mockAIResponse('<action-type>Tap</action-type>'),
       );
       const options = {
-        context: mockContext(),
+        uiContext: mockContext(),
         actionSpace: mockActionSpace(),
         modelRuntime: getModelRuntime(mockModelConfig()),
         conversationHistory,
@@ -897,7 +897,7 @@ describe('plan XML parse retry', () => {
       );
 
     const options = {
-      context: mockContext(),
+      uiContext: mockContext(),
       actionSpace: mockActionSpace(),
       modelRuntime: getModelRuntime(mockModelConfig('kimi3')),
       conversationHistory,
@@ -940,7 +940,7 @@ describe('plan XML parse retry', () => {
       );
 
     const options = {
-      context: mockContext(),
+      uiContext: mockContext(),
       actionSpace: mockActionSpace(),
       modelRuntime: getModelRuntime(mockModelConfig()),
       conversationHistory,
@@ -1012,7 +1012,7 @@ describe('plan XML parse retry', () => {
         },
       };
       const options = {
-        context: mockContext(),
+        uiContext: mockContext(),
         actionSpace: mockActionSpace(),
         modelRuntime,
         conversationHistory,
@@ -1073,7 +1073,7 @@ describe('plan XML parse retry', () => {
 
     await expect(
       standardPlan('tap the button', {
-        context: mockContext(),
+        uiContext: mockContext(),
         actionSpace: mockActionSpace(),
         modelRuntime: getModelRuntime(mockModelConfig()),
         conversationHistory: new ConversationHistory(),
@@ -1092,7 +1092,7 @@ describe('plan XML parse retry', () => {
     );
 
     await standardPlan('terminate the app, launch it, then tap the AI button', {
-      context: mockContext(),
+      uiContext: mockContext(),
       actionSpace: mockActionSpace(),
       modelRuntime: getModelRuntime(mockModelConfig()),
       conversationHistory: new ConversationHistory(),
@@ -1124,7 +1124,7 @@ describe('plan XML parse retry', () => {
     );
 
     await standardPlan('tap the button', {
-      context: mockContext(),
+      uiContext: mockContext(),
       actionSpace: mockActionSpace(),
       modelRuntime: getModelRuntime({
         ...mockModelConfig(),
@@ -1177,7 +1177,7 @@ describe('plan XML parse retry', () => {
     );
 
     const result = await standardPlan('tap the button', {
-      context: mockContext(),
+      uiContext: mockContext(),
       actionSpace: mockActionSpace(),
       modelRuntime: {
         config: mockModelConfig(),
@@ -1205,7 +1205,7 @@ describe('plan XML parse retry', () => {
     );
 
     const result = await standardPlan('tap the button', {
-      context: mockContext(),
+      uiContext: mockContext(),
       actionSpace: mockActionSpace(),
       modelRuntime: {
         config: mockModelConfig(),
@@ -1264,7 +1264,7 @@ describe('plan XML parse retry', () => {
       .mockImplementationOnce(captureYamlFlowInput);
 
     const result = await standardPlan('tap submit', {
-      context: mockContext(),
+      uiContext: mockContext(),
       actionSpace,
       modelRuntime: getModelRuntime({
         ...mockModelConfig(),

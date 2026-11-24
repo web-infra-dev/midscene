@@ -87,7 +87,7 @@ export async function getConnectedDevices(
       ? ` (ADB executable: ${adbExecutable})`
       : '';
     throw new Error(
-      `Unable to get connected Android device list${adbExecutableContext}, please check https://midscenejs.com/integrate-with-android.html#faq : ${error.message}`,
+      `Unable to get connected Android device list${adbExecutableContext}, please check https://www.midscenejs.com/platforms/android#faq : ${error.message}`,
       {
         cause: error,
       },

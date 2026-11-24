@@ -9,7 +9,13 @@ describe('STUDIO_EXTERNAL_LINKS', () => {
     expect(STUDIO_EXTERNAL_LINKS.github).toBe(
       'https://github.com/web-infra-dev/midscene',
     );
-    expect(STUDIO_EXTERNAL_LINKS.website).toBe('https://midscenejs.com');
+    expect(STUDIO_EXTERNAL_LINKS.website).toBe('https://www.midscenejs.com');
+    expect(STUDIO_EXTERNAL_LINKS.androidIntegrationFaq).toBe(
+      'https://www.midscenejs.com/platforms/android#faq',
+    );
+    expect(STUDIO_EXTERNAL_LINKS.harmonyGettingStarted).toBe(
+      'https://www.midscenejs.com/platforms/harmonyos#connect-device',
+    );
   });
 });
 
@@ -19,7 +25,7 @@ describe('resolveExternalUrl', () => {
       'https://github.com/web-infra-dev/midscene',
     );
     expect(resolveExternalUrl(STUDIO_EXTERNAL_LINKS.website)).toBe(
-      'https://midscenejs.com/',
+      'https://www.midscenejs.com/',
     );
   });
 

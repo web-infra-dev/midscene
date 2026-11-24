@@ -12,9 +12,9 @@ export const jevBoolean: BooleanFn = async (options) => {
   const frames =
     options.extractOption?.screenshotIncluded === false
       ? []
-      : options.context.screenshotSequence?.length
-        ? options.context.screenshotSequence
-        : [options.context.screenshot];
+      : options.uiContext.screenshotSequence?.length
+        ? options.uiContext.screenshotSequence
+        : [options.uiContext.screenshot];
   const screenshots = await Promise.all(
     frames.map((frame) => prepareJevImage(frame.base64)),
   );

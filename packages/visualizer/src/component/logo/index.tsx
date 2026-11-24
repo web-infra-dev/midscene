@@ -28,7 +28,7 @@ export const Logo = ({
 
   return (
     <div className="logo">
-      <a href="https://midscenejs.com/" target="_blank" rel="noreferrer">
+      <a href="https://www.midscenejs.com/" target="_blank" rel="noreferrer">
         <img alt="Midscene_logo" src={logoSrc} />
       </a>
     </div>

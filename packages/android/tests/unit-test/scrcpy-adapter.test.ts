@@ -144,6 +144,26 @@ describe('ScrcpyDeviceAdapter', () => {
   });
 
   describe('resolveConfig', () => {
+    it('resolves and forwards an explicit encoder frame rate', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', {
+        enabled: true,
+        frameRate: 30,
+      });
+      expect(adapter.resolveConfig().frameRate).toBe(30);
+      await adapter.ensureManager(defaultDeviceInfo);
+      expect(ScrcpyScreenshotManager).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(Function),
+        expect.objectContaining({ frameRate: 30 }),
+      );
+    });
+    it('rejects invalid encoder frame rates during resolution', () => {
+      const adapter = new ScrcpyDeviceAdapter('device', { frameRate: -1 });
+      expect(() => adapter.resolveConfig()).toThrow(
+        'Invalid scrcpyConfig.frameRate',
+      );
+    });
+
     it('should default maxSize to 0 (no scaling) when not explicitly set', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined);
       const config = adapter.resolveConfig();

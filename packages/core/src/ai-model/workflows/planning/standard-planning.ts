@@ -147,11 +147,11 @@ export async function standardPlan(
   userInstruction: PreparedUserPrompt,
   opts: PlanOptions,
 ): Promise<PlanningAIResponse> {
-  const { context, conversationHistory } = opts;
+  const { uiContext, conversationHistory } = opts;
   const modelRuntime = opts.modelRuntime;
   const { adapter } = modelRuntime;
-  const { shotSize } = context;
-  const screenshotBase64 = context.screenshot.base64;
+  const { shotSize } = uiContext;
+  const screenshotBase64 = uiContext.screenshot.base64;
   assert(
     adapter.planning.kind === 'standard',
     'standardPlan requires a standard planning adapter',
@@ -317,7 +317,14 @@ export async function standardPlan(
 
   // YAML is derived from validated actions outside the model-response retry scope.
   // dumpActionParam omits runtime-only locatedPixelResult fields.
-  const yamlFlow = buildYamlFlowFromPlans(actions, opts.actionSpace);
+  // Replay reads distance as device-logical units, so export uses the planning
+  // screenshot ratio. The cached YAML stores only the resulting distance. If
+  // the ratio changes before live execution, its distance can differ from replay.
+  const yamlFlow = buildYamlFlowFromPlans(
+    actions,
+    opts.actionSpace,
+    uiContext.shrunkShotToLogicalRatio,
+  );
 
   let shouldContinuePlanning = true;
 

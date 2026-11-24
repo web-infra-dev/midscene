@@ -4,6 +4,7 @@ import {
   nativeScrollReview,
   scrollPlanningFeedback,
 } from '@/ai-model/workflows/planning/scroll-review';
+import type { UIContext } from '@/types';
 import type { ExecutionSession } from './execution-session';
 
 /** Per-aiAct review state and report lifecycle; never executes a UI action. */
@@ -14,7 +15,9 @@ export class ScrollRecovery {
   constructor(private readonly session: ExecutionSession) {}
 
   /** Keep measured state fresh until the action or target changes. */
-  planningFeedback(): string | undefined {
+  planningFeedback(
+    view: Pick<UIContext, 'shotSize' | 'shrunkShotToLogicalRatio'>,
+  ): string | undefined {
     if (!this.recoveringTarget) return undefined;
     const task = this.session
       .getRunner()
@@ -28,6 +31,7 @@ export class ScrollRecovery {
       const feedback = scrollPlanningFeedback(
         task,
         this.recoveringTarget.hasSearchDirection,
+        view,
       );
       if (feedback) return feedback;
     }

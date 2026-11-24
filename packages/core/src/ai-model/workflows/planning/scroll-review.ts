@@ -1,4 +1,9 @@
-import type { ActionScrollParam, ExecutionTask, ScrollState } from '@/types';
+import type {
+  ActionScrollParam,
+  ExecutionTask,
+  ScrollState,
+  UIContext,
+} from '@/types';
 
 export interface ScrollReview {
   progress: 'unchanged';
@@ -120,12 +125,13 @@ export function nativeScrollReview(
 }
 
 const searchGuidance =
-  'When the target position is unknown, scroll about one panel at a time in the same available direction and inspect each view, including similar-looking items. Change direction when you reach an edge or the visible ordering places the target behind you. Jump to an end only when the task or visible ordering points there. Before tapping a repeated button, check that its label and button belong to the same item; reveal the whole item if needed.';
+  'When the target position is unknown, search in the same available direction with overlapping views so labels and controls split at an edge can be seen together. Change direction when you reach an edge or the visible ordering places the target behind you. Jump to an end only when the task or visible ordering points there. Before tapping a repeated button, check that its label and button belong to the same item; reveal the whole item if needed.';
 
 /** Fresh facts, supplied only while recovering the same measured container. */
 export function scrollPlanningFeedback(
   task: ExecutionTask,
   hasSearchDirection: boolean,
+  view: Pick<UIContext, 'shotSize' | 'shrunkShotToLogicalRatio'>,
 ): string | undefined {
   const state = task.scrollProgress?.after;
   if (!state || !confirmedTarget(task)) return undefined;
@@ -156,12 +162,19 @@ export function scrollPlanningFeedback(
       ? available[0]
       : undefined;
   if (!next) return feedback;
-  const span =
-    next === 'left' || next === 'right'
-      ? state.rect?.width
-      : state.rect?.height;
-  if (!Number.isFinite(span) || span < 1) return feedback;
-  return `${feedback} If the goal is still off screen and its position is unknown, the next search step to try is Scroll ${next} inside this container, distance ${Math.round(span)} (one visible panel). Inspect that view before choosing another step. Use a smaller step if the visible target is partly clipped; explicit user instructions take priority.`;
+  const horizontal = next === 'left' || next === 'right';
+  const { rect } = state;
+  const start = horizontal ? rect.left : rect.top;
+  const end = start + (horizontal ? rect.width : rect.height);
+  const scale = view.shrunkShotToLogicalRatio;
+  const imageSpan = horizontal ? view.shotSize.width : view.shotSize.height;
+  // Scroll action distances use model-image pixels. Only count the part of the
+  // container on screen, including when the root rect spans the whole document.
+  const visibleSpan =
+    Math.min(end * scale, imageSpan) - Math.max(start * scale, 0);
+  if (!Number.isFinite(visibleSpan) || visibleSpan < 1) return feedback;
+  const distance = Math.max(1, Math.round(visibleSpan * 0.75));
+  return `${feedback} If the goal is still off screen and its position is unknown, the next search step to try is Scroll ${next} inside this container, distance ${distance} (about three quarters of the visible panel). Inspect the overlapping view. If the measured position advances but items look similar, keep searching in this direction until the target or boundary is visible.`;
 }
 
 export function scrollReviewFeedback(review: ScrollReview): string {

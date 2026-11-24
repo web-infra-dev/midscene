@@ -3,6 +3,11 @@ import { ScrollRecovery } from '@/agent/scroll-recovery';
 import type { ExecutionTask, ExecutorContext } from '@/types';
 import { expect, it } from '@rstest/core';
 
+const view = {
+  shotSize: { width: 800, height: 600 },
+  shrunkShotToLogicalRatio: 1,
+};
+
 const scroll = (id: string, left = 100): ExecutionTask => ({
   type: 'Action Space',
   subType: 'Scroll',
@@ -49,9 +54,9 @@ function setup() {
 }
 it('updates available directions on each plan only after recovery has engaged', async () => {
   const { tasks, recovery } = setup();
-  expect(recovery.planningFeedback()).toBeUndefined();
+  expect(recovery.planningFeedback(view)).toBeUndefined();
   await recovery.review(async () => {});
-  expect(recovery.planningFeedback()).toContain(
+  expect(recovery.planningFeedback(view)).toContain(
     'Directions with remaining range: left.',
   );
   const advancing = scroll('list', 70);
@@ -59,10 +64,10 @@ it('updates available directions on each plan only after recovery has engaged', 
   advancing.scrollProgress!.status = 'moved';
   advancing.scrollProgress!.before!.scrollLeft = 100;
   tasks.push(advancing);
-  expect(recovery.planningFeedback()).toContain(
+  expect(recovery.planningFeedback(view)).toContain(
     'Directions with remaining range: left, right.',
   );
-  expect(recovery.planningFeedback()).toContain(
+  expect(recovery.planningFeedback(view)).toContain(
     'latest executed scroll was left',
   );
 });
@@ -79,9 +84,9 @@ it.each(['action', 'target', 'unknown'] as const)(
     }
     if (change === 'unknown') next.scrollProgress = undefined;
     tasks.push(next);
-    expect(recovery.planningFeedback()).toBeUndefined();
+    expect(recovery.planningFeedback(view)).toBeUndefined();
     tasks.push(scroll('list'));
-    expect(recovery.planningFeedback()).toBeUndefined();
+    expect(recovery.planningFeedback(view)).toBeUndefined();
   },
 );
 
@@ -98,7 +103,7 @@ it('default native mode skips incomplete measurements without invoking visual fa
     }),
   ).toBeUndefined();
   expect(started).toBe(false);
-  expect(recovery.planningFeedback()).toBeUndefined();
+  expect(recovery.planningFeedback(view)).toBeUndefined();
 });
 
 it('keeps an ambiguous recovery qualitative after the next scroll moves', async () => {
@@ -114,7 +119,7 @@ it('keeps an ambiguous recovery qualitative after the next scroll moves', async 
   step.scrollProgress!.before!.scrollLeft = 50;
   step.scrollProgress!.status = 'moved';
   tasks.push(step);
-  const feedback = recovery.planningFeedback();
+  const feedback = recovery.planningFeedback(view);
   expect(feedback).toContain('left, right');
   expect(feedback).not.toContain('next search step');
   expect(feedback).not.toContain('Current scroll position');

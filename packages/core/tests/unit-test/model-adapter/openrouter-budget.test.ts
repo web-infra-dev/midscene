@@ -11,6 +11,7 @@ const families = [
   'qwen3',
   'qwen3.5',
   'qwen3.6',
+  'qwen4',
   'deepseek',
   'gpt-5',
   'gpt-6',

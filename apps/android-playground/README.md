@@ -2,4 +2,4 @@
 
 Playground tool for Android cli @midscene/android.
 
-See https://midscenejs.com/ for details.
+See https://www.midscenejs.com/ for details.

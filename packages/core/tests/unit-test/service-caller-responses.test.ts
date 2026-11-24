@@ -248,7 +248,8 @@ describe('Responses protocol', () => {
         cached_input: 3,
         request_id: 'req-test',
         slot: 'default',
-        retry_count: 0,
+        request_retry_count: 0,
+        parse_retry_count: 0,
         request_kind: 'responses',
       },
     });
@@ -430,7 +431,7 @@ describe('Responses protocol', () => {
     const result = await callGenerativeAI(messages, runtime);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(prepare).toHaveBeenCalledTimes(1);
-    expect(result.usage?.retry_count).toBe(1);
+    expect(result.usage?.request_retry_count).toBe(1);
     expect(runtime.onUsage).toHaveBeenCalledTimes(1);
     expect(requestBody(0)).toEqual(requestBody(1));
   });
@@ -446,7 +447,7 @@ describe('Responses protocol', () => {
       getModelRuntime({ ...config, retryCount: 1 }),
       { stream: true, onChunk: rs.fn() },
     );
-    expect(result.usage?.retry_count).toBe(1);
+    expect(result.usage?.request_retry_count).toBe(1);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 

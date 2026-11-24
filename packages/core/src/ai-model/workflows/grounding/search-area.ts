@@ -91,15 +91,15 @@ export function expandSearchArea(rect: Rect, screenSize: Size): Rect {
 }
 
 export async function buildSearchAreaConfig(options: {
-  context: UIContext;
+  uiContext: UIContext;
   baseRect: Rect;
 }): Promise<SearchAreaConfig> {
-  const { context, baseRect } = options;
+  const { uiContext, baseRect } = options;
   const scaleRatio = 2;
-  const sectionRect = expandSearchArea(baseRect, context.shotSize);
+  const sectionRect = expandSearchArea(baseRect, uiContext.shotSize);
 
   const croppedResult = await cropByRect(
-    context.screenshot.base64,
+    uiContext.screenshot.base64,
     sectionRect,
   );
 

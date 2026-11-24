@@ -224,8 +224,17 @@ describe('TaskExecutor concurrency isolation', () => {
     'uses the normal planner entry and returns to the configured model (custom default: %s)',
     async (customDefault) => {
       const historySeen: unknown[] = [];
+      const url = 'https://example.com/reference.png';
+      const images = [
+        { name: 'previous', url },
+        { name: 'same image', url },
+      ];
+      rs.mocked(preProcessImageUrl).mockImplementation(
+        async (source, convert) => (convert ? validBase64Image : source),
+      );
       const fallback = rs.fn(async (_instruction, options) => {
         expect(_instruction.text).toBe('Fill the form');
+        expect(_instruction.referenceImages).toEqual(images);
         expect(options.actionSpace).toEqual(emptyParamActionSpace);
         expect(options.includeLocateInPlanning).toBe(false);
         expect(options.planningAdvice).toContain(
@@ -296,9 +305,10 @@ describe('TaskExecutor concurrency isolation', () => {
         yamlFlow: [],
       } as any);
       const result = await executor.action(
-        'Fill the form',
+        { prompt: 'Fill the form', images },
         {
           ...base,
+          config: { ...base.config, modelFamily: 'jev' },
           adapter: {
             ...base.adapter,
             planning: { ...base.adapter.planning, kind: 'custom', planFn },
@@ -312,6 +322,16 @@ describe('TaskExecutor concurrency isolation', () => {
           .map((task) => task.output.log),
       ).toEqual(['Delegate', 'Default step', 'Complete']);
       expect(planFn).toHaveBeenCalledTimes(2);
+      for (const [instruction] of planFn.mock.calls) {
+        expect(instruction.referenceImages).toEqual(
+          images.map((image) => ({ ...image, url: validBase64Image })),
+        );
+      }
+      expect(
+        rs
+          .mocked(preProcessImageUrl)
+          .mock.calls.filter(([source, convert]) => source === url && convert),
+      ).toHaveLength(1);
       expect(fallback).toHaveBeenCalledTimes(1);
       expect(historySeen[0]).toBe(historySeen[1]);
     },

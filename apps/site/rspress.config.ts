@@ -9,7 +9,7 @@ import { pluginGetStartedPages } from './plugins/get-started-pages';
 import { pluginMarkdownOutput } from './plugins/markdown-output';
 import { getGitHubStars } from './scripts/github-stars';
 
-const SITE_URL = 'https://midscenejs.com';
+const SITE_URL = 'https://www.midscenejs.com';
 const FAVICON_URL = `${SITE_URL}/favicon.png`;
 // Bump this version when browsers need to refresh their cached site icon.
 const FAVICON_LINK_URL = `${FAVICON_URL}?v=20260929`;
@@ -158,7 +158,7 @@ export default defineConfig(async () => {
           items: [
             {
               text: 'Changelog',
-              link: 'https://midscenejs.com/changelog',
+              link: 'https://www.midscenejs.com/changelog',
             },
             {
               text: 'Midscene.js v0.x',
@@ -166,7 +166,7 @@ export default defineConfig(async () => {
             },
             {
               text: 'Midscene.js v1.x',
-              link: 'https://midscenejs.com',
+              link: 'https://www.midscenejs.com',
             },
           ],
         },

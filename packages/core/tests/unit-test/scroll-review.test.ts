@@ -7,6 +7,11 @@ import {
 import type { ActionScrollParam, ExecutionTask, ScrollState } from '@/types';
 import { expect, it } from '@rstest/core';
 
+const view = {
+  shotSize: { width: 800, height: 600 },
+  shrunkShotToLogicalRatio: 1,
+};
+
 const state = (targetId = 'list', scrollTop = 0): ScrollState => ({
   targetId,
   scrollTop,
@@ -106,22 +111,44 @@ it('measures only progress along the requested direction on the same target', ()
   ).toBe('unchanged');
 });
 
-it('suggests one panel on a supported search path and leaves ambiguous stalls open', () => {
+it('suggests overlapping views on a supported search path and leaves ambiguous stalls open', () => {
   const task = scroll('search');
   const after = task.scrollProgress!.after!;
   after.maxScrollLeft = 900;
-  after.rect.width = 240;
-  expect(scrollPlanningFeedback(task, true)).toContain(
-    'Scroll right inside this container, distance 240',
+  expect(scrollPlanningFeedback(task, true, view)).toContain(
+    'Scroll right inside this container, distance 75',
   );
   after.scrollLeft = 300;
-  expect(scrollPlanningFeedback(task, true)).toContain('horizontal 300 of 900');
-  expect(scrollPlanningFeedback(task, true)).not.toContain('next search step');
+  expect(scrollPlanningFeedback(task, true, view)).toContain(
+    'horizontal 300 of 900',
+  );
+  expect(scrollPlanningFeedback(task, true, view)).not.toContain(
+    'next search step',
+  );
   task.param.direction = 'left';
   task.scrollProgress!.status = 'moved';
-  expect(scrollPlanningFeedback(task, true)).toContain(
-    'Scroll left inside this container, distance 240',
+  expect(scrollPlanningFeedback(task, true, view)).toContain(
+    'Scroll left inside this container, distance 75',
   );
-  after.rect.width = 0;
-  expect(scrollPlanningFeedback(task, true)).not.toContain('next search step');
+  expect(scrollPlanningFeedback(task, false, view)).not.toContain(
+    'next search step',
+  );
+});
+
+it('sizes overlapping steps in model-image pixels and clips the span to the screen', () => {
+  const task = scroll('document');
+  const after = task.scrollProgress!.after!;
+  after.maxScrollTop = 2000;
+  after.maxScrollLeft = 0;
+  after.rect = { left: 0, top: -400, width: 100, height: 1500 };
+  const scaled = { ...view, shrunkShotToLogicalRatio: 2 };
+  expect(scrollPlanningFeedback(task, true, scaled)).toContain(
+    'Scroll down inside this container, distance 450',
+  );
+  after.rect = { ...after.rect, top: 200, height: 60 };
+  expect(scrollPlanningFeedback(task, true, scaled)).toContain('distance 90');
+  after.rect.top = 400;
+  expect(scrollPlanningFeedback(task, true, scaled)).not.toContain(
+    'next search step',
+  );
 });

@@ -28,7 +28,7 @@ Invalid parameters return `400` with a plain-text reason.
 A static attribution badge that needs no counts:
 
 ```md
-[![E2E by Midscene.js](https://<your-domain>/by-midscene)](https://midscenejs.com)
+[![E2E by Midscene.js](https://<your-domain>/by-midscene)](https://www.midscenejs.com)
 ```
 
 `style` is optional: `flat` (default, 20px) or `large` (28px).

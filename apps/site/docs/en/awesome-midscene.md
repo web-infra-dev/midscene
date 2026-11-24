@@ -2,6 +2,8 @@
 
 A curated list of community projects that extend Midscene.js capabilities across different platforms and programming languages.
 
+For official icons and brand colors, see [Brand resources](/brand-resources).
+
 ## Community projects
 
 New additions appear at the top of the list.

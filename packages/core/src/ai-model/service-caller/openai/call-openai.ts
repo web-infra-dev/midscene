@@ -122,7 +122,7 @@ export async function callOpenAI(
         ? SiwcTokenExpiredError
         : Error;
     throw new RequestError(
-      `failed to call ${isStreaming ? 'streaming ' : ''}AI model service (${modelName}): ${error.message}${formatOpenAIAPIErrorDetails(error, openAIRequestContext)}\nTrouble shooting: https://midscenejs.com/model-config#verify-model-connectivity`,
+      `failed to call ${isStreaming ? 'streaming ' : ''}AI model service (${modelName}): ${error.message}${formatOpenAIAPIErrorDetails(error, openAIRequestContext)}\nTrouble shooting: https://www.midscenejs.com/model-config#verify-model-connectivity`,
       { cause: error },
     );
   }

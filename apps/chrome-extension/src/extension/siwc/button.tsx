@@ -71,7 +71,7 @@ export function SiwcLoginButton() {
         </Typography.Paragraph>
         <Typography.Paragraph>
           <Typography.Link
-            href="https://midscenejs.com/chatgpt-subscription.html"
+            href="https://www.midscenejs.com/chatgpt-subscription.html"
             target="_blank"
             rel="noreferrer"
           >

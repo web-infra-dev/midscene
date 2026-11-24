@@ -1,7 +1,9 @@
 import { TaskBuilder, locatePlanForLocate } from '@/agent/task-builder';
+import type { TaskCache } from '@/agent/task-cache';
 import { getMidsceneLocationSchema } from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
 import { AbstractInterface, defineActionSleep } from '@/device';
+import { getMidsceneDistanceSchema } from '@/distance-schema';
 import type Service from '@/service';
 import type { DeviceAction, PlanningAction } from '@/types';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
@@ -218,6 +220,78 @@ describe('TaskBuilder', () => {
     await expected;
     expect(call).not.toHaveBeenCalled();
   });
+
+  it.each([
+    { hasCoordinates: true, cacheable: false },
+    { hasCoordinates: false, cacheable: false },
+    { hasCoordinates: true, cacheable: undefined },
+    { hasCoordinates: false, cacheable: undefined },
+  ])(
+    'honors locate caching independently of the planner: %j',
+    async ({ hasCoordinates, cacheable }) => {
+      const feature = { xpaths: ['/button'] };
+      const taskCache = {
+        isCacheResultUsed: true,
+        matchLocateCache: rs.fn(),
+        updateOrAppendCacheRecord: rs.fn(),
+      };
+      const device = new MockInterface([]);
+      const extractFeature = rs.fn().mockResolvedValue(feature);
+      const matchFeature = rs.fn();
+      device.cacheFeatureForPoint = extractFeature;
+      device.rectMatchesCacheFeature = matchFeature;
+      const locate = rs.fn().mockResolvedValue({
+        element: { center: [20, 20], description: 'target' },
+      });
+      const builder = new TaskBuilder({
+        getDefaultModelRuntime: () => mockModelRuntime,
+        interfaceInstance: device,
+        service: { locate } as unknown as Service,
+        taskCache: taskCache as unknown as TaskCache,
+        actionSpace: [],
+      });
+      // A standalone locate may cache even if the configured planner cannot.
+      const planningModel = getModelRuntime({
+        ...mockModelRuntime.config,
+        modelFamily: 'auto-glm',
+      });
+      const prompt = hasCoordinates ? '' : 'target';
+      const { tasks } = await builder.build(
+        [
+          locatePlanForLocate({
+            prompt,
+            cacheable: true,
+            ...(hasCoordinates
+              ? { locatedPixelResult: { center: [20, 20] } }
+              : {}),
+          }),
+        ],
+        planningModel,
+        mockModelRuntime,
+        { cacheable },
+      );
+
+      await tasks[0].executor({
+        task: { timing: {} },
+        uiContext: { shrunkShotToLogicalRatio: 1, deprecatedDpr: 1 },
+      } as any);
+
+      expect(locate).toHaveBeenCalledTimes(hasCoordinates ? 0 : 1);
+      expect(matchFeature).not.toHaveBeenCalled();
+      if (cacheable === false) {
+        expect(taskCache.matchLocateCache).not.toHaveBeenCalled();
+        expect(extractFeature).not.toHaveBeenCalled();
+        expect(taskCache.updateOrAppendCacheRecord).not.toHaveBeenCalled();
+      } else {
+        expect(taskCache.matchLocateCache).toHaveBeenCalledWith(prompt);
+        expect(extractFeature).toHaveBeenCalledOnce();
+        expect(taskCache.updateOrAppendCacheRecord).toHaveBeenCalledWith(
+          { type: 'locate', prompt, cache: feature },
+          undefined,
+        );
+      }
+    },
+  );
 
   it('normalizes the deprecated locate deepThink alias before task reporting', () => {
     const plan = locatePlanForLocate({
@@ -665,4 +739,55 @@ describe('TaskBuilder', () => {
       'ReadState returned brightness: 0\n',
     );
   });
+  it.each([
+    {
+      distanceUnit: 'model-input-image-pixel' as const,
+      distance: 120,
+      expected: 80,
+    },
+    { distanceUnit: 'device-logical' as const, distance: 120, expected: 120 },
+    {
+      distanceUnit: 'model-input-image-pixel' as const,
+      distance: undefined,
+      expected: 100,
+    },
+  ])(
+    'preserves the distance unit and device-unit defaults: %j',
+    async ({ distanceUnit, distance, expected }) => {
+      const call = rs.fn();
+      const action: DeviceAction = {
+        name: 'CustomMove',
+        paramSchema: z.object({
+          distance: getMidsceneDistanceSchema().default(100),
+          duration: z.number().default(500),
+        }),
+        delayBeforeRunner: 0,
+        delayAfterRunner: 0,
+        call,
+      };
+      const builder = new TaskBuilder({
+        getDefaultModelRuntime: () => mockModelRuntime,
+        interfaceInstance: new MockInterface([action]),
+        service: {} as Service,
+        actionSpace: [action],
+      });
+      const { tasks } = await builder.build(
+        [{ type: 'CustomMove', param: { distance } }],
+        mockModelRuntime,
+        mockModelRuntime,
+        { distanceUnit },
+      );
+      await tasks[0].executor({
+        task: { timing: {} },
+        uiContext: {
+          shotSize: { width: 600, height: 1200 },
+          shrunkShotToLogicalRatio: 1.5,
+        },
+      } as any);
+      expect(call.mock.calls[0][0]).toEqual({
+        distance: expected,
+        duration: 500,
+      });
+    },
+  );
 });

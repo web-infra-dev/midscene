@@ -189,7 +189,7 @@ describe('Playground Integration Tests', () => {
       const formattedError = sdk.formatErrorMessage(extensionError);
 
       expect(formattedError).toContain('Conflicting extension detected');
-      expect(formattedError).toContain('midscenejs.com');
+      expect(formattedError).toContain('www.midscenejs.com');
     });
 
     it('should handle action space retrieval', async () => {

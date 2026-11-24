@@ -100,7 +100,8 @@ export const buildUsageInfo = ({
   requestId,
   timeCost,
   totalTimeCost,
-  retryCount,
+  requestRetryCount,
+  parseRetryCount,
   modelName,
   modelDescription,
   responseModelName,
@@ -113,7 +114,8 @@ export const buildUsageInfo = ({
   requestId?: string | null;
   timeCost?: number;
   totalTimeCost: number;
-  retryCount: number;
+  requestRetryCount: number;
+  parseRetryCount: number;
   modelName: string;
   modelDescription: string;
   responseModelName?: string;
@@ -136,7 +138,8 @@ export const buildUsageInfo = ({
     cached_input: cachedInputTokens ?? 0,
     time_cost: timeCost ?? 0,
     total_time_cost: totalTimeCost,
-    retry_count: retryCount,
+    request_retry_count: requestRetryCount,
+    parse_retry_count: parseRetryCount,
     model_name: modelName,
     model_description: modelDescription,
     response_model_name: responseModelName,

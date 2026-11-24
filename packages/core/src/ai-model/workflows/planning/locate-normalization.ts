@@ -15,7 +15,7 @@ import type {
 
 const debug = getDebug('planning');
 
-export function normalizePlanningActionLocateFields(
+export function normalizePlanningActionFields(
   actions: PlanningAction[],
   {
     actionSpace,

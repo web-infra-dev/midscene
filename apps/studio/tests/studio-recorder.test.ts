@@ -159,10 +159,10 @@ describe('studio recorder selectors', () => {
     };
     const otherWebTarget = {
       platformId: 'web' as const,
-      deviceId: 'https://midscenejs.com',
+      deviceId: 'https://www.midscenejs.com',
       label: 'Midscene',
       values: {
-        url: 'https://midscenejs.com',
+        url: 'https://www.midscenejs.com',
         viewportWidth: 1280,
         viewportHeight: 720,
       },
