@@ -1108,7 +1108,9 @@ describe('plan XML parse retry', () => {
       ? latestMessage.content.find((part) => part.type === 'text')
       : undefined;
 
-    expect(textPart?.text).toContain('This is the current screenshot.');
+    expect(textPart?.text).toMatch(
+      /^This is the current screenshot\.\n\nNo previous actions/,
+    );
     expect(textPart?.text).toContain(
       'No previous actions have been executed in this aiAct execution yet.',
     );

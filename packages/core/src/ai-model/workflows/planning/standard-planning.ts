@@ -243,7 +243,7 @@ export async function standardPlan(
     : '';
   const observationText = conversationHistory.pendingFeedbackMessage
     ? `Latest execution feedback: ${conversationHistory.pendingFeedbackMessage}. Here is the latest screenshot. Use the observed result, not the intent of previous actions, to choose the next action.`
-    : 'This is the current screenshot. Use the observed result, not the intent of previous actions, to choose the next action.';
+    : 'This is the current screenshot.';
   const latestObservation: ConversationMessage = {
     role: 'user',
     content: [
