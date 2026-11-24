@@ -1,7 +1,7 @@
 import type { DeviceAction, Size } from '@midscene/core';
 import { Agent, type AgentOpt } from '@midscene/core/agent';
 import {
-  AbstractInterface,
+  type AbstractInterface,
   type InputPrimitives,
   defineAction,
   defineActionsFromInputPrimitives,
@@ -105,22 +105,8 @@ export class ConnectClient {
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 /** A Midscene interface whose screen and input live behind the connect protocol. */
-export class RemoteDevice extends AbstractInterface {
+export class RemoteDevice implements AbstractInterface {
   readonly interfaceType = 'midscene-connect';
-  override cacheFeatureForPoint: AbstractInterface['cacheFeatureForPoint'] =
-    undefined;
-  override rectMatchesCacheFeature: AbstractInterface['rectMatchesCacheFeature'] =
-    undefined;
-  override beforeInvokeAction: AbstractInterface['beforeInvokeAction'] =
-    undefined;
-  override afterInvokeAction: AbstractInterface['afterInvokeAction'] =
-    undefined;
-  override getUITree: AbstractInterface['getUITree'] = undefined;
-  override getElementsNodeTree: AbstractInterface['getElementsNodeTree'] =
-    undefined;
-  override url: AbstractInterface['url'] = undefined;
-  override evaluateJavaScript: AbstractInterface['evaluateJavaScript'] =
-    undefined;
   readonly inputPrimitives: InputPrimitives;
   private readonly actions: DeviceAction[];
 
@@ -128,7 +114,6 @@ export class RemoteDevice extends AbstractInterface {
     readonly client: ConnectClient,
     readonly info: ConnectInfo,
   ) {
-    super();
     const has = (name: string) => info.primitives.includes(name);
     const call = (name: string) => {
       const spec = primitiveByName.get(name)!;
