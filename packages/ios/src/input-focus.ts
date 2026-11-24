@@ -27,6 +27,24 @@ function isProtocolError(error: unknown, code: string): boolean {
   );
 }
 
+// Some WDA gateways omit the JSON content type or return an empty 404.
+function isMissingActiveElement(error: unknown): boolean {
+  if (isProtocolError(error, 'no such element')) return true;
+  if (!(error instanceof WebDriverRequestError) || error.status !== 404)
+    return false;
+  let body = error.response;
+  if (typeof body === 'string') {
+    const text = body.trim();
+    if (!text || text === 'no such element') return true;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      return false;
+    }
+  }
+  return (body?.value?.error ?? body?.error) === 'no such element';
+}
+
 async function activeInput(
   request: InputRequest,
   timeout?: number,
@@ -40,19 +58,33 @@ async function activeInput(
     );
     return value === null ? undefined : elementId(value);
   } catch (error) {
-    if (isProtocolError(error, 'no such element')) return undefined;
+    if (isMissingActiveElement(error)) return undefined;
     throw error;
   }
 }
 
+export class InputFocusUnavailableError extends Error {}
+
 /** Wait for a focus owner before clearing or synthesizing text events. */
 export async function waitForInputFocus(request: InputRequest): Promise<void> {
   const deadline = Date.now() + 3000;
+  let observedMissingFocus = false;
   while (Date.now() < deadline) {
-    const target = await activeInput(
-      request,
-      Math.max(1, deadline - Date.now()),
-    );
+    let target: string | undefined;
+    try {
+      target = await activeInput(request, Math.max(1, deadline - Date.now()));
+    } catch (error) {
+      // A final short poll can time out after WDA has already reported no element.
+      if (
+        observedMissingFocus &&
+        Date.now() >= deadline &&
+        error instanceof WebDriverRequestError &&
+        /^Request timeout after \d+ms$/.test(error.message)
+      )
+        break;
+      throw error;
+    }
+    observedMissingFocus = !target;
     if (Date.now() >= deadline) break;
     if (target) return;
     const remaining = deadline - Date.now();
@@ -62,7 +94,9 @@ export async function waitForInputFocus(request: InputRequest): Promise<void> {
       );
     }
   }
-  throw new Error('Timed out waiting for iOS input focus after 3000ms');
+  throw new InputFocusUnavailableError(
+    'Timed out waiting for iOS input focus after 3000ms.',
+  );
 }
 
 async function identifiedInputs(
