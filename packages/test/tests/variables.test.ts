@@ -80,6 +80,39 @@ describe('workflow variables', () => {
     ).toThrow('Undefined environment variable "TOKEN"');
   });
 
+  it('accepts whitespace inside environment variable references', () => {
+    expect(
+      resolveWorkflowVariables('token-${{ TOKEN }}', {
+        env: { TOKEN: 'secret' },
+        location,
+      }),
+    ).toBe('token-secret');
+    expect(
+      resolveWorkflowVariables('${{ TOKEN }}', {
+        env: { TOKEN: 'secret' },
+        location,
+      }),
+    ).toBe('secret');
+  });
+
+  it('rejects undefined environment variables written with spaces', () => {
+    expect(() =>
+      resolveWorkflowVariables('${{ MISSING }}', {
+        env: {},
+        location,
+      }),
+    ).toThrow('Undefined environment variable "MISSING"');
+  });
+
+  it('rejects unsupported ${{ ... }} references instead of keeping them as text', () => {
+    expect(() =>
+      resolveWorkflowVariables('${{ env.BASE_URL }}', {
+        env: { BASE_URL: 'https://staging.example.com' },
+        location,
+      }),
+    ).toThrow('Unsupported variable reference "${{ env.BASE_URL }}"');
+  });
+
   it('rejects object and array variables embedded in strings', () => {
     expect(() =>
       resolveWorkflowVariables('value-${object}', {
@@ -175,5 +208,46 @@ cases:
         }),
       }),
     );
+  });
+
+  it('resolves whitespace-padded environment references during collection', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'workflow-variables-'));
+    directories.push(directory);
+    const absolutePath = join(directory, 'case.yaml');
+    writeFileSync(
+      absolutePath,
+      `
+cases:
+  - name: whitespace env case
+    steps:
+      - launch:
+          uri: \${{ APP_URI }}
+`,
+    );
+
+    const project = {
+      projectId: 'android',
+      sourcePath: 'case.yaml',
+      absolutePath,
+    };
+    const launchNode = { name: 'launch', execute() {} };
+
+    const document = collectWorkflowDocument(project, {
+      resolveNode: (name) => (name === 'launch' ? launchNode : undefined),
+      variables: {},
+      env: { APP_URI: 'com.example.app' },
+    });
+
+    expect(document.cases[0].definition.steps[0].input).toEqual({
+      uri: 'com.example.app',
+    });
+
+    expect(() =>
+      collectWorkflowDocument(project, {
+        resolveNode: (name) => (name === 'launch' ? launchNode : undefined),
+        variables: {},
+        env: {},
+      }),
+    ).toThrow('Undefined environment variable "APP_URI"');
   });
 });
