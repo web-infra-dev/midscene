@@ -60,7 +60,7 @@ For mobile and desktop apps, use the platform Agent with [Rstest](https://www.mi
 
 ## 👁️ Operate and verify by vision alone
 
-Because Midscene reads screenshots rather than code, it tests the interface the way a user uses it: **observe the screen, act on what is visible, and verify what the user actually sees**.
+Midscene reads screenshots rather than code, testing the interface the way a user uses it: **observe the screen, act on what is visible, and verify what the user actually sees**.
 
 ### Locate and act from screenshots
 
@@ -77,7 +77,7 @@ await agent.aiAssert('The error message is visible below the email field');
 
 ## 🌐 One API, across platforms
 
-Because visual localization does not depend on the UI rendering stack or code structure, the same Agent APIs work on every platform:
+Visual localization does not depend on the UI rendering stack or code structure, so the same Agent APIs work on every platform:
 
 | Platform | Integration |
 | --- | --- |
@@ -90,7 +90,7 @@ Because visual localization does not depend on the UI rendering stack or code st
 
 ## 📊 Reliability and cost in practice
 
-Pure vision testing is practical today because vision models have reached a strong balance between accuracy and price.
+Today's vision models strike a strong balance between accuracy and price, making pure vision testing practical for everyday E2E runs.
 
 ### Choose models for your needs and budget
 
