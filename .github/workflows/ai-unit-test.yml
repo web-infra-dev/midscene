@@ -65,65 +65,68 @@ jobs:
     - name: Build AI unit test projects
       run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/core,@midscene/web,@midscene/cli"
     
-    - name: Run tests with coverage
-      # Two packages at a time, each with at most two workers.
+
+    - name: Instrument the first model request in the Todo test
+      shell: bash
+      run: |
+        file=packages/core/tests/ai/llm-planning/basic.test.ts
+        sed -i '1i import "./request-observation";' "$file"
+        cat > packages/core/tests/ai/llm-planning/request-observation.ts <<'TS'
+        const origin = new URL(process.env.MIDSCENE_MODEL_BASE_URL!).origin;
+        const send = globalThis.fetch.bind(globalThis);
+        const start = Date.now();
+        let sequence = 0;
+        globalThis.fetch = async (input, init) => {
+          const url = new URL(input instanceof Request ? input.url : String(input));
+          if (url.origin !== origin) return send(input, init);
+          const n = ++sequence;
+          console.log('PROBE begin', n, Date.now() - start);
+          if (n === 1 && process.env.STALL_FIRST === 'yes') {
+            const signal = init?.signal ?? (input instanceof Request && input.signal);
+            if (!signal) throw new Error('Missing SDK request signal');
+            return new Promise<Response>((_, reject) => {
+              const abort = () => reject(signal.reason);
+              if (signal.aborted) abort();
+              else signal.addEventListener('abort', abort, { once: true });
+            });
+          }
+          const result = await send(input, init);
+          console.log('PROBE ark', n, result.status, Date.now() - start);
+          return result;
+        };
+        TS
+    - name: Verify first-execution recovery and normal controls
       uses: ./.github/actions/ai-ci
       with:
-        command: MIDSCENE_COVERAGE_DIR=coverage-ai python3 scripts/ci-measure.py "$RUNNER_TEMP/ai-unit-resources.json" pnpm exec nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli --parallel=2 --outputStyle=stream --verbose -- --coverage
-      id: test-ai
-      continue-on-error: true
-
-    - name: Upload test-ai output
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: test-ai-output
-        path: |
-          packages/web-integration/midscene_run/report
-          packages/cli/midscene_run
-          packages/core/test-results.json
-          packages/web-integration/test-results.json
-          packages/cli/test-results.json
-        if-no-files-found: ignore
-
-    - name: Upload AI coverage reports
-      id: upload-ai-coverage
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: ai-coverage
-        path: coverage-ai
-        if-no-files-found: ignore
-
-    - name: Write AI coverage summary
-      env:
-        COVERAGE_DIR: coverage-ai
-        COVERAGE_TITLE: AI Test Coverage
-        COVERAGE_ARTIFACT_NAME: ai-coverage
-        COVERAGE_ARTIFACT_URL: ${{ steps.upload-ai-coverage.outputs.artifact-url }}
-      run: node scripts/github-coverage-summary.js
-    - name: Upload AI unit resource measurements
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: ai-unit-resources
-        path: ${{ runner.temp }}/ai-unit-resources.json
-        retention-days: 7
-        if-no-files-found: ignore
-
-    - name: Check if script failed
-      if: steps.test-ai.outcome == 'failure'
-      run: exit 1
-
-  main:
-    needs: [changes, ai-tests]
-    if: always() && (needs.changes.result != 'success' || needs.changes.outputs.code == 'true')
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [24.13.0]
-    steps:
-    - name: Check all AI suites
-      env:
-        RESULT: ${{ needs.ai-tests.result }}
-      run: test "$RESULT" = success
+        command: |
+          set -euo pipefail
+          for scenario in normal-old normal-final stalled-old stalled-final; do
+            case "$scenario" in
+              *-old) export MIDSCENE_MODEL_TIMEOUT=180000 MIDSCENE_MODEL_RETRY_INTERVAL=60000 ;;
+              *-final) export MIDSCENE_MODEL_TIMEOUT=80000 MIDSCENE_MODEL_RETRY_INTERVAL=5000 ;;
+            esac
+            case "$scenario" in
+              stalled-*) export STALL_FIRST=yes ;;
+              normal-*) export STALL_FIRST=no ;;
+            esac
+            echo "::group::$scenario"
+            log="$RUNNER_TEMP/$scenario.log"
+            code=0
+            AITEST=true pnpm --dir packages/core exec rstest run --retry 0 --reporter verbose tests/ai/llm-planning/basic.test.ts -t 'todo mvc - check second todo item' >"$log" 2>&1 || code=$?
+            cat "$log"
+            echo "::endgroup::"
+            if [[ "$scenario" == stalled-old ]]; then
+              [[ "$code" != 0 ]]
+              grep -q 'test timed out in 180000ms' "$log"
+              grep -q 'PROBE begin 1 ' "$log"
+              if grep -q 'PROBE begin 2 ' "$log"; then exit 1; fi
+            else
+              [[ "$code" == 0 ]]
+              grep -q 'todo mvc - check second todo item' "$log"
+              if [[ "$scenario" == stalled-final ]]; then
+                grep -q 'PROBE ark 2 200 ' "$log"
+              else
+                grep -q 'PROBE ark 1 200 ' "$log"
+              fi
+            fi
+          done
