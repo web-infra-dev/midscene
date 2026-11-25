@@ -6,9 +6,9 @@ export const EN_US = {
   agentChapterDesc:
     'E2E testing should use the interface the way a user does, without relying on DOM trees or selectors. Midscene uses vision to observe, act, and check results — integrate through APIs or let AI coding agents use it through Skills.',
   frameworkChapterHeading:
-    'A new E2E testing framework designed for natural language',
+    'What an E2E framework looks like when tests are pure intent',
   frameworkChapterDesc:
-    'Midscene Test is designed from the ground up for natural-language E2E testing. Write actions and assertions in YAML, extend test steps with TypeScript Nodes, and manage setup, cleanup, retries, and execution reports within one framework.',
+    'Once vision models handle UI interaction and verification, what remains in a test case is pure intent. Midscene Test rethinks the AI-native E2E framework around that premise: expressing intent in YAML, encapsulating deterministic business logic in TypeScript Nodes, and managing lifecycle, isolation, retries, and replay for visual agents.',
   exampleDesc:
     'Describe what a user wants to do and what they should see. Express the same intent in YAML or in your existing JavaScript tests.',
   agentIntegrationDesc:

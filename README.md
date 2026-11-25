@@ -108,17 +108,19 @@ Midscene supports GPT, Qwen, Doubao Seed, DeepSeek, Gemini, Kimi, and more, incl
 
 Each report includes the run configuration and task results; see AndroidWorld's report for its environment and validator adjustments. Explore [cross-platform showcases](https://www.midscenejs.com/showcases), from web form validation to mobile workflows and community-built in-vehicle testing.
 
-## 🧩 Midscene Test: a natural-language E2E testing framework
+## 🧩 Midscene Test: what an E2E framework looks like when tests are pure intent
 
-If you already have a Playwright, Rstest, or Vitest suite, you can adopt the GUI Agent directly inside it. When you want to organize E2E tests around user intent from the start, [Midscene Test](https://www.midscenejs.com/midscene-test/overview) (`@midscene/test`) lets you describe UI flows and expectations in YAML while keeping deterministic business logic in TypeScript.
+Through extensive practice, we found that once vision models handle UI interaction and verification, what remains in a test case is pure intent. At that point, traditional test frameworks built around hand-coded locators and page objects become unnecessary overhead.
 
-### Test cases maintained by people and AI
+[Midscene Test](https://www.midscenejs.com/midscene-test/overview) (`@midscene/test`) starts from that premise to rethink what an AI-native E2E framework should optimize for: expressing test cases as pure intent, encapsulating deterministic business operations as reusable capabilities, and letting engineers and AI agents maintain the same test suite together.
+
+### Separate intent from business logic, maintained by people and AI
 
 - **Describe test cases in YAML.** Combine UI actions, assertions, and business operations to express the flow and expected results.
 - **Reuse business capabilities through TypeScript Nodes.** Wrap data preparation, API calls, and cleanup in Nodes that different cases can share. A refund test can prepare an order through an API, request a refund through the UI, and verify the result in one workflow.
 - **Generate a Node Spec for developers and AI agents.** Export registered Nodes and their inputs as Markdown, so both can write cases without reading TypeScript.
 
-### Test framework capabilities
+### Engineering foundation built for visual agents
 
 - **Lifecycle hooks and cleanup:** `setup`, `fileSetup`, `beforeAll`, and `beforeEach` with matching cleanup hooks; cleanup still runs after timeouts or Ctrl+C.
 - **Retries and timeouts:** case retries, step timeouts, `continue-on-error`, and `bail`.

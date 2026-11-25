@@ -108,17 +108,19 @@ Midscene 支持豆包 Seed、千问 Qwen、DeepSeek、Gemini、GPT、Kimi 等模
 
 各报告包含运行配置与任务结果；AndroidWorld 报告还说明了环境与校验器的调整。查看[跨平台案例](https://www.midscenejs.com/zh/showcases)，了解 Web 表单校验、移动端操作流程，以及社区构建的车机测试方案。
 
-## 🧩 Midscene Test：面向自然语言的 E2E 测试框架
+## 🧩 Midscene Test：当用例只剩下意图，测试框架应该长什么样
 
-如果你已有 Playwright、Rstest 或 Vitest 测试工程，可以直接在其中接入 GUI Agent。如果你希望从头围绕用户意图组织脱离代码实现的 E2E 测试，[Midscene Test](https://www.midscenejs.com/zh/midscene-test/overview)（`@midscene/test`）支持用 YAML 描述操作和预期，把需要精确控制的业务逻辑交给 TypeScript。
+在大量实践之后我们发现：当界面操作和验证交给视觉模型，测试用例里真正剩下的就只有「意图」。此时，为手写定位代码而设计的传统测试框架已经显得冗余。
 
-### 让人和 AI 共同维护测试用例
+[Midscene Test](https://www.midscenejs.com/zh/midscene-test/overview)（`@midscene/test`）从这里出发，重新定义 AI-native 的 E2E 测试框架应该重视什么：让用例回归纯粹的意图表达，将确定性业务逻辑沉淀为可复用的能力，让人类工程师与 AI Agent 在同一套工程体系里共同维护测试。
+
+### 让意图与业务逻辑清晰分层，由人和 AI 共同维护
 
 - **用 YAML 描述测试用例**：组合界面操作、断言与业务操作，表达测试流程和预期结果。
 - **用 TypeScript Node 复用业务能力**：将数据准备、接口调用与清理封装为 Node，供不同用例复用。例如，一条退款用例可以先通过 API 准备订单，再通过 UI 申请退款并验证结果。
 - **为开发者和 AI Agent 生成 Node 说明书**：将已注册的 Node 及其参数导出为 Markdown，双方都无需阅读 TypeScript 就能编写用例。
 
-### 测试框架能力
+### 为视觉 Agent 重建的工程底座
 
 - **生命周期钩子与资源清理**：`setup`、`fileSetup`、`beforeAll`、`beforeEach` 及对应的清理钩子；超时或按下 Ctrl+C 后清理照常执行。
 - **失败重试与超时**：用例重试、步骤超时、`continue-on-error` 和 `bail`。
