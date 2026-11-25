@@ -99,7 +99,7 @@ import { FileChooserAccepter } from './file-chooser';
 import { Insight } from './insight';
 import { MetricsCollector, type MidsceneUsageMetrics } from './metrics';
 import { AgentProgressBus } from './progress';
-import { buildPromptWithContext } from './prompt-context';
+import { buildPlanningCacheKey } from './prompt-context';
 import { normalizeRecordToReportScreenshot } from './record-to-report';
 import {
   type RunGherkinScenarioOptions,
@@ -1291,7 +1291,6 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       const planningModel = this.resolveModelRuntime('planning', 'planning');
       const locateModel = this.resolveModelRuntime('locate', 'locate');
       const aiActContext = this.resolveUserContext('aiAct', opt?.context);
-      const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
       // Resolve the public planning controls at the API boundary. Internal
       // aiAct plumbing only uses effort from this point onward. The explicit
       // effort option takes precedence over deepThink when both are provided.
@@ -1346,10 +1345,14 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         : false;
       const replanningCycleLimit =
         this.resolveReplanningCycleLimit(planningModel);
+      const cachePrompt =
+        this.taskCache && aiActCacheable !== false
+          ? buildPlanningCacheKey(taskPrompt, aiActContext)
+          : undefined;
       const matchedCache =
-        aiActCacheable === false
-          ? undefined
-          : this.taskCache?.matchPlanCache(cachePrompt);
+        cachePrompt !== undefined
+          ? this.taskCache?.matchPlanCache(cachePrompt)
+          : undefined;
       let cachedYamlFailed = false;
       if (
         matchedCache?.cacheUsable &&
@@ -1411,7 +1414,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       );
 
       // update cache
-      if (this.taskCache && aiActCacheable !== false) {
+      if (this.taskCache && cachePrompt !== undefined) {
         const yamlFlow = cachedYamlFailed ? [] : actionOutput?.yamlFlow;
 
         if (!cachedYamlFailed && !yamlFlow?.length) {

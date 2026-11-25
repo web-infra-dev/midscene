@@ -113,7 +113,7 @@ describe('TaskExecutor waitFor', () => {
     // waitFor associates its queries with the current runner's execution id.
     expect(createTypeQueryTaskSpy).toHaveBeenCalledWith(
       'WaitFor',
-      'test assertion',
+      { demand: 'test assertion' },
       expect.objectContaining({
         config: mockedModelRuntime.config,
         adapter: mockedModelRuntime.adapter,
@@ -123,7 +123,6 @@ describe('TaskExecutor waitFor', () => {
         domIncluded: undefined,
         screenshotIncluded: undefined,
       },
-      undefined,
       { abortSignal: undefined },
     );
 
@@ -176,14 +175,13 @@ describe('TaskExecutor waitFor', () => {
     for (const args of createTypeQueryTaskSpy.mock.calls) {
       expect(args).toEqual([
         'WaitFor',
-        'test assertion',
+        { demand: 'test assertion' },
         expect.objectContaining({
           config: mockedModelRuntime.config,
           adapter: mockedModelRuntime.adapter,
           executionId: result.runner.id,
         }),
         { domIncluded: undefined, screenshotIncluded: undefined },
-        undefined,
         { abortSignal },
       ]);
     }

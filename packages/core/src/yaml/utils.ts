@@ -8,7 +8,6 @@ import type {
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import yaml from 'js-yaml';
-import { buildLocatePromptWithContext } from '../agent/prompt-context';
 
 const debugUtils = getDebug('yaml:utils');
 
@@ -333,13 +332,11 @@ export function buildDetailedLocateParam(
     return undefined;
   }
 
-  const promptDisplay = typeof prompt === 'string' ? prompt : prompt.prompt;
   const context = opt?.context?.trim() || undefined;
-  prompt = buildLocatePromptWithContext(prompt, opt?.context);
 
   return {
     prompt,
-    ...(context ? { promptDisplay, context } : {}),
+    ...(context ? { context } : {}),
     deepLocate,
     cacheable,
     xpath,
@@ -363,7 +360,7 @@ export function buildDetailedLocateParamAndRestParams(
     // Get all keys from opt
     const allKeys = Object.keys(opt);
 
-    // `context` has already been merged into the locate prompt.
+    // `context` belongs to locateParam, not the action's remaining parameters.
     const locateParamKeys = Object.keys(locateParam || {});
 
     // Extract all other keys

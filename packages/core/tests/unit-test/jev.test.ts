@@ -474,8 +474,8 @@ describe('Jev requests and coordinates', () => {
       }),
     );
     const result = await AiExtractElementInfo({
-      taskType: 'boolean',
-      dataQuery: { Boolean: 'matches' },
+      type: 'Boolean',
+      input: { demand: 'matches' },
       uiContext: await context(),
       extractOption: { screenshotIncluded: false, context: 'context' },
       pageDescription: 'DOM',
@@ -500,12 +500,13 @@ describe('Jev requests and coordinates', () => {
       .mockResolvedValue(response());
     const ui = await context(500, 400);
     await AiExtractElementInfo({
-      taskType: 'boolean',
-      dataQuery: { StatementIsTruthy: 'appeared' },
-      uiContext: { ...ui, screenshotSequence: [ui.screenshot, ui.screenshot] },
-      multimodalPrompt: {
+      type: 'Assert',
+      input: {
+        demand: 'appeared',
         images: [{ name: 'target', url: await image(50, 50) }],
       },
+      uiContext: { ...ui, screenshotSequence: [ui.screenshot, ui.screenshot] },
+
       modelRuntime: getModelRuntime(jevConfig),
     });
     const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
@@ -663,8 +664,8 @@ describe('Jev requests and coordinates', () => {
     };
     const runtime = resolveModelForTaskType(configs, 'insight', 'extract');
     const result = await AiExtractElementInfo({
-      taskType: 'extract',
-      dataQuery: 'extract text',
+      type: 'Query',
+      input: { demand: 'extract text' },
       uiContext: await context(),
       modelRuntime: runtime,
     });
