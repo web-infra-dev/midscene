@@ -242,7 +242,7 @@ const typeOnlyScenario: InputE2EScenario = {
       ),
     );
     await harness.aiAssert(
-      'The state summary shows the inserted marker in the middle of all three values: Alpha[inserted] value, Bravo[inserted] notes, and Charl[inserted]ie rich text.',
+      'The state summary shows these exact values: Text input value: Alpha[inserted] value; Textarea value: Bravo[inserted] notes; Rich text value: Charl[inserted]ie rich text.',
     );
   },
 };
