@@ -75,6 +75,7 @@ jobs:
       run: |
         cat > packages/core/tests/ai/service/request-timing.ts <<'TS'
         import { channel } from 'node:diagnostics_channel';
+        import sharp from 'sharp';
         const origin = new URL(process.env.MIDSCENE_MODEL_BASE_URL!).origin;
         const send = globalThis.fetch.bind(globalThis);
         let count = 0, fullSize = 0;
@@ -90,15 +91,19 @@ jobs:
           const url = new URL(input instanceof Request ? input.url : String(input));
           if (url.origin !== origin || typeof init?.body !== 'string') return send(input,init);
           const body = init.body;
-          const stage = ++count % 2 === 1 ? 'full' : 'crop';
-          if (stage === 'full') fullSize = Buffer.byteLength(body);
-          const labels = stage === 'full' ? ['original'] :
-            process.env.PAIR_ORDER === 'normal-first' ? ['original','padded'] : ['padded','original'];
+          ++count;
+          const originalImage = body.match(/data:image\/png;base64,([A-Za-z0-9+/=]+)/);
+          if (!originalImage || Buffer.byteLength(originalImage[1], 'base64') !== 1004019) return send(input,init);
+          const stage = 'full-jpeg';
+          fullSize = Buffer.byteLength(body);
+          const jpeg = await sharp(Buffer.from(originalImage[1], 'base64')).jpeg({quality:85,mozjpeg:true}).toBuffer();
+          const compact = body.replace(originalImage[0], 'data:image/jpeg;base64,' + jpeg.toString('base64'));
+          const labels = process.env.PAIR_ORDER === 'normal-first' ? ['original','padded'] : ['padded','original'];
           let actual: Response | undefined;
           for (const label of labels) {
-            const padding = label === 'padded' ? Math.max(0, fullSize-Buffer.byteLength(body)) : 0;
-            const payload = body + ' '.repeat(padding);
-            const imageBytes = [...body.matchAll(/data:image[^"]+?;base64,([A-Za-z0-9+/=]+)/g)].map(m=>Buffer.byteLength(m[1], 'base64'));
+            const padding = label === 'padded' ? Math.max(0, fullSize-Buffer.byteLength(compact)) : 0;
+            const payload = compact + ' '.repeat(padding);
+            const imageBytes = [...compact.matchAll(/data:image[^"]+?;base64,([A-Za-z0-9+/=]+)/g)].map(m=>Buffer.byteLength(m[1], 'base64'));
             active = {order:process.env.PAIR_ORDER,seq:count,stage,label,imageBytes,bytes:Buffer.byteLength(payload),padding};
             start = Date.now();
             try {
@@ -120,4 +125,4 @@ jobs:
       env:
         PAIR_ORDER: ${{ matrix.order }}
       with:
-        command: AITEST=true pnpm --dir packages/core exec rstest run --retry 0 --reporter verbose tests/ai/service/service.test.ts -t 'service locate with deep think'
+        command: AITEST=true pnpm --dir packages/core exec rstest run --retry 0 --reporter verbose tests/ai/service/service.test.ts -t 'service locate with search area - deep think'
