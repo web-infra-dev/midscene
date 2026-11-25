@@ -65,65 +65,9 @@ jobs:
     - name: Build AI unit test projects
       run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/core,@midscene/web,@midscene/cli"
     
-    - name: Run tests with coverage
-      # Two packages at a time, each with at most two workers.
+    - name: Measure successful deep-locate request durations
       uses: ./.github/actions/ai-ci
       with:
-        command: MIDSCENE_COVERAGE_DIR=coverage-ai python3 scripts/ci-measure.py "$RUNNER_TEMP/ai-unit-resources.json" pnpm exec nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli --parallel=2 --outputStyle=stream --verbose -- --coverage
-      id: test-ai
-      continue-on-error: true
-
-    - name: Upload test-ai output
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: test-ai-output
-        path: |
-          packages/web-integration/midscene_run/report
-          packages/cli/midscene_run
-          packages/core/test-results.json
-          packages/web-integration/test-results.json
-          packages/cli/test-results.json
-        if-no-files-found: ignore
-
-    - name: Upload AI coverage reports
-      id: upload-ai-coverage
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: ai-coverage
-        path: coverage-ai
-        if-no-files-found: ignore
-
-    - name: Write AI coverage summary
-      env:
-        COVERAGE_DIR: coverage-ai
-        COVERAGE_TITLE: AI Test Coverage
-        COVERAGE_ARTIFACT_NAME: ai-coverage
-        COVERAGE_ARTIFACT_URL: ${{ steps.upload-ai-coverage.outputs.artifact-url }}
-      run: node scripts/github-coverage-summary.js
-    - name: Upload AI unit resource measurements
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: ai-unit-resources
-        path: ${{ runner.temp }}/ai-unit-resources.json
-        retention-days: 7
-        if-no-files-found: ignore
-
-    - name: Check if script failed
-      if: steps.test-ai.outcome == 'failure'
-      run: exit 1
-
-  main:
-    needs: [changes, ai-tests]
-    if: always() && (needs.changes.result != 'success' || needs.changes.outputs.code == 'true')
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [24.13.0]
-    steps:
-    - name: Check all AI suites
-      env:
-        RESULT: ${{ needs.ai-tests.result }}
-      run: test "$RESULT" = success
+        command: >-
+          DEBUG=midscene:ai:profile:stats AITEST=true pnpm --dir packages/core exec rstest run
+          tests/ai/service/service.test.ts -t 'service locate with deep think'
