@@ -24,6 +24,10 @@ jobs:
     uses: ./.github/workflows/ci-changes.yml
 
   ai-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        order: [normal-first, padded-first]
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
@@ -32,9 +36,9 @@ jobs:
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
       MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
       MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
-      MIDSCENE_MODEL_RETRY_COUNT: "2"
+      MIDSCENE_MODEL_RETRY_COUNT: "0"
       # Leave time for another model call within the 120-180s test deadlines.
-      MIDSCENE_MODEL_TIMEOUT: "80000"
+      MIDSCENE_MODEL_TIMEOUT: "400000"
       MIDSCENE_MODEL_RETRY_INTERVAL: "5000"
       MIDSCENE_REPORT_QUIET: "true"
       # DEBUG: midscene:* # Disabled to prevent log overflow
@@ -65,65 +69,55 @@ jobs:
     - name: Build AI unit test projects
       run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/core,@midscene/web,@midscene/cli"
     
-    - name: Run tests with coverage
-      # Two packages at a time, each with at most two workers.
+
+    - name: Measure end-to-end request stages without changing image pixels
+      shell: bash
+      run: |
+        cat > packages/core/tests/ai/service/request-timing.ts <<'TS'
+        import { channel } from 'node:diagnostics_channel';
+        const origin = new URL(process.env.MIDSCENE_MODEL_BASE_URL!).origin;
+        const send = globalThis.fetch.bind(globalThis);
+        let count = 0, fullSize = 0;
+        let active: Record<string, unknown> | undefined;
+        let start = 0;
+        for (const [name, key] of [['sendHeaders','sendHeadersMs'],['bodySent','bodySentMs'],['headers','responseHeadersMs']]) {
+          const topic = name === 'sendHeaders' ? 'undici:client:' + name : 'undici:request:' + name;
+          channel(topic).subscribe((event: any) => {
+            if (active && String(event.request?.origin) === origin) active[key] = Date.now()-start;
+          });
+        }
+        globalThis.fetch = async (input, init) => {
+          const url = new URL(input instanceof Request ? input.url : String(input));
+          if (url.origin !== origin || typeof init?.body !== 'string') return send(input,init);
+          const body = init.body;
+          const stage = ++count % 2 === 1 ? 'full' : 'crop';
+          if (stage === 'full') fullSize = Buffer.byteLength(body);
+          const labels = stage === 'full' ? ['original'] :
+            process.env.PAIR_ORDER === 'normal-first' ? ['original','padded'] : ['padded','original'];
+          let actual: Response | undefined;
+          for (const label of labels) {
+            const padding = label === 'padded' ? Math.max(0, fullSize-Buffer.byteLength(body)) : 0;
+            const payload = body + ' '.repeat(padding);
+            const imageBytes = [...body.matchAll(/data:image[^"]+?;base64,([A-Za-z0-9+/=]+)/g)].map(m=>Buffer.byteLength(m[1], 'base64'));
+            active = {order:process.env.PAIR_ORDER,seq:count,stage,label,imageBytes,bytes:Buffer.byteLength(payload),padding};
+            start = Date.now();
+            try {
+              const res = await send(input, {...init,body:payload});
+              const data = await res.arrayBuffer();
+              const result = JSON.parse(new TextDecoder().decode(data));
+              Object.assign(active,{status:res.status,doneMs:Date.now()-start,usage:result.usage,requestId:res.headers.get('x-request-id')});
+              if (label==='original') actual = new Response(data,{status:res.status,headers:res.headers});
+            } finally { console.log('ARK_TIMING',JSON.stringify(active)); active=undefined; }
+          }
+          if (!actual) throw new Error('Missing original response');
+          return actual;
+        };
+        TS
+        sed -i '1i import "./request-timing";' packages/core/tests/ai/service/service.test.ts
+
+    - name: Profile both deep locate cases
       uses: ./.github/actions/ai-ci
-      with:
-        command: MIDSCENE_COVERAGE_DIR=coverage-ai python3 scripts/ci-measure.py "$RUNNER_TEMP/ai-unit-resources.json" pnpm exec nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli --parallel=2 --outputStyle=stream --verbose -- --coverage
-      id: test-ai
-      continue-on-error: true
-
-    - name: Upload test-ai output
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: test-ai-output
-        path: |
-          packages/web-integration/midscene_run/report
-          packages/cli/midscene_run
-          packages/core/test-results.json
-          packages/web-integration/test-results.json
-          packages/cli/test-results.json
-        if-no-files-found: ignore
-
-    - name: Upload AI coverage reports
-      id: upload-ai-coverage
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: ai-coverage
-        path: coverage-ai
-        if-no-files-found: ignore
-
-    - name: Write AI coverage summary
       env:
-        COVERAGE_DIR: coverage-ai
-        COVERAGE_TITLE: AI Test Coverage
-        COVERAGE_ARTIFACT_NAME: ai-coverage
-        COVERAGE_ARTIFACT_URL: ${{ steps.upload-ai-coverage.outputs.artifact-url }}
-      run: node scripts/github-coverage-summary.js
-    - name: Upload AI unit resource measurements
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        PAIR_ORDER: ${{ matrix.order }}
       with:
-        name: ai-unit-resources
-        path: ${{ runner.temp }}/ai-unit-resources.json
-        retention-days: 7
-        if-no-files-found: ignore
-
-    - name: Check if script failed
-      if: steps.test-ai.outcome == 'failure'
-      run: exit 1
-
-  main:
-    needs: [changes, ai-tests]
-    if: always() && (needs.changes.result != 'success' || needs.changes.outputs.code == 'true')
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [24.13.0]
-    steps:
-    - name: Check all AI suites
-      env:
-        RESULT: ${{ needs.ai-tests.result }}
-      run: test "$RESULT" = success
+        command: AITEST=true pnpm --dir packages/core exec rstest run --retry 0 --reporter verbose tests/ai/service/service.test.ts -t 'service locate with deep think'
