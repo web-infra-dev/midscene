@@ -1100,6 +1100,8 @@ const boolB = await agent.aiBoolean('Whether the login button has a link', {
 
 Extract a numeric value from the current UI.
 
+On a live page, if the requested number is missing and the screen shows its content is loading, `aiNumber()` takes up to two more observations. If the number is still loading on the third observation, the call throws. Saved observations and queries with reference images use a single observation.
+
 - Type
 
 ```typescript

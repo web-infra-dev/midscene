@@ -69,6 +69,8 @@ import { type TaskTitleType, taskTitleStr } from './ui-utils';
 import { withUsageIntent } from './usage-intent';
 import { parsePrompt } from './utils';
 
+const maxNumberObservations = 3;
+
 interface ExecutionResult<OutputType = any> {
   output: OutputType;
   thought?: string;
@@ -1031,6 +1033,7 @@ export class TaskExecutor {
     multimodalPrompt?: TMultimodalPrompt,
     executionOptions?: {
       abortSignal?: AbortSignal;
+      onNumberLoading?: () => void;
     },
   ) {
     const queryTask: ExecutionTaskInsightQueryApply = {
@@ -1075,6 +1078,13 @@ export class TaskExecutor {
           keyOfResult = 'StatementIsTruthy';
           demandInput = {
             [keyOfResult]: buildTypeQueryDemandValue(type, demand),
+          };
+        } else if (executionOptions?.onNumberLoading && type === 'Number') {
+          keyOfResult = type;
+          demandInput = {
+            Number: `Number or null. Read the visible value for: ${demand}. Return null if it is not visible. Never guess or substitute an unrelated number.`,
+            valueIsLoading:
+              'Boolean. True only if the requested value is missing AND the UI shows that its content is still loading. A missing value alone or unrelated background activity does not qualify.',
           };
         } else if (ifTypeRestricted) {
           keyOfResult = type;
@@ -1128,7 +1138,15 @@ export class TaskExecutor {
         applyDump(dump);
 
         let outputResult = data;
-        if (ifTypeRestricted) {
+        if (
+          executionOptions?.onNumberLoading &&
+          data?.valueIsLoading === true &&
+          data.Number == null &&
+          data.result == null
+        ) {
+          executionOptions.onNumberLoading();
+          outputResult = null;
+        } else if (ifTypeRestricted) {
           // If AI returned a plain string instead of structured format, use it directly
           if (typeof data === 'string') {
             outputResult = data;
@@ -1198,30 +1216,44 @@ export class TaskExecutor {
 
     const runner = session.getRunner();
     const executionModelRuntime = { ...modelRuntime, executionId: runner.id };
-    const queryTask = await this.createTypeQueryTask(
-      type,
-      demand,
-      executionModelRuntime,
-      opt,
-      multimodalPrompt,
-      { ...executionOptions, abortSignal },
-    );
-
-    const result = await session.appendAndRun(queryTask);
-
+    let numberIsLoading = false;
+    let observations = 0;
+    // A saved observation or reference image cannot become ready on a later read.
+    const isLiveNumber =
+      type === 'Number' &&
+      !executionOptions?.uiContext &&
+      !multimodalPrompt?.images?.length;
+    const onNumberLoading = isLiveNumber
+      ? () => {
+          if (observations === maxNumberObservations) {
+            throw new Error(
+              'The requested number is still loading after three observations.',
+            );
+          }
+          numberIsLoading = true;
+        }
+      : undefined;
+    let result;
+    do {
+      abortSignal?.throwIfAborted();
+      observations++;
+      numberIsLoading = false;
+      const queryTask = this.createTypeQueryTask(
+        type,
+        demand,
+        executionModelRuntime,
+        opt,
+        multimodalPrompt,
+        { abortSignal, onNumberLoading },
+      );
+      result = await session.appendAndRun(queryTask);
+    } while (numberIsLoading);
     if (!result) {
       throw new Error(
         'result of taskExecutor.flush() is undefined in function createTypeQueryTask',
       );
     }
-
-    const { output, thought } = result;
-
-    return {
-      output,
-      thought,
-      runner,
-    };
+    return { ...result, runner };
   }
 
   async waitFor(

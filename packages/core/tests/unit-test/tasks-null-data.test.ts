@@ -116,6 +116,124 @@ describe('TaskExecutor - Null Data Handling', () => {
     ]);
   });
 
+  describe('numeric reads while the requested value is loading', () => {
+    const model = getModelRuntime({
+      modelName: 'mock-model',
+      modelDescription: 'mock',
+      intent: 'default',
+      slot: 'default',
+    });
+    const pending = { Number: null, valueIsLoading: true };
+    function setup(responses: unknown[], afterRead?: () => void) {
+      let index = 0;
+      const contextRetrieverFn = rs.fn(() =>
+        createMockUIContext(`frame-${index}`),
+      );
+      const extract = rs.fn(async () => {
+        const data = responses[index++];
+        afterRead?.();
+        return { data, dump: createMockDump(data), thought: 'observed' };
+      });
+      const service = { contextRetrieverFn, extract };
+      const executor = new TaskExecutor({} as any, service as any, {
+        getDefaultModelRuntime: () => model,
+        actionSpace: [],
+      });
+      return { executor, extract };
+    }
+
+    it('recaptures the screen and preserves zero when the number becomes available', async () => {
+      const { executor, extract } = setup([
+        { valueIsLoading: true },
+        { Number: 0, valueIsLoading: false },
+      ]);
+      const result = await executor.createTypeQueryExecution(
+        'Number',
+        'balance',
+        model,
+      );
+      expect(result.output).toBe(0);
+      expect(extract).toHaveBeenCalledTimes(2);
+      expect(
+        result.runner.tasks.map((task) => task.uiContext?.screenshot.base64),
+      ).toEqual(['frame-0', 'frame-1']);
+      expect(result.runner.tasks.map((task) => task.subType)).toEqual([
+        'Number',
+        'Number',
+      ]);
+    });
+
+    it('reads once when a value is missing without a loading signal', async () => {
+      const { executor, extract } = setup([
+        { Number: null, valueIsLoading: false },
+      ]);
+      expect(
+        (await executor.createTypeQueryExecution('Number', 'balance', model))
+          .output,
+      ).toBe(null);
+      expect(extract).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps a visible number even if the model also returns a loading flag', async () => {
+      const { executor, extract } = setup([
+        { Number: 0, valueIsLoading: true },
+      ]);
+      expect(
+        (await executor.createTypeQueryExecution('Number', 'balance', model))
+          .output,
+      ).toBe(0);
+      expect(extract).toHaveBeenCalledTimes(1);
+    });
+
+    it('stops after three pending observations', async () => {
+      const { executor, extract } = setup([pending, pending, pending]);
+      await expect(
+        executor.createTypeQueryExecution('Number', 'balance', model),
+      ).rejects.toThrow(/still loading/);
+      expect(extract).toHaveBeenCalledTimes(3);
+    });
+
+    it('does not poll a saved observation or a reference-image query', async () => {
+      const { executor, extract } = setup([pending, pending]);
+      const uiContext = await createMockUIContext();
+      const fixed = await executor.createTypeQueryExecution(
+        'Number',
+        'balance',
+        model,
+        {},
+        undefined,
+        { uiContext },
+      );
+      const reference = await executor.createTypeQueryExecution(
+        'Number',
+        'balance',
+        model,
+        {},
+        { images: [{ name: 'reference', url: referenceImageDataUrl }] },
+      );
+      expect([fixed.output, reference.output]).toEqual([null, null]);
+      expect(extract).toHaveBeenCalledTimes(2);
+    });
+
+    it('honors cancellation before another observation', async () => {
+      const abort = new AbortController();
+      const { executor, extract } = setup([pending], () =>
+        abort.abort(new Error('cancelled during read')),
+      );
+      await expect(
+        executor.createTypeQueryExecution(
+          'Number',
+          'balance',
+          model,
+          {},
+          undefined,
+          { abortSignal: abort.signal },
+        ),
+      ).rejects.toThrow();
+      expect(extract).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('createTypeQueryTask', () => {
     it('should handle null data for WaitFor operation', async () => {
       // Mock service that returns null
