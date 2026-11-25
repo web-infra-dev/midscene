@@ -1,3 +1,4 @@
+import { buildLocatePromptWithContext } from '@/agent/prompt-context';
 import type {
   ConversationSystemMessage,
   ConversationUserMessage,
@@ -18,12 +19,16 @@ const debugInsight = getDebug('ai:insight');
 export async function AiJudgeOrderSensitive(
   description: string,
   modelRuntime: ModelRuntime,
+  context?: string,
 ): Promise<{
   isOrderSensitive: boolean;
   usage?: AIUsageInfo;
 }> {
   const systemPrompt = systemPromptToJudgeOrderSensitive();
-  const userPrompt = orderSensitiveJudgePrompt(description);
+  // Context may carry the ordering constraint even when the target does not.
+  const userPrompt = orderSensitiveJudgePrompt(
+    buildLocatePromptWithContext(description, context).prompt,
+  );
 
   const msgs: InsightAIArgs = [
     { role: 'system', content: systemPrompt },

@@ -1,27 +1,28 @@
 import {
+  buildLocateCacheKey,
   buildLocatePromptWithContext,
-  buildPromptWithContext,
+  buildPlanningCacheKey,
   renderAIContext,
 } from '@/agent/prompt-context';
 import { describe, expect, it } from '@rstest/core';
 
-describe('buildPromptWithContext', () => {
+describe('buildPlanningCacheKey', () => {
   it('returns the original string prompt when context is undefined or blank', () => {
-    expect(buildPromptWithContext('Click submit', undefined)).toBe(
+    expect(buildPlanningCacheKey('Click submit', undefined)).toBe(
       'Click submit',
     );
-    expect(buildPromptWithContext('Click submit', '   ')).toBe('Click submit');
+    expect(buildPlanningCacheKey('Click submit', '   ')).toBe('Click submit');
   });
 
   it('renders and prepends context to string prompts', () => {
     expect(
-      buildPromptWithContext('Click submit', 'Use buyer checkout rules.'),
+      buildPlanningCacheKey('Click submit', 'Use buyer checkout rules.'),
     ).toBe('<CONTEXT>\nUse buyer checkout rules.\n</CONTEXT>\n\nClick submit');
   });
 
   it('preserves multimodal prompt fields while updating prompt text', () => {
     expect(
-      buildPromptWithContext(
+      buildPlanningCacheKey(
         {
           prompt: 'Click the target shown in the reference image.',
           images: [{ name: 'target', url: './target.png' }],
@@ -45,9 +46,10 @@ describe('buildLocatePromptWithContext', () => {
         'Favorite button',
         'The favorite button is the star icon in the bottom-right corner.',
       ),
-    ).toBe(
-      '<CONTEXT>\nThe favorite button is the star icon in the bottom-right corner.\n</CONTEXT>\n\n<LOCATE_TARGET>\nFavorite button\n</LOCATE_TARGET>',
-    );
+    ).toEqual({
+      prompt:
+        '<CONTEXT>\nThe favorite button is the star icon in the bottom-right corner.\n</CONTEXT>\n\n<LOCATE_TARGET>\nFavorite button\n</LOCATE_TARGET>',
+    });
   });
 
   it('preserves multimodal fields while wrapping the prompt text', () => {
@@ -78,5 +80,37 @@ describe('renderAIContext', () => {
     expect(renderAIContext(undefined)).toBeUndefined();
     expect(renderAIContext('')).toBe('');
     expect(renderAIContext('   ')).toBe('');
+  });
+});
+
+describe('historical locate cache keys', () => {
+  it('preserves the stored text format independently of model rendering', () => {
+    expect(buildLocateCacheKey('订单', '  选择第二项  ')).toBe(
+      '<CONTEXT>\n选择第二项\n</CONTEXT>\n\n<LOCATE_TARGET>\n订单\n</LOCATE_TARGET>',
+    );
+  });
+
+  it('preserves multimodal fields in stored keys', () => {
+    const prompt = {
+      prompt: '订单',
+      images: [{ name: 'reference', url: 'https://example.com/reference.png' }],
+      convertHttpImage2Base64: true,
+    };
+    expect(buildLocateCacheKey(prompt, '选择第二项')).toEqual({
+      ...prompt,
+      prompt:
+        '<CONTEXT>\n选择第二项\n</CONTEXT>\n\n<LOCATE_TARGET>\n订单\n</LOCATE_TARGET>',
+    });
+    expect(prompt.prompt).toBe('订单');
+  });
+
+  it('preserves blank context and empty prompt behavior', () => {
+    expect(buildLocateCacheKey('订单', undefined)).toBe('订单');
+    expect(buildLocateCacheKey('订单', '   ')).toBe('订单');
+    expect(buildLocateCacheKey('', '选择第二项')).toBe('');
+    expect(buildLocateCacheKey({ prompt: '' }, '选择第二项')).toEqual({
+      prompt:
+        '<CONTEXT>\n选择第二项\n</CONTEXT>\n\n<LOCATE_TARGET>\n\n</LOCATE_TARGET>',
+    });
   });
 });

@@ -37,10 +37,6 @@ export function locateParamStr(locate?: DetailedLocateParam | string): string {
   }
 
   if (typeof locate === 'object') {
-    if (typeof locate.promptDisplay === 'string') {
-      return locate.promptDisplay;
-    }
-
     // Check for nested prompt.prompt (Planning Locate tasks)
     if (
       typeof locate.prompt === 'object' &&
@@ -123,20 +119,11 @@ export function extractInsightParam(taskParam: any): {
     };
   }
 
-  // Extract from dataDemand
-  if (taskParam.dataDemand) {
-    const { dataDemand } = taskParam;
-
-    if (typeof dataDemand === 'string') {
-      return { content: dataDemand };
-    }
-
-    if (typeof dataDemand === 'object') {
-      return {
-        content: toContent(dataDemand.demand || dataDemand),
-        images: extractImages(dataDemand),
-      };
-    }
+  if (taskParam.dataDemand !== undefined) {
+    return {
+      content: toContent(taskParam.dataDemand),
+      images: taskParam.images,
+    };
   }
 
   return { content: '' };

@@ -15,6 +15,10 @@ import {
 import { mergeSearchAreaResults } from '@/ai-model/workflows/grounding/search-area';
 import type { SearchAreaConfig } from '@/ai-model/workflows/grounding/types';
 import { AiExtractElementInfo } from '@/ai-model/workflows/insight';
+import type {
+  InsightTaskType,
+  QueryInput,
+} from '@/ai-model/workflows/insight/query-input';
 import type { RawAssistantOutput } from '@/types';
 import type {
   AIDescribeElementResponse,
@@ -25,7 +29,6 @@ import type {
   PartialServiceDumpFromSDK,
   Rect,
   ServiceExtractOption,
-  ServiceExtractParam,
   ServiceExtractResult,
   ServiceTaskInfo,
   UIContext,
@@ -39,7 +42,7 @@ import {
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import type { TMultimodalPrompt, TUserPrompt } from '../common';
+import { userPromptToString } from '../common';
 import {
   createServiceDump,
   getDescribeDeepContextAreas,
@@ -106,8 +109,8 @@ export default class Service {
     abortSignal?: AbortSignal,
   ): Promise<LocateResultWithDump> {
     const { config: modelConfig } = modelRuntime;
-    const queryPrompt = query.prompt;
-    assert(queryPrompt, 'query is required for locate');
+    const { prompt, context } = query;
+    assert(prompt, 'query is required for locate');
 
     if (!modelConfig.modelFamily) {
       throw new Error(modelFamilyRequiredForLocateMessage(modelConfig.slot));
@@ -118,7 +121,6 @@ export default class Service {
     const searchAreaStartTime = Date.now();
     const searchArea = await this.resolveLocateSearchArea({
       query,
-      queryPrompt,
       opt,
       uiContext,
       modelRuntime,
@@ -126,7 +128,7 @@ export default class Service {
     });
 
     if (!searchArea.config && searchArea.error) {
-      const errorMessage = `cannot find search area for "${queryPrompt}": ${searchArea.error}`;
+      const errorMessage = `cannot find search area for "${userPromptToString(query.prompt)}": ${searchArea.error}`;
       const taskInfo: ServiceTaskInfo = {
         ...(this.taskInfo ? this.taskInfo : {}),
         durationMs: Date.now() - searchAreaStartTime,
@@ -136,7 +138,7 @@ export default class Service {
       };
       const dump = createServiceDump({
         type: 'locate',
-        userQuery: { element: queryPrompt },
+        userQuery: { element: prompt },
         matchedElement: [],
         data: null,
         taskInfo,
@@ -155,7 +157,8 @@ export default class Service {
       reasoning_content,
     } = await AiLocateElement({
       uiContext,
-      targetElementDescription: queryPrompt,
+      targetElementDescription: prompt,
+      context,
       searchConfig: searchArea.config,
       modelRuntime,
       abortSignal,
@@ -184,7 +187,7 @@ export default class Service {
     const dumpData: PartialServiceDumpFromSDK = {
       type: 'locate',
       userQuery: {
-        element: queryPrompt,
+        element: prompt,
       },
       data: null,
       taskInfo,
@@ -222,14 +225,12 @@ export default class Service {
 
   private async resolveLocateSearchArea(options: {
     query: DetailedLocateParam;
-    queryPrompt: TUserPrompt;
     opt: LocateOpts;
     uiContext: UIContext;
     modelRuntime: ModelRuntime;
     abortSignal?: AbortSignal;
   }): Promise<LocateSearchAreaResult> {
-    const { query, queryPrompt, opt, uiContext, modelRuntime, abortSignal } =
-      options;
+    const { query, opt, uiContext, modelRuntime, abortSignal } = options;
     const { adapter } = modelRuntime;
     const hasPlanLocatedElement = !!opt?.planLocatedElement?.center;
 
@@ -262,7 +263,8 @@ export default class Service {
     if (adapter.locate.kind === 'standard' && adapter.locate.searchArea) {
       const searchAreaResponse = await AiLocateSection({
         uiContext,
-        sectionDescription: queryPrompt,
+        sectionDescription: query.prompt,
+        context: query.context,
         modelRuntime,
         abortSignal,
       });
@@ -291,13 +293,14 @@ export default class Service {
 
     const firstPassLocateResult = await AiLocateElement({
       uiContext,
-      targetElementDescription: queryPrompt,
+      targetElementDescription: query.prompt,
+      context: query.context,
       modelRuntime,
       abortSignal,
     });
     assert(
       firstPassLocateResult.parseResult.element?.center,
-      `cannot find search area for "${queryPrompt}"${
+      `cannot find search area for "${userPromptToString(query.prompt)}"${
         firstPassLocateResult.parseResult.errors?.length
           ? `: ${firstPassLocateResult.parseResult.errors.join('\n')}`
           : ''
@@ -328,17 +331,17 @@ export default class Service {
   }
 
   async extract<T>(
-    dataDemand: ServiceExtractParam,
+    input: QueryInput,
     modelRuntime: ModelRuntime,
-    taskType: 'boolean' | 'extract',
+    type: InsightTaskType,
     opt?: ServiceExtractOption,
     pageDescription?: string,
-    multimodalPrompt?: TMultimodalPrompt,
     uiContext?: UIContext,
     executionOptions?: {
       abortSignal?: AbortSignal;
     },
   ): Promise<ServiceExtractResult<T>> {
+    const dataDemand = input.demand;
     assert(uiContext, 'uiContext is required for extract');
     assert(
       typeof dataDemand === 'object' || typeof dataDemand === 'string',
@@ -358,9 +361,8 @@ export default class Service {
     try {
       const result = await AiExtractElementInfo<T>({
         uiContext,
-        dataQuery: dataDemand,
-        taskType,
-        multimodalPrompt,
+        input,
+        type,
         extractOption: opt,
         modelRuntime,
         pageDescription,
