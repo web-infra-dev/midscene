@@ -16,9 +16,9 @@
   <a href="https://trendshift.io/repositories/12524"><img src="https://img.shields.io/badge/GitHub_Trending-featured-00a8f0?style=flat-square&logo=github" alt="Featured on GitHub Trending" /></a>
 </p>
 
-## Why vision-driven E2E
+## Back to the essence of E2E testing with vision
 
-E2E testing should verify the interface, not its code structure. Tests tied to DOM trees and selectors are inherently fragile — and even more importantly, they cannot tell whether a user can actually understand and use the interface, or whether the UI conveys the right information.
+E2E testing should verify the interface, not its code structure. Tests tied to UI code structure are inherently fragile — and even more importantly, they cannot tell whether a user can actually understand and use the interface, or whether the UI conveys the right information.
 
 In the AI-native era, vision models give us the ability to test closer to the essence of E2E — looking at the screen to act and judge like a user. With accuracy and cost now in balance, the next stage of E2E testing is already here.
 

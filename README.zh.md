@@ -16,9 +16,9 @@
   <a href="https://trendshift.io/repositories/12524"><img src="https://img.shields.io/badge/GitHub_Trending-featured-00a8f0?style=flat-square&logo=github" alt="Featured on GitHub Trending" /></a>
 </p>
 
-## 为什么用视觉做 E2E
+## 用视觉回归 E2E 测试的本质
 
-E2E 测试要验证的是界面，不是代码结构。依赖 DOM 和选择器的测试用例永远是脆弱的，更无法真正反映用户能不能顺利使用这个界面、界面的表达是否正确。
+E2E 测试要验证的是界面，不是代码结构。依赖 UI 代码结构的测试用例永远是脆弱的，更无法真正反映用户能不能顺利使用这个界面、界面的表达是否正确。
 
 在 AI-native 的时代，模型让我们有能力回归测试的本质——直接看屏幕，像用户一样操作和判断。随着视觉模型的准确率与成本达到平衡，E2E 测试的下一个阶段已经到来。
 
