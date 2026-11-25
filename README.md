@@ -20,7 +20,7 @@
 
 E2E testing should verify the interface, not its code structure. Tests tied to DOM trees and selectors are inherently fragile — and even more importantly, they cannot tell whether a user can actually understand and use the interface, or whether the UI conveys the right information.
 
-In the AI-native era, vision models give us the ability to test closer to the essence of E2E — looking at the screen to act and judge like a user. With accuracy and cost now in balance, E2E testing is ready for its next stage.
+In the AI-native era, vision models give us the ability to test closer to the essence of E2E — looking at the screen to act and judge like a user. With accuracy and cost now in balance, the next stage of E2E testing is already here.
 
 ## Write a test in natural language
 
