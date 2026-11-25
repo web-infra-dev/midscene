@@ -7,6 +7,7 @@ import {
   prepareUserPrompt,
 } from '@/ai-model/shared/multimodal-prompt';
 import { standardPlan } from '@/ai-model/workflows/planning';
+import { scrollReviewFeedback } from '@/ai-model/workflows/planning/scroll-review';
 import {
   type TMultimodalPrompt,
   type TUserPrompt,
@@ -60,6 +61,7 @@ import {
   errorMessageForAiAct,
 } from './progress';
 import { renderAIContext } from './prompt-context';
+import { ScrollRecovery } from './scroll-recovery';
 import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
@@ -274,9 +276,34 @@ export class TaskExecutor {
   }
 
   /**
-   * Collect feedback produced by executed tasks for the next planning round.
-   * Returns undefined when no task reported feedback.
+   * Record commands only after execution returns. A returned command does not
+   * establish that its intended business outcome was achieved.
    */
+  private recordExecutedCommands(
+    history: ConversationHistory,
+    tasks: ExecutionTask[],
+    effort: AiActEffort,
+  ): string | undefined {
+    const completed = tasks.filter(
+      (task) =>
+        task.type === 'Action Space' &&
+        (task.status === 'finished' ||
+          task.timing?.callActionEnd !== undefined),
+    );
+    if (!completed.length) return undefined;
+    const commands = completed
+      .map((task) => {
+        const target =
+          task.param?.locate?.description ?? task.param?.locate?.prompt;
+        return `${task.subType}${typeof target === 'string' ? ` (planned target: ${JSON.stringify(target.slice(0, 500))})` : ''}`;
+      })
+      .join('; ');
+    const fact = `Executed UI commands: ${commands}. The commands returned without an execution error; this alone does not verify the business outcome.`;
+    if (effort === 'deepThink') history.appendSubGoalLog(fact);
+    else history.appendHistoricalLog(fact);
+    return fact;
+  }
+
   private collectPlanningFeedback(tasks: ExecutionTask[]): string | undefined {
     const feedbackMessages = tasks.flatMap(
       ({ planningFeedback, planningFeedbackMaxLength }) =>
@@ -326,6 +353,7 @@ export class TaskExecutor {
     planningModel: ModelRuntime,
     locateModel: ModelRuntime,
     options?: {
+      observeScrollProgress?: boolean;
       distanceUnit?: DistanceUnit;
       cacheable?: boolean;
       multimodalPrompt?: TMultimodalPrompt;
@@ -619,6 +647,11 @@ export class TaskExecutor {
     let outputString: string | undefined;
     let latestPlanResult: PlanningAIResponse | undefined;
     let latestPlanIndex = 0;
+    const scrollRecovery =
+      planningModel.adapter.planning.kind === 'standard' &&
+      typeof this.interface.captureScrollState === 'function'
+        ? new ScrollRecovery(session)
+        : undefined;
 
     if (abortSignal?.aborted) {
       return appendFailedPlan(
@@ -661,6 +694,29 @@ export class TaskExecutor {
           `Task aborted: ${abortSignal.reason || 'abort signal received'}`,
           planIndex,
         );
+      }
+
+      if (scrollRecovery && !delegation) {
+        try {
+          const observation = await scrollRecovery.review(
+            () =>
+              this.emitAiActProgress('plan_thinking', {
+                planIndex,
+                planLimit: replanningCycleLimit,
+              }),
+            abortSignal,
+          );
+          if (observation?.progress === 'unchanged') {
+            conversationHistory.pendingFeedbackMessage += `\n${scrollReviewFeedback(observation)}`;
+          }
+        } catch (error) {
+          await this.emitAiActProgress('plan_failed', {
+            planIndex,
+            planLimit: replanningCycleLimit,
+            error: errorMessageForAiAct(error),
+          });
+          throw error;
+        }
       }
 
       // Get sub-goal status text if available
@@ -754,6 +810,9 @@ export class TaskExecutor {
                 actionSpace,
                 modelRuntime,
                 planningAdvice,
+                executionFeedback: !delegation
+                  ? scrollRecovery?.planningFeedback(planningUiContext)
+                  : undefined,
                 getDefaultModelRuntime: this.getDefaultModelRuntime,
                 conversationHistory,
                 includeLocateInPlanning: !delegation && includeLocateInPlanning,
@@ -878,7 +937,7 @@ export class TaskExecutor {
         yamlFlow.push(...(planResult?.yamlFlow || []));
 
         let executables: Awaited<
-          ReturnType<typeof this.convertPlanToExecutable>
+          ReturnType<TaskExecutor['convertPlanToExecutable']>
         >;
         try {
           executables = await this.convertPlanToExecutable(
@@ -888,6 +947,7 @@ export class TaskExecutor {
             {
               distanceUnit: 'model-input-image-pixel',
               cacheable,
+              observeScrollProgress: scrollRecovery !== undefined,
               multimodalPrompt: userPromptToMultimodalPrompt(userPrompt),
               deepLocate,
               abortSignal,
@@ -920,26 +980,16 @@ export class TaskExecutor {
           replanningCycleLimit,
           (phase, data) => this.emitAiActProgress(phase, data),
         );
+        let failureFeedback: string | undefined;
+        let feedbackTime = initialTimeString;
         try {
           await session.appendAndRun(executables.tasks);
-          this.setPendingFeedbackMessage(
-            conversationHistory,
-            initialTimeString,
-            this.collectPlanningFeedback(
-              runner.tasks.slice(taskCountBeforeRun),
-            ),
-          );
         } catch (error: any) {
           // A completed action must not be replayed because readiness failed.
           if (isActionReadinessError(error)) throw error;
-          // errorFlag = true;
           errorCountInOnePlanningLoop++;
-          const timeString = await this.getTimeString();
-          this.setPendingFeedbackMessage(
-            conversationHistory,
-            timeString,
-            `Error executing running tasks: ${error?.message || String(error)}`,
-          );
+          feedbackTime = await this.getTimeString();
+          failureFeedback = `Error executing running tasks: ${error?.message || String(error)}`;
           debug(
             'error when executing running tasks, but continue to run if it is not too many errors:',
             error instanceof Error ? error.message : String(error),
@@ -949,6 +999,26 @@ export class TaskExecutor {
         } finally {
           activeActionReporter = undefined;
         }
+        const batchTasks = runner.tasks.slice(taskCountBeforeRun);
+        const executedFeedback = this.recordExecutedCommands(
+          conversationHistory,
+          batchTasks,
+          effort,
+        );
+        const feedback = [
+          executedFeedback,
+          failureFeedback,
+          !failureFeedback
+            ? this.collectPlanningFeedback(batchTasks)
+            : undefined,
+        ]
+          .filter(Boolean)
+          .join('\n\n');
+        this.setPendingFeedbackMessage(
+          conversationHistory,
+          feedbackTime,
+          feedback || undefined,
+        );
 
         if (
           errorCountInOnePlanningLoop > maxErrorCountAllowedInOnePlanningLoop

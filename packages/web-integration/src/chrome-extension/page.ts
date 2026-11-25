@@ -7,10 +7,12 @@
 
 import { limitOpenNewTabScript } from '@/web-element';
 import type {
+  ActionScrollParam,
   ElementCacheFeature,
   ElementTreeNode,
   Point,
   Rect,
+  ScrollState,
   Size,
 } from '@midscene/core';
 import type {
@@ -34,6 +36,7 @@ import {
   sanitizeXpaths,
 } from '../common/cache-helper';
 import { selectAllInputScript } from '../common/input-scripts';
+import { inspectScrollTarget } from '../common/scroll-state';
 import {
   type KeyInput,
   type MouseButton,
@@ -869,6 +872,27 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     return { isLoading: tab.status === 'loading' };
   }
 
+  async captureScrollState(
+    param: ActionScrollParam,
+  ): Promise<ScrollState | undefined> {
+    const x = param.locate?.center?.[0] ?? this.latestMouseX;
+    const y = param.locate?.center?.[1] ?? this.latestMouseY;
+    const result =
+      await this.sendCommandToDebugger<CDPTypes.Runtime.EvaluateResponse>(
+        'Runtime.evaluate',
+        {
+          expression: `(${inspectScrollTarget.toString()})(${JSON.stringify(x)},${JSON.stringify(y)})`,
+          returnByValue: true,
+        },
+      );
+    if (result.exceptionDetails) {
+      throw new Error(
+        `Scroll measurement failed: ${result.exceptionDetails.text}`,
+      );
+    }
+    return result.result.value as ScrollState | undefined;
+  }
+
   async scrollUntilTop(startingPoint?: Point) {
     if (startingPoint) {
       await this.mouse.move(startingPoint.left, startingPoint.top);
@@ -1061,8 +1085,8 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
       startX?: number,
       startY?: number,
     ) => {
-      const finalX = startX || this.latestMouseX;
-      const finalY = startY || this.latestMouseY;
+      const finalX = startX ?? this.latestMouseX;
+      const finalY = startY ?? this.latestMouseY;
       await this.showMousePointer(finalX, finalY);
       await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
         type: 'mouseWheel',

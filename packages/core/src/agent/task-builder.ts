@@ -1,5 +1,6 @@
 import { findAllMidsceneLocatorField, parseActionParam } from '@/ai-model';
 import type { ModelRuntime } from '@/ai-model/models';
+import { compareScrollStates } from '@/ai-model/workflows/planning/scroll-review';
 import {
   type TMultimodalPrompt,
   findActionInActionSpaceOrThrow,
@@ -39,7 +40,27 @@ import {
   transformLogicalElementToScreenshot,
 } from './utils';
 
+/** A read-only probe must not keep cancellation waiting on a busy page. */
+async function observeWithAbort<T>(
+  read: () => Promise<T>,
+  signal?: AbortSignal,
+): Promise<T> {
+  signal?.throwIfAborted();
+  if (!signal) return read();
+  let onAbort = () => {};
+  try {
+    const aborted = new Promise<never>((_resolve, reject) => {
+      onAbort = () => reject(signal.reason);
+      signal.addEventListener('abort', onAbort, { once: true });
+    });
+    return await Promise.race([aborted, read()]);
+  } finally {
+    signal.removeEventListener('abort', onAbort);
+  }
+}
+
 const debug = getDebug('agent:task-builder');
+const warn = getDebug('agent:task-builder', { console: true });
 
 /**
  * Check if a cache object is non-empty
@@ -105,6 +126,7 @@ interface TaskBuilderDeps {
 }
 
 interface BuildOptions {
+  observeScrollProgress?: boolean;
   distanceUnit?: DistanceUnit;
   cacheable?: boolean;
   multimodalPrompt?: TMultimodalPrompt;
@@ -113,6 +135,7 @@ interface BuildOptions {
 }
 
 interface PlanBuildContext {
+  observeScrollProgress?: boolean;
   distanceUnit?: DistanceUnit;
   tasks: ExecutionTaskApply[];
   planningModel: ModelRuntime;
@@ -169,6 +192,7 @@ export class TaskBuilder {
     const context: PlanBuildContext = {
       distanceUnit: options?.distanceUnit,
       tasks,
+      observeScrollProgress: options?.observeScrollProgress,
       planningModel,
       locateModel,
       cacheable,
@@ -353,6 +377,36 @@ export class TaskBuilder {
         abortSignal?.throwIfAborted();
         setTimingFieldOnce(timing, 'callActionStart');
         debug('calling action', action.name);
+        const observationErrors: string[] = [];
+        const captureScroll =
+          context.observeScrollProgress && action.name === 'Scroll'
+            ? this.interface.captureScrollState &&
+              (async (
+                param: Parameters<
+                  NonNullable<AbstractInterface['captureScrollState']>
+                >[0],
+              ) => {
+                try {
+                  return await observeWithAbort(
+                    () => this.interface.captureScrollState!(param),
+                    abortSignal,
+                  );
+                } catch (error) {
+                  abortSignal?.throwIfAborted();
+                  const message =
+                    error instanceof Error ? error.message : String(error);
+                  observationErrors.push(message);
+                  taskContext.task.scrollProgress = {
+                    status: 'uncertain',
+                    observationErrors: [...observationErrors],
+                  };
+                  warn(`Scroll measurement unavailable: ${message}`);
+                  return undefined;
+                }
+              })
+            : undefined;
+        const scrollBefore = await captureScroll?.(parsedParam);
+        abortSignal?.throwIfAborted();
         const actionResult = await action.call.call(
           this.interface,
           parsedParam,
@@ -407,6 +461,16 @@ export class TaskBuilder {
           );
         } finally {
           setTimingFieldOnce(timing, 'afterInvokeActionHookEnd');
+        }
+        if (captureScroll) {
+          const scrollAfter = await captureScroll(parsedParam);
+          abortSignal?.throwIfAborted();
+          taskContext.task.scrollProgress = {
+            ...(observationErrors.length ? { observationErrors } : {}),
+            before: scrollBefore,
+            after: scrollAfter,
+            status: compareScrollStates(scrollBefore, scrollAfter, parsedParam),
+          };
         }
         return { output: actionResult };
       },

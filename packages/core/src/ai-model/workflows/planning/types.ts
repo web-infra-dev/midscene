@@ -14,6 +14,8 @@ export interface PlanOptions {
   actionContext?: string;
   /** Advisory guidance from a previous planner, not a user instruction. */
   planningAdvice?: string;
+  /** Fresh executor facts for the current planning cycle; not inferred plan history. */
+  executionFeedback?: string;
   modelRuntime: ModelRuntime;
   getDefaultModelRuntime?: () => ModelRuntime;
   conversationHistory: ConversationHistory;
