@@ -1,0 +1,83 @@
+:root {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #172332;
+  background: #f5f7fa;
+  font-synthesis: none;
+  font-size: 14px;
+  --muted: #748195;
+  --line: #e4e9f0;
+  --accent: #2563eb;
+  --sidebar-width: 352px;
+}
+
+* {
+  box-sizing: border-box;
+}
+[hidden] {
+  display: none !important;
+}
+body {
+  margin: 0;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+#root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+button,
+input {
+  font: inherit;
+}
+button,
+a,
+input {
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid #a3c5ff;
+  outline-offset: 3px;
+}
+button {
+  touch-action: manipulation;
+}
+
+.app-error {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  justify-content: space-between;
+  background: #fff1f0;
+  color: #a72b36;
+  border-bottom: 1px solid #f1d3d6;
+  padding: 12px 25px;
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .app-error {
+    padding: 12px 17px;
+  }
+}

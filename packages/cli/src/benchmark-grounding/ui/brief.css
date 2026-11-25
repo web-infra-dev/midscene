@@ -1,0 +1,30 @@
+* {
+  scrollbar-width: none !important;
+  scrollbar-gutter: auto !important;
+}
+
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+html,
+body,
+.model-scatter-brief {
+  overflow: clip;
+}
+
+.model-scatter-brief {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #fff;
+}
+
+.model-scatter-brief .model-metric-help-tooltip[popover] {
+  transform: scale(var(--brief-chart-scale, 1));
+  transform-origin: top left;
+}

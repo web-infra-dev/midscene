@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-label="Highest economy">
+  <circle cx="12" cy="12" r="11" fill="#CFF3E0" stroke="#fff" stroke-width="1.5"/>
+  <g fill="none" stroke="#0B583F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="6.25"/>
+    <path d="M14.1 9.6h-3.2a1.2 1.2 0 1 0 0 2.4h2.2a1.2 1.2 0 0 1 0 2.4H9.9M12 8.5v7"/>
+  </g>
+</svg>

@@ -174,6 +174,8 @@ type AiActInternalOptions = AiActOptions & {
   };
 };
 
+type AiLocateOptions = LocateOption & { abortSignal?: AbortSignal };
+
 /**
  * Shared input option type for aiInput(), used consistently across
  * overload signatures and the implementation so fields don't drift.
@@ -1553,11 +1555,12 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
    * when available; otherwise, generate an approximate 8x8 compatibility box.
    * Do not rely on rect for strict element boundaries. Prefer center for the target.
    */
-  async aiLocate(prompt: TUserPrompt, opt?: LocateOption) {
+  async aiLocate(prompt: TUserPrompt, opt?: AiLocateOptions) {
+    opt?.abortSignal?.throwIfAborted();
     return this.withReportOperation(() => this.executeLocate(prompt, opt));
   }
 
-  private async executeLocate(prompt: TUserPrompt, opt?: LocateOption) {
+  private async executeLocate(prompt: TUserPrompt, opt?: AiLocateOptions) {
     const locateParam = buildDetailedLocateParam(
       prompt,
       this.withContext('aiLocate', opt),
@@ -1573,7 +1576,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       plans,
       planningModel,
       locateModel,
-      opt?.uiContext ? { uiContext: opt.uiContext } : undefined,
+      { uiContext: opt?.uiContext, abortSignal: opt?.abortSignal },
     );
 
     const { element } = output;

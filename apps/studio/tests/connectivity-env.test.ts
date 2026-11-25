@@ -141,11 +141,11 @@ describe('resolveModelConnection', () => {
 
   it('treats OpenAI-compatible env aliases as a complete Studio model config', () => {
     const source = [
-      'OPENAI_BASE_URL="https://ark-cn-beijing.bytedance.net/api/v3"',
+      'OPENAI_BASE_URL="https://api.example.com/v1"',
       'OPENAI_API_KEY="test-key"',
-      "MIDSCENE_MODEL_NAME='ep-20260106114946-bvnpl'",
+      "MIDSCENE_MODEL_NAME='example-vision-model'",
       'MIDSCENE_USE_DOUBAO_VISION=1',
-      'MIDSCENE_OPENAI_INIT_CONFIG_JSON=\'{ "REPORT_SERVER_URL":"https://cloudapi.bytedance.net/faas/services/tt9i74/invoke/midscene-log"}\'',
+      'MIDSCENE_OPENAI_INIT_CONFIG_JSON=\'{ "REPORT_SERVER_URL":"https://reports.example.com/events"}\'',
     ].join('\n');
 
     expect(hasCompleteModelEnvConfig(source)).toBe(true);

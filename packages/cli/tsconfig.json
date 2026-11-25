@@ -3,12 +3,13 @@
   "compilerOptions": {
     "lib": ["ESNext", "DOM"],
     "module": "esnext",
+    "jsx": "react-jsx",
     "paths": {
       "@/*": ["./src/*"]
     },
     "rootDir": ".",
     "declarationDir": "dist/types",
-    "types": ["node"]
+    "types": ["node", "react", "react-dom"]
   },
   "include": ["src", "tests"],
   "references": [

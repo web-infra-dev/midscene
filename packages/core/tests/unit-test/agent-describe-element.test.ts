@@ -10,6 +10,7 @@ import { ScreenshotItem } from '@/screenshot-item';
 import {
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
+  MIDSCENE_MODEL_FAMILY,
   MIDSCENE_MODEL_NAME,
 } from '@midscene/shared/env';
 import { localImg2Base64 } from '@midscene/shared/img';
@@ -477,6 +478,49 @@ describe('element describer utils', () => {
     });
 
     await agent.destroy();
+  });
+
+  it('rejects a pre-aborted aiLocate without starting execution', async () => {
+    const agent = new Agent(createMockInterface(), {
+      generateReport: false,
+      modelConfig,
+    });
+    const runPlans = rs.spyOn(agent.taskExecutor, 'runPlans');
+    const reason = new Error('locate cancelled');
+
+    await expect(
+      agent.aiLocate('Screenshot target', {
+        abortSignal: AbortSignal.abort(reason),
+      }),
+    ).rejects.toBe(reason);
+    expect(runPlans).not.toHaveBeenCalled();
+
+    await agent.destroy();
+  });
+
+  it('forwards cancellation from aiLocate to the model request', async () => {
+    const controller = new AbortController();
+    const transport = rs.fn<typeof fetch>(async (_input, options) => {
+      controller.abort(new Error('locate cancelled'));
+      options?.signal?.throwIfAborted();
+      return Response.json({});
+    });
+    const agent = new Agent(createMockInterface(), {
+      generateReport: false,
+      modelConfig: { ...modelConfig, [MIDSCENE_MODEL_FAMILY]: 'qwen3' },
+      createOpenAIClient: async (client) =>
+        client.withOptions({ fetch: transport }),
+    });
+
+    try {
+      await expect(
+        agent.aiLocate('Screenshot target', { abortSignal: controller.signal }),
+      ).rejects.toThrow('locate cancelled');
+      expect(transport).toHaveBeenCalledTimes(1);
+      expect(transport.mock.calls[0][1]?.signal?.aborted).toBe(true);
+    } finally {
+      await agent.destroy();
+    }
   });
 
   it('rejects a distant center when no rect is returned', async () => {

@@ -1,0 +1,742 @@
+{
+  "models": {
+    "qwen4-max": {
+      "displayFamily": "Qwen",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/qwen/qwen4-max",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 1.425e-6,
+          "outputPerToken": 4.275e-6
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:29:54+00:00",
+          "url": "https://openrouter.ai/api/frontend/v1/public/stats/endpoint?latencyMetric=latency&perfWorkload=text_generation&permaslug=qwen%2Fqwen4-max-20261115&variant=standard&reasoningEffort=none",
+          "timeToFirstTokenMs": 1462.5,
+          "outputTokensPerSecond": 51
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers with reasoning disabled."
+      }
+    },
+    "qwen3.8-max": {
+      "displayFamily": "Qwen",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/qwen/qwen3.8-max-0902",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 2e-6,
+          "outputPerToken": 6e-6
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:33:09.293Z",
+          "url": "https://openrouter.ai/qwen/qwen3.8-max-0902?reasoningEffort=minimal#performance",
+          "timeToFirstTokenMs": 1291,
+          "outputTokensPerSecond": 44
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers at the lowest available reasoning setting (Minimal)."
+      }
+    },
+    "qwen3.8-flash": {
+      "displayFamily": "Qwen",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/qwen/qwen3.8-flash",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 1.5e-7,
+          "outputPerToken": 4.7e-7
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:29:54+00:00",
+          "url": "https://openrouter.ai/api/frontend/v1/public/stats/endpoint?latencyMetric=latency&perfWorkload=text_generation&permaslug=qwen%2Fqwen3.8-flash-20260826&variant=standard&reasoningEffort=none",
+          "timeToFirstTokenMs": 863,
+          "outputTokensPerSecond": 41
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers with reasoning disabled."
+      }
+    },
+    "qwen3.7-plus": {
+      "displayFamily": "Qwen",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/qwen/qwen3.7-plus",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 3.2e-7,
+          "outputPerToken": 1.28e-6
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:29:54+00:00",
+          "url": "https://openrouter.ai/api/frontend/v1/public/stats/endpoint?latencyMetric=latency&perfWorkload=text_generation&permaslug=qwen%2Fqwen3.7-plus-20260602&variant=standard&reasoningEffort=none",
+          "timeToFirstTokenMs": 1232,
+          "outputTokensPerSecond": 38
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers with reasoning disabled."
+      }
+    },
+    "qwen3.6-plus": {
+      "displayFamily": "Qwen",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/qwen/qwen3.6-plus",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 3.25e-7,
+          "outputPerToken": 1.95e-6
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:29:54+00:00",
+          "url": "https://openrouter.ai/api/frontend/v1/public/stats/endpoint?latencyMetric=latency&perfWorkload=text_generation&permaslug=qwen%2Fqwen3.6-plus-04-02&variant=standard&reasoningEffort=none",
+          "timeToFirstTokenMs": 1271,
+          "outputTokensPerSecond": 35
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers with reasoning disabled."
+      }
+    },
+    "step-3.7-flash": {
+      "displayFamily": "StepFun",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/stepfun/step-3.7-flash",
+        "observedAt": "2026-11-25T09:27:29.000Z",
+        "pricing": {
+          "inputPerToken": 2e-7,
+          "outputPerToken": 1.15e-6
+        },
+        "performance": {
+          "observedAt": "2026-11-25T09:27:29.000Z",
+          "url": "https://openrouter.ai/api/frontend/v1/public/stats/endpoint?latencyMetric=latency&perfWorkload=text_generation&permaslug=stepfun%2Fstep-3.7-flash-20260528&variant=standard&reasoningEffort=low",
+          "timeToFirstTokenMs": 1702.5,
+          "outputTokensPerSecond": 134
+        },
+        "note": "Uncached input and output prices and StepFun-hosted OpenRouter P50 TTFT and throughput at the lowest reasoning setting (Low)."
+      }
+    },
+    "mimo-v2.6-pro": {
+      "displayFamily": "MiMo",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/xiaomi/mimo-v2.6-pro",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 3.87e-7,
+          "outputPerToken": 7.83e-7
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:29:54+00:00",
+          "url": "https://openrouter.ai/api/frontend/v1/public/stats/endpoint?latencyMetric=latency&perfWorkload=text_generation&permaslug=xiaomi%2Fmimo-v2.6-pro-20260921&variant=standard&reasoningEffort=none",
+          "timeToFirstTokenMs": 554,
+          "outputTokensPerSecond": 95
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers with reasoning disabled."
+      }
+    },
+    "mimo-v2.6-flash": {
+      "displayFamily": "MiMo",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/xiaomi/mimo-v2.6-flash",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 1e-7,
+          "outputPerToken": 2.8e-7
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:29:54+00:00",
+          "url": "https://openrouter.ai/api/frontend/v1/public/stats/endpoint?latencyMetric=latency&perfWorkload=text_generation&permaslug=xiaomi%2Fmimo-v2.6-flash-20260921&variant=standard&reasoningEffort=none",
+          "timeToFirstTokenMs": 451,
+          "outputTokensPerSecond": 177
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers with reasoning disabled."
+      }
+    },
+    "kimi-k3.1-pro": {
+      "displayFamily": "Kimi",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/moonshotai/kimi-k3.1-pro",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 2.403e-7,
+          "outputPerToken": 8.4023e-6
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:29:54+00:00",
+          "url": "https://openrouter.ai/api/frontend/v1/public/stats/endpoint?latencyMetric=latency&perfWorkload=text_generation&permaslug=moonshotai%2Fkimi-k3.1-pro-20261023&variant=standard&reasoningEffort=none",
+          "timeToFirstTokenMs": 281.5,
+          "outputTokensPerSecond": 107
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers with reasoning disabled."
+      }
+    },
+    "kimi-k3": {
+      "displayFamily": "Kimi",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/moonshotai/kimi-k3",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 1.824e-7,
+          "outputPerToken": 1.10055e-5
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:29:55+00:00",
+          "url": "https://openrouter.ai/api/frontend/v1/public/stats/endpoint?latencyMetric=latency&perfWorkload=text_generation&permaslug=moonshotai%2Fkimi-k3-20260715&variant=standard&reasoningEffort=none",
+          "timeToFirstTokenMs": 268,
+          "outputTokensPerSecond": 161
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers with reasoning disabled."
+      }
+    },
+    "jev-1.14": {
+      "displayFamily": "Jev",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/typesafe/jev-1.14",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 4.2e-8,
+          "outputPerToken": 0
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:41:24.931Z",
+          "url": "https://openrouter.ai/typesafe/jev-1.14#performance",
+          "timeToFirstTokenMs": 77,
+          "outputTokensPerSecond": "INFINITY"
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page."
+      }
+    },
+    "hy4-flash": {
+      "displayFamily": "Hunyuan",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/tencent/hy4-flash",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 3.5e-8,
+          "outputPerToken": 1.405e-7
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:29:55+00:00",
+          "url": "https://openrouter.ai/api/frontend/v1/public/stats/endpoint?latencyMetric=latency&perfWorkload=text_generation&permaslug=tencent%2Fhy4-flash-20261116&variant=standard&reasoningEffort=none",
+          "timeToFirstTokenMs": 1909,
+          "outputTokensPerSecond": 53.5
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers with reasoning disabled."
+      }
+    },
+    "hy4": {
+      "displayFamily": "Hunyuan",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/tencent/hy4",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 4.17e-7,
+          "outputPerToken": 1.2505e-6
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:29:55+00:00",
+          "url": "https://openrouter.ai/api/frontend/v1/public/stats/endpoint?latencyMetric=latency&perfWorkload=text_generation&permaslug=tencent%2Fhy4-20261104&variant=standard&reasoningEffort=none",
+          "timeToFirstTokenMs": 655,
+          "outputTokensPerSecond": 62
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers with reasoning disabled."
+      }
+    },
+    "gpt-6.2-astra": {
+      "displayFamily": "GPT",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/openai/gpt-6.2-astra",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 8e-6,
+          "outputPerToken": 4e-5
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:33:09.441Z",
+          "url": "https://openrouter.ai/openai/gpt-6.2-astra?reasoningEffort=low#performance",
+          "timeToFirstTokenMs": 1391,
+          "outputTokensPerSecond": 56.5
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. The base rates apply up to 272,000 prompt tokens. Best P50 TTFT and throughput across OpenRouter providers at the lowest available reasoning setting (Low)."
+      }
+    },
+    "gpt-6.2-sol": {
+      "displayFamily": "GPT",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/openai/gpt-6.2-sol",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 2e-6,
+          "outputPerToken": 1e-5
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:33:09.629Z",
+          "url": "https://openrouter.ai/openai/gpt-6.2-sol?reasoningEffort=low#performance",
+          "timeToFirstTokenMs": 573,
+          "outputTokensPerSecond": 91
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. The base rates apply up to 272,000 prompt tokens. Best P50 TTFT and throughput across OpenRouter providers at the lowest available reasoning setting (Low)."
+      }
+    },
+    "gpt-6.1-terra": {
+      "displayFamily": "GPT",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/openai/gpt-6.1-terra",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 1e-6,
+          "outputPerToken": 5e-6
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:29:55+00:00",
+          "url": "https://openrouter.ai/api/frontend/v1/public/stats/endpoint?latencyMetric=latency&perfWorkload=text_generation&permaslug=openai%2Fgpt-6.1-terra-20261026&variant=standard&reasoningEffort=none",
+          "timeToFirstTokenMs": 798,
+          "outputTokensPerSecond": 137
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers with reasoning disabled."
+      }
+    },
+    "gpt-6.1-sol": {
+      "displayFamily": "GPT",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/openai/gpt-6.1-sol",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 2e-6,
+          "outputPerToken": 1e-5
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:33:09.432Z",
+          "url": "https://openrouter.ai/openai/gpt-6.1-sol?reasoningEffort=low#performance",
+          "timeToFirstTokenMs": 895,
+          "outputTokensPerSecond": 73
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers at the lowest available reasoning setting (Low)."
+      }
+    },
+    "gpt-6-sol": {
+      "displayFamily": "GPT",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/openai/gpt-6-sol",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 2e-6,
+          "outputPerToken": 1e-5
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:29:55+00:00",
+          "url": "https://openrouter.ai/api/frontend/v1/public/stats/endpoint?latencyMetric=latency&perfWorkload=text_generation&permaslug=openai%2Fgpt-6-sol-20260922&variant=standard&reasoningEffort=none",
+          "timeToFirstTokenMs": 510,
+          "outputTokensPerSecond": 89
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers with reasoning disabled."
+      }
+    },
+    "gpt-6-luna": {
+      "displayFamily": "GPT",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/openai/gpt-6-luna",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 1e-7,
+          "outputPerToken": 5e-7
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:29:55+00:00",
+          "url": "https://openrouter.ai/api/frontend/v1/public/stats/endpoint?latencyMetric=latency&perfWorkload=text_generation&permaslug=openai%2Fgpt-6-luna-20260922&variant=standard&reasoningEffort=none",
+          "timeToFirstTokenMs": 367,
+          "outputTokensPerSecond": 205
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers with reasoning disabled."
+      }
+    },
+    "gpt-6-astra": {
+      "displayFamily": "GPT",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/openai/gpt-6-astra",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 1e-5,
+          "outputPerToken": 5e-5
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:33:10.410Z",
+          "url": "https://openrouter.ai/openai/gpt-6-astra?reasoningEffort=low#performance",
+          "timeToFirstTokenMs": 1624,
+          "outputTokensPerSecond": 29
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers at the lowest available reasoning setting (Low)."
+      }
+    },
+    "gpt-5.6-terra": {
+      "displayFamily": "GPT",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/openai/gpt-5.6-terra",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 2e-6,
+          "outputPerToken": 1.2e-5
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:29:56+00:00",
+          "url": "https://openrouter.ai/api/frontend/v1/public/stats/endpoint?latencyMetric=latency&perfWorkload=text_generation&permaslug=openai%2Fgpt-5.6-terra-20260709&variant=standard&reasoningEffort=none",
+          "timeToFirstTokenMs": 713,
+          "outputTokensPerSecond": 60
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers with reasoning disabled."
+      }
+    },
+    "gpt-5.6-sol": {
+      "displayFamily": "GPT",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/openai/gpt-5.6-sol",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 4e-6,
+          "outputPerToken": 2e-5
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:29:56+00:00",
+          "url": "https://openrouter.ai/api/frontend/v1/public/stats/endpoint?latencyMetric=latency&perfWorkload=text_generation&permaslug=openai%2Fgpt-5.6-sol-20260709&variant=standard&reasoningEffort=none",
+          "timeToFirstTokenMs": 1043,
+          "outputTokensPerSecond": 128
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers with reasoning disabled."
+      }
+    },
+    "gpt-5.6-luna": {
+      "displayFamily": "GPT",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/openai/gpt-5.6-luna",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 2e-7,
+          "outputPerToken": 1.2e-6
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:29:56+00:00",
+          "url": "https://openrouter.ai/api/frontend/v1/public/stats/endpoint?latencyMetric=latency&perfWorkload=text_generation&permaslug=openai%2Fgpt-5.6-luna-20260709&variant=standard&reasoningEffort=none",
+          "timeToFirstTokenMs": 422.5,
+          "outputTokensPerSecond": 126
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers with reasoning disabled."
+      }
+    },
+    "gemini-4-hydrogen": {
+      "displayFamily": "Gemini",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/google/gemini-4-hydrogen",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 1.5e-6,
+          "outputPerToken": 7.5e-6
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:33:10.333Z",
+          "url": "https://openrouter.ai/google/gemini-4-hydrogen?reasoningEffort=low#performance",
+          "timeToFirstTokenMs": 1391,
+          "outputTokensPerSecond": 134
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers at the lowest available reasoning setting (Low)."
+      }
+    },
+    "gemini-4-neon": {
+      "displayFamily": "Gemini",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/google/gemini-4-neon",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 3e-6,
+          "outputPerToken": 1.5e-5
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:33:10.250Z",
+          "url": "https://openrouter.ai/google/gemini-4-neon?reasoningEffort=low#performance",
+          "timeToFirstTokenMs": 1623,
+          "outputTokensPerSecond": 74
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers at the lowest available reasoning setting (Low)."
+      }
+    },
+    "gemini-4-carbon": {
+      "displayFamily": "Gemini",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/google/gemini-4-carbon",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 2e-6,
+          "outputPerToken": 1e-5
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:33:10.586Z",
+          "url": "https://openrouter.ai/google/gemini-4-carbon?reasoningEffort=low#performance",
+          "timeToFirstTokenMs": 1667,
+          "outputTokensPerSecond": 42
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers at the lowest available reasoning setting (Low)."
+      }
+    },
+    "gemini-4-argon": {
+      "displayFamily": "Gemini",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/google/gemini-4-argon",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 2e-6,
+          "outputPerToken": 1e-5
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:33:11.143Z",
+          "url": "https://openrouter.ai/google/gemini-4-argon?reasoningEffort=low#performance",
+          "timeToFirstTokenMs": 4651,
+          "outputTokensPerSecond": 44
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers at the lowest available reasoning setting (Low)."
+      }
+    },
+    "gemini-3.8-flash": {
+      "displayFamily": "Gemini",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/google/gemini-3.8-flash",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 7.5e-7,
+          "outputPerToken": 3.75e-6
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:33:11.358Z",
+          "url": "https://openrouter.ai/google/gemini-3.8-flash?reasoningEffort=low#performance",
+          "timeToFirstTokenMs": 1651,
+          "outputTokensPerSecond": 96
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers at the lowest available reasoning setting (Low)."
+      }
+    },
+    "gemini-3.5-flash": {
+      "displayFamily": "Gemini",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/google/gemini-3.5-flash",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 1.5e-6,
+          "outputPerToken": 9e-6
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:29:56+00:00",
+          "url": "https://openrouter.ai/google/gemini-3.5-flash?reasoningEffort=minimal#performance",
+          "timeToFirstTokenMs": 878,
+          "outputTokensPerSecond": 122
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers at the lowest available reasoning setting (Minimal)."
+      }
+    },
+    "seed-evolving": {
+      "displayFamily": "Doubao",
+      "reference": {
+        "source": "Volcengine Ark",
+        "url": "https://console.volcengine.com/ark/region:cn-beijing/docs/model-pricing#standard-online-inference",
+        "observedAt": "2026-11-25T02:28:51.229Z",
+        "pricing": {
+          "inputPerToken": 8.940412153000254e-7,
+          "outputPerToken": 4.470206076500127e-6
+        },
+        "performance": {
+          "url": "https://console.volcengine.com/ark/region:cn-beijing/model/leaderboard",
+          "observedAt": "2026-11-25T02:28:51.229Z",
+          "timeToFirstTokenMs": 2197.2,
+          "outputTokensPerSecond": 43.31
+        },
+        "note": "Standard online inference at non-audio, uncached rates. Ark performance for latest uses 10k input tokens with reasoning disabled and shows mean TTFT and mean time per output token over the preceding six hours. Throughput is derived from the reported time per output token. Prices were converted to USD at 6.7111 CNY per USD (Bank of China reference rate, 2026-11-24)."
+      }
+    },
+    "seed-2.1-turbo": {
+      "displayFamily": "Doubao",
+      "reference": {
+        "source": "Volcengine Ark",
+        "url": "https://console.volcengine.com/ark/region:cn-beijing/docs/model-pricing#standard-online-inference",
+        "observedAt": "2026-11-25T02:28:51.229Z",
+        "pricing": {
+          "inputPerToken": 4.470206076500127e-7,
+          "outputPerToken": 2.2351030382500634e-6
+        },
+        "performance": {
+          "url": "https://console.volcengine.com/ark/region:cn-beijing/model/leaderboard",
+          "observedAt": "2026-11-25T02:28:51.229Z",
+          "timeToFirstTokenMs": 2152.944,
+          "outputTokensPerSecond": 47.059
+        },
+        "note": "Standard online inference at non-audio, uncached rates. Ark performance for 260628 uses 10k input tokens with reasoning disabled and shows mean TTFT and mean time per output token over the preceding six hours. Throughput is derived from the reported time per output token. Prices were converted to USD at 6.7111 CNY per USD (Bank of China reference rate, 2026-11-24)."
+      }
+    },
+    "seed-2.1-pro": {
+      "displayFamily": "Doubao",
+      "reference": {
+        "source": "Volcengine Ark",
+        "url": "https://console.volcengine.com/ark/region:cn-beijing/docs/model-pricing#standard-online-inference",
+        "observedAt": "2026-11-25T02:28:51.229Z",
+        "pricing": {
+          "inputPerToken": 8.940412153000254e-7,
+          "outputPerToken": 4.470206076500127e-6
+        },
+        "performance": {
+          "url": "https://console.volcengine.com/ark/region:cn-beijing/model/leaderboard",
+          "observedAt": "2026-11-25T02:28:51.229Z",
+          "timeToFirstTokenMs": 1742.397,
+          "outputTokensPerSecond": 43.504
+        },
+        "note": "Standard online inference at non-audio, uncached rates. Ark performance for 260915 uses 10k input tokens with reasoning disabled and shows mean TTFT and mean time per output token over the preceding six hours. Throughput is derived from the reported time per output token. Prices were converted to USD at 6.7111 CNY per USD (Bank of China reference rate, 2026-11-24)."
+      }
+    },
+    "seed-2.1-lite": {
+      "displayFamily": "Doubao",
+      "reference": {
+        "source": "Volcengine Ark",
+        "url": "https://console.volcengine.com/ark/region:cn-beijing/docs/model-pricing#standard-online-inference",
+        "observedAt": "2026-11-25T02:28:51.229Z",
+        "pricing": {
+          "inputPerToken": 1.192054953733367e-7,
+          "outputPerToken": 4.023185468850114e-7
+        },
+        "performance": {
+          "url": "https://console.volcengine.com/ark/region:cn-beijing/model/leaderboard",
+          "observedAt": "2026-11-25T02:28:51.229Z",
+          "timeToFirstTokenMs": 907.819,
+          "outputTokensPerSecond": 59.637
+        },
+        "note": "Standard online inference at non-audio, uncached rates. Ark performance for 260915 uses 10k input tokens with reasoning disabled and shows mean TTFT and mean time per output token over the preceding six hours. Throughput is derived from the reported time per output token. Prices were converted to USD at 6.7111 CNY per USD (Bank of China reference rate, 2026-11-24)."
+      }
+    },
+    "seed-2.0-mini": {
+      "displayFamily": "Doubao",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/bytedance-seed/seed-2.0-mini",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 1e-7,
+          "outputPerToken": 4e-7
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:29:57+00:00",
+          "url": "https://openrouter.ai/api/frontend/v1/public/stats/endpoint?latencyMetric=latency&perfWorkload=text_generation&permaslug=bytedance-seed%2Fseed-2.0-mini-20260224&variant=standard&reasoningEffort=none",
+          "timeToFirstTokenMs": 239,
+          "outputTokensPerSecond": 46.5
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers with reasoning disabled."
+      }
+    },
+    "seed-2.0-lite": {
+      "displayFamily": "Doubao",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/bytedance-seed/seed-2.0-lite",
+        "observedAt": "2026-11-25T02:26:13.765Z",
+        "pricing": {
+          "inputPerToken": 2.5e-7,
+          "outputPerToken": 2e-6
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:27:47.030Z",
+          "url": "https://openrouter.ai/bytedance-seed/seed-2.0-lite?reasoningEffort=none#performance",
+          "timeToFirstTokenMs": 1745.5,
+          "outputTokensPerSecond": 44
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers with reasoning disabled."
+      }
+    },
+    "deepseek-v4.1-flash": {
+      "displayFamily": "DeepSeek",
+      "reference": {
+        "source": "OpenRouter",
+        "url": "https://openrouter.ai/deepseek/deepseek-v4.1-flash-1017",
+        "observedAt": "2026-11-25T02:27:47.227Z",
+        "pricing": {
+          "inputPerToken": 3.6e-8,
+          "outputPerToken": 5e-7
+        },
+        "performance": {
+          "observedAt": "2026-11-25T02:27:47.227Z",
+          "url": "https://openrouter.ai/deepseek/deepseek-v4.1-flash-1017?reasoningEffort=none#performance",
+          "timeToFirstTokenMs": 159,
+          "outputTokensPerSecond": 491
+        },
+        "note": "Uncached input and output token prices from the OpenRouter model page. Best P50 TTFT and throughput across OpenRouter providers with reasoning disabled."
+      }
+    }
+  },
+  "families": {
+    "GPT": {
+      "color": "#d65379",
+      "logo": "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/openai.svg"
+    },
+    "Qwen": {
+      "color": "#9363d8",
+      "logo": "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/qwen-color.svg"
+    },
+    "Doubao": {
+      "color": "#0d9488",
+      "logo": "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/doubao-color.svg"
+    },
+    "Kimi": {
+      "color": "#487f9e",
+      "logo": "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/kimi.svg"
+    },
+    "Jev": {
+      "color": "#cd5e3c",
+      "logo": "https://framerusercontent.com/images/aNFzSFxM4fjICmnibw7npfZjcQ.png"
+    },
+    "DeepSeek": {
+      "color": "#4f6bed",
+      "logo": "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/deepseek-color.svg"
+    },
+    "Gemini": {
+      "color": "#4f6bed",
+      "logo": "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/gemini-color.svg"
+    },
+    "MiMo": {
+      "color": "#e86a17",
+      "logo": "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/xiaomimimo.svg"
+    },
+    "Hunyuan": {
+      "color": "#4f79c9",
+      "logo": "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/hunyuan-color.svg"
+    },
+    "StepFun": {
+      "color": "#000000",
+      "logo": "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/stepfun.svg"
+    },
+    "Llama": {
+      "color": "#0d9488"
+    },
+    "Mistral": {
+      "color": "#d65379"
+    },
+    "Grok": {
+      "color": "#487f9e"
+    },
+    "Other": {
+      "color": "#487f9e"
+    }
+  }
+}

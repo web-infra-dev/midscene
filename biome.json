@@ -9,6 +9,7 @@
       ".pnpm-store/**",
       "packages/benchmark-grounding/testcases/**",
       "packages/benchmark-grounding/candidates/**",
+      "packages/cli/src/benchmark-grounding/output/**",
       "static/**",
       "node_modules/**",
       "**/midscene_run",

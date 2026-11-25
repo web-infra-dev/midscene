@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-label="Highest balance">
+  <circle cx="12" cy="12" r="11" fill="#EADFFD" stroke="#fff" stroke-width="1.5"/>
+  <path d="M12 5.4v13.2M8.3 18.6h7.4M6.4 8.4h11.2M6.4 8.4l-2.2 5h4.4l-2.2-5Zm11.2 0-2.2 5h4.4l-2.2-5ZM4.2 13.4a2.2 2.2 0 0 0 4.4 0m6.8 0a2.2 2.2 0 0 0 4.4 0" fill="none" stroke="#54357B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

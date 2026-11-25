@@ -73,6 +73,20 @@ export interface SerializedTaskExecutionError extends SerializedError {
   task?: SerializedErrorTask;
 }
 
+function explicitLocateOutcome(
+  task: ExecutionTask | null,
+): 'not-found' | undefined {
+  if (task?.type !== 'Planning' || task.subType !== 'Locate') {
+    return undefined;
+  }
+  const dump = task.log?.dump;
+  if (dump?.type !== 'locate') {
+    return undefined;
+  }
+  const formatResponse = dump.taskInfo?.formatResponse;
+  return formatResponse?.outcome === 'not-found' ? 'not-found' : undefined;
+}
+
 function serializeErrorTask(
   task: ExecutionTask | null,
 ): SerializedErrorTask | undefined {
@@ -493,7 +507,9 @@ export class TaskRunner {
     let finalizeError: TaskExecutionError | undefined;
     if (!successfullyCompleted) {
       this.status = 'error';
-      const errorTask = this.latestErrorTask();
+      // A queued cancellation must not inherit a previous failed task when
+      // this flush is recovering with allowWhenError.
+      const errorTask = this.tasks[taskIndex] ?? null;
       const error =
         errorTask?.error ??
         (this.abortSignal?.aborted
@@ -505,6 +521,7 @@ export class TaskRunner {
       finalizeError = new TaskExecutionError(
         error,
         serializeErrorTask(errorTask),
+        explicitLocateOutcome(errorTask),
       );
       await this.emitSnapshotChange(finalizeError);
     } else {
@@ -588,11 +605,19 @@ export class TaskExecutionError extends Error {
 
   readonly task?: SerializedErrorTask;
 
-  constructor(error: SerializedError, task?: SerializedErrorTask) {
+  /** Present only when the locate protocol explicitly parsed an absent target. */
+  readonly locateOutcome?: 'not-found';
+
+  constructor(
+    error: SerializedError,
+    task?: SerializedErrorTask,
+    locateOutcome?: 'not-found',
+  ) {
     super(error.message, { cause: error });
     this.name = 'TaskExecutionError';
     this.cause = error;
     this.task = task;
+    this.locateOutcome = locateOutcome;
     if (this.stack) {
       this.stack = truncateSerializedErrorString(this.stack);
     }
