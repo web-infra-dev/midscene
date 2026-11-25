@@ -62,9 +62,9 @@ export async function AiExtractElementInfo<T>(
   const demand =
     type === 'Number' && options.checkNumberLoading
       ? {
-          Number: `Number or null. Read the visible value for: ${input.demand}. Return null if it is not visible. Never guess or substitute an unrelated number.`,
+          Number: `${buildTypeQueryDemandValue('Number', input.demand)}. Use the visible evidence to answer the question, including counting or calculating when requested. Return null if the evidence needed to answer is missing; do not guess or substitute an unrelated number.`,
           valueIsLoading:
-            'Boolean. True only if the requested value is missing AND the UI shows that its content is still loading. A missing value alone or unrelated background activity does not qualify.',
+            'Boolean. True only when the evidence needed to answer is missing and the UI shows that this content is loading. A finished empty list, missing content alone, or unrelated background activity does not qualify.',
         }
       : type === 'Query'
         ? input.demand

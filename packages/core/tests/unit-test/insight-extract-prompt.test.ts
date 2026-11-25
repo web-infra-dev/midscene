@@ -112,6 +112,9 @@ describe('insight extraction prompt assembly', () => {
       const rendered = JSON.stringify(user);
       expect(rendered).toContain('account balance');
       expect(rendered.includes('valueIsLoading')).toBe(checkNumberLoading);
+      expect(
+        rendered.includes('including counting or calculating when requested'),
+      ).toBe(checkNumberLoading);
     },
   );
 
