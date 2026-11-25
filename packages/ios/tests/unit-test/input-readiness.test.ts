@@ -29,7 +29,9 @@ describe('iOS input focus readiness', () => {
       .mockResolvedValueOnce({ value: [] })
       .mockResolvedValueOnce({ value: [{ ELEMENT: 'switcher' }] });
     expect(await client.isKeyboardVisible()).toBe(true);
-    expect(request.mock.calls[1][2].value).toContain('下一个键盘');
+    expect((request.mock.calls[1][2] as { value?: string }).value).toContain(
+      '下一个键盘',
+    );
   });
 
   it.each(['closed menu', 'paste only', 'unidentified field'] as const)(
@@ -109,7 +111,8 @@ describe('iOS input focus readiness', () => {
         .mockResolvedValueOnce({ value: [] }) // Menu closed
         .mockResolvedValueOnce({ value: null }) // Open menu
         .mockResolvedValueOnce({ value: [] }) // First poll
-        .mockImplementationOnce(async (_method, _path, _body, { timeout }) => {
+        .mockImplementationOnce(async (_method, _path, _body, options) => {
+          const { timeout } = options as { timeout: number };
           expect(timeout).toBe(1100);
           await new Promise((resolve) => setTimeout(resolve, timeout));
           throw new WebDriverRequestError(`Request timeout after ${timeout}ms`);
@@ -161,13 +164,11 @@ describe('iOS input focus readiness', () => {
       .mockResolvedValueOnce({ value: [{ ELEMENT: 'select-all' }] })
       .mockResolvedValueOnce({ value: null });
     expect(await client.selectAllFromMenu('field')).toBe(true);
-    expect(request.mock.calls.map((call) => call[3]?.timeout)).toEqual([
-      1200,
-      undefined,
-      950,
-      500,
-      undefined,
-    ]);
+    expect(
+      request.mock.calls.map(
+        (call) => (call[3] as { timeout?: number } | undefined)?.timeout,
+      ),
+    ).toEqual([1200, undefined, 950, 500, undefined]);
   });
 
   it('propagates a WDA failure during menu discovery', async () => {
