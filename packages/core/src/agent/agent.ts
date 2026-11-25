@@ -899,10 +899,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     return output;
   }
 
-  async aiTap(
-    locatePrompt: TUserPrompt,
-    opt?: LocateOption & { fileChooserAccept?: string | string[] },
-  ): Promise<void> {
+  async aiTap(locatePrompt: TUserPrompt, opt?: LocateOption): Promise<void> {
     await this.withReportOperation(async () => {
       assert(locatePrompt, 'missing locate prompt for tap');
 
