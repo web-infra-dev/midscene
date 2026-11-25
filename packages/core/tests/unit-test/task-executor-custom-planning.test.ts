@@ -151,7 +151,11 @@ describe('TaskExecutor custom planning adapters', () => {
     expect(convert.mock.calls[0][0][0].param.locate).toEqual({
       prompt: 'button',
     });
-    expect(convert.mock.calls[0][2].config).toBe(locate.config);
+    const locateRuntime = convert.mock.calls[0][2];
+    if (typeof locateRuntime === 'function') {
+      throw new Error('Expected the explicit locate runtime');
+    }
+    expect(locateRuntime.config).toBe(locate.config);
   });
 
   it('passes normalized deepLocate through custom planning adapters', async () => {

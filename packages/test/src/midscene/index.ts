@@ -39,6 +39,7 @@ import type { Awaitable } from '../engine/types';
 import { NodeDefinitionError } from '../errors';
 import { defineNode } from '../node/define-node';
 import type { NodeDefinition, NodeExecutionContext } from '../node/types';
+import { executeWithReplay, replayExecution } from './replay';
 
 export type MidsceneUIAgent = CommonAgentTestRunnerApi & {
   _prepareForTestRunner?(): void | Promise<void>;
@@ -313,15 +314,36 @@ export const createAgentTestRunnerNodes = <TContext>(
       async execute(ctx) {
         const agent = await getAgent(ctx);
         ctx.signal.throwIfAborted();
-        const call = async () =>
-          definition.execute(agent, ctx.input, { signal: ctx.signal });
+        await replayExecution().beforeAgentNode?.(ctx, agent);
+        ctx.signal.throwIfAborted();
+        const call = async () => executeWithReplay(definition, agent, ctx);
         if (typeof agent !== 'object' || agent === null) return call();
-        return runAgentCall(
-          definition.name,
-          ctx,
-          agent as MidsceneUIAgent,
-          call,
-        );
+        let outcome: { status: 'success' | 'failed'; error?: unknown } = {
+          status: 'failed',
+        };
+        try {
+          const result = await runAgentCall(
+            definition.name,
+            ctx,
+            agent as MidsceneUIAgent,
+            call,
+          );
+          outcome = { status: 'success' };
+          return result;
+        } catch (error) {
+          outcome = { status: 'failed', error };
+          throw error;
+        } finally {
+          try {
+            await replayExecution().afterAgentNode?.(ctx, agent, outcome);
+          } catch (error) {
+            // biome-ignore lint/correctness/noUnsafeFinally: evidence failure may fail a successful node, but never replaces its original failure.
+            if (outcome.status === 'success') throw error;
+            warnReportTrace(
+              `Could not collect node evidence: ${String(error)}`,
+            );
+          }
+        }
       },
     }),
   );

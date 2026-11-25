@@ -1,0 +1,305 @@
+import { deepStrictEqual } from 'node:assert/strict';
+import type { Agent } from '@midscene/core';
+import { sha256 as digest } from '../io';
+import { describeError } from '../verification/diagnostic';
+import { createReplayJev, replayJevConfig } from './jev';
+import { type VerdictJudge, type VerdictState, imageBytes } from './judge';
+import {
+  type UrlMatch,
+  deadlineAfter,
+  isNavigationRace,
+  matchesUrl,
+  normalizeUrlMatch,
+  pageFunction,
+  pause,
+  poll as pollUntil,
+  replayError,
+} from './web-page';
+import {
+  type ElementState,
+  type Locator,
+  type StrictLocate,
+  sampleTarget,
+} from './web-target';
+import type { ReplayEvidence } from './with-replay';
+
+type WaitOptions<Args extends unknown[]> = {
+  args?: Args;
+  timeoutMs?: number;
+  checkIntervalMs?: number;
+  /** A business condition name for errors and timing evidence. */
+  title?: string;
+};
+
+export interface Verdict {
+  state: VerdictState;
+  judge: { model: string; detects: VerdictJudge['detects'] };
+  reason?: string;
+  signals?: Record<string, number>;
+}
+export class VerifyError extends Error {
+  readonly code: string;
+  constructor(readonly verdict: Verdict) {
+    const code = `VERIFY_${verdict.state.toUpperCase()}`;
+    super(code + (verdict.reason ? `: ${verdict.reason}` : ''));
+    this.code = code;
+  }
+}
+
+export function createReplayChecks(
+  agent: Agent,
+  options: {
+    judge?: VerdictJudge;
+    signal?: AbortSignal;
+    waitTimeoutMs?: number;
+    waitIntervalMs?: number;
+  },
+  { publish, report }: ReplayEvidence,
+) {
+  const poll: typeof pollUntil = (deadline, attempt, timeout, retry) =>
+    pollUntil(deadline, attempt, timeout, retry, options.signal);
+  let judgePromise: Promise<VerdictJudge> | undefined;
+  const checkSignal = () => options.signal?.throwIfAborted();
+  const checks = {
+    /** Read page state without creating a Replay event or screenshot. */
+    async read<Args extends unknown[], T>(
+      read: (...args: Args) => T,
+      options: { args?: Args } = {},
+    ): Promise<T> {
+      checkSignal();
+      return agent.evaluateJavaScript(
+        pageFunction(read, options.args ?? ([] as unknown as Args)),
+      );
+    },
+    async checkpoint<Args extends unknown[], T>(
+      title: string,
+      read: (...args: Args) => T,
+      options: { args?: Args; expect?: T; screenshot?: boolean } = {},
+    ): Promise<T> {
+      const actual = await checks.read(read, options);
+      const event = { type: 'checkpoint', title, actual, status: 'observed' };
+      let failure: unknown;
+      if ('expect' in options) {
+        try {
+          deepStrictEqual(actual, options.expect, title);
+          event.status = 'passed';
+        } catch (error) {
+          event.status = 'failed';
+          failure = error;
+        }
+      }
+      if (options.screenshot || failure) {
+        try {
+          await report(event, await agent.interface.screenshotBase64());
+        } catch (error) {
+          if (!failure) throw error;
+          publish({ ...event, evidenceError: describeError(error) });
+        }
+      } else {
+        await report(event);
+      }
+      if (failure) throw failure;
+      return actual;
+    },
+    async waitFor<Args extends unknown[]>(
+      expression: string | ((...args: Args) => unknown),
+      {
+        timeoutMs = options.waitTimeoutMs ?? 0,
+        checkIntervalMs = options.waitIntervalMs ?? 50,
+        args,
+        title,
+      }: WaitOptions<Args> = {},
+    ) {
+      if (!Number.isFinite(checkIntervalMs) || checkIntervalMs <= 0)
+        throw new TypeError('Expected a positive check interval');
+      const source =
+        typeof expression === 'string'
+          ? expression.trim()
+          : pageFunction(expression, args ?? ([] as unknown as Args));
+      if (!source) throw replayError('INVALID_WAIT_CONDITION');
+      const started = performance.now();
+      const condition =
+        title ??
+        (typeof expression === 'string'
+          ? source
+          : expression.name || 'page function');
+      let status = 'failed';
+      try {
+        await pollUntil(
+          deadlineAfter(timeoutMs),
+          async () =>
+            (await agent.evaluateJavaScript(`Boolean(${source})`))
+              ? true
+              : undefined,
+          () => {
+            throw replayError('WAIT_TIMEOUT', { condition });
+          },
+          undefined,
+          options.signal,
+          checkIntervalMs,
+        );
+        status = 'passed';
+      } finally {
+        publish({
+          type: 'wait',
+          title,
+          condition,
+          status,
+          durationMs: performance.now() - started,
+        });
+      }
+    },
+    async waitForUrl(
+      expected: UrlMatch,
+      options: Omit<WaitOptions<[]>, 'args'> = {},
+    ) {
+      const match = normalizeUrlMatch(expected);
+      await checks.waitFor(
+        `(${matchesUrl.toString()})(location.href,${JSON.stringify(match)})`,
+        options,
+      );
+    },
+    async inspect(
+      locator: Locator | StrictLocate,
+      opts?: { within?: Locator; timeoutMs?: number },
+    ): Promise<ElementState> {
+      const target =
+        'candidates' in locator
+          ? locator
+          : { candidates: [locator] as [Locator] };
+      const deadline = deadlineAfter(opts?.timeoutMs ?? target.timeoutMs ?? 0);
+      return poll(
+        deadline,
+        async () =>
+          (
+            await sampleTarget(
+              agent,
+              { ...target, ...(opts?.within && { within: opts.within }) },
+              'inspect',
+            )
+          ).state,
+        () => {
+          throw replayError('TARGET_MISSING');
+        },
+        (error) =>
+          isNavigationRace(error) ||
+          ['TARGET_MISSING', 'SCOPE_MISSING'].includes(
+            (error as { code?: string }).code ?? '',
+          ),
+      );
+    },
+    async expect(
+      locator: Locator | StrictLocate,
+      expected: Partial<ElementState>,
+      opts?: { within?: Locator; timeoutMs?: number },
+    ) {
+      let actual: ElementState | undefined;
+      const timeoutMs =
+        opts?.timeoutMs ??
+        ('timeoutMs' in locator ? locator.timeoutMs : undefined) ??
+        0;
+      return poll(
+        deadlineAfter(timeoutMs),
+        async () => {
+          actual = await checks.inspect(locator, { ...opts, timeoutMs: 0 });
+          const matching = Object.keys(expected).every((key) => {
+            const field = key as keyof ElementState;
+            try {
+              deepStrictEqual(actual?.[field], expected[field]);
+              return true;
+            } catch {
+              return false;
+            }
+          });
+          return matching ? actual : undefined;
+        },
+        () => {
+          throw replayError('EXPECT_TIMEOUT', { expected, actual });
+        },
+        (error) =>
+          isNavigationRace(error) ||
+          ['TARGET_MISSING', 'SCOPE_MISSING'].includes(
+            (error as { code?: string }).code ?? '',
+          ),
+      );
+    },
+    async verify(
+      criterion: string,
+      { settleTimeoutMs = 0 } = {},
+    ): Promise<Verdict> {
+      if (
+        !criterion.trim() ||
+        !Number.isFinite(settleTimeoutMs) ||
+        settleTimeoutMs < 0
+      )
+        throw new Error(
+          'Expected a criterion and a non-negative settle timeout',
+        );
+      if (!options.judge && !judgePromise) {
+        const selected = replayJevConfig(
+          agent.modelConfigManager.getModelConfig('insight'),
+        );
+        if (!selected)
+          throw Object.assign(
+            new Error(
+              'Replay verify requires Jev. Configure the host Agent insight model with MIDSCENE_INSIGHT_MODEL_FAMILY=jev, or use default OpenRouter credentials. General-model fallback is disabled.',
+            ),
+            { code: 'REPLAY_JEV_REQUIRED' },
+          );
+        judgePromise = createReplayJev(selected);
+      }
+      const judge = options.judge ?? (await judgePromise!);
+      const until = performance.now() + settleTimeoutMs;
+      while (true) {
+        checkSignal();
+        const base64 = await agent.interface.screenshotBase64();
+        let judged: Awaited<ReturnType<VerdictJudge['judge']>>;
+        try {
+          judged = await judge.judge({
+            criterion,
+            frames: [{ base64 }],
+            abortSignal: options.signal,
+          });
+        } catch (error) {
+          const failed = error as {
+            evaluatedImage?: string;
+            preparation?: unknown;
+          };
+          await report(
+            {
+              type: 'verify',
+              criterion,
+              error: describeError(error),
+              preparation: failed.preparation,
+              imageRole: failed.evaluatedImage ? 'prepared' : 'source',
+            },
+            failed.evaluatedImage ?? base64,
+          );
+          throw error;
+        }
+        checkSignal();
+        const { evaluatedImage = base64, preparation, ...result } = judged;
+        const verdict = {
+          ...result,
+          judge: { model: judge.model, detects: judge.detects },
+        };
+        await report(
+          {
+            type: 'verify',
+            criterion,
+            verdict,
+            preparation,
+            imageHash: digest(imageBytes(evaluatedImage)),
+          },
+          evaluatedImage,
+        );
+        if (verdict.state === 'pass') return verdict;
+        if (verdict.state !== 'pending' || performance.now() >= until)
+          throw new VerifyError(verdict);
+        await pause(Math.min(200, until - performance.now()), options.signal);
+        if (performance.now() >= until) throw new VerifyError(verdict);
+      }
+    },
+  };
+  return checks;
+}

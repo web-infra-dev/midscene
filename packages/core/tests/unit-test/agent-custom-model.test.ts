@@ -7,6 +7,7 @@ import {
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_FAMILY,
+  MIDSCENE_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_MODEL_NAME,
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_BASE_URL,
@@ -71,11 +72,13 @@ describe('Agent with custom OpenAI client', () => {
     const runPlans = rs
       .spyOn((agent as any).taskExecutor, 'runPlans')
       .mockResolvedValue({ output: { element: { center: [50, 50] } } });
-    await agent.aiLocate('button');
+    const { signal } = new AbortController();
+    await agent.aiLocate('button', { abortSignal: signal });
     await agent.callActionInActionSpace('Tap', {
       locate: { prompt: 'button' },
     });
     expect(runPlans).toHaveBeenCalledTimes(2);
+    expect(runPlans.mock.calls[0][4]).toMatchObject({ abortSignal: signal });
     for (const call of runPlans.mock.calls) {
       expect((call[2] as any).config).toMatchObject({
         intent: 'planning',
@@ -329,6 +332,21 @@ describe('Agent with custom OpenAI client', () => {
   });
 
   describe('constructor with createOpenAIClient', () => {
+    it('keeps report upload configuration for a factory-only Agent', () => {
+      stubModelEnv({
+        [MIDSCENE_MODEL_INIT_CONFIG_JSON]:
+          '{"REPORT_SERVER_URL":"https://report.example.test"}',
+      });
+      const agent = new Agent(createMockInterface(), {
+        createOpenAIClient: rs.fn(),
+        generateReport: false,
+      });
+
+      expect(agent.modelConfigManager.getUploadTestServerUrl()).toBe(
+        'https://report.example.test',
+      );
+    });
+
     it('should expose createOpenAIClient on public modelConfigManager for factory-only agents', () => {
       const mockCreateClient: CreateOpenAIClientFn = rs.fn(async () => ({
         chat: { completions: { create: rs.fn() } },

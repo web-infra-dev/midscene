@@ -16,6 +16,7 @@ import type { WorkflowExecutionRecord } from '../test-runner/execution-record';
 // index.ts -> agent/index.ts -> agent/agent.ts -> index.ts
 import {
   type AIUsageInfo,
+  type ActionExecutionOptions,
   type ActionParam,
   type ActionReturn,
   type AgentAIContextKey,
@@ -51,7 +52,6 @@ import {
 } from '../types';
 import type { MidsceneYamlScript } from '../yaml';
 import {
-  YamlExecutionOwnershipError,
   currentYamlSignal,
   enterYamlAction,
   enterYamlExecution,
@@ -95,6 +95,7 @@ import { ActionReadiness, isActionReadinessError } from './action-readiness';
 import { normalizeAgentOptions, withAgentDefaults } from './agent-options';
 import { AgentReportManager } from './agent-report-manager';
 import { normalizeAgentCacheConfig } from './cache-config';
+import { isNativeExecutionTerminalError } from './execution-error';
 import { FileChooserAccepter } from './file-chooser';
 import { Insight } from './insight';
 import { MetricsCollector, type MidsceneUsageMetrics } from './metrics';
@@ -148,6 +149,10 @@ class AgentScopedModelConfigManager extends ModelConfigManager {
       ...this.baseManager.getModelConfig(intent),
       createOpenAIClient: this.createOpenAIClient,
     };
+  }
+
+  override getUploadTestServerUrl(): string | undefined {
+    return this.baseManager.getUploadTestServerUrl();
   }
 }
 
@@ -849,9 +854,15 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     type: string,
     opt?: T, // and all other action params
     abortSignal?: AbortSignal,
+    executionOptions?: ActionExecutionOptions,
   ) {
     return this.withReportOperation(() =>
-      this.executeActionInActionSpace<T>(type, opt, abortSignal),
+      this.executeActionInActionSpace<T>(
+        type,
+        opt,
+        abortSignal,
+        executionOptions,
+      ),
     );
   }
 
@@ -859,6 +870,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     type: string,
     opt?: T,
     abortSignal?: AbortSignal,
+    executionOptions?: ActionExecutionOptions,
   ) {
     debug('callActionInActionSpace', type, ',', opt);
 
@@ -885,16 +897,20 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       locateParamStr((opt as any)?.locate || {}),
     );
 
-    // assume all operation in action space is related to locating
-    const locateModel = this.resolveModelRuntime('locate', 'locate');
-    const planningModel = this.resolveModelRuntime('planning', 'planning');
-
+    const locate = () => this.resolveModelRuntime('locate', 'locate');
+    const planning = () => this.resolveModelRuntime('planning', 'planning');
+    const deferModels = executionOptions?.deferModelResolution;
+    const locateModel = deferModels ? locate : locate();
+    const planningModel = deferModels ? planning : planning();
     const { output } = await this.taskExecutor.runPlans(
       title,
       plans,
       planningModel,
       locateModel,
-      { abortSignal: abortSignal ?? currentYamlSignal(this) },
+      {
+        abortSignal: abortSignal ?? currentYamlSignal(this),
+        skipDefaultWait: executionOptions?.skipDefaultWait,
+      },
     );
     return output;
   }
@@ -1380,11 +1396,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
           });
           return;
         } catch (error) {
-          if (
-            error instanceof YamlExecutionOwnershipError ||
-            isActionReadinessError(error)
-          )
-            throw error;
+          if (isNativeExecutionTerminalError(error)) throw error;
           abortSignal?.throwIfAborted();
           cachedYamlFailed = true;
           warn(
@@ -1550,11 +1562,18 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
    * when available; otherwise, generate an approximate 8x8 compatibility box.
    * Do not rely on rect for strict element boundaries. Prefer center for the target.
    */
-  async aiLocate(prompt: TUserPrompt, opt?: LocateOption) {
+  async aiLocate(
+    prompt: TUserPrompt,
+    opt?: LocateOption & { abortSignal?: AbortSignal },
+  ) {
     return this.withReportOperation(() => this.executeLocate(prompt, opt));
   }
 
-  private async executeLocate(prompt: TUserPrompt, opt?: LocateOption) {
+  private async executeLocate(
+    prompt: TUserPrompt,
+    opt?: LocateOption & { abortSignal?: AbortSignal },
+  ) {
+    opt?.abortSignal?.throwIfAborted();
     const locateParam = buildDetailedLocateParam(
       prompt,
       this.withContext('aiLocate', opt),
@@ -1570,7 +1589,9 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       plans,
       planningModel,
       locateModel,
-      opt?.uiContext ? { uiContext: opt.uiContext } : undefined,
+      opt?.uiContext || opt?.abortSignal
+        ? { uiContext: opt.uiContext, abortSignal: opt.abortSignal }
+        : undefined,
     );
 
     const { element } = output;

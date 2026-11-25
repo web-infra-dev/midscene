@@ -29,7 +29,11 @@ export function buildJevAction(
       return undefined;
     }
     assert(decision.target?.type === 'box', 'Missing Jev planning target box');
-    return mapJevBox(decision.target.box, options.uiContext.shotSize);
+    return mapJevBox(
+      decision.target.box,
+      options.uiContext.shotSize,
+      context.imagePreparation,
+    );
   })();
   const param = Object.fromEntries(
     fields.map((field) => [

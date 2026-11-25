@@ -19,6 +19,7 @@ import {
 } from '@midscene/core/report';
 import { runWithMidsceneRunDir } from '@midscene/shared/common';
 import { getDebug } from '@midscene/shared/logger';
+import { replayMode, withReplayExecution } from '../midscene/replay';
 import { writeTestResultMarkdown } from '../report/result-markdown';
 import {
   buildTestRunReportDump,
@@ -124,7 +125,17 @@ export async function runPreparedTestProject(
 ): Promise<TestProjectRunResult> {
   const reports = new ReportSession(join(plan.runDir, 'records'));
   return runWithMidsceneRunDir(plan.artifactDir, () =>
-    reports.run(() => runWithReportSession(plan, reports)),
+    reports.run(() =>
+      withReplayExecution(
+        {
+          ...plan.replayExecution,
+          replay: replayMode(
+            plan.replayExecution?.replay ?? plan.definition.test.replay,
+          ),
+        },
+        () => runWithReportSession(plan, reports),
+      ),
+    ),
   );
 }
 
@@ -194,6 +205,9 @@ async function runWithReportSession(
   await writeTestRunPlan(runDir, preparedProjects);
   const journal = createOperationJournal(runDir);
   const rootController = new AbortController();
+  const abortFromCaller = () => rootController.abort(plan.signal?.reason);
+  if (plan.signal?.aborted) abortFromCaller();
+  else plan.signal?.addEventListener('abort', abortFromCaller, { once: true });
   setMaxListeners(
     Math.max(10, effectiveConcurrency + 1),
     rootController.signal,
@@ -367,6 +381,7 @@ async function runWithReportSession(
     recordInfrastructureError(error);
   } finally {
     stopObservingOperations();
+    plan.signal?.removeEventListener('abort', abortFromCaller);
     process.off('SIGINT', sigint);
     process.off('SIGTERM', sigterm);
   }

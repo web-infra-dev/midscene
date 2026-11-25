@@ -3,6 +3,7 @@ import type {
   RunWorkflowDocumentOptions,
   WorkflowDocumentSource,
 } from '@midscene/core/internal/test-runner';
+import type { ReplayExecutionOptions } from '../midscene/replay';
 import type { TestReporterEvent } from './reporter-events';
 import type {
   LoadedExecutionProject,
@@ -11,7 +12,11 @@ import type {
 } from './test-project';
 import type { TestProjectCollectionError, TestProjectRunResult } from './types';
 
-export interface TestProjectRunOptions {
+export interface TestProjectRunOptions extends ReplayExecutionOptions {
+  caseName?: string;
+  /** Override native Case retry for verification, without changing the project. */
+  retry?: number;
+  signal?: AbortSignal;
   cwd?: string;
   /** SDK project directory for default config discovery; defaults to cwd. */
   projectRoot?: string;
@@ -42,6 +47,8 @@ export interface PreparedDocumentInvocation {
 }
 
 export interface ProjectPreparationOptions {
+  caseName?: string;
+  retry?: number;
   /** Standalone input discovery does not change the project/artifact root. */
   discoveryRoot?: string;
   files?: readonly string[];
@@ -92,6 +99,8 @@ export interface TestRunInput {
 }
 
 export interface PreparedTestRunPlan {
+  replayExecution?: ReplayExecutionOptions;
+  signal?: AbortSignal;
   startedAt: Date;
   runId: string;
   projectRoot: string;
