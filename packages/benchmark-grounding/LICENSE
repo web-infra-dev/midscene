@@ -1,0 +1,551 @@
+Licensing of @midscene/benchmark-grounding
+
+This file contains the complete MIT and Apache-2.0 license texts for the
+dataset, along with attribution and license links for third-party materials.
+For imported records, it identifies each direct source dataset, the release
+used, and the license declared by its publisher.
+
+Scope of source attribution and disclaimer
+------------------------------------------
+Midscene follows the license terms applicable to the dataset releases from
+which it directly imports records. The testcase source fields identify those
+releases. This file also retains applicable license and copyright notices
+for material included in those releases. To the extent permitted by applicable
+law and license terms, Midscene makes no representations or warranties about
+third-party rights in that material.
+
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright [yyyy] [name of copyright owner]
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+MIT License
+
+Copyright (c) 2024-present Bytedance, Inc. and its affiliates.
+Copyright (c) 2025 inclusionAI
+Copyright (c) 2023 Eric Bailey
+Copyright (c) 2018 web-ext-labs
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Source attribution and modification notices
+===========================================
+
+Midscene contributions
+---------------------
+Copyright (c) 2024-present Bytedance, Inc. and its affiliates.
+License: MIT, to the extent of Midscene's rights in its testcases,
+annotations, translations, documentation and compilation.
+https://github.com/web-infra-dev/midscene/blob/72580c6fd596ad20ba6a4ab76cd106e6e7df1bfb/LICENSE
+Midscene authored the tasks and annotations for WEB-v1-005, WEB-v1-019,
+WEB-v1-020, WEB-v1-021, WEB-v1-027, WEB-v1-028, WEB-v1-039, WEB-v1-043,
+WEB-v1-075, WEB-v1-087, WEB-v1-090, WEB-v1-097, MOBILE-v1-004, MOBILE-v1-008,
+MOBILE-v1-009,
+MOBILE-v1-018, MOBILE-v1-019, MOBILE-v1-020,
+MOBILE-v1-029, MOBILE-v1-033, MOBILE-v1-072, MOBILE-v1-073, MOBILE-v1-095,
+MOBILE-v1-096, MOBILE-v1-097 and MOBILE-v1-099.
+MOBILE-v1-004 shows a browser-rendered fictional clip catalog built from
+mock records, programmatic cover illustrations, and generated cover art
+and photorealistic thumbnails. MOBILE-v1-099 uses an AI-generated mockup
+of a fictional app.
+WEB-v1-027 and WEB-v1-028 show distinct Midscene-authored equity interfaces
+with fictitious companies and simulated market data. WEB-v1-097 shows a
+Midscene-authored ETF news page with simulated quotes and fictional articles.
+MOBILE-v1-009, MOBILE-v1-018, MOBILE-v1-019, MOBILE-v1-020, MOBILE-v1-029,
+MOBILE-v1-033, MOBILE-v1-072, MOBILE-v1-073, MOBILE-v1-095, MOBILE-v1-096,
+WEB-v1-005, WEB-v1-019, WEB-v1-021, WEB-v1-039, WEB-v1-043, WEB-v1-075 and
+WEB-v1-087 use contributor-provided screenshots.
+MOBILE-v1-018 omits the angle readout shown in the supplied screenshot, and
+MOBILE-v1-020 masks a chat participant's nickname. WEB-v1-021 shows a Figma
+file owned by the contributor who supplied the screenshot. WEB-v1-075 shows
+the release assets for Midscene's own repository.
+
+VenusBench-GD
+-------------
+Publisher: inclusionAI; VenusBench-GD contributors.
+Copyright (c) 2025 inclusionAI.
+Source release: 7e5714566f912203c9989b06ef4c08bdf913e3fa.
+License: MIT, declared by the official dataset release.
+https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/README.md
+
+ScreenSpot-v2
+------------
+Publisher: OS-Copilot; ScreenSpot-v2 contributors.
+Source release: 5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c.
+License: Apache-2.0, declared in the dataset card.
+https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/README.md
+
+MMBench-GUI L2
+--------------
+Publisher: OpenGVLab; MMBench-GUI contributors.
+Source release: e27757e3910e0d5995b811f916b509b4e34a4690.
+License: Apache-2.0, declared in the dataset card.
+https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/README.md
+
+WebClick
+--------
+Publisher and attribution: H Company Research Team, H Company.
+Source release: 9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a.
+License: Apache-2.0, declared in the dataset card and its Licence section.
+https://huggingface.co/datasets/Hcompany/WebClick/blob/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/README.md
+
+UI-I2E-Bench
+------------
+Publisher: vaundys; UI-I2E-Bench contributors.
+Source release: ecfcc016d92c87ce6c194dba1b3faffabf7db51d.
+License: Apache-2.0, declared in the dataset card.
+https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/README.md
+
+AndroidControl screenshots included via UI-I2E-Bench
+Copyright 2024 The Google Research Authors.
+License: Apache-2.0. The full license text appears above.
+https://github.com/google-research/google-research/blob/master/android_control/README.md#license
+Applies to MOBILE-v1-001, MOBILE-v1-002, MOBILE-v1-007, MOBILE-v1-022,
+MOBILE-v1-023, MOBILE-v1-035, MOBILE-v1-037, MOBILE-v1-040, MOBILE-v1-041,
+MOBILE-v1-042, MOBILE-v1-062, MOBILE-v1-063, MOBILE-v1-064 and MOBILE-v1-066.
+
+OSWorld-G
+---------
+Publisher: xlang-ai; OSWorld-G contributors.
+Authors credited by the project: Tianbao Xie, Jiaqi Deng, Xiaochuan Li,
+Junlin Yang, Haoyuan Wu, Jixuan Chen, Wenjing Hu, Xinyuan Wang, Yuhui Xu,
+Zekun Wang, Yiheng Xu, Junli Wang, Doyen Sahoo, Tao Yu and Caiming Xiong.
+Source release: daa6bd8e0e629f0917ad2984df930bf0bd967540.
+License: Apache-2.0, supplied in the source repository's LICENSE.
+https://github.com/xlang-ai/OSWorld-G/blob/daa6bd8e0e629f0917ad2984df930bf0bd967540/LICENSE
+https://github.com/xlang-ai/OSWorld-G/blob/daa6bd8e0e629f0917ad2984df930bf0bd967540/README.md
+
+GroundUI-1K / GroundUI-18K
+--------------------------
+Publisher: agent-studio; AgentStudio/GroundUI contributors.
+GroundUI-1K release: 5d18efc3085902648b7031bf747a1090356a1b17.
+GroundUI-18K release: f061eba2b7e3fffcf511694f15ad3ca38898ab9e.
+License: MIT, declared separately for these datasets in their dataset cards.
+https://huggingface.co/datasets/agent-studio/GroundUI-1K/blob/5d18efc3085902648b7031bf747a1090356a1b17/README.md
+https://huggingface.co/datasets/agent-studio/GroundUI-18K/blob/f061eba2b7e3fffcf511694f15ad3ca38898ab9e/README.md
+The source cards ask users to keep these test sets out of training.
+
+Modifications in this distribution
+---------------------------------
+Midscene selected source records, converted their annotations to the local
+testcase format, and supplied bilingual instructions and category explanations.
+Each imported testcase's index.json records its direct source dataset, record
+ID and source URL. The reference.patch field describes changes to imported
+records. Midscene-authored testcases have a null reference.patch.
+Midscene removed embedded device and timestamp metadata where present while
+preserving decoded pixels and color rendering. For each Apache-2.0 screenshot
+modified by Midscene, see the file-specific notice in the reference.patch field
+of the accompanying index.json.
+
+Third-party materials depicted in screenshots
+---------------------------------------------
+Depicted interfaces, logos, product names, trademarks and other third-party
+content remain subject to their owners' rights. This package supplies no
+additional permission or endorsement on their behalf.
+WEB-v1-013 (Reddit), WEB-v1-031 (Yahoo Finance), WEB-v1-037 (JD.com) and
+WEB-v1-046 (Weibo) preserve copyright notices visible in the page footers.
+
+MOBILE-v1-034 (Windy.com)
+------------------------
+The screenshot shows Windy.com's ground-level wind visualization based on
+ECMWF forecast data. The original Windy.com mark and the ECMWF source label
+remain visible. Windy permits use and distribution within projects under the
+conditions in Section 8 of its General Terms of Use, including attribution and
+restrictions on modifying the visualization. Those terms apply to the Windy
+screenshot in this package.
+https://www.windy.com/
+https://account.windy.com/agreements/windy-terms-of-use#use-of-the-services-and-content-visualizations-by-users-and-media-publishers
+
+WEB-v1-002 (a11y-webring.club)
+----------------------------
+The visible .eleventy.js excerpt is from a11y-webring.club at revision
+9547cc79fced92fbf0db7d771901eacd817f97c7, under the MIT license above.
+Copyright (c) 2023 Eric Bailey.
+https://github.com/ericwbailey/a11y-webring.club/blob/9547cc79fced92fbf0db7d771901eacd817f97c7/.eleventy.js
+https://github.com/ericwbailey/a11y-webring.club/blob/9547cc79fced92fbf0db7d771901eacd817f97c7/LICENSE
+
+WEB-v1-005 (GoAdserver)
+----------------------
+The contributor-provided screenshot shows GoAdserver's in-image advertising
+demo, including a Voyalark travel article and a fictional Kestrel Stays ad.
+https://www.goadserver.com/demo/in-image/
+
+WEB-v1-007 (Hangzhou Metro Network)
+----------------------------------
+“Hangzhou Metro Network” by Alan Fan Pei, published on Wikimedia Commons
+on January 1, 2026, under CC BY-SA 4.0. The full map image is reproduced
+without modification.
+https://commons.wikimedia.org/wiki/File:Hangzhou_Metro_Network.png
+https://creativecommons.org/licenses/by-sa/4.0/
+
+WEB-v1-011 (webext.eu)
+----------------------
+The screenshot shows the web-ext-labs UI tool at webext.eu. The page's source
+is available under the MIT license above. Copyright (c) 2018 web-ext-labs.
+The Mozilla logo is shown as part of the source page and remains a trademark
+of Mozilla.
+https://github.com/web-ext-labs/ui-tool/blob/2ad27ac3c2913d4b572d785cb1640406f2834684/public/index.html
+https://github.com/web-ext-labs/ui-tool/blob/2ad27ac3c2913d4b572d785cb1640406f2834684/LICENSE
+https://www.mozilla.org/foundation/trademarks/policy/
+
+WEB-v1-036 (Midscene task using OpenStreetMap data)
+--------------------------------------------------
+Midscene authored the bilingual task and ground-truth annotation.
+Midscene rendered the map of Duffy Square and the surrounding blocks in
+Midtown Manhattan from data © OpenStreetMap contributors under the Open
+Data Commons Open Database License (ODbL) 1.0. The machine-readable map
+geometry, labels, and hotel locations are available under ODbL 1.0 in
+testcases/WEB-v1-036/map-source.json. The Duffy Square marker uses its
+OpenStreetMap point. Hotel photos are generated illustrations. Rates,
+booking availability, cancellation terms, ratings, reviews, descriptions,
+and amenities are simulated.
+https://www.openstreetmap.org/#map=18/40.75748/-73.986045
+https://www.openstreetmap.org/node/13763522256
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/
+
+WEB-v1-039 (Rstest)
+------------------
+The contributor-provided screenshot shows Rstest source code in GitHub's
+code viewer alongside a GitHub Copilot response. The Rstest code is under
+the MIT license above.
+Copyright (c) 2023-present ByteDance, Inc. and its affiliates.
+GitHub and Copilot interface elements and marks are subject to their
+respective rights.
+https://github.com/web-infra-dev/rstest/blob/main/packages/adapter-rslib/src/index.ts
+https://github.com/web-infra-dev/rstest/blob/main/LICENSE
+https://docs.github.com/en/site-policy/github-terms/github-terms-of-service#g-intellectual-property-notice
+
+Additional Midscene testcases using OpenStreetMap data
+------------------------------------------------------
+Midscene authored the interfaces, bilingual tasks, and ground-truth
+annotations for the six testcases below. The basemap data is
+© OpenStreetMap contributors and available under ODbL 1.0. Each testcase
+includes a map-source.json with the machine-readable geometry and labels
+used to render its map. The route-planning scenarios, travel estimates,
+user location, and parking booking controls are benchmark examples.
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/
+
+MOBILE-v1-030 shows a walking route and entrances near Jardin des Plantes.
+https://www.openstreetmap.org/#map=17/48.84382/2.36500
+MOBILE-v1-078 shows Paris Métro lines including Lines 1 and 11, with a
+simulated user location. The task asks for the nearest Line 1 station.
+https://www.openstreetmap.org/relation/123784
+https://www.openstreetmap.org/relation/123792
+MOBILE-v1-082 shows streets near Rua da Madalena, Lisbon.
+https://www.openstreetmap.org/#map=17/38.71305/-9.1368
+WEB-v1-068 shows routes between Place de la Nation and Parc de Bercy.
+https://www.openstreetmap.org/#map=15/48.84190/2.38900
+WEB-v1-070 shows fuel stations and nearby points of interest in San Francisco's
+Mission District. Station photos are generated illustrations. Ratings,
+descriptions and amenities in the results list are simulated.
+https://www.openstreetmap.org/way/224920136
+WEB-v1-086 shows parking locations near the Brooklyn Bridge.
+https://www.openstreetmap.org/#map=17/40.70015/-73.9924
+
+WEB-v1-048 (The Weather Company)
+--------------------------------
+This testcase reproduces the original, unmodified 1920 × 1080 weather.com
+screenshot from ScreenSpot-v2 record 385.
+https://trust.weather.com/privacy/terms-of-use
+
+WEB-v1-052 (Chinese Wikipedia)
+------------------------------
+Text from the SOLRAD 1 article and its 1960 orbital launches navigation box
+by Chinese Wikipedia contributors, under CC BY-SA 4.0.
+https://zh.wikipedia.org/wiki/太阳辐射监测卫星一号
+https://zh.wikipedia.org/wiki/Template:1960年轨道发射
+https://creativecommons.org/licenses/by-sa/4.0/
+The portal icon RocketSunIcon.svg by GW Simulations may be freely redistributed.
+https://commons.wikimedia.org/wiki/File:RocketSunIcon.svg
+The access icon Lock-red-alt.svg by Headbomb is dedicated under CC0 1.0.
+https://commons.wikimedia.org/wiki/File:Lock-red-alt.svg
+https://creativecommons.org/publicdomain/zero/1.0/
+The reference icon PD-icon.svg is in the public domain.
+https://commons.wikimedia.org/wiki/File:PD-icon.svg
+The footer badges “A Wikimedia project” by Minh Nguyen, based on work by
+Neolux, Kevin Ingersoll and GabbielSan, and “Powered by MediaWiki” by the
+Wikimedia Foundation, are available under CC BY-SA 3.0.
+https://commons.wikimedia.org/wiki/File:A_Wikimedia_project.svg
+https://commons.wikimedia.org/wiki/File:Poweredby_MediaWiki_2025.svg
+https://creativecommons.org/licenses/by-sa/3.0/
+
+WEB-v1-058 (English Wikipedia)
+------------------------------
+Text from “Automation” and the “Paradox” preview by English Wikipedia
+contributors, under CC BY-SA 4.0.
+https://en.wikipedia.org/wiki/Automation#Paradox_of_automation
+https://en.wikipedia.org/wiki/Paradox
+https://creativecommons.org/licenses/by-sa/4.0/
+The citation warning icon “Question book-new.svg” by Saranphat.cha, based on
+Equazcion's “Question book.png”, with the 2021 redesign by John M Wolfson,
+under CC BY-SA 3.0.
+https://commons.wikimedia.org/wiki/File:Question_book-new.svg
+https://creativecommons.org/licenses/by-sa/3.0/
+
+WEB-v1-074 (English Wikipedia)
+------------------------------
+The September 1, 2025 Picture of the Day caption and “Other areas of
+Wikipedia” text by English Wikipedia contributors, under CC BY-SA 4.0.
+https://en.wikipedia.org/wiki/Wikipedia:Picture_of_the_day/September_2025#1
+https://en.wikipedia.org/wiki/Template:Other_areas_of_Wikipedia
+The photograph “Castle Square (22346p).jpg” by Rhododendrites, under
+CC BY-SA 4.0.
+https://commons.wikimedia.org/wiki/File:Castle_Square_(22346p).jpg
+https://creativecommons.org/licenses/by-sa/4.0/
+
+WEB-v1-082 (Wikidata)
+---------------------
+English Main Page text by Wikidata contributors, under CC BY-SA 4.0.
+https://www.wikidata.org/wiki/Wikidata:Main_Page/Content/en
+The Main Page banner “Wikidata nodes in white.svg” by Thepwnco, under
+CC BY-SA 4.0.
+https://commons.wikimedia.org/wiki/File:Wikidata_nodes_in_white.svg
+https://creativecommons.org/licenses/by-sa/4.0/
+The section icon “Wikidata-logo white.svg” by TMg, under CC BY-SA 3.0 Germany.
+https://commons.wikimedia.org/wiki/File:Wikidata-logo_white.svg
+https://creativecommons.org/licenses/by-sa/3.0/de/
+“The Earth seen from Apollo 17.jpg” (The Blue Marble) by the NASA Apollo 17
+crew, in the U.S. public domain.
+https://commons.wikimedia.org/wiki/File:The_Earth_seen_from_Apollo_17.jpg
+“Ruler image.jpg” by Goele, cropped from “Folding Rules 2.jpg”, under CC0 1.0.
+https://commons.wikimedia.org/wiki/File:Ruler_image.jpg
+https://creativecommons.org/publicdomain/zero/1.0/
+“Everest North Face toward Base Camp Tibet Luca Galuzzi 2006 (square).jpg”
+credited as “Luca Galuzzi - www.galuzzi.it”, square crop by Entbert, under
+CC BY-SA 2.5.
+https://commons.wikimedia.org/wiki/File:Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006_(square).jpg
+https://creativecommons.org/licenses/by-sa/2.5/
+The photographer requests that the credit appear next to the displayed image.
+
+WEB-v1-084 (CyclOSM)
+-------------------
+Basemap by OpenStreetMap France using the CyclOSM style, under CC BY-SA 2.0.
+https://www.openstreetmap.fr/fonds-de-carte/
+https://creativecommons.org/licenses/by-sa/2.0/
+Map data © OpenStreetMap contributors, under the Open Data Commons Open
+Database License (ODbL) 1.0.
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/
+
+WEB-v1-085 (English Wikipedia)
+------------------------------
+Text from the “Software” section of “Machine learning” by English Wikipedia
+contributors, under CC BY-SA 4.0.
+https://en.wikipedia.org/wiki/Machine_learning#Software
+https://creativecommons.org/licenses/by-sa/4.0/

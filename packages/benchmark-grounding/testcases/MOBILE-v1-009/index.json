@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-009",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The target requires filtering for cards with visible points totals and ranking those totals."
+  },
+  "instruction": {
+    "en": "Select the membership card with the second-highest points total among the cards that show points.",
+    "zh": "选择有积分信息且积分第二多的会员卡。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [12566, 1204, 12904, 56],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "jpeg",
+      "sha256": "a4ba310dfb0973cba16c9c076110ea8b2fd32cd7cda5d3100f660791a176087e"
+    },
+    "patch": null,
+    "collectedAt": 1795057342789
+  }
+}

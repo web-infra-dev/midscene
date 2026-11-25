@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-099",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target is the curved-line tool, identified by its function of drawing a curve."
+  },
+  "instruction": {
+    "en": "I need to draw a curve.",
+    "zh": "我需要画曲线。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [966, 555, 1233, 298],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "0d7b3cb2144f6a9c5d8a1430f5d4b4dab266d3e3a4e65d61ee9eed17cfc2800f"
+    },
+    "patch": null,
+    "collectedAt": 1795059632742
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-004",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "The instruction describes a navigation goal, requiring identification of the control that returns the page to the top."
+  },
+  "instruction": {
+    "en": "Return to the top of the page.",
+    "zh": "回到页面顶部。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1035, 1902, 1077, 1858],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L1180",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#1180",
+    "image": {
+      "format": "png",
+      "sha256": "285c5fcf30060f5f9762a8da51ef51b7f229c966a249859bc65a82a850b2ca9f"
+    },
+    "patch": "Revised the original English instruction to express the goal of returning to the top of the page, added instruction.zh by translating it, and updated category.reason to explain the functional navigation goal.",
+    "collectedAt": 1793867814756
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-039",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires identifying the symbol or module mentioned in a specific review suggestion and matching it to its first occurrence in the visible source code."
+  },
+  "instruction": {
+    "en": "Locate the first line of code related to a variable or module mentioned in the first suggested improvement.",
+    "zh": "定位与第一个改进意见提及的变量或模块相关的首个代码行。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [901.0, 2488.0, 940.0, 676.0],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "48bdfd0b159a2458002dbfcbf9041b594d3d4376af349c777028b4a132de19f6"
+    },
+    "patch": null,
+    "collectedAt": 1795403423307
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-062",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires associating the requested daily average with the expenses column in the displayed 30-day table."
+  },
+  "instruction": {
+    "en": "Find the average daily expense for the last 30 days.",
+    "zh": "找到过去 30 天的日均支出数据。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [864.0, 976.0, 896.0, 870.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L680",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#680",
+    "image": {
+      "format": "png",
+      "sha256": "0750084824a42ec532842b5f3b1bf8247efb2ac97eddd9f5067d3b6846ef3de0"
+    },
+    "patch": "Replaced the original instruction “Switch to view data for the last 6 months” with a request to find the average daily expense for the last 30 days and added a corresponding Chinese instruction. Changed groundTruth from [2156, 844, 2249, 640] to [864.0, 976.0, 896.0, 870.0] in [top, right, bottom, left] pixel coordinates, moving the target from the 6M time filter to the daily expense value. Classified category.item as Reasoning and updated category.reason to describe associating the table's row and column.",
+    "collectedAt": 1793867814765
+  }
+}

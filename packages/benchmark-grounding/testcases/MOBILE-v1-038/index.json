@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-038",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task tests mapping a requested ride time to the appropriate scheduling function using the visible time context."
+  },
+  "instruction": {
+    "en": "I want a ride at 6:00 p.m.",
+    "zh": "我希望在下午 6:00 用车。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1714.0, 1080.0, 2003.0, 0.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L1472",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#row=105",
+    "image": {
+      "format": "png",
+      "sha256": "2dae4e69b4109562f1e77c96e4f1bfbbe3432ea49aeba1baa58bba8cec145597"
+    },
+    "patch": "Revised both instructions to request a ride at 6:00 p.m., after the 5:03 p.m. time shown in the screenshot. Expanded the ground-truth box from the radio circle to the entire Later option row, including its icon and text. Updated category.reason to describe mapping the requested ride time to a scheduling function. Replaced the exposed basemap above and around the rounded ride-planning panel with an opaque solid background shaded to match the modal backdrop, and redrew the 5:03 PM clock, notification icons, and system status indicators in their original locations.",
+    "collectedAt": 1792485870296
+  }
+}

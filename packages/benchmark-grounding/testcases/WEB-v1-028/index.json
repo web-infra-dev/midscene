@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-028",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires filtering stocks by market capitalization and ranking the remaining candidates by price."
+  },
+  "instruction": {
+    "en": "Among stocks with a market capitalization exceeding 1 trillion U.S. dollars, click the ticker symbol of the one with the fourth-lowest price to view its details.",
+    "zh": "在市值超过 1 万亿美元的股票中，点击股价第四低者的股票代码，查看其详情。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [666.0, 420.0, 714.0, 314.0],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "a571f9b9753c6791a55a88395d4688efab17df12a05445e7f488f889deab8a42"
+    },
+    "patch": null,
+    "collectedAt": 1795144313039
+  }
+}

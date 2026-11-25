@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-057",
+  "platform": "web",
+  "category": {
+    "item": "Refusal",
+    "reason": "The requested button does not have the specified color, so the task tests refusal when a visible control fails a required attribute."
+  },
+  "instruction": {
+    "en": "Find the red Create button at the top of the screen.",
+    "zh": "找到屏幕顶部红色的创建按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/refusal_grounding.json#L373",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/refusal_grounding.json#53",
+    "image": {
+      "format": "png",
+      "sha256": "ef6e87a6a4db7c2c7d61ffca1848cb3dd3823946c1ca111380696fc4ae6c71f6"
+    },
+    "patch": "Selected this VenusBench-GD record and recorded its screenshot hash, bilingual instructions, and ground truth in the Midscene testcase format.",
+    "collectedAt": 1792485870907
+  }
+}

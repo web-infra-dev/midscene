@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-100",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires comparing displayed prices for dates that fall on a Friday."
+  },
+  "instruction": {
+    "en": "Select the Friday with the lowest price.",
+    "zh": "选择价格最低的星期五。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [190.1, 577.0, 270.1, 497.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1451",
+    "image": {
+      "format": "png",
+      "sha256": "5cbbcc63ca98a07331bae4d5ede64b1007db782c9b258c3bd7a2c0dd8208be40"
+    },
+    "patch": "Standardized the original English instruction “Click on cheapest Friday” as “Select the Friday with the lowest price.” and added instruction.zh by translating the original English instruction.",
+    "collectedAt": 1793776824833
+  }
+}

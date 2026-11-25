@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-036",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task combines a nightly price limit and a free-cancellation requirement, then compares the qualifying hotels by straight-line distance to a specific landmark on the map."
+  },
+  "instruction": {
+    "en": "Of the hotels that cost US$250 or less per night and offer free cancellation, find the price marker on the map for the one closest in a straight line to the “Duffy Square” center marker.",
+    "zh": "在每晚价格不超过 250 美元且可免费取消的酒店中，找到离 “Duffy Square” 中心标记直线距离最近的一家，并定位它在地图上的价格标记。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [424.0, 4351.0, 478.0, 4186.0],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "651dd6775cb78514a4481b2c24b1119e7b4029ca9254da31cd0318df53166914"
+    },
+    "patch": null,
+    "collectedAt": 1795402326255
+  }
+}

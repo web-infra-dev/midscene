@@ -1,0 +1,2 @@
+# Each index.sha256 hashes the exact bytes of its testcase manifest.
+packages/benchmark-grounding/testcases/*/index.json text eol=lf

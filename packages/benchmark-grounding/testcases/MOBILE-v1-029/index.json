@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-029",
+  "platform": "mobile",
+  "category": {
+    "item": "Color Recognition",
+    "reason": "The target is identified by matching both the umbrella color and its background color among similar decorations."
+  },
+  "instruction": {
+    "en": "Select the small blue umbrella decoration on the pink background.",
+    "zh": "选择粉色背景的蓝色小伞装饰。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [990, 2434, 1235, 2189],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "jpeg",
+      "sha256": "d2b1767b30678b5b7c9c7538de3d5329ea65a6d65a8dfe47916d586812f9c16e"
+    },
+    "patch": null,
+    "collectedAt": 1795058040677
+  }
+}

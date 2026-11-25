@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-027",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The target stock is distinguished from similar rows by the combination of its RSI and Mom value ranges."
+  },
+  "instruction": {
+    "en": "Find the ticker symbol of the stock with an RSI between 50 and 54 and a Mom between 0 and 1, inclusive of both endpoints.",
+    "zh": "找到 RSI 为 50 至 54、Mom 为 0 至 1 的股票代码，范围均包含边界。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1155.0, 424.0, 1202.0, 311.0],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "35fef92c407eb9b96dbec240292b1d84fd199a75b675c79dc4c5bb56dd78cfaf"
+    },
+    "patch": null,
+    "collectedAt": 1795144313039
+  }
+}

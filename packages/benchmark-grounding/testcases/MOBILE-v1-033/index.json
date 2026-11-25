@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-033",
+  "platform": "mobile",
+  "category": {
+    "item": "Refusal",
+    "reason": "No visible text below the article's illustration combines bold, italic, and underlined styling. The matching passage above the illustration is outside the requested region."
+  },
+  "instruction": {
+    "en": "In the text below the article's illustration, find the text that is bold, italicized, and underlined.",
+    "zh": "在文章配图下方的文本中，找到同时拥有加粗、斜体、下划线效果的文本。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "jpeg",
+      "sha256": "7422ea154c1fe12d51b5e6105e33ec4d439fe913264f22ab652022f035b764e7"
+    },
+    "patch": null,
+    "collectedAt": 1795145864385
+  }
+}
