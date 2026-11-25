@@ -2,15 +2,15 @@ export const EN_US = {
   // Homepage chapters
   chapterAgent: 'GUI AGENT',
   chapterFramework: 'MIDSCENE TEST',
-  agentChapterHeading: 'A GUI Agent built for testing',
+  agentChapterHeading: 'A GUI Agent built for vision-driven testing',
   agentChapterDesc:
-    'E2E testing aims to verify complete workflows from the user’s perspective. Midscene uses vision to observe, act, and check results. Integrate through APIs or let AI coding agents use it through Skills.',
+    'E2E testing should use the interface the way a user does, without relying on DOM trees or selectors. Midscene uses vision to observe, act, and check results — integrate through APIs or let AI coding agents use it through Skills.',
   frameworkChapterHeading:
     'A new E2E testing framework designed for natural language',
   frameworkChapterDesc:
     'Midscene Test is designed from the ground up for natural-language E2E testing. Write actions and assertions in YAML, extend test steps with TypeScript Nodes, and manage setup, cleanup, retries, and execution reports within one framework.',
   exampleDesc:
-    'Describe what a user wants to do and what they should see. Express the same intent in YAML or in your existing JavaScript tests.',
+    'No selectors or DOM queries — describe what a user wants to do and what they should see. Express the same intent in YAML or in your existing JavaScript tests.',
   agentIntegrationDesc:
     'Use the GUI Agent directly without adopting Midscene Test. Connect it to your workflow through APIs, Playwright, Puppeteer, or Skills.',
   executionEyebrow: 'TEST EXECUTION',
@@ -54,7 +54,8 @@ export const EN_US = {
   executionReportMachine: 'For scripts and AI agents',
 
   // Banner - Title
-  heroTitle: 'See interfaces like a human\nE2E testing in natural language',
+  heroTitle:
+    'Use the UI like a user\nVision-driven E2E testing in natural language',
   heroSubtitle:
     'Midscene.js provides a vision-based GUI Agent and a natural-language E2E testing framework for web, mobile, and desktop apps.',
 

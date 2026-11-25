@@ -1,7 +1,7 @@
 <p align="center">
   <img alt="Midscene.js" width="180" src="https://github.com/user-attachments/assets/f60de3c1-dd6f-4213-97a1-85bf7c6e79e4"><br />
-  <strong>像人一样看懂界面，用自然语言完成 E2E 测试</strong><br />
-  将 AI 视觉引入 E2E 测试，配套全新设计的测试框架，支持 Web、移动端和桌面应用。
+  <strong>像用户一样使用界面</strong><br />
+  视觉驱动的自然语言 E2E 测试，提供 GUI Agent 与全新设计的测试框架，支持 Web、移动端和桌面应用。
 </p>
 
 <p align="center">
@@ -16,9 +16,15 @@
   <a href="https://trendshift.io/repositories/12524"><img src="https://img.shields.io/badge/GitHub_Trending-featured-00a8f0?style=flat-square&logo=github" alt="Featured on GitHub Trending" /></a>
 </p>
 
-## 用自然语言编写测试
+## 为什么用视觉做 E2E
 
-Midscene.js 将 AI 视觉引入 E2E 测试。用自然语言描述界面操作和预期结果，视觉 GUI Agent 会执行这些步骤，并验证用户看到的效果。你可以通过 Midscene Test 组织测试，也可以将 Agent API 接入现有测试框架。
+E2E 测试要验证的是界面，不是代码结构。靠 DOM 和选择器写测试，实现一变测试就挂，也无法真正反映用户能不能顺利使用这个界面、界面的表达是否正确。
+
+在 AI-native 的时代，模型让我们有能力回归测试的本质——直接看屏幕，像用户一样操作和判断。随着视觉模型的准确率与成本达到平衡，测试不再需要绑在底层实现上。
+
+## 不写选择器，用自然语言编写测试
+
+不关心 DOM 结构，也无需维护选择器——直接描述用户要做什么、界面应该呈现什么结果。你可以用 **Midscene Test** 组织 YAML 测试用例，也可以在已有测试工程中直接接入 **GUI Agent**。
 
 ### 使用 Midscene Test 编写 YAML 用例
 
@@ -52,9 +58,9 @@ await agent.aiAssert('搜索结果中有商品，且每件商品价格都低于 
 
 移动端和桌面端应用可以通过 [Rstest](https://www.midscenejs.com/zh/sdk/rstest) 或 [Vitest](https://www.midscenejs.com/zh/sdk/vitest) 使用对应平台的 Agent。打开生成的 HTML 报告，即可查看截图、元素定位、AI 决策过程，以及操作和断言结果。
 
-## 👁️ 像人一样观察、操作并验证结果
+## 👁️ 只靠视觉观察、操作并验证结果
 
-E2E 测试的初衷是从用户视角验证完整流程，所以 Midscene 按用户的方式来测：**观察屏幕，根据看到的内容操作，再验证界面呈现的结果**。
+因为只看屏幕、不看代码，Midscene 按真实用户的方式使用界面：**观察屏幕，根据看到的内容操作，再验证界面实际呈现的结果**。
 
 ### 根据截图定位与操作
 
@@ -71,7 +77,7 @@ await agent.aiAssert('邮箱输入框下方显示了错误提示');
 
 ## 🌐 一套 API，覆盖不同平台
 
-视觉定位不依赖界面渲染结构，同一套 Agent API 可以用于各个平台：
+因为视觉定位不依赖界面渲染结构或底层代码，同一套 Agent API 可以用于各个平台：
 
 | 平台 | 接入方式 |
 | --- | --- |
@@ -82,7 +88,9 @@ await agent.aiAssert('邮箱输入框下方显示了错误提示');
 | 桌面 | [macOS、Windows、Linux，支持远程 RDP](https://www.midscenejs.com/zh/platforms/desktop) |
 | 自定义界面 | [提供截图与操作能力，即可接入](https://www.midscenejs.com/zh/integrate-with-any-interface) |
 
-## 📊 模型、成本与 Benchmark
+## 📊 可靠性与成本的平衡
+
+纯视觉 E2E 之所以能在工程中落地，是因为视觉模型的准确率和调用成本已经达到很好的平衡点。
 
 ### 按效果与预算选择模型
 
@@ -102,7 +110,7 @@ Midscene 支持豆包 Seed、千问 Qwen、DeepSeek、Gemini、GPT、Kimi 等模
 
 ## 🧩 Midscene Test：面向自然语言的 E2E 测试框架
 
-[Midscene Test](https://www.midscenejs.com/zh/midscene-test/overview)（`@midscene/test`）是面向自然语言的 E2E 测试框架。用 YAML 描述操作和预期，需要精确控制的逻辑交给 TypeScript。
+如果你已有 Playwright、Rstest 或 Vitest 测试工程，可以直接在其中接入 GUI Agent。如果你希望从头围绕用户意图组织脱离代码实现的 E2E 测试，[Midscene Test](https://www.midscenejs.com/zh/midscene-test/overview)（`@midscene/test`）支持用 YAML 描述操作和预期，把需要精确控制的业务逻辑交给 TypeScript。
 
 ### 让人和 AI 共同维护测试用例
 

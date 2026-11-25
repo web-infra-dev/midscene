@@ -1,7 +1,7 @@
 <p align="center">
   <img alt="Midscene.js" width="180" src="https://github.com/user-attachments/assets/f60de3c1-dd6f-4213-97a1-85bf7c6e79e4"><br />
-  <strong>See interfaces like a human. E2E testing in natural language.</strong><br />
-  Bring AI vision to E2E testing with a newly designed test framework for web, mobile, and desktop apps.
+  <strong>Use the UI like a user.</strong><br />
+  Vision-driven E2E testing in natural language — a GUI Agent and a newly designed test framework for web, mobile, and desktop apps.
 </p>
 
 <p align="center">
@@ -16,9 +16,15 @@
   <a href="https://trendshift.io/repositories/12524"><img src="https://img.shields.io/badge/GitHub_Trending-featured-00a8f0?style=flat-square&logo=github" alt="Featured on GitHub Trending" /></a>
 </p>
 
-## Write a test in natural language
+## Why vision-driven E2E
 
-Midscene.js brings AI vision to E2E testing. Describe UI steps and expected results in natural language, then use the visual GUI Agent to carry them out and verify what users see. Organize tests with Midscene Test, or integrate the Agent APIs into your existing testing framework.
+E2E testing should verify the interface, not its code structure. Selector-based tests break whenever implementation changes, and they cannot tell whether a user can actually understand and use the interface, or whether the UI conveys the right information.
+
+In the AI-native era, vision models give us the ability to test closer to the essence of E2E — looking at the screen to act and judge like a user. With accuracy and cost now in balance, tests no longer need to stay coupled to underlying code.
+
+## Write a test without selectors
+
+Describe what a user wants to do and what they should see — with no DOM selectors or view-tree queries. You can organize tests in YAML with **Midscene Test**, or add the **GUI Agent** directly to your existing test suite.
 
 ### YAML test cases with Midscene Test
 
@@ -52,9 +58,9 @@ await agent.aiAssert('There are products in the search results, and each costs l
 
 For mobile and desktop apps, use the platform Agent with [Rstest](https://www.midscenejs.com/sdk/rstest) or [Vitest](https://www.midscenejs.com/sdk/vitest). Open the generated HTML report to inspect screenshots, element locations, the AI decision process, and action and assertion results.
 
-## 👁️ See, act, and verify like a human
+## 👁️ Operate and verify by vision alone
 
-E2E testing verifies complete workflows from the user's perspective, so Midscene tests the way a user does: **observe the screen, act on what you see, and verify the visible result**.
+Because Midscene reads screenshots rather than code, it tests the interface the way a user uses it: **observe the screen, act on what is visible, and verify what the user actually sees**.
 
 ### Locate and act from screenshots
 
@@ -71,7 +77,7 @@ await agent.aiAssert('The error message is visible below the email field');
 
 ## 🌐 One API, across platforms
 
-Visual localization does not depend on the UI rendering stack, so the same Agent APIs work on every platform:
+Because visual localization does not depend on the UI rendering stack or code structure, the same Agent APIs work on every platform:
 
 | Platform | Integration |
 | --- | --- |
@@ -82,7 +88,9 @@ Visual localization does not depend on the UI rendering stack, so the same Agent
 | Desktop | [macOS, Windows, and Linux, with remote RDP support](https://www.midscenejs.com/platforms/desktop) |
 | Custom interfaces | [Provide screenshots and action capabilities](https://www.midscenejs.com/integrate-with-any-interface) |
 
-## 📊 Models, cost, and benchmarks
+## 📊 Reliability and cost in practice
+
+Pure vision testing is practical today because vision models have reached a strong balance between accuracy and price.
 
 ### Choose models for your needs and budget
 
@@ -102,7 +110,7 @@ Each report includes the run configuration and task results; see AndroidWorld's 
 
 ## 🧩 Midscene Test: a natural-language E2E testing framework
 
-[Midscene Test](https://www.midscenejs.com/midscene-test/overview) (`@midscene/test`) is a natural-language E2E testing framework. Describe actions and expectations in YAML, and keep logic that needs precise control in TypeScript.
+If you already have a Playwright, Rstest, or Vitest suite, you can adopt the GUI Agent directly inside it. When you want to organize E2E tests around user intent from the start, [Midscene Test](https://www.midscenejs.com/midscene-test/overview) (`@midscene/test`) lets you describe UI flows and expectations in YAML while keeping deterministic business logic in TypeScript.
 
 ### Test cases maintained by people and AI
 

@@ -4,14 +4,14 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Homepage chapters
   chapterAgent: 'GUI Agent',
   chapterFramework: 'Midscene Test',
-  agentChapterHeading: '为测试而生的 GUI Agent',
+  agentChapterHeading: '为视觉测试而生的 GUI Agent',
   agentChapterDesc:
-    '从用户视角验证完整流程，是 E2E 测试的初衷。Midscene 通过视觉观察界面、执行操作并验证结果，可通过 API 接入已有工程，或通过 Skills 交给 AI 编程 Agent 使用。',
+    'E2E 测试要像用户一样使用界面，而不是依赖 DOM 和选择器。Midscene 只靠视觉观察界面、执行操作并验证结果，可通过 API 接入已有工程，或通过 Skills 交给 AI 编程 Agent 使用。',
   frameworkChapterHeading: '全新设计的自然语言 E2E 测试框架',
   frameworkChapterDesc:
     'Midscene Test 是为自然语言 E2E 测试全新设计的框架。在 YAML 中用自然语言描述操作与断言，通过 TypeScript Node 扩展测试步骤，并由框架统一管理数据准备、清理、重试与执行报告。',
   exampleDesc:
-    '按用户的操作意图写步骤，按用户看到的结果写预期。同一个测试意图，可以用 YAML 表达，也可以接入现有 JavaScript 测试。',
+    '不写选择器，不关心 DOM 结构——按用户的操作意图写步骤，按用户看到的结果写预期。同一个测试意图，可以用 YAML 表达，也可以接入现有 JavaScript 测试。',
   agentIntegrationDesc:
     '可以直接使用 GUI Agent，无需采用 Midscene Test。通过 API、Playwright、Puppeteer 或 Skills 接入你的工作流。',
   executionEyebrow: '执行管理',
@@ -54,7 +54,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   executionReportMachine: '供脚本和 AI Agent 读取',
 
   // Banner - Title
-  heroTitle: '像人一样看懂界面\n用自然语言完成 E2E 测试',
+  heroTitle: '像用户一样使用界面\n视觉驱动的自然语言 E2E 测试',
   heroSubtitle:
     'Midscene.js 提供基于视觉的 GUI Agent 和自然语言 E2E 测试框架，支持 Web、移动端和桌面应用。',
 
