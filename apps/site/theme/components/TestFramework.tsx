@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useI18n } from '../i18n';
 import './TestFramework.css';
 
@@ -16,7 +16,16 @@ export function TestFramework({
   hideHeading = false,
 }: { hideHeading?: boolean }) {
   const t = useI18n();
-  const [focus, setFocus] = useState<StepKind | null>(null);
+  const [focus, setFocus] = useState<StepKind>('ai');
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (paused) return;
+    const timer = window.setTimeout(() => {
+      setFocus((prev) => (prev === 'ai' ? 'node' : 'ai'));
+    }, 3000);
+    return () => window.clearTimeout(timer);
+  }, [focus, paused]);
 
   const lines: YamlLine[] = [
     { indent: 0, key: 'beforeEach' },
@@ -82,53 +91,21 @@ export function TestFramework({
       className="home-feature home-framework"
       aria-labelledby={hideHeading ? undefined : 'home-framework-title'}
     >
-      <div className="home-feature__inner home-framework__layout">
-        <div className="home-framework__copy">
-          {!hideHeading && (
-            <header className="home-feature__heading-block">
-              <span className="home-feature__eyebrow">
-                <span aria-hidden="true">{'//'}</span>@midscene/test
-              </span>
-              <h2 id="home-framework-title">{t('frameworkHeading')}</h2>
-            </header>
-          )}
-
-          <ul
-            className="home-framework__legend"
-            aria-label={t('frameworkLegendLabel')}
-          >
-            {legend.map((item) => (
-              <li key={item.kind}>
-                <button
-                  type="button"
-                  className={`home-framework__legend-item home-framework__legend-item--${item.kind}`}
-                  aria-pressed={focus === item.kind}
-                  onClick={() => setFocus(item.kind)}
-                  onMouseEnter={() => setFocus(item.kind)}
-                  onMouseLeave={() => setFocus(null)}
-                  onFocus={() => setFocus(item.kind)}
-                  onBlur={() => setFocus(null)}
-                >
-                  <span className="home-framework__tag" aria-hidden="true">
-                    {t(
-                      item.kind === 'ai'
-                        ? 'frameworkAiTag'
-                        : 'frameworkNodeTag',
-                    )}
-                  </span>
-                  <span className="home-framework__legend-text">
-                    <strong>{item.title}</strong>
-                    <span>{item.description}</span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+      <div className="home-feature__inner">
+        {!hideHeading && (
+          <header className="home-feature__heading-block">
+            <span className="home-feature__eyebrow">
+              <span aria-hidden="true">{'//'}</span>@midscene/test
+            </span>
+            <h2 id="home-framework-title">{t('frameworkHeading')}</h2>
+          </header>
+        )}
 
         <figure
-          className="home-framework__file"
-          data-focus={focus ?? undefined}
+          className="home-framework__panel"
+          data-focus={focus}
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
         >
           <figcaption className="home-framework__file-bar">
             <span className="home-framework__dots" aria-hidden="true">
@@ -136,8 +113,23 @@ export function TestFramework({
               <span />
               <span />
             </span>
-            cases/refund.yaml
+            <span className="home-framework__filename">cases/refund.yaml</span>
+            <span className="home-framework__bar-tags" aria-hidden="true">
+              <span
+                className="home-framework__tag home-framework__tag--ai"
+                data-active={focus === 'ai'}
+              >
+                {t('frameworkAiTag')}
+              </span>
+              <span
+                className="home-framework__tag home-framework__tag--node"
+                data-active={focus === 'node'}
+              >
+                {t('frameworkNodeTag')}
+              </span>
+            </span>
           </figcaption>
+
           <pre className="home-framework__code">
             <code>
               {lines.map((line, index) => (
@@ -167,7 +159,9 @@ export function TestFramework({
                     )}
                   </span>
                   {line.kind && (
-                    <span className="home-framework__tag">
+                    <span
+                      className={`home-framework__tag home-framework__tag--${line.kind}`}
+                    >
                       {t(
                         line.kind === 'ai'
                           ? 'frameworkAiTag'
@@ -179,6 +173,34 @@ export function TestFramework({
               ))}
             </code>
           </pre>
+
+          <div className="home-framework__footer">
+            {legend.map((item) => (
+              <button
+                key={item.kind}
+                type="button"
+                className="home-framework__footer-item"
+                data-kind={item.kind}
+                data-active={focus === item.kind}
+                aria-pressed={focus === item.kind}
+                onClick={() => setFocus(item.kind)}
+              >
+                <div className="home-framework__footer-head">
+                  <span
+                    className={`home-framework__tag home-framework__tag--${item.kind}`}
+                  >
+                    {t(
+                      item.kind === 'ai'
+                        ? 'frameworkAiTag'
+                        : 'frameworkNodeTag',
+                    )}
+                  </span>
+                  <strong>{item.title}</strong>
+                </div>
+                <p>{item.description}</p>
+              </button>
+            ))}
+          </div>
         </figure>
       </div>
     </section>

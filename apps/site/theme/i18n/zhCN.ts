@@ -42,6 +42,24 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   executionConcurrencyRunning: '运行中',
   executionConcurrencyEnv: '独立页面与 Agent',
   executionConcurrencyQueued: '排队中',
+  executionProjectsHref: '/midscene-test/configuration',
+  executionProjectsTitle: '多 Project 跨端编排',
+  executionProjectsDesc:
+    '一份配置管理 Web、Android、iOS 与桌面套件，支持 --project 与标签筛选。',
+  executionCiHref: '/midscene-test/running#在-github-actions-中运行',
+  executionCiTitle: 'CI 与 GitHub Actions 集成',
+  executionCiDesc:
+    '官方 midscene-action 支持 PR Summary、#runner-step=last-error 失败直达链接与实时 Badge。',
+  executionAiOutputHref: '/midscene-test/running#输出与退出码',
+  executionAiOutputTitle: 'AI 可读产物与模型诊断',
+  executionAiOutputDesc:
+    '输出 summary.json 与 result.md 供脚本和 Agent 消费，内置 model verify 预检与 Token 统计。',
+  executionLifecycleShortDesc:
+    '项目、文件与用例三级钩子，失败、超时或 Ctrl+C 时仍按逆序释放浏览器与设备资源。',
+  executionRetryShortDesc:
+    '失败用例清理后自动重试，支持步骤超时、continue-on-error 与 bail 提前终止。',
+  executionConcurrencyShortDesc:
+    '通过 maxConcurrentFiles 并发跑用例，每个文件独占页面、Agent 或设备，互不干扰。',
   executionReportHref: '/midscene-test/running#输出与退出码',
   executionReportTitle: '精确到步骤的报告',
   executionReportDesc:
@@ -138,13 +156,13 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   modelCostTasks: '/ 60 项任务',
 
   // Test framework
-  frameworkHeading: 'AI 操作与业务操作\n写在同一个 YAML 里',
+  frameworkHeading: '交互操作与业务操作\n写在同一个 YAML 里',
   frameworkDesc:
-    '每个 YAML 步骤都调用一个 Node，可以是 AI 操作、平台操作或自定义业务操作。将这些 Node 组合成人和 AI 都能读写、审阅的测试用例。',
-  frameworkAiTag: 'AI',
+    '每个 YAML 步骤都调用一个 Node，可以是交互操作、平台操作或自定义业务操作。将这些 Node 组合成人和 AI 都能读写、审阅的测试用例。',
+  frameworkAiTag: '交互',
   frameworkNodeTag: '业务',
   frameworkLegendLabel: '步骤类型',
-  frameworkAiTitle: 'AI 操作',
+  frameworkAiTitle: '交互操作',
   frameworkAiDesc:
     'aiAct、aiAssert 等接口读取界面截图，按自然语言指令操作和断言。',
   frameworkNodeTitle: '业务操作',

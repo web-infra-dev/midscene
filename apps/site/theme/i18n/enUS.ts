@@ -42,6 +42,24 @@ export const EN_US = {
   executionConcurrencyRunning: 'Running',
   executionConcurrencyEnv: 'Own page + Agent',
   executionConcurrencyQueued: 'Queued',
+  executionProjectsHref: '/midscene-test/configuration',
+  executionProjectsTitle: 'Multi-project orchestration',
+  executionProjectsDesc:
+    'Run web, Android, iOS, and desktop suites from one config with --project and tag filtering.',
+  executionCiHref: '/midscene-test/running#run-in-github-actions',
+  executionCiTitle: 'CI & GitHub Actions',
+  executionCiDesc:
+    'Official midscene-action with PR summaries, #runner-step=last-error deep links, and live badges.',
+  executionAiOutputHref: '/midscene-test/running#output-and-exit-codes',
+  executionAiOutputTitle: 'AI-readable outputs & diagnostics',
+  executionAiOutputDesc:
+    'Emit summary.json and result.md for scripts and AI agents, with model verify and token tracking.',
+  executionLifecycleShortDesc:
+    'Project, file, and case hooks with reverse-order cleanup that still runs on timeout or Ctrl+C.',
+  executionRetryShortDesc:
+    'Rerun failed cases after cleanup, with step timeouts, continue-on-error, and bail.',
+  executionConcurrencyShortDesc:
+    'Run YAML files in parallel via maxConcurrentFiles, each with its own isolated page, Agent, or device.',
   executionReportHref: '/midscene-test/running#output-and-exit-codes',
   executionReportTitle: 'Step-level reports',
   executionReportDesc:
@@ -142,13 +160,13 @@ export const EN_US = {
   modelCostTasks: '/ 60 tasks',
 
   // Test framework
-  frameworkHeading: 'AI and business operations\nin one YAML file',
+  frameworkHeading: 'Interactive and business operations\nin one YAML file',
   frameworkDesc:
-    'Each YAML step calls a Node: an AI operation, a platform operation, or a custom business operation. Compose these Nodes into test cases that people and AI agents can read, write, and review.',
-  frameworkAiTag: 'AI',
+    'Each YAML step calls a Node: an interactive UI operation, a platform operation, or a custom business operation. Compose these Nodes into test cases that people and AI agents can read, write, and review.',
+  frameworkAiTag: 'Interactive',
   frameworkNodeTag: 'Business',
   frameworkLegendLabel: 'Step types',
-  frameworkAiTitle: 'AI operations',
+  frameworkAiTitle: 'Interactive operations',
   frameworkAiDesc:
     'APIs such as aiAct and aiAssert read the screen and follow natural-language instructions.',
   frameworkNodeTitle: 'Business operations',
