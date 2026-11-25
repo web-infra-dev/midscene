@@ -16,8 +16,8 @@ describe('extract', () => {
     const { uiContext } = await getContextFromFixture('todo-input-with-value');
 
     const { parseResult } = await AiExtractElementInfo({
-      taskType: 'extract',
-      dataQuery: 'Array<string>, task list, task name as string',
+      type: 'Query',
+      input: { demand: 'Array<string>, task list, task name as string' },
       uiContext,
       modelRuntime: defaultModelRuntime(),
     });
@@ -30,8 +30,8 @@ describe('extract', () => {
     const { uiContext } = await getContextFromFixture('online_order');
 
     const { parseResult } = await AiExtractElementInfo({
-      taskType: 'extract',
-      dataQuery: '{name: string, price: string}[], 饮品名称和价格',
+      type: 'Query',
+      input: { demand: '{name: string, price: string}[], 饮品名称和价格' },
       uiContext,
       modelRuntime: defaultModelRuntime(),
     });
@@ -55,9 +55,11 @@ describe('extract', () => {
     const { uiContext } = await getContextFromFixture('todo-input-with-value');
 
     const { parseResult } = await AiExtractElementInfo({
-      taskType: 'extract',
-      dataQuery:
-        '{checked: boolean; text: string;}[], Task list with checkbox ahead of the task name (checkbox is a round box), task name as string and `checked` is true if the task is completed. Exclude the fist row if there is no round checkbox ahead of the task name.',
+      type: 'Query',
+      input: {
+        demand:
+          '{checked: boolean; text: string;}[], Task list with checkbox ahead of the task name (checkbox is a round box), task name as string and `checked` is true if the task is completed. Exclude the fist row if there is no round checkbox ahead of the task name.',
+      },
       uiContext,
       modelRuntime: defaultModelRuntime(),
     });

@@ -56,10 +56,13 @@ describe('insight extraction multi-frame context', () => {
     const uiContext = withSequence(3);
 
     await AiExtractElementInfo<{ result: boolean }>({
-      taskType: 'extract',
+      type: 'Query',
       uiContext,
-      dataQuery: {
-        StatementIsTruthy: 'Boolean, whether a success toast briefly appeared',
+      input: {
+        demand: {
+          StatementIsTruthy:
+            'Boolean, whether a success toast briefly appeared',
+        },
       },
       modelRuntime: getModelRuntime(modelConfig),
     });
@@ -107,10 +110,13 @@ describe('insight extraction multi-frame context', () => {
     const uiContext = withSequence(1);
 
     await AiExtractElementInfo<{ result: boolean }>({
-      taskType: 'extract',
+      type: 'Query',
       uiContext,
-      dataQuery: {
-        StatementIsTruthy: 'Boolean, whether a success toast briefly appeared',
+      input: {
+        demand: {
+          StatementIsTruthy:
+            'Boolean, whether a success toast briefly appeared',
+        },
       },
       modelRuntime: getModelRuntime(modelConfig),
     });

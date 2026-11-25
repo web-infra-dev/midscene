@@ -56,7 +56,7 @@ describe('numeric reads while the requested value is loading', () => {
     try {
       const read = executor.createTypeQueryExecution(
         'Number',
-        'balance',
+        { demand: 'balance' },
         model,
       );
       await rs.advanceTimersByTimeAsync(2_999);
@@ -82,8 +82,13 @@ describe('numeric reads while the requested value is loading', () => {
       { Number: null, valueIsLoading: false },
     ]);
     expect(
-      (await executor.createTypeQueryExecution('Number', 'balance', model))
-        .output,
+      (
+        await executor.createTypeQueryExecution(
+          'Number',
+          { demand: 'balance' },
+          model,
+        )
+      ).output,
     ).toBe(null);
     expect(extract).toHaveBeenCalledTimes(1);
   });
@@ -91,8 +96,13 @@ describe('numeric reads while the requested value is loading', () => {
   it('keeps a visible number even if the model also returns a loading flag', async () => {
     const { executor, extract } = setup([{ Number: 0, valueIsLoading: true }]);
     expect(
-      (await executor.createTypeQueryExecution('Number', 'balance', model))
-        .output,
+      (
+        await executor.createTypeQueryExecution(
+          'Number',
+          { demand: 'balance' },
+          model,
+        )
+      ).output,
     ).toBe(0);
     expect(extract).toHaveBeenCalledTimes(1);
   });
@@ -102,7 +112,11 @@ describe('numeric reads while the requested value is loading', () => {
     rs.useFakeTimers();
     try {
       const read = expect(
-        executor.createTypeQueryExecution('Number', 'balance', model),
+        executor.createTypeQueryExecution(
+          'Number',
+          { demand: 'balance' },
+          model,
+        ),
       ).rejects.toThrow(/still loading/);
       await rs.advanceTimersByTimeAsync(14_999);
       expect(extract).toHaveBeenCalledTimes(2);
@@ -119,18 +133,18 @@ describe('numeric reads while the requested value is loading', () => {
     const uiContext = await createMockUIContext();
     const fixed = await executor.createTypeQueryExecution(
       'Number',
-      'balance',
+      { demand: 'balance' },
       model,
       {},
-      undefined,
       { uiContext },
     );
     const reference = await executor.createTypeQueryExecution(
       'Number',
-      'balance',
+      {
+        demand: 'balance',
+        images: [{ name: 'reference', url: referenceImageDataUrl }],
+      },
       model,
-      {},
-      { images: [{ name: 'reference', url: referenceImageDataUrl }] },
     );
     expect([fixed.output, reference.output]).toEqual([null, null]);
     expect(extract).toHaveBeenCalledTimes(2);
@@ -144,10 +158,9 @@ describe('numeric reads while the requested value is loading', () => {
     await expect(
       executor.createTypeQueryExecution(
         'Number',
-        'balance',
+        { demand: 'balance' },
         model,
         {},
-        undefined,
         { abortSignal: abort.signal },
       ),
     ).rejects.toThrow();

@@ -12,7 +12,7 @@ import type {
 } from '@midscene/shared/types';
 import type OpenAI from 'openai';
 import type { z } from 'zod';
-import type { TUserPrompt } from './common';
+import type { TMultimodalPrompt, TUserPrompt } from './common';
 import type { ScreenshotItem } from './screenshot-item';
 import type {
   DetailedLocateParam,
@@ -744,7 +744,7 @@ export type ExecutionTaskInsightLocate =
 /*
 task - service-query
 */
-export interface ExecutionTaskInsightQueryParam {
+export interface ExecutionTaskInsightQueryParam extends TMultimodalPrompt {
   dataDemand: ServiceExtractParam;
   domIncluded?: boolean | 'visible-only';
   context?: string;

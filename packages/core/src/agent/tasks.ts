@@ -1,6 +1,5 @@
 import { AIResponseParseError, ConversationHistory } from '@/ai-model';
 import type { ModelRuntime } from '@/ai-model/models';
-import { buildTypeQueryDemandValue } from '@/ai-model/prompt/insight';
 import {
   type PreparedUserPrompt,
   prepareReferenceImages,
@@ -41,7 +40,6 @@ import type {
   PlanningActionParamWaitFor,
   ServiceDump,
   ServiceExtractOption,
-  ServiceExtractParam,
   UIContext,
 } from '@/types';
 import { ServiceError, aiActProgressScope } from '@/types';
@@ -59,15 +57,20 @@ import {
   createAiActActionReporter,
   errorMessageForAiAct,
 } from './progress';
-import { renderAIContext } from './prompt-context';
+import { buildLocateCacheKey } from './prompt-context';
 import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
+import {
+  type InsightTaskType,
+  type QueryInput,
+  insightResultKey,
+  queryInputFromPrompt,
+} from '@/ai-model/workflows/insight/query-input';
 import { setTimingFieldOnce } from '@/task-timing';
 import { descriptionOfTree } from '@midscene/shared/extractor';
 import { type TaskTitleType, taskTitleStr } from './ui-utils';
 import { withUsageIntent } from './usage-intent';
-import { parsePrompt } from './utils';
 
 // Space fast observations across the same 15 s window as the default aiWaitFor.
 const numberObservationOffsetsMs = [0, 3_000, 15_000] as const;
@@ -509,9 +512,13 @@ export class TaskExecutor {
         task.subType === 'Locate' &&
         task.hitBy?.from === 'Cache'
       ) {
-        const prompt = (task.param as DetailedLocateParam | undefined)?.prompt;
-        if (prompt) {
-          this.taskCache.markLocateCacheStale(prompt);
+        const locateParam = task.param as DetailedLocateParam | undefined;
+        if (locateParam?.prompt) {
+          const cacheKey = buildLocateCacheKey(
+            locateParam.prompt,
+            locateParam.context,
+          );
+          this.taskCache.markLocateCacheStale(cacheKey);
         }
       }
     }
@@ -539,8 +546,7 @@ export class TaskExecutor {
   > {
     abortSignal ??= this.getAbortSignal?.();
     const conversationHistory = new ConversationHistory();
-    const promptDisplay =
-      reportOptions?.prompt || userPromptToString(userPrompt);
+    const promptTitle = reportOptions?.prompt || userPromptToString(userPrompt);
 
     // Per-call reporter that maps the runner's native task events to aiAct
     // action progress for the action batch currently running. Kept local (not
@@ -551,7 +557,7 @@ export class TaskExecutor {
       | undefined;
 
     const session = this.createExecutionSession(
-      taskTitleStr(reportOptions?.type || 'Act', promptDisplay),
+      taskTitleStr(reportOptions?.type || 'Act', promptTitle),
       {
         abortSignal,
         referenceImages: userPromptToMultimodalPrompt(userPrompt)?.images,
@@ -599,7 +605,7 @@ export class TaskExecutor {
     }
 
     await this.emitAiActProgress('start', {
-      prompt: promptDisplay,
+      prompt: promptTitle,
       planLimit: replanningCycleLimit,
     });
 
@@ -753,7 +759,7 @@ export class TaskExecutor {
               setTimingFieldOnce(timing, 'callAiStart');
               planResult = await planImpl(preparedUserPrompt, {
                 uiContext: planningUiContext,
-                actionContext: renderAIContext(aiActContext),
+                actionContext: aiActContext,
                 actionSpace,
                 modelRuntime,
                 planningAdvice,
@@ -1027,28 +1033,24 @@ export class TaskExecutor {
   }
 
   private createTypeQueryTask(
-    type: 'Query' | 'Boolean' | 'Number' | 'String' | 'Assert' | 'WaitFor',
-    demand: ServiceExtractParam,
+    type: InsightTaskType,
+    input: QueryInput,
     modelRuntime: ModelRuntime,
     opt?: ServiceExtractOption,
-    multimodalPrompt?: TMultimodalPrompt,
     executionOptions?: {
       abortSignal?: AbortSignal;
       onNumberLoading?: () => void;
     },
   ) {
+    const { demand, ...referenceOptions } = input;
     const queryTask: ExecutionTaskInsightQueryApply = {
       type: 'Insight',
       subType: type,
       param: {
         domIncluded: opt?.domIncluded,
         ...(opt?.context !== undefined ? { context: opt.context } : {}),
-        dataDemand: multimodalPrompt
-          ? ({
-              demand,
-              multimodalPrompt,
-            } as never)
-          : demand, // for user param presentation in report right sidebar
+        dataDemand: demand,
+        ...referenceOptions,
       },
       executor: async (taskContext) => {
         const { task } = taskContext;
@@ -1072,28 +1074,6 @@ export class TaskExecutor {
         const uiContext = taskContext.uiContext;
         assert(uiContext, 'uiContext is required for Query task');
 
-        const ifTypeRestricted = type !== 'Query';
-        let demandInput = demand;
-        let keyOfResult = 'result';
-        if (ifTypeRestricted && (type === 'Assert' || type === 'WaitFor')) {
-          keyOfResult = 'StatementIsTruthy';
-          demandInput = {
-            [keyOfResult]: buildTypeQueryDemandValue(type, demand),
-          };
-        } else if (executionOptions?.onNumberLoading && type === 'Number') {
-          keyOfResult = type;
-          demandInput = {
-            Number: `Number or null. Read the visible value for: ${demand}. Return null if it is not visible. Never guess or substitute an unrelated number.`,
-            valueIsLoading:
-              'Boolean. True only if the requested value is missing AND the UI shows that its content is still loading. A missing value alone or unrelated background activity does not qualify.',
-          };
-        } else if (ifTypeRestricted) {
-          keyOfResult = type;
-          demandInput = {
-            [keyOfResult]: buildTypeQueryDemandValue(type, demand),
-          };
-        }
-
         let extractResult;
 
         let extraPageDescription = '';
@@ -1110,17 +1090,16 @@ export class TaskExecutor {
 
         try {
           extractResult = await this.service.extract<any>(
-            demandInput,
+            input,
             modelRuntime,
-            type === 'Boolean' || type === 'Assert' || type === 'WaitFor'
-              ? 'boolean'
-              : 'extract',
+            type,
             opt,
             extraPageDescription,
-            multimodalPrompt,
             uiContext,
             {
-              ...executionOptions,
+              ...(executionOptions?.onNumberLoading
+                ? { checkNumberLoading: true }
+                : {}),
               abortSignal: executionOptions?.abortSignal ?? taskContext.signal,
             },
           );
@@ -1147,7 +1126,8 @@ export class TaskExecutor {
         ) {
           executionOptions.onNumberLoading();
           outputResult = null;
-        } else if (ifTypeRestricted) {
+        } else if (type !== 'Query') {
+          const keyOfResult = insightResultKey(type);
           // If AI returned a plain string instead of structured format, use it directly
           if (typeof data === 'string') {
             outputResult = data;
@@ -1188,16 +1168,16 @@ export class TaskExecutor {
     return queryTask;
   }
   async createTypeQueryExecution<T>(
-    type: 'Query' | 'Boolean' | 'Number' | 'String' | 'Assert',
-    demand: ServiceExtractParam,
+    type: Exclude<InsightTaskType, 'WaitFor'>,
+    input: QueryInput,
     modelRuntime: ModelRuntime,
     opt?: ServiceExtractOption,
-    multimodalPrompt?: TMultimodalPrompt,
     executionOptions?: {
       abortSignal?: AbortSignal;
       uiContext?: UIContext;
     },
   ): Promise<ExecutionResult<T>> {
+    const { demand } = input;
     const abortSignal =
       executionOptions?.abortSignal ?? this.getAbortSignal?.();
     abortSignal?.throwIfAborted();
@@ -1210,7 +1190,7 @@ export class TaskExecutor {
         ...(executionOptions?.uiContext
           ? { uiContext: executionOptions.uiContext }
           : {}),
-        referenceImages: multimodalPrompt?.images,
+        referenceImages: input.images,
         abortSignal,
       },
     );
@@ -1224,7 +1204,7 @@ export class TaskExecutor {
     const isLiveNumber =
       type === 'Number' &&
       !executionOptions?.uiContext &&
-      !multimodalPrompt?.images?.length;
+      !input.images?.length;
     const onNumberLoading = isLiveNumber
       ? () => {
           if (observations === numberObservationOffsetsMs.length) {
@@ -1242,10 +1222,9 @@ export class TaskExecutor {
       numberIsLoading = false;
       const queryTask = this.createTypeQueryTask(
         type,
-        demand,
+        input,
         executionModelRuntime,
         opt,
-        multimodalPrompt,
         { abortSignal, onNumberLoading },
       );
       result = await session.appendAndRun(queryTask);
@@ -1270,12 +1249,13 @@ export class TaskExecutor {
     modelRuntime: ModelRuntime,
   ): Promise<ExecutionResult<void>> {
     const abortSignal = this.getAbortSignal?.();
-    const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
+    const input = queryInputFromPrompt(assertion);
+    const textPrompt = userPromptToString(assertion);
 
     const description = `waitFor: ${textPrompt}`;
     const session = this.createExecutionSession(
       taskTitleStr('WaitFor', description),
-      { referenceImages: multimodalPrompt?.images, abortSignal },
+      { referenceImages: input.images, abortSignal },
     );
     const runner = session.getRunner();
     const executionModelRuntime = { ...modelRuntime, executionId: runner.id };
@@ -1311,10 +1291,9 @@ export class TaskExecutor {
       abortSignal?.throwIfAborted();
       const queryTask = await this.createTypeQueryTask(
         'WaitFor',
-        textPrompt,
+        input,
         executionModelRuntime,
         serviceExtractOpt,
-        multimodalPrompt,
         { abortSignal },
       );
 

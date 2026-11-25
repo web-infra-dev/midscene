@@ -53,15 +53,22 @@ describe('locate prompt order', () => {
   });
 
   it('places the prompt before the image for element locate', async () => {
-    await AiLocateElement({
+    const result = await AiLocateElement({
       uiContext: createFakeContext(),
-      targetElementDescription: 'the Submit button',
+      targetElementDescription: { prompt: 'the Submit button' },
+      context: 'Use the main panel.',
       modelRuntime,
     });
 
+    expect(result.parseResult.element?.description).toBe('the Submit button');
     expect(rs.mocked(callGenerativeAI).mock.calls[0][0]).toMatchObject([
       { role: 'system', content: expect.any(String) },
-      { role: 'user', content: expect.any(String) },
+      {
+        role: 'user',
+        content: expect.stringContaining(
+          '<CONTEXT>\nUse the main panel.\n</CONTEXT>',
+        ),
+      },
       { role: 'user', content: [{ type: 'image' }] },
     ]);
   });
@@ -70,12 +77,18 @@ describe('locate prompt order', () => {
     await AiLocateSection({
       uiContext: createFakeContext(),
       sectionDescription: 'the row containing Apollo',
+      context: 'Use the main panel.',
       modelRuntime,
     });
 
     expect(rs.mocked(callGenerativeAI).mock.calls[0][0]).toMatchObject([
       { role: 'system', content: expect.any(String) },
-      { role: 'user', content: expect.any(String) },
+      {
+        role: 'user',
+        content: expect.stringContaining(
+          '<CONTEXT>\nUse the main panel.\n</CONTEXT>\n\n<LOCATE_TARGET>\nthe row containing Apollo\n</LOCATE_TARGET>',
+        ),
+      },
       { role: 'user', content: [{ type: 'image' }] },
     ]);
   });

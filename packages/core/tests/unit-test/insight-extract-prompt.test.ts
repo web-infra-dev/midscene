@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { extractInsightParam } from '@/agent/ui-utils';
 import { getModelRuntime } from '@/ai-model/models';
+import Service from '@/service';
 import type { ServiceExtractParam } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
@@ -52,6 +54,74 @@ describe('insight extraction prompt assembly', () => {
     } as any);
   });
 
+  it('keeps the original assertion for the report and builds the boolean demand at extraction', async () => {
+    const uiContext = createFakeContext();
+    const service = new Service(uiContext);
+    const runtime = getModelRuntime(modelConfig);
+    const booleanFn = rs
+      .fn()
+      .mockResolvedValue({ value: true, rawResponse: 'true' });
+    const modelRuntime = {
+      ...runtime,
+      adapter: {
+        ...runtime.adapter,
+        insight: { ...runtime.adapter.insight, booleanFn },
+      },
+    };
+    const input = {
+      demand: 'The logo matches',
+      images: [{ name: 'logo', url: './logo.png' }],
+      convertHttpImage2Base64: false,
+    };
+    const result = await service.extract(
+      input,
+      modelRuntime,
+      'Assert',
+      { context: 'Header only' },
+      undefined,
+      uiContext,
+    );
+    expect(booleanFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: {
+          ...input,
+          demand: {
+            StatementIsTruthy: expect.stringContaining(
+              'whether the following statement is true: The logo matches',
+            ),
+          },
+        },
+        extractOption: { context: 'Header only' },
+      }),
+    );
+    expect(result.dump.userQuery.dataDemand).toBe('The logo matches');
+    expect(result.data).toEqual({ StatementIsTruthy: true });
+  });
+
+  it.each([true, false])(
+    'requests a loading signal only for tracked numeric reads (%s)',
+    async (checkNumberLoading) => {
+      await AiExtractElementInfo({
+        type: 'Number',
+        input: { demand: 'account balance' },
+        checkNumberLoading,
+        uiContext: createFakeContext(),
+        modelRuntime: getModelRuntime(modelConfig),
+      });
+      const user = rs.mocked(callGenerativeAI).mock.calls[0]?.[0]?.[1];
+      const rendered = JSON.stringify(user);
+      expect(rendered).toContain('account balance');
+      expect(rendered.includes('valueIsLoading')).toBe(checkNumberLoading);
+    },
+  );
+
+  it('displays the whole structured query even when its fields are named demand and images', () => {
+    const dataDemand = { demand: 'Order title', images: 'Image count' };
+    expect(extractInsightParam({ dataDemand }).content).toBe(
+      JSON.stringify(dataDemand),
+    );
+  });
+
   it.each<ServiceExtractParam>([
     'Read the page title',
     { title: 'Page title' },
@@ -71,9 +141,9 @@ describe('insight extraction prompt assembly', () => {
         },
       };
       await AiExtractElementInfo({
-        taskType: 'extract',
+        type: 'Query',
         uiContext: createFakeContext(),
-        dataQuery,
+        input: { demand: dataQuery },
         modelRuntime,
       });
       expect(booleanFn).not.toHaveBeenCalled();
@@ -81,9 +151,13 @@ describe('insight extraction prompt assembly', () => {
     },
   );
 
-  it.each(['Boolean', 'StatementIsTruthy', 'customResult'])(
-    'uses the boolean adapter for %s queries',
-    async (key) => {
+  it.each([
+    { type: 'Boolean', key: 'Boolean' },
+    { type: 'Assert', key: 'StatementIsTruthy' },
+    { type: 'WaitFor', key: 'StatementIsTruthy' },
+  ] as const)(
+    'uses the boolean adapter for $type tasks',
+    async ({ type, key }) => {
       const runtime = getModelRuntime(modelConfig);
       const booleanFn = rs
         .fn()
@@ -97,8 +171,8 @@ describe('insight extraction prompt assembly', () => {
       };
       const result = await AiExtractElementInfo({
         uiContext: createFakeContext(),
-        taskType: 'boolean',
-        dataQuery: { [key]: 'Is the page ready?' },
+        type,
+        input: { demand: 'Is the page ready?' },
         modelRuntime,
       });
       expect(result.parseResult.data).toEqual({ [key]: true });
@@ -108,16 +182,13 @@ describe('insight extraction prompt assembly', () => {
   );
 
   it('marks the current screenshot as primary and reference images as supporting context', async () => {
-    const uiContext = createFakeContext();
+    const context = createFakeContext();
 
     const result = await AiExtractElementInfo<{ result: boolean }>({
-      taskType: 'extract',
-      uiContext,
-      dataQuery: {
-        StatementIsTruthy:
-          'Boolean, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, whether the following statement is true: 有点赞按钮',
-      },
-      multimodalPrompt: {
+      type: 'Assert',
+      uiContext: context,
+      input: {
+        demand: '有点赞按钮',
         images: [
           {
             name: 'like-button',
@@ -126,6 +197,7 @@ describe('insight extraction prompt assembly', () => {
         ],
         convertHttpImage2Base64: true,
       },
+
       modelRuntime: getModelRuntime(modelConfig),
     });
 
@@ -164,7 +236,9 @@ describe('insight extraction prompt assembly', () => {
         }),
         expect.objectContaining({
           type: 'text',
-          text: expect.stringContaining('<DATA_DEMAND>'),
+          text: expect.stringContaining(
+            'whether the following statement is true: 有点赞按钮',
+          ),
         }),
       ]),
     });
@@ -203,10 +277,12 @@ describe('insight extraction prompt assembly', () => {
     const abortController = new AbortController();
 
     await AiExtractElementInfo<{ result: boolean }>({
-      taskType: 'extract',
+      type: 'Query',
       uiContext: createFakeContext(),
-      dataQuery: {
-        StatementIsTruthy: 'Boolean, whether the success toast is visible',
+      input: {
+        demand: {
+          StatementIsTruthy: 'Boolean, whether the success toast is visible',
+        },
       },
       modelRuntime: getModelRuntime(modelConfig),
       abortSignal: abortController.signal,
@@ -220,10 +296,12 @@ describe('insight extraction prompt assembly', () => {
 
   it('renders the selected context as one model prompt block', async () => {
     await AiExtractElementInfo<{ result: boolean }>({
-      taskType: 'extract',
+      type: 'Query',
       uiContext: createFakeContext(),
-      dataQuery: {
-        StatementIsTruthy: 'Boolean, whether the success toast is visible',
+      input: {
+        demand: {
+          StatementIsTruthy: 'Boolean, whether the success toast is visible',
+        },
       },
       extractOption: {
         context: 'Only consider visible UI state.',
@@ -261,10 +339,12 @@ describe('insight extraction prompt assembly', () => {
       } as any);
 
     const result = await AiExtractElementInfo<{ result: boolean }>({
-      taskType: 'extract',
+      type: 'Query',
       uiContext: createFakeContext(),
-      dataQuery: {
-        StatementIsTruthy: 'Boolean, whether the success toast is visible',
+      input: {
+        demand: {
+          StatementIsTruthy: 'Boolean, whether the success toast is visible',
+        },
       },
       modelRuntime: getModelRuntime(modelConfig),
     });

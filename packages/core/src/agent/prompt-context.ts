@@ -12,46 +12,61 @@ export const renderAIContext = (
   return context === undefined ? undefined : '';
 };
 
-export const buildPromptWithContext = (
+// These tags, whitespace, and trimming rules are part of persisted cache keys.
+// Preserve them for historical cache matching; do not reuse model prompt renderers,
+// whose formatting may change independently.
+export const buildPlanningCacheKey = (
   prompt: TUserPrompt,
   context: string | undefined,
 ): TUserPrompt => {
-  const renderedContext = renderAIContext(context);
-  if (!renderedContext) {
+  const trimmedContext = context?.trim();
+  if (!trimmedContext) {
     return prompt;
   }
 
   const promptText = typeof prompt === 'string' ? prompt : prompt.prompt;
-  const promptWithContext = `${renderedContext}\n\n${promptText}`;
+  const cacheText = `<CONTEXT>\n${trimmedContext}\n</CONTEXT>\n\n${promptText}`;
 
   if (typeof prompt === 'string') {
-    return promptWithContext;
+    return cacheText;
   }
 
   return {
     ...prompt,
-    prompt: promptWithContext,
+    prompt: cacheText,
   };
 };
 
-export const buildLocatePromptWithContext = (
+// Tags, whitespace, trimming, and string/object distinctions affect historical
+// cache matching. Preserve this format independently of model prompt templates.
+export function buildLocateCacheKey(
   prompt: TUserPrompt,
   context: string | undefined,
-): TUserPrompt => {
-  const renderedContext = renderAIContext(context);
-  if (!renderedContext) {
+): TUserPrompt {
+  if (!prompt || !context) {
     return prompt;
   }
+  const trimmedContext = context.trim();
+  const text = typeof prompt === 'string' ? prompt : prompt.prompt;
+  const cacheText = trimmedContext
+    ? `<CONTEXT>\n${trimmedContext}\n</CONTEXT>\n\n<LOCATE_TARGET>\n${text}\n</LOCATE_TARGET>`
+    : text;
+  return typeof prompt === 'string'
+    ? cacheText
+    : { ...prompt, prompt: cacheText };
+}
 
-  const promptText = typeof prompt === 'string' ? prompt : prompt.prompt;
-  const promptWithContext = `${renderedContext}\n\n<LOCATE_TARGET>\n${promptText}\n</LOCATE_TARGET>`;
+function renderLocateText(text: string, context: string | undefined): string {
+  const rendered = renderAIContext(context);
+  return rendered
+    ? `${rendered}\n\n<LOCATE_TARGET>\n${text}\n</LOCATE_TARGET>`
+    : text;
+}
 
-  if (typeof prompt === 'string') {
-    return promptWithContext;
-  }
-
-  return {
-    ...prompt,
-    prompt: promptWithContext,
-  };
-};
+export function buildLocatePromptWithContext(
+  prompt: TUserPrompt,
+  context: string | undefined,
+): Exclude<TUserPrompt, string> {
+  const input = typeof prompt === 'string' ? { prompt } : prompt;
+  return { ...input, prompt: renderLocateText(input.prompt, context) };
+}

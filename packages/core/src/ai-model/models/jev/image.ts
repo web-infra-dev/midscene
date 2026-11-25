@@ -1,9 +1,10 @@
 import { Buffer } from 'node:buffer';
+import type { TMultimodalPrompt } from '@/common';
 import { parseBase64, preProcessImageUrl } from '@midscene/shared/img';
 import { assert } from '@midscene/shared/utils';
 import { createLocateResultCodec } from '../../shared/model-locate-result';
 import type { PixelLocateResult } from '../../shared/model-locate-result';
-import { prepareUserPrompt } from '../../shared/multimodal-prompt';
+import { prepareReferenceImages } from '../../shared/multimodal-prompt';
 
 export async function prepareJevImage(url: string) {
   const base64 = await preProcessImageUrl(url, true);
@@ -32,10 +33,8 @@ export function mapJevBox(
   });
 }
 
-export async function prepareReferences(
-  prompt: Parameters<typeof prepareUserPrompt>[0],
-) {
-  const { referenceImages } = await prepareUserPrompt(prompt);
+export async function prepareJevReferences(prompt?: TMultimodalPrompt) {
+  const referenceImages = await prepareReferenceImages(prompt);
   const prepared = await Promise.all(
     referenceImages.map(async (image, index) => ({
       key: `reference_${index}`,

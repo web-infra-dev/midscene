@@ -40,8 +40,6 @@ export interface ServiceExtractOption {
 export interface DetailedLocateParam
   extends Omit<LocateOption, 'context' | 'deepThink'> {
   prompt: TUserPrompt;
-  /** Original prompt text used for user-facing reports. */
-  promptDisplay?: string;
   /** Per-call AI guidance recorded in user-facing reports. */
   context?: string;
 }
