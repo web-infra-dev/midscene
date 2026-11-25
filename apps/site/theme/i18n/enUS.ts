@@ -53,6 +53,21 @@ export const EN_US = {
   executionReportError: 'Error',
   executionReportMachine: 'For scripts and AI agents',
 
+  // Report replay schematic
+  reportReplayCase: 'Find headphones under $100',
+  reportReplayActShort: 'Search for headphones',
+  reportReplayWaitShort: 'Filtered results visible',
+  reportReplayAssertShort: 'Each item costs < $100',
+  reportReplayPrompt: 'Type "headphones" in the search box and click Search',
+  reportReplayQuery: 'headphones',
+  reportReplayIdle: 'Ready to search',
+  reportReplayFiltered: 'Showing 1 matching product',
+  reportReplayPageTitle: 'Midscene Shop',
+  reportReplayPlaceholder: 'Search products',
+  reportReplaySearchBtn: 'Search',
+  reportReplayItemName: 'Wireless Headphones',
+  reportReplayAddCart: 'Add to cart',
+
   // Banner - Title
   heroTitle:
     'Use the UI like a user\nVision-driven E2E testing in natural language',
@@ -90,10 +105,10 @@ export const EN_US = {
   platformDesktop: 'Desktop',
   platformsApiLabel: 'Same API',
   platformsApiPrompt: 'Search for headphones',
-  visionStepObserve: 'Observe',
-  visionStepObserveDesc: 'Read screenshots, not the DOM',
-  visionStepAct: 'Act',
-  visionStepActDesc: 'Find the target, then tap, type, or scroll',
+  visionStepObserve: 'Plan',
+  visionStepObserveDesc: 'Read screenshots and decide the next step',
+  visionStepAct: 'Locate & Act',
+  visionStepActDesc: 'Locate targets on screen and perform the UI action',
   visionStepVerify: 'Verify',
   visionStepVerifyDesc: 'Assert on what users actually see',
   visionShowcaseLink: 'See real-world examples',

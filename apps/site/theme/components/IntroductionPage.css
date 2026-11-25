@@ -151,13 +151,30 @@
 
 .agent-vision-intro {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: center;
-  gap: 32px;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid var(--vision-border, rgb(16 24 40 / 10%));
+  border-radius: 10px;
+  background: var(--vision-surface, #fff);
 }
 
 .agent-vision-intro > div {
   min-width: 0;
+}
+
+.agent-vision-intro > div:last-child {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  border-left: 1px solid var(--vision-border, rgb(16 24 40 / 10%));
+  background-color: var(--vision-canvas, #fbfbfb);
+  background-image: radial-gradient(
+    var(--vision-dot, rgb(16 24 40 / 7%)) 1px,
+    transparent 1px
+  );
+  background-size: 16px 16px;
 }
 
 .agent-vision-intro > div > p:first-child {
@@ -168,25 +185,15 @@
   margin-bottom: 0;
 }
 
-.agent-vision-demo__video {
-  display: block;
-  width: 100%;
-  border-radius: 12px;
-}
-
-.agent-vision-demo__video--dark,
-.dark .agent-vision-demo__video--light {
-  display: none;
-}
-
-.dark .agent-vision-demo__video--dark {
-  display: block;
-}
-
 @container (max-width: 640px) {
   .agent-vision-intro {
     grid-template-columns: minmax(0, 1fr);
-    gap: 24px;
+  }
+
+  .agent-vision-intro > div:last-child {
+    padding: 16px;
+    border-left: none;
+    border-top: 1px solid var(--vision-border, rgb(16 24 40 / 10%));
   }
 }
 

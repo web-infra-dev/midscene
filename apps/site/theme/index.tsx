@@ -26,6 +26,7 @@ export {
 export { TestExecution } from './components/TestExecution';
 export { TestFramework } from './components/TestFramework';
 export { TestProject } from './components/TestProject';
+export { TestReportReplay } from './components/TestReportReplay';
 export { WhoIsUsing } from './components/WhoIsUsing';
 export { CTAButtons } from './components/CTAButtons';
 
