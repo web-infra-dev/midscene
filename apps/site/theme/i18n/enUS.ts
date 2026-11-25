@@ -10,7 +10,7 @@ export const EN_US = {
   frameworkChapterDesc:
     'Midscene Test is designed from the ground up for natural-language E2E testing. Write actions and assertions in YAML, extend test steps with TypeScript Nodes, and manage setup, cleanup, retries, and execution reports within one framework.',
   exampleDesc:
-    'No selectors or DOM queries — describe what a user wants to do and what they should see. Express the same intent in YAML or in your existing JavaScript tests.',
+    'Describe what a user wants to do and what they should see. Express the same intent in YAML or in your existing JavaScript tests.',
   agentIntegrationDesc:
     'Use the GUI Agent directly without adopting Midscene Test. Connect it to your workflow through APIs, Playwright, Puppeteer, or Skills.',
   executionEyebrow: 'TEST EXECUTION',

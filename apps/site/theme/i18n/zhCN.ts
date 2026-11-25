@@ -11,7 +11,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   frameworkChapterDesc:
     'Midscene Test 是为自然语言 E2E 测试全新设计的框架。在 YAML 中用自然语言描述操作与断言，通过 TypeScript Node 扩展测试步骤，并由框架统一管理数据准备、清理、重试与执行报告。',
   exampleDesc:
-    '不写选择器，不关心 DOM 结构——按用户的操作意图写步骤，按用户看到的结果写预期。同一个测试意图，可以用 YAML 表达，也可以接入现有 JavaScript 测试。',
+    '按用户的操作意图写步骤，按用户看到的结果写预期。同一个测试意图，可以用 YAML 表达，也可以接入现有 JavaScript 测试。',
   agentIntegrationDesc:
     '可以直接使用 GUI Agent，无需采用 Midscene Test。通过 API、Playwright、Puppeteer 或 Skills 接入你的工作流。',
   executionEyebrow: '执行管理',

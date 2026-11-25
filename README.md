@@ -18,13 +18,13 @@
 
 ## Why vision-driven E2E
 
-E2E testing should verify the interface, not its code structure. Selector-based tests break whenever implementation changes, and they cannot tell whether a user can actually understand and use the interface, or whether the UI conveys the right information.
+E2E testing should verify the interface, not its code structure. Tests tied to DOM trees and selectors are inherently fragile — and even more importantly, they cannot tell whether a user can actually understand and use the interface, or whether the UI conveys the right information.
 
-In the AI-native era, vision models give us the ability to test closer to the essence of E2E — looking at the screen to act and judge like a user. With accuracy and cost now in balance, tests no longer need to stay coupled to underlying code.
+In the AI-native era, vision models give us the ability to test closer to the essence of E2E — looking at the screen to act and judge like a user. With accuracy and cost now in balance, E2E testing is ready for its next stage.
 
-## Write a test without selectors
+## Write a test in natural language
 
-Describe what a user wants to do and what they should see — with no DOM selectors or view-tree queries. You can organize tests in YAML with **Midscene Test**, or add the **GUI Agent** directly to your existing test suite.
+Describe what a user wants to do and what they should see. You can organize tests in YAML with **Midscene Test**, or add the **GUI Agent** directly to your existing test suite.
 
 ### YAML test cases with Midscene Test
 
