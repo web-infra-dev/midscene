@@ -147,11 +147,21 @@ describe('TaskExecutor - Null Data Handling', () => {
         { valueIsLoading: true },
         { Number: 0, valueIsLoading: false },
       ]);
-      const result = await executor.createTypeQueryExecution(
-        'Number',
-        'balance',
-        model,
-      );
+      rs.useFakeTimers();
+      let result;
+      try {
+        const read = executor.createTypeQueryExecution(
+          'Number',
+          'balance',
+          model,
+        );
+        await rs.advanceTimersByTimeAsync(2_999);
+        expect(extract).toHaveBeenCalledTimes(1);
+        await rs.advanceTimersByTimeAsync(1);
+        result = await read;
+      } finally {
+        rs.useRealTimers();
+      }
       expect(result.output).toBe(0);
       expect(extract).toHaveBeenCalledTimes(2);
       expect(
@@ -185,12 +195,21 @@ describe('TaskExecutor - Null Data Handling', () => {
       expect(extract).toHaveBeenCalledTimes(1);
     });
 
-    it('stops after three pending observations', async () => {
+    it('samples a fast model across the patience window and stops on the third pending observation', async () => {
       const { executor, extract } = setup([pending, pending, pending]);
-      await expect(
-        executor.createTypeQueryExecution('Number', 'balance', model),
-      ).rejects.toThrow(/still loading/);
-      expect(extract).toHaveBeenCalledTimes(3);
+      rs.useFakeTimers();
+      try {
+        const read = expect(
+          executor.createTypeQueryExecution('Number', 'balance', model),
+        ).rejects.toThrow(/still loading/);
+        await rs.advanceTimersByTimeAsync(14_999);
+        expect(extract).toHaveBeenCalledTimes(2);
+        await rs.advanceTimersByTimeAsync(1);
+        await read;
+        expect(extract).toHaveBeenCalledTimes(3);
+      } finally {
+        rs.useRealTimers();
+      }
     });
 
     it('does not poll a saved observation or a reference-image query', async () => {

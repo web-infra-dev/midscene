@@ -69,7 +69,8 @@ import { type TaskTitleType, taskTitleStr } from './ui-utils';
 import { withUsageIntent } from './usage-intent';
 import { parsePrompt } from './utils';
 
-const maxNumberObservations = 3;
+// Space fast observations across the same 15 s window as the default aiWaitFor.
+const numberObservationOffsetsMs = [0, 3_000, 15_000] as const;
 
 interface ExecutionResult<OutputType = any> {
   output: OutputType;
@@ -1218,6 +1219,7 @@ export class TaskExecutor {
     const executionModelRuntime = { ...modelRuntime, executionId: runner.id };
     let numberIsLoading = false;
     let observations = 0;
+    const started = Date.now();
     // A saved observation or reference image cannot become ready on a later read.
     const isLiveNumber =
       type === 'Number' &&
@@ -1225,7 +1227,7 @@ export class TaskExecutor {
       !multimodalPrompt?.images?.length;
     const onNumberLoading = isLiveNumber
       ? () => {
-          if (observations === maxNumberObservations) {
+          if (observations === numberObservationOffsetsMs.length) {
             throw new Error(
               'The requested number is still loading after three observations.',
             );
@@ -1247,6 +1249,12 @@ export class TaskExecutor {
         { abortSignal, onNumberLoading },
       );
       result = await session.appendAndRun(queryTask);
+      if (numberIsLoading) {
+        const delayMs =
+          started + numberObservationOffsetsMs[observations] - Date.now();
+        if (delayMs > 0)
+          await defineActionSleep(abortSignal).call({ timeMs: delayMs });
+      }
     } while (numberIsLoading);
     if (!result) {
       throw new Error(
