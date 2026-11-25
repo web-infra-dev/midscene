@@ -11,6 +11,7 @@ import type { ConversationHistory } from './conversation-history';
 export interface PlanOptions {
   uiContext: UIContext;
   actionSpace: DeviceAction<any>[];
+  /** Raw supplemental user context; rendered when assembling model messages. */
   actionContext?: string;
   /** Advisory guidance from a previous planner, not a user instruction. */
   planningAdvice?: string;

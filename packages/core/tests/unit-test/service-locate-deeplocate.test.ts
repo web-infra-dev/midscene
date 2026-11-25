@@ -81,6 +81,27 @@ describe('service.locate deepLocate routing', () => {
     });
   });
 
+  it('passes the original prompt and context to element locate', async () => {
+    const service = new Service(createFakeContext());
+    const prompt = {
+      prompt: 'target',
+      images: [{ name: 'reference', url: 'https://example.com/ref.png' }],
+      convertHttpImage2Base64: true,
+    };
+    await service.locate(
+      { prompt, context: '  Use the main panel.  ' },
+      {},
+      modelRuntime,
+    );
+    expect(AiLocateElement).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetElementDescription: prompt,
+        context: '  Use the main panel.  ',
+      }),
+    );
+    expect(prompt.prompt).toBe('target');
+  });
+
   it('uses planLocatedElement and skips first-pass locate when provided', async () => {
     const service = new Service(createFakeContext());
     const planLocatedElement = {
@@ -159,7 +180,7 @@ describe('service.locate deepLocate routing', () => {
     const service = new Service(createFakeContext());
 
     await service.locate(
-      { prompt: 'target', deepLocate: true },
+      { prompt: 'target', context: 'Use the main panel.', deepLocate: true },
       {},
       modelRuntime,
     );
@@ -167,6 +188,7 @@ describe('service.locate deepLocate routing', () => {
     expect(AiLocateSection).toHaveBeenCalledWith(
       expect.objectContaining({
         sectionDescription: 'target',
+        context: 'Use the main panel.',
       }),
     );
     expect(AiLocateElement).toHaveBeenCalledTimes(1);

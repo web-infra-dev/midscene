@@ -76,31 +76,36 @@ describe('ChromeExtensionProxyPage cache methods', () => {
       expect(result).toEqual({ xpaths: [] });
     });
 
-    it('should call AiJudgeOrderSensitive when targetDescription and modelRuntime are provided', async () => {
-      const mockXpaths = ['/html/body/div[1]'];
-      rs.spyOn(page, 'getXpathsByPoint').mockResolvedValue(mockXpaths);
-      rs.mocked(AiJudgeOrderSensitive).mockResolvedValue({
-        isOrderSensitive: true,
-      });
+    it.each([undefined, '选择列表第二项'])(
+      'forwards context %s to the order judge',
+      async (context) => {
+        const mockXpaths = ['/html/body/div[1]'];
+        rs.spyOn(page, 'getXpathsByPoint').mockResolvedValue(mockXpaths);
+        rs.mocked(AiJudgeOrderSensitive).mockResolvedValue({
+          isOrderSensitive: true,
+        });
 
-      const modelRuntime = {
-        config: { modelName: 'test-model' },
-        adapter: {},
-      } as any;
-      await page.cacheFeatureForPoint([100, 200], {
-        targetDescription: 'Click the submit button',
-        modelRuntime,
-      });
+        const modelRuntime = {
+          config: { modelName: 'test-model' },
+          adapter: {},
+        } as any;
+        await page.cacheFeatureForPoint([100, 200], {
+          targetDescription: 'Click the submit button',
+          modelRuntime,
+          context,
+        });
 
-      expect(AiJudgeOrderSensitive).toHaveBeenCalledWith(
-        'Click the submit button',
-        modelRuntime,
-      );
-      expect(page.getXpathsByPoint).toHaveBeenCalledWith(
-        { left: 100, top: 200 },
-        true,
-      );
-    });
+        expect(AiJudgeOrderSensitive).toHaveBeenCalledWith(
+          'Click the submit button',
+          modelRuntime,
+          context,
+        );
+        expect(page.getXpathsByPoint).toHaveBeenCalledWith(
+          { left: 100, top: 200 },
+          true,
+        );
+      },
+    );
 
     it('should fall back to isOrderSensitive=false when AiJudgeOrderSensitive fails', async () => {
       const mockXpaths = ['/html/body/div[1]'];

@@ -219,6 +219,7 @@ export abstract class AbstractInterface {
     center: [number, number],
     options?: {
       targetDescription?: string;
+      context?: string;
       modelRuntime?: ModelRuntime;
     },
   ): Promise<ElementCacheFeature>;

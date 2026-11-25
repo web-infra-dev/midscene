@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { PixelLocateResult } from '@/ai-model/shared/model-locate-result';
-import type { TMultimodalPrompt, TUserPrompt } from '@/common';
+import { type TUserPrompt, userPromptToString } from '@/common';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type {
@@ -309,7 +309,7 @@ export async function matchElementFromCache(
     interfaceInstance: AbstractInterface;
   },
   cacheEntry: ElementCacheFeature | undefined,
-  cachePrompt: TUserPrompt,
+  prompt: TUserPrompt,
 ): Promise<LocateResultElement | undefined> {
   if (!cacheEntry) {
     return undefined;
@@ -332,13 +332,10 @@ export async function matchElementFromCache(
     const element: LocateResultElement = {
       center: [rect.left + rect.width / 2, rect.top + rect.height / 2],
       rect,
-      description:
-        typeof cachePrompt === 'string'
-          ? cachePrompt
-          : cachePrompt.prompt || '',
+      description: userPromptToString(prompt),
     };
 
-    cacheDebug('cache hit, prompt: %s', cachePrompt);
+    cacheDebug('cache hit, prompt: %s', prompt);
     return element;
   } catch (error) {
     cacheDebug('rectMatchesCacheFeature error: %s', error);
@@ -358,29 +355,6 @@ export const getMidsceneVersion = (): string => {
     return process.env.__VERSION__;
   }
   throw new Error('__VERSION__ inject failed during build');
-};
-
-export const parsePrompt = (
-  prompt: TUserPrompt,
-): {
-  textPrompt: string;
-  multimodalPrompt?: TMultimodalPrompt;
-} => {
-  if (typeof prompt === 'string') {
-    return {
-      textPrompt: prompt,
-      multimodalPrompt: undefined,
-    };
-  }
-  return {
-    textPrompt: prompt.prompt,
-    multimodalPrompt: prompt.images
-      ? {
-          images: prompt.images,
-          convertHttpImage2Base64: !!prompt.convertHttpImage2Base64,
-        }
-      : undefined,
-  };
 };
 
 export const transformLogicalElementToScreenshot = (

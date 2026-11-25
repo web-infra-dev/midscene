@@ -291,15 +291,12 @@ describe('utils', () => {
 });
 
 describe('buildDetailedLocateParam', () => {
-  it('adds per-call context to the locate prompt', () => {
+  it('preserves per-call context separately from the locate prompt', () => {
     const result = buildDetailedLocateParam('Click the checkout button', {
       context: 'The current user is a wholesale customer.',
     });
 
-    expect(result?.prompt).toBe(
-      '<CONTEXT>\nThe current user is a wholesale customer.\n</CONTEXT>\n\n<LOCATE_TARGET>\nClick the checkout button\n</LOCATE_TARGET>',
-    );
-    expect(result?.promptDisplay).toBe('Click the checkout button');
+    expect(result?.prompt).toBe('Click the checkout button');
     expect(result?.context).toBe('The current user is a wholesale customer.');
     expect(locateParamStr(result)).toBe('Click the checkout button');
   });
@@ -348,7 +345,8 @@ describe('buildDetailedLocateParamAndRestParams', () => {
       },
     );
 
-    expect(result.locateParam?.prompt).toContain(
+    expect(result.locateParam?.prompt).toBe('Click the checkout button');
+    expect(result.locateParam?.context).toBe(
       'The current user is a wholesale customer.',
     );
     expect(result.restParams).not.toHaveProperty('context');

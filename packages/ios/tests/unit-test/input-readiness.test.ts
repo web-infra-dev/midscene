@@ -1,13 +1,5 @@
 import { WebDriverRequestError } from '@midscene/webdriver';
-import {
-  type MockInstance,
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  rs,
-} from '@rstest/core';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { IOSAgent } from '../../src/agent';
 import { IOSDevice } from '../../src/device';
 import { InputFocusUnavailableError } from '../../src/input-focus';
@@ -20,7 +12,7 @@ const noFocus = () =>
 
 describe('iOS input focus readiness', () => {
   let client: IOSWebDriverClient;
-  let request: MockInstance<IOSWebDriverClient['makeRequest']>;
+  let request: ReturnType<typeof rs.spyOn>;
 
   beforeEach(() => {
     client = new IOSWebDriverClient({ host: 'localhost', port: 8100 });
@@ -37,7 +29,9 @@ describe('iOS input focus readiness', () => {
       .mockResolvedValueOnce({ value: [] })
       .mockResolvedValueOnce({ value: [{ ELEMENT: 'switcher' }] });
     expect(await client.isKeyboardVisible()).toBe(true);
-    expect(request.mock.calls[1][2].value).toContain('下一个键盘');
+    expect(request.mock.calls[1][2]).toEqual(
+      expect.objectContaining({ value: expect.stringContaining('下一个键盘') }),
+    );
   });
 
   it.each(['closed menu', 'paste only', 'unidentified field'] as const)(
@@ -118,7 +112,17 @@ describe('iOS input focus readiness', () => {
         .mockResolvedValueOnce({ value: null }) // Open menu
         .mockResolvedValueOnce({ value: [] }) // First poll
         .mockImplementationOnce(async (_method, _path, _body, options) => {
-          const timeout = options?.timeout;
+          if (
+            typeof options !== 'object' ||
+            options === null ||
+            !('timeout' in options) ||
+            typeof options.timeout !== 'number'
+          ) {
+            throw new Error(
+              'Menu poll requests must include a numeric timeout',
+            );
+          }
+          const { timeout } = options;
           expect(timeout).toBe(1100);
           await new Promise((resolve) => setTimeout(resolve, timeout));
           throw new WebDriverRequestError(`Request timeout after ${timeout}ms`);
@@ -170,11 +174,11 @@ describe('iOS input focus readiness', () => {
       .mockResolvedValueOnce({ value: [{ ELEMENT: 'select-all' }] })
       .mockResolvedValueOnce({ value: null });
     expect(await client.selectAllFromMenu('field')).toBe(true);
-    expect(request.mock.calls.map((call) => call[3]?.timeout)).toEqual([
-      1200,
+    expect(request.mock.calls.map((call) => call[3])).toEqual([
+      expect.objectContaining({ timeout: 1200 }),
       undefined,
-      950,
-      500,
+      expect.objectContaining({ timeout: 950 }),
+      expect.objectContaining({ timeout: 500 }),
       undefined,
     ]);
   });

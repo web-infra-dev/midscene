@@ -103,9 +103,7 @@ describe('LongPress Action', () => {
           cacheable: true,
           context: '文章位于首页的信息流中',
           deepLocate: true,
-          prompt:
-            '<CONTEXT>\n文章位于首页的信息流中\n</CONTEXT>\n\n<LOCATE_TARGET>\n首页任意一篇文章\n</LOCATE_TARGET>',
-          promptDisplay: '首页任意一篇文章',
+          prompt: '首页任意一篇文章',
           xpath: undefined,
         },
       });

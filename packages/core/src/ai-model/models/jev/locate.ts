@@ -1,9 +1,9 @@
-import { userPromptToString } from '@/common';
+import { userPromptToMultimodalPrompt, userPromptToString } from '@/common';
 import { assert } from '@midscene/shared/utils';
 import { callSystemOneAI } from '../../service-caller';
 import { systemOneResponseSchema } from '../../service-caller/system-one/schema';
 import type { LocateFn } from '../../workflows/grounding/types';
-import { mapJevBox, prepareJevImage, prepareReferences } from './image';
+import { mapJevBox, prepareJevImage, prepareJevReferences } from './image';
 
 export const jevLocate: LocateFn = async ({
   targetElementDescription,
@@ -11,7 +11,9 @@ export const jevLocate: LocateFn = async ({
   options,
 }) => {
   const image = await prepareJevImage(locateImage.imageBase64);
-  const references = await prepareReferences(targetElementDescription);
+  const references = await prepareJevReferences(
+    userPromptToMultimodalPrompt(targetElementDescription),
+  );
   const target = userPromptToString(targetElementDescription);
   const response = await callSystemOneAI(
     {
