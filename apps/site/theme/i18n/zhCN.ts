@@ -55,8 +55,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Banner - Title
   heroTitle: '像用户一样使用界面\n视觉驱动的自然语言 E2E 测试',
-  heroSubtitle:
-    'Midscene.js 提供基于视觉的 GUI Agent 和自然语言 E2E 测试框架，支持 Web、移动端和桌面应用。',
+  heroSubtitle: '面向 Web、移动端和桌面应用的 GUI Agent 与 E2E 测试框架。',
 
   openSource: '完全开源',
 
