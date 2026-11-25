@@ -1,127 +1,53 @@
-name: AI unit test
+name: Compare fresh Ark connections on Linux
 on:
-  push:
-    branches:
-      - main
-  pull_request:
   workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Branch to checkout'
-        required: false
-        default: 'main'
-        type: string
-
 permissions:
   contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
 jobs:
-  changes:
-    uses: ./.github/workflows/ci-changes.yml
-
-  ai-tests:
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
-    env:
-      MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
-      MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
-      MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
-      MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
-      MIDSCENE_MODEL_RETRY_COUNT: "2"
-      MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
-      MIDSCENE_REPORT_QUIET: "true"
-      # DEBUG: midscene:* # Disabled to prevent log overflow
-      CI: 1
-
-    steps:
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      with:
-        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.sha }}
-
-    - name: Setup Node.js and pnpm
-      uses: ./.github/actions/setup-node-pnpm
-
-    - name: Cache pnpm store
-      id: pnpm-cache
-      uses: ./.github/actions/pnpm-cache/restore
-
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile --ignore-scripts
-
-    - name: Save pnpm store
-      if: steps.pnpm-cache.outputs.cache-hit != 'true'
-      uses: ./.github/actions/pnpm-cache/save
-
-    - name: Setup Puppeteer browser
-      uses: ./.github/actions/setup-puppeteer-browser
-
-    - name: Build AI unit test projects
-      run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/core,@midscene/web,@midscene/cli"
-    
-    - name: Run tests with coverage
-      # Two packages at a time, each with at most two workers.
-      uses: ./.github/actions/ai-ci
-      with:
-        command: MIDSCENE_COVERAGE_DIR=coverage-ai python3 scripts/ci-measure.py "$RUNNER_TEMP/ai-unit-resources.json" pnpm exec nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli --parallel=2 --outputStyle=stream --verbose -- --coverage
-      id: test-ai
-      continue-on-error: true
-
-    - name: Upload test-ai output
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: test-ai-output
-        path: |
-          packages/web-integration/midscene_run/report
-          packages/cli/midscene_run
-          packages/core/test-results.json
-          packages/web-integration/test-results.json
-          packages/cli/test-results.json
-        if-no-files-found: ignore
-
-    - name: Upload AI coverage reports
-      id: upload-ai-coverage
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: ai-coverage
-        path: coverage-ai
-        if-no-files-found: ignore
-
-    - name: Write AI coverage summary
-      env:
-        COVERAGE_DIR: coverage-ai
-        COVERAGE_TITLE: AI Test Coverage
-        COVERAGE_ARTIFACT_NAME: ai-coverage
-        COVERAGE_ARTIFACT_URL: ${{ steps.upload-ai-coverage.outputs.artifact-url }}
-      run: node scripts/github-coverage-summary.js
-    - name: Upload AI unit resource measurements
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: ai-unit-resources
-        path: ${{ runner.temp }}/ai-unit-resources.json
-        retention-days: 7
-        if-no-files-found: ignore
-
-    - name: Check if script failed
-      if: steps.test-ai.outcome == 'failure'
-      run: exit 1
-
-  main:
-    needs: [changes, ai-tests]
-    if: always() && (needs.changes.result != 'success' || needs.changes.outputs.code == 'true')
-    runs-on: ubuntu-latest
+  fresh-connections:
     strategy:
       matrix:
-        node-version: [24.13.0]
+        replica: [1, 2]
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    timeout-minutes: 12
+    env:
+      MODEL_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
     steps:
-    - name: Check all AI suites
-      env:
-        RESULT: ${{ needs.ai-tests.result }}
-      run: test "$RESULT" = success
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.13.0'
+      - name: Compare address attempt budgets and IPv4 on fresh connections
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import https from 'node:https';
+          const url = new URL(process.env.MODEL_URL.replace(/\/$/, '') + '/models');
+          const settings = [
+            ['current-2s', {autoSelectFamily: true, autoSelectFamilyAttemptTimeout: 2000}],
+            ['longer-8s', {autoSelectFamily: true, autoSelectFamilyAttemptTimeout: 8000}],
+            ['ipv4', {family: 4}],
+          ];
+          async function trial(round, label, options) {
+            const start = performance.now();
+            const data = {round, label};
+            const elapsed = () => Math.round(performance.now() - start);
+            await new Promise(resolve => {
+              const req = https.get(url, {...options, agent: false, signal: AbortSignal.timeout(12000)}, res => {
+                data.status = res.statusCode;
+                data.headersMs = elapsed();
+                res.resume();
+                res.on('end', resolve);
+              });
+              req.on('socket', socket => {
+                socket.once('connect', () => {data.tcpMs = elapsed(); data.ip = socket.remoteAddress;});
+                socket.once('secureConnect', () => {data.tlsMs = elapsed();});
+                socket.on('connectionAttemptTimeout', address => {(data.addressTimeouts ??= []).push(address);});
+              });
+              req.once('error', e => {data.error = e.code; data.ms = elapsed(); resolve();});
+            });
+            console.log(JSON.stringify(data));
+          }
+          for (let round = 0; round < 18; round++) {
+            for (let i = 0; i < settings.length; i++) await trial(round, ...settings[(round + i) % settings.length]);
+          }
+          NODE
