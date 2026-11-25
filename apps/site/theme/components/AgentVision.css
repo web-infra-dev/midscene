@@ -105,72 +105,142 @@
   transform: translateX(3px);
 }
 
-/* One API across platforms: platform tiles around a shared API call */
+/* One API across platforms: monochrome unified command header + hairline matrix */
 
 .platform-hub {
+  --hub-border: rgb(16 24 40 / 10%);
+  --hub-header-bg: #fbfbfb;
+  --hub-dot: rgb(16 24 40 / 7%);
+  --hub-cell-bg: #fff;
+  --hub-cell-hover: #f7f8fa;
+  --hub-eyebrow: rgb(16 24 40 / 48%);
+  --hub-text: rgb(16 24 40 / 72%);
+  --hub-strong: rgb(16 24 40 / 92%);
+  --hub-muted: rgb(16 24 40 / 50%);
+  --hub-str: #0b8a5a;
+
+  overflow: hidden;
+  border: 1px solid var(--hub-border);
+  border-radius: 10px;
+  background: var(--hub-cell-bg);
+}
+
+.dark .platform-hub {
+  --hub-border: rgb(255 255 255 / 10%);
+  --hub-header-bg: #111;
+  --hub-dot: rgb(255 255 255 / 8%);
+  --hub-cell-bg: #151517;
+  --hub-cell-hover: #1c1c20;
+  --hub-eyebrow: rgb(255 255 255 / 45%);
+  --hub-text: rgb(255 255 255 / 72%);
+  --hub-strong: rgb(255 255 255 / 92%);
+  --hub-muted: rgb(255 255 255 / 48%);
+  --hub-str: rgb(94 214 160);
+}
+
+.platform-hub__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 20px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--hub-border);
+  background-color: var(--hub-header-bg);
+  background-image: radial-gradient(var(--hub-dot) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.platform-hub__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--hub-eyebrow);
+  font-family: "Chivo Mono", var(--rp-font-family-mono, monospace);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.platform-hub__code {
+  overflow: hidden;
+  padding: 6px 12px;
+  border: 1px solid var(--hub-border);
+  border-radius: 6px;
+  background: var(--hub-cell-bg);
+  color: var(--hub-strong);
+  font-size: 13.5px;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.platform-hub__kw {
+  color: var(--hub-muted);
+}
+
+.platform-hub__code strong {
+  color: var(--hub-strong);
+  font-weight: 600;
+}
+
+.platform-hub__str {
+  color: var(--hub-str);
+}
+
+.platform-hub__grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px 12px;
+  gap: 1px;
+  background: var(--hub-border);
 }
 
 .platform-hub .platform-hub__tile {
-  position: relative;
-  display: grid;
+  display: flex;
   min-width: 0;
-  grid-template-columns: max-content minmax(0, 1fr);
-  align-items: center;
-  column-gap: 12px;
-  padding: 10px 14px;
-  border: 1px solid var(--vision-border);
-  border-radius: 8px;
-  background: var(--vision-surface);
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 20px;
+  background: var(--hub-cell-bg);
   color: inherit;
   text-decoration: none;
-  transition: border-color 160ms ease, box-shadow 160ms ease;
+  transition: background-color 150ms ease;
 }
 
 .platform-hub .platform-hub__tile:hover {
-  border-color: rgb(5 85 255 / 36%);
-  box-shadow: 0 10px 24px rgb(16 24 40 / 8%);
+  background: var(--hub-cell-hover);
 }
 
-.dark .platform-hub .platform-hub__tile:hover {
-  border-color: rgb(128 168 255 / 42%);
-  box-shadow: 0 10px 24px rgb(0 0 0 / 28%);
+.platform-hub .platform-hub__tile:focus-visible {
+  outline: 2px solid var(--hub-strong);
+  outline-offset: -2px;
 }
 
-.platform-hub__tile::after {
-  position: absolute;
-  left: 50%;
-  height: 24px;
-  border-left: 1px dashed var(--vision-muted);
-  content: "";
-  opacity: 0.6;
-}
-
-.platform-hub__tile--top::after {
-  top: 100%;
-}
-
-.platform-hub__tile--bottom::after {
-  bottom: 100%;
+.platform-hub__tile-top {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
 }
 
 .platform-hub__icon {
   display: inline-flex;
-  width: 32px;
-  height: 32px;
-  grid-row: span 2;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  background: var(--vision-accent-bg);
-  color: var(--vision-accent);
+  color: var(--hub-muted);
+  transition: color 150ms ease;
 }
 
-.platform-hub__tile strong {
+.platform-hub .platform-hub__tile:hover .platform-hub__icon {
+  color: var(--hub-strong);
+}
+
+.platform-hub__tile-top strong {
   overflow: hidden;
-  color: var(--vision-strong);
+  flex: 1;
+  color: var(--hub-strong);
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;
@@ -178,73 +248,53 @@
   white-space: nowrap;
 }
 
-.platform-hub__tile code {
+.platform-hub__arrow {
+  flex-shrink: 0;
+  color: var(--hub-muted);
+  opacity: 0;
+  transform: translate(-2px, 2px);
+  transition: color 150ms ease, opacity 150ms ease, transform 150ms ease;
+}
+
+.platform-hub .platform-hub__tile:hover .platform-hub__arrow {
+  color: var(--hub-strong);
+  opacity: 0.9;
+  transform: translate(0, 0);
+}
+
+.platform-hub__pkg {
   overflow: hidden;
   padding: 0;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  padding-left: 25px;
   background: none;
-  color: var(--vision-muted);
+  color: var(--hub-muted);
   font-size: 12px;
-}
-
-.platform-hub__api {
-  display: flex;
-  min-width: 0;
-  grid-column: 1 / -1;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 10px 20px;
-  border: 1px solid var(--vision-accent);
-  border-radius: 999px;
-  background: var(--vision-accent-bg);
-}
-
-.platform-hub__api-label {
-  color: var(--vision-accent);
-  font-family: var(--rp-font-family-mono, monospace);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.platform-hub__api code {
-  overflow: hidden;
-  padding: 0;
-  background: none;
-  color: var(--vision-strong);
-  font-size: 14px;
+  line-height: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.platform-hub__api code span {
-  color: var(--vision-muted);
-}
-
-.platform-hub__api code strong {
-  color: var(--vision-accent);
-  font-weight: 500;
 }
 
 @container (max-width: 640px) {
-  .platform-hub {
+  .platform-hub__header {
+    padding: 16px;
+  }
+
+  .platform-hub__code {
+    max-width: 100%;
+    font-size: 12.5px;
+  }
+
+  .platform-hub__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
   }
 
-  .platform-hub__api {
-    order: -1;
-    border-radius: 12px;
+  .platform-hub .platform-hub__tile {
+    padding: 15px 16px;
   }
+}
 
-  .platform-hub__api-label {
-    display: none;
-  }
-
-  .platform-hub__tile::after {
-    display: none;
+@container (max-width: 400px) {
+  .platform-hub__grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

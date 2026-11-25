@@ -1,5 +1,6 @@
 import { Link } from '@rspress/core/theme-original';
 import {
+  ArrowUpRight,
   Blocks,
   Globe,
   type LucideIcon,
@@ -20,7 +21,7 @@ interface Platform {
 export function PlatformHub() {
   const t = useI18n();
   const tUrl = useI18nUrl();
-  const top: Platform[] = [
+  const platforms: Platform[] = [
     {
       name: t('platformWeb'),
       packageName: '@midscene/web',
@@ -39,8 +40,6 @@ export function PlatformHub() {
       href: '/platforms/ios',
       icon: Smartphone,
     },
-  ];
-  const bottom: Platform[] = [
     {
       name: 'HarmonyOS',
       packageName: '@midscene/harmony',
@@ -61,36 +60,44 @@ export function PlatformHub() {
     },
   ];
 
-  const renderTile = (
-    { name, packageName, href, icon: Icon }: Platform,
-    row: 'top' | 'bottom',
-  ) => (
-    <Link
-      key={packageName}
-      href={tUrl(href)}
-      className={`platform-hub__tile platform-hub__tile--${row}`}
-    >
-      <span className="platform-hub__icon" aria-hidden="true">
-        <Icon size={16} strokeWidth={1.75} />
-      </span>
-      <strong>{name}</strong>
-      <code>{packageName}</code>
-    </Link>
-  );
-
   return (
     <div className="platform-hub">
-      {top.map((platform) => renderTile(platform, 'top'))}
-      <div className="platform-hub__api">
-        <span className="platform-hub__api-label">
-          {t('platformsApiLabel')}
+      <div className="platform-hub__header">
+        <span className="platform-hub__eyebrow">
+          <span aria-hidden="true">{'//'}</span>
+          <span>{t('platformsApiLabel')}</span>
         </span>
-        <code>
-          <span>await</span> agent.<strong>aiAct</strong>(
-          <span>'{t('platformsApiPrompt')}'</span>)
+        <code className="platform-hub__code">
+          <span className="platform-hub__kw">await</span> agent.
+          <strong>aiAct</strong>(
+          <span className="platform-hub__str">'{t('platformsApiPrompt')}'</span>
+          )
         </code>
       </div>
-      {bottom.map((platform) => renderTile(platform, 'bottom'))}
+
+      <div className="platform-hub__grid">
+        {platforms.map(({ name, packageName, href, icon: Icon }) => (
+          <Link
+            key={packageName}
+            href={tUrl(href)}
+            className="platform-hub__tile"
+          >
+            <div className="platform-hub__tile-top">
+              <span className="platform-hub__icon" aria-hidden="true">
+                <Icon size={16} strokeWidth={1.6} />
+              </span>
+              <strong>{name}</strong>
+              <ArrowUpRight
+                className="platform-hub__arrow"
+                size={14}
+                strokeWidth={1.75}
+                aria-hidden="true"
+              />
+            </div>
+            <code className="platform-hub__pkg">{packageName}</code>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
