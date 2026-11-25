@@ -19,12 +19,16 @@ const hasModelFamily = (() => {
   }
 })();
 const locateTestOptions = {
-  // Allow three 180s model attempts plus two 60s retry intervals.
+  // Deep locate can make multiple model calls before checking the final element.
   timeout: 12 * 60 * 1000,
   retry: 0,
 };
 
 describe.skipIf(!hasModelFamily)('service locate with deep think', () => {
+  // These high-resolution fixtures need longer per-request deadlines than the short AI tests.
+  const deepLocateRuntime = () =>
+    getModelRuntime({ ...modelConfig(), timeout: 180_000 });
+
   test('service locate with search area', locateTestOptions, async () => {
     const { uiContext } = await getContextFromFixture('taobao');
 
@@ -35,7 +39,7 @@ describe.skipIf(!hasModelFamily)('service locate with deep think', () => {
         deepLocate: true,
       },
       {},
-      modelRuntime(),
+      deepLocateRuntime(),
     );
     expect(element).toBeDefined();
 
@@ -55,7 +59,7 @@ describe.skipIf(!hasModelFamily)('service locate with deep think', () => {
           deepLocate: true,
         },
         {},
-        modelRuntime(),
+        deepLocateRuntime(),
       );
       expect(element).toBeDefined();
       const searchArea = dump.taskInfo?.searchArea;
