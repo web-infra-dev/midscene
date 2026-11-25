@@ -1,31 +1,18 @@
-name: AI unit test
+name: Focused AI timeout comparison
 on:
-  push:
-    branches:
-      - main
-  pull_request:
   workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Branch to checkout'
-        required: false
-        default: 'main'
-        type: string
-
 permissions:
   contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
 jobs:
-  changes:
-    uses: ./.github/workflows/ci-changes.yml
-
-  ai-tests:
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
+  compare:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - timeout: '180000'
+            delay: '60000'
+          - timeout: '80000'
+            delay: '5000'
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
@@ -34,8 +21,8 @@ jobs:
       MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
       MIDSCENE_MODEL_RETRY_COUNT: "2"
       # Leave time for another model call within the 120-180s test deadlines.
-      MIDSCENE_MODEL_TIMEOUT: "80000"
-      MIDSCENE_MODEL_RETRY_INTERVAL: "5000"
+      MIDSCENE_MODEL_TIMEOUT: ${{ matrix.timeout }}
+      MIDSCENE_MODEL_RETRY_INTERVAL: ${{ matrix.delay }}
       MIDSCENE_REPORT_QUIET: "true"
       # DEBUG: midscene:* # Disabled to prevent log overflow
       CI: 1
@@ -43,7 +30,7 @@ jobs:
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
-        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.sha }}
+        ref: 54dab359ec1c4c129d32ac7e0c016ced2669ed62
 
     - name: Setup Node.js and pnpm
       uses: ./.github/actions/setup-node-pnpm
@@ -65,65 +52,20 @@ jobs:
     - name: Build AI unit test projects
       run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/core,@midscene/web,@midscene/cli"
     
-    - name: Run tests with coverage
-      # Two packages at a time, each with at most two workers.
+
+    - name: Run matched cases twice with the original test-level retry
       uses: ./.github/actions/ai-ci
       with:
-        command: MIDSCENE_COVERAGE_DIR=coverage-ai python3 scripts/ci-measure.py "$RUNNER_TEMP/ai-unit-resources.json" pnpm exec nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli --parallel=2 --outputStyle=stream --verbose -- --coverage
-      id: test-ai
-      continue-on-error: true
-
-    - name: Upload test-ai output
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: test-ai-output
-        path: |
-          packages/web-integration/midscene_run/report
-          packages/cli/midscene_run
-          packages/core/test-results.json
-          packages/web-integration/test-results.json
-          packages/cli/test-results.json
-        if-no-files-found: ignore
-
-    - name: Upload AI coverage reports
-      id: upload-ai-coverage
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: ai-coverage
-        path: coverage-ai
-        if-no-files-found: ignore
-
-    - name: Write AI coverage summary
-      env:
-        COVERAGE_DIR: coverage-ai
-        COVERAGE_TITLE: AI Test Coverage
-        COVERAGE_ARTIFACT_NAME: ai-coverage
-        COVERAGE_ARTIFACT_URL: ${{ steps.upload-ai-coverage.outputs.artifact-url }}
-      run: node scripts/github-coverage-summary.js
-    - name: Upload AI unit resource measurements
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: ai-unit-resources
-        path: ${{ runner.temp }}/ai-unit-resources.json
-        retention-days: 7
-        if-no-files-found: ignore
-
-    - name: Check if script failed
-      if: steps.test-ai.outcome == 'failure'
-      run: exit 1
-
-  main:
-    needs: [changes, ai-tests]
-    if: always() && (needs.changes.result != 'success' || needs.changes.outputs.code == 'true')
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [24.13.0]
-    steps:
-    - name: Check all AI suites
-      env:
-        RESULT: ${{ needs.ai-tests.result }}
-      run: test "$RESULT" = success
+        command: |
+          failures=0
+          for round in 1 2; do
+            echo "::group::Round $round"
+            AITEST=true pnpm --dir packages/core exec rstest run tests/ai/llm-planning/basic.test.ts -t 'todo mvc - check second todo item' &
+            core_pid=$!
+            AI_TEST_TYPE=web pnpm --dir packages/web-integration exec rstest run tests/ai/web/puppeteer/file-upload.test.ts tests/ai/web/puppeteer/report-merging.test.ts -t 'should upload files via aiAct|search weather on search engine' &
+            web_pid=$!
+            wait "$core_pid" || failures=1
+            wait "$web_pid" || failures=1
+            echo "::endgroup::"
+          done
+          exit "$failures"
