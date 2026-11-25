@@ -452,7 +452,6 @@ tasks:
     expect(aiTapCalls).toMatchInlineSnapshot(`
       [
         [
-          "the area contains the image.",
           {
             "convertHttpImage2Base64": true,
             "images": [
@@ -461,10 +460,11 @@ tasks:
                 "url": "https://example.com/image.png",
               },
             ],
+            "prompt": "the area contains the image.",
           },
+          {},
         ],
         [
-          "the area contains the image.",
           {
             "convertHttpImage2Base64": true,
             "images": [
@@ -473,7 +473,9 @@ tasks:
                 "url": "https://example.com/image.png",
               },
             ],
+            "prompt": "the area contains the image.",
           },
+          {},
         ],
       ]
     `);
