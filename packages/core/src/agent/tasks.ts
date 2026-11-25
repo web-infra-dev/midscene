@@ -57,6 +57,7 @@ import {
   createAiActActionReporter,
   errorMessageForAiAct,
 } from './progress';
+import { buildLocateCacheKey } from './prompt-context';
 import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
@@ -508,9 +509,13 @@ export class TaskExecutor {
         task.subType === 'Locate' &&
         task.hitBy?.from === 'Cache'
       ) {
-        const prompt = (task.param as DetailedLocateParam | undefined)?.prompt;
-        if (prompt) {
-          this.taskCache.markLocateCacheStale(prompt);
+        const locateParam = task.param as DetailedLocateParam | undefined;
+        if (locateParam?.prompt) {
+          const cacheKey = buildLocateCacheKey(
+            locateParam.prompt,
+            locateParam.context,
+          );
+          this.taskCache.markLocateCacheStale(cacheKey);
         }
       }
     }

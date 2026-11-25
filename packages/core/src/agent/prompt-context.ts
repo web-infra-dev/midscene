@@ -12,27 +12,49 @@ export const renderAIContext = (
   return context === undefined ? undefined : '';
 };
 
-export const buildPromptWithContext = (
+// These tags, whitespace, and trimming rules are part of persisted cache keys.
+// Preserve them for historical cache matching; do not reuse model prompt renderers,
+// whose formatting may change independently.
+export const buildPlanningCacheKey = (
   prompt: TUserPrompt,
   context: string | undefined,
 ): TUserPrompt => {
-  const renderedContext = renderAIContext(context);
-  if (!renderedContext) {
+  const trimmedContext = context?.trim();
+  if (!trimmedContext) {
     return prompt;
   }
 
   const promptText = typeof prompt === 'string' ? prompt : prompt.prompt;
-  const promptWithContext = `${renderedContext}\n\n${promptText}`;
+  const cacheText = `<CONTEXT>\n${trimmedContext}\n</CONTEXT>\n\n${promptText}`;
 
   if (typeof prompt === 'string') {
-    return promptWithContext;
+    return cacheText;
   }
 
   return {
     ...prompt,
-    prompt: promptWithContext,
+    prompt: cacheText,
   };
 };
+
+// Tags, whitespace, trimming, and string/object distinctions affect historical
+// cache matching. Preserve this format independently of model prompt templates.
+export function buildLocateCacheKey(
+  prompt: TUserPrompt,
+  context: string | undefined,
+): TUserPrompt {
+  if (!prompt || !context) {
+    return prompt;
+  }
+  const trimmedContext = context.trim();
+  const text = typeof prompt === 'string' ? prompt : prompt.prompt;
+  const cacheText = trimmedContext
+    ? `<CONTEXT>\n${trimmedContext}\n</CONTEXT>\n\n<LOCATE_TARGET>\n${text}\n</LOCATE_TARGET>`
+    : text;
+  return typeof prompt === 'string'
+    ? cacheText
+    : { ...prompt, prompt: cacheText };
+}
 
 function renderLocateText(text: string, context: string | undefined): string {
   const rendered = renderAIContext(context);
@@ -47,17 +69,4 @@ export function buildLocatePromptWithContext(
 ): Exclude<TUserPrompt, string> {
   const input = typeof prompt === 'string' ? { prompt } : prompt;
   return { ...input, prompt: renderLocateText(input.prompt, context) };
-}
-
-// Cache records distinguish string prompts from objects, including empty strings.
-export function buildLocateCacheKey(
-  prompt: TUserPrompt,
-  context: string | undefined,
-): TUserPrompt {
-  if (!prompt || !context) {
-    return prompt;
-  }
-  return typeof prompt === 'string'
-    ? renderLocateText(prompt, context)
-    : { ...prompt, prompt: renderLocateText(prompt.prompt, context) };
 }

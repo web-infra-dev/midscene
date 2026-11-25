@@ -99,7 +99,7 @@ import { FileChooserAccepter } from './file-chooser';
 import { Insight } from './insight';
 import { MetricsCollector, type MidsceneUsageMetrics } from './metrics';
 import { AgentProgressBus } from './progress';
-import { buildPromptWithContext } from './prompt-context';
+import { buildPlanningCacheKey } from './prompt-context';
 import { normalizeRecordToReportScreenshot } from './record-to-report';
 import {
   type RunGherkinScenarioOptions,
@@ -1347,7 +1347,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         this.resolveReplanningCycleLimit(planningModel);
       const cachePrompt =
         this.taskCache && aiActCacheable !== false
-          ? buildPromptWithContext(taskPrompt, aiActContext)
+          ? buildPlanningCacheKey(taskPrompt, aiActContext)
           : undefined;
       const matchedCache =
         cachePrompt !== undefined

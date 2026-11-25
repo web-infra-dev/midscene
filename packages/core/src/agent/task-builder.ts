@@ -689,6 +689,7 @@ export class TaskBuilder {
               const feature = await this.interface.cacheFeatureForPoint(
                 pointForCache,
                 {
+                  context: locateParam.context,
                   targetDescription:
                     typeof locateParam.prompt === 'string'
                       ? locateParam.prompt

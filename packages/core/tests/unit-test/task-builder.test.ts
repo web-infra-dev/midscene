@@ -102,6 +102,7 @@ describe('TaskBuilder', () => {
         [
           locatePlanForLocate({
             prompt,
+            context: '选择列表第二项',
             cacheable: true,
             ...(hasCoordinates
               ? { locatedPixelResult: { center: [20, 20] } }
@@ -118,6 +119,15 @@ describe('TaskBuilder', () => {
         uiContext: { shrunkShotToLogicalRatio: 1, deprecatedDpr: 1 },
       } as any);
 
+      if (cacheable !== false && !withoutTaskCache) {
+        expect(extractFeature).toHaveBeenCalledWith(
+          [20, 20],
+          expect.objectContaining({
+            targetDescription: prompt,
+            context: '选择列表第二项',
+          }),
+        );
+      }
       expect(locate).toHaveBeenCalledTimes(hasCoordinates ? 0 : 1);
       expect(matchFeature).not.toHaveBeenCalled();
       if (cacheable === false || withoutTaskCache) {
@@ -126,10 +136,14 @@ describe('TaskBuilder', () => {
         expect(extractFeature).not.toHaveBeenCalled();
         expect(taskCache.updateOrAppendCacheRecord).not.toHaveBeenCalled();
       } else {
-        expect(taskCache.matchLocateCache).toHaveBeenCalledWith(prompt);
+        const cacheKey = promptContext.buildLocateCacheKey(
+          prompt,
+          '选择列表第二项',
+        );
+        expect(taskCache.matchLocateCache).toHaveBeenCalledWith(cacheKey);
         expect(extractFeature).toHaveBeenCalledOnce();
         expect(taskCache.updateOrAppendCacheRecord).toHaveBeenCalledWith(
-          { type: 'locate', prompt, cache: feature },
+          { type: 'locate', prompt: cacheKey, cache: feature },
           undefined,
         );
       }
