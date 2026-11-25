@@ -2,6 +2,7 @@ import { dirname, isAbsolute, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { require as tsxRequire } from 'tsx/cjs/api';
 import { NodeRegistry } from '../engine/registry';
+import { type ReplayMode, replayMode } from '../midscene/replay';
 import type { NodeDefinition } from '../node/types';
 
 import type {
@@ -39,6 +40,7 @@ export type ExecutionProjectDefinition<
 };
 
 export interface TestOptions {
+  replay?: ReplayMode;
   /** Global active files, including preparation and cleanup. Default 1; null is unlimited. */
   maxConcurrentFiles?: number | null;
   /** Projects from setup through completed cleanup. Default 1; null is unlimited. */
@@ -52,6 +54,7 @@ export interface TestOptions {
 }
 
 export interface ResolvedTestOptions {
+  replay: ReplayMode;
   maxConcurrentFiles: number | null;
   maxConcurrentProjects: number | null;
   setupTimeout: number;
@@ -556,6 +559,7 @@ const validateTestOptions = (
     );
   }
   return Object.freeze({
+    replay: replayMode(candidate.replay),
     maxConcurrentFiles: validateConcurrency(
       candidate.maxConcurrentFiles,
       'test.maxConcurrentFiles',

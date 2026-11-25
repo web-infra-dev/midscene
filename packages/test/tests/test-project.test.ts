@@ -584,6 +584,7 @@ describe('test project config', () => {
       retry: 0,
     });
     expect(loaded.test).toEqual({
+      replay: 'auto',
       maxConcurrentFiles: 1,
       maxConcurrentProjects: 2,
       setupTimeout: 120_000,

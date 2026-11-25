@@ -3,6 +3,7 @@ import { relative, resolve, sep } from 'node:path';
 import { WorkflowExecutionFailure } from '@midscene/core/internal/test-runner';
 import { runWithConsoleLogHandler } from '@midscene/shared/logger';
 import { version } from '../../package.json';
+import { type ReplayMode, replayMode } from '../midscene/replay';
 import { formatCliError, formatConciseError } from './error-format';
 import type { CliFailureContext } from './failure-format';
 import { githubFailureAnnotation } from './github-reporter';
@@ -32,6 +33,8 @@ export interface TestCliIO {
 }
 
 interface ParsedTestArgs {
+  replay?: ReplayMode;
+  caseName?: string;
   command?: 'nodes';
   cwd: string;
   projectRoot?: string;
@@ -52,6 +55,8 @@ export const parseTestCliArgs = (
   let configPath: string | undefined;
   let resultDir: string | undefined;
   const projectNames: string[] = [];
+  let replay: ReplayMode | undefined;
+  let caseName: string | undefined;
   let reporter: TerminalReporterMode | undefined;
 
   for (let index = commandOffset; index < args.length; index += 1) {
@@ -66,6 +71,8 @@ export const parseTestCliArgs = (
       continue;
     }
     if (
+      arg === '--replay' ||
+      arg === '--case' ||
       arg === '--config' ||
       arg === '--result-dir' ||
       arg === '--project' ||
@@ -74,7 +81,9 @@ export const parseTestCliArgs = (
       const value = inlineValue ?? args[index + 1];
       if (!value || value.startsWith('--'))
         throw new Error(`${arg} requires a value.`);
-      if (arg === '--config') configPath = value;
+      if (arg === '--replay') replay = replayMode(value);
+      else if (arg === '--case') caseName = value;
+      else if (arg === '--config') configPath = value;
       else if (arg === '--result-dir') resultDir = resolve(cwd, value);
       else if (arg === '--project') projectNames.push(value);
       else {
@@ -99,6 +108,8 @@ export const parseTestCliArgs = (
     throw new Error('nodes accepts only one --project name.');
   }
   return {
+    ...(replay ? { replay } : {}),
+    ...(caseName ? { caseName } : {}),
     ...(command ? { command } : {}),
     cwd,
     ...(command ? { projectRoot: inputPath } : { testPath: inputPath }),
@@ -136,6 +147,8 @@ Usage:
   midscene-test model verify    Check model connectivity and Midscene compatibility
 
 Options:
+  --replay <auto|strict|off>    Select optional script implementations (default auto)
+  --case <name>                Select a Case by its exact name
   --config <path>              Native TypeScript or JavaScript Test config
   --project <name>             Select a native execution Project (repeatable)
   --result-dir <path>          Store Test result files in this directory

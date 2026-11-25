@@ -6,6 +6,7 @@ export {
   callSystemOneAI,
 } from './service-caller/index';
 export { getModelRuntime, type ModelRuntime } from './models';
+export { prepareJevImage } from './models/jev/image';
 export {
   SIWC_AUTH_STORAGE_KEY,
   refreshSiwcCredentials,

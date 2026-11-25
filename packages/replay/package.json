@@ -1,0 +1,57 @@
+{
+  "name": "@midscene/replay",
+  "version": "1.18.2",
+  "description": "Deterministic Web steps and visual checks for Midscene Agents and Native Test.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/midscene.git",
+    "directory": "packages/replay"
+  },
+  "main": "./dist/lib/index.js",
+  "module": "./dist/es/index.mjs",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/es/index.mjs",
+      "require": "./dist/lib/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "rslib build",
+    "build:watch": "rslib build --watch --no-clean",
+    "test": "rstest",
+    "lint": "biome check ."
+  },
+  "devDependencies": {
+    "@midscene/test": "workspace:*",
+    "@rslib/core": "~0.19.6",
+    "@rstest/core": "0.12.0",
+    "@types/node": "^18.0.0",
+    "typescript": "^5.8.3",
+    "playwright": "^1.45.0"
+  },
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+  },
+  "sideEffects": false,
+  "license": "MIT",
+  "dependencies": {
+    "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*",
+    "@midscene/web": "workspace:*"
+  },
+  "peerDependencies": {
+    "@midscene/test": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@midscene/test": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  }
+}
