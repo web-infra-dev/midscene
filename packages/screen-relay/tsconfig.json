@@ -12,6 +12,9 @@
       "path": "../core"
     },
     {
+      "path": "../playground"
+    },
+    {
       "path": "../shared"
     }
   ]
