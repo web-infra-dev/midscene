@@ -1228,15 +1228,12 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     to: { x: number; y: number },
     duration?: number,
   ) {
-    const LONG_PRESS_THRESHOLD = 500;
     const MIN_PRESS_THRESHOLD = 150;
     duration = duration || 300;
     if (duration < MIN_PRESS_THRESHOLD) {
       duration = MIN_PRESS_THRESHOLD;
     }
-    if (duration > LONG_PRESS_THRESHOLD) {
-      duration = LONG_PRESS_THRESHOLD;
-    }
+    // Preserve explicit slow gestures; a moving pointer is not a long press.
 
     if (this.isMobileEmulation === null) {
       const result = await this.sendCommandToDebugger('Runtime.evaluate', {
