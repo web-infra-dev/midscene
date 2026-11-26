@@ -15,7 +15,7 @@ export {
 };
 export * from '@rspress/core/theme-original';
 
-export { Banner, HeroStats } from './components/Banner';
+export { Banner, HeroActions, HeroStats } from './components/Banner';
 export { TestExample } from './components/TestExample';
 export {
   AgentModels,

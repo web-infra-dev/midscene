@@ -6,7 +6,7 @@ footer: true
 title: Midscene.js — GUI Agent 与 E2E 测试框架
 ---
 
-import { HeroStats, TestExample, AgentVisionDemo, AgentVisionSteps, AgentModels, AgentPlatforms, WhoIsUsing } from '@theme';
+import { HeroActions, HeroStats, TestExample, AgentVisionDemo, AgentVisionSteps, AgentModels, AgentBenchmarks, AgentPlatforms, WhoIsUsing } from '@theme';
 import TestPhilosophy from './common/test-philosophy.mdx';
 import TestWorkflow from './common/test-workflow.mdx';
 import TestCollaboration from './common/test-collaboration.mdx';
@@ -20,6 +20,7 @@ import TestExecutionSection from './common/test-execution.mdx';
 面向 Web、移动端和桌面应用的 GUI Agent 与 E2E 测试框架。
 
 <div className="rp-not-doc">
+  <HeroActions />
   <HeroStats />
 </div>
 
@@ -41,7 +42,7 @@ E2E 测试要验证的是界面，不是代码结构。依赖 UI 代码结构的
 
 如果你已有测试工程，Midscene 的 GUI Agent 可以直接为现有 JavaScript 测试提供视觉操作与断言能力。Web 场景推荐接入 [Playwright Test](./integrate-with-playwright)，移动端和桌面端推荐接入 [Rstest](./sdk/rstest) 或 [Vitest](./sdk/vitest)。
 
-### 只靠视觉观察、操作并验证结果 {#visual-capabilities}
+### 只靠视觉规划、操作并验证结果 {#visual-capabilities}
 
 Midscene 只看屏幕、不看代码，按真实用户的方式使用界面。
 
@@ -74,9 +75,9 @@ Midscene 只看屏幕、不看代码，按真实用户的方式使用界面。
 
 ### Benchmark 成绩 {#benchmarks}
 
-- **AndroidWorld**：Pass@1 为 93.1%，Pass@3 为 97.4%。[查看评测报告](./android-world-benchmark-report)
-- **MobileWorld**：Pass@1 为 78.6%，完成 117 项任务中的 92 项。[查看评测报告](./mobile-world-benchmark-report)
-- **AppControlBench**：Pass@1 为 96.7%，通过 60 项任务中的 58 项。[查看评测报告](./app-control-bench-report)
+<div className="rp-not-doc introduction-block">
+  <AgentBenchmarks hideHeading />
+</div>
 
 ## Midscene Test：当用例只剩下意图，测试框架应该长什么样 {#midscene-test}
 

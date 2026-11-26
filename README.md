@@ -122,10 +122,11 @@ Through extensive practice, we found that once vision models handle UI interacti
 
 ### Engineering foundation built for visual agents
 
-- **Lifecycle hooks and cleanup:** `setup`, `fileSetup`, `beforeAll`, and `beforeEach` with matching cleanup hooks; cleanup still runs after timeouts or Ctrl+C.
-- **Retries and timeouts:** case retries, step timeouts, `continue-on-error`, and `bail`.
+- **Multi-project orchestration:** run web, Android, iOS, and desktop suites from one config with `--project` and tag filtering.
 - **Concurrency and isolation:** `maxConcurrentFiles`, with `fileSetup` giving each file its own page, Agent, or device.
-- **Step-level reports:** screenshots, inputs, outputs, and Agent replay for every step, `#runner-step=last-error` deep links, and `summary.json` for scripts and AI agents.
+- **Lifecycle hooks and cleanup:** `setup`, `fileSetup`, `beforeAll`, and `beforeEach` with reverse-order cleanup that still runs after timeouts or Ctrl+C.
+- **Retries and timeouts:** case retries after cleanup, step timeouts, `continue-on-error`, and `bail`.
+- **Visual reports & CI integration:** interactive HTML replay for every `Plan`, `Locate`, and action, official `midscene-action` for GitHub Actions with `#runner-step=last-error` deep links, live badges, `model verify`, and `summary.json` / `result.md` for scripts and AI agents.
 
 Start with [Create and use test projects](https://www.midscenejs.com/midscene-test/use), then learn how to [Develop custom Nodes](https://www.midscenejs.com/midscene-test/extend) and control [lifecycle and concurrency](https://www.midscenejs.com/midscene-test/execution).
 

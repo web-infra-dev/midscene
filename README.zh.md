@@ -58,9 +58,9 @@ await agent.aiAssert('搜索结果中有商品，且每件商品价格都低于 
 
 移动端和桌面端应用可以通过 [Rstest](https://www.midscenejs.com/zh/sdk/rstest) 或 [Vitest](https://www.midscenejs.com/zh/sdk/vitest) 使用对应平台的 Agent。打开生成的 HTML 报告，即可查看截图、元素定位、AI 决策过程，以及操作和断言结果。
 
-## 👁️ 只靠视觉观察、操作并验证结果
+## 👁️ 只靠视觉规划、操作并验证结果
 
-Midscene 只看屏幕、不看代码，按真实用户的方式使用界面：**观察屏幕，根据看到的内容操作，再验证界面实际呈现的结果**。
+Midscene 只看屏幕、不看代码，按真实用户的方式使用界面：**规划步骤，定位并操作，再验证界面实际呈现的结果**。
 
 ### 根据截图定位与操作
 
@@ -122,10 +122,11 @@ Midscene 支持豆包 Seed、千问 Qwen、DeepSeek、Gemini、GPT、Kimi 等模
 
 ### 为视觉 Agent 重建的工程底座
 
-- **生命周期钩子与资源清理**：`setup`、`fileSetup`、`beforeAll`、`beforeEach` 及对应的清理钩子；超时或按下 Ctrl+C 后清理照常执行。
-- **失败重试与超时**：用例重试、步骤超时、`continue-on-error` 和 `bail`。
+- **多 Project 跨端编排**：一份配置管理 Web、Android、iOS 与桌面套件，支持 `--project` 与标签筛选。
 - **并发与隔离**：`maxConcurrentFiles` 控制并发，`fileSetup` 为每个文件准备独立的页面、Agent 或设备。
-- **精确到步骤的报告**：每个步骤的截图、输入、输出和 Agent 回放，`#runner-step=last-error` 深度链接，以及供脚本和 AI Agent 读取的 `summary.json`。
+- **生命周期钩子与资源清理**：`setup`、`fileSetup`、`beforeAll`、`beforeEach` 及对应的逆序清理；超时或按下 Ctrl+C 后清理照常执行。
+- **失败重试与超时**：清理后自动重试用例，支持步骤超时、`continue-on-error` 和 `bail`。
+- **可视化回放与 CI 集成**：可交互 HTML 报告逐帧回放 `Plan`、`Locate` 与界面截图，配套官方 `midscene-action`、`#runner-step=last-error` 失败直达链接、实时 Badge、`model verify` 预检，以及供脚本和 AI Agent 读取的 `summary.json` / `result.md`。
 
 从[创建和使用测试项目](https://www.midscenejs.com/zh/midscene-test/use)开始，再了解如何[编写自定义 Node](https://www.midscenejs.com/zh/midscene-test/extend)，以及如何控制[生命周期与并发](https://www.midscenejs.com/zh/midscene-test/execution)。
 

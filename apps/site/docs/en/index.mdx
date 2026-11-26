@@ -6,7 +6,7 @@ footer: true
 title: Midscene.js — GUI Agent and E2E Testing Framework
 ---
 
-import { HeroStats, TestExample, AgentVisionDemo, AgentVisionSteps, AgentModels, AgentPlatforms, WhoIsUsing } from '@theme';
+import { HeroActions, HeroStats, TestExample, AgentVisionDemo, AgentVisionSteps, AgentModels, AgentBenchmarks, AgentPlatforms, WhoIsUsing } from '@theme';
 import TestPhilosophy from './common/test-philosophy.mdx';
 import TestWorkflow from './common/test-workflow.mdx';
 import TestCollaboration from './common/test-collaboration.mdx';
@@ -20,6 +20,7 @@ import TestExecutionSection from './common/test-execution.mdx';
 A GUI Agent and E2E testing framework for web, mobile, and desktop.
 
 <div className="rp-not-doc">
+  <HeroActions />
   <HeroStats />
 </div>
 
@@ -74,9 +75,9 @@ Pure vision testing avoids sending large DOM trees to the model. With today’s 
 
 ### Benchmarks {#benchmarks}
 
-- **AndroidWorld**: Pass@1 of 93.1% and Pass@3 of 97.4%. [Read the benchmark report](./android-world-benchmark-report)
-- **MobileWorld**: Pass@1 of 78.6%, completing 92 of 117 tasks. [Read the benchmark report](./mobile-world-benchmark-report)
-- **AppControlBench**: Pass@1 of 96.7%, passing 58 of 60 tasks. [Read the benchmark report](./app-control-bench-report)
+<div className="rp-not-doc introduction-block">
+  <AgentBenchmarks hideHeading />
+</div>
 
 ## Midscene Test: what an E2E framework looks like when tests are pure intent {#midscene-test}
 

@@ -136,6 +136,186 @@
   line-height: 1.3;
 }
 
+/* Monochrome Hero CTA buttons */
+
+.intro-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 28px;
+}
+
+.intro-hero-actions__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid rgb(16 24 40 / 14%);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  text-decoration: none;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms
+    ease;
+}
+
+.intro-hero-actions__btn--primary {
+  border-color: rgb(16 24 40 / 92%);
+  background: rgb(16 24 40 / 92%);
+  color: #fff;
+}
+
+.intro-hero-actions__btn--primary:hover {
+  background: rgb(16 24 40 / 80%);
+  color: #fff;
+}
+
+.intro-hero-actions__btn--secondary {
+  background: #fff;
+  color: rgb(16 24 40 / 84%);
+}
+
+.intro-hero-actions__btn--secondary:hover {
+  border-color: rgb(16 24 40 / 28%);
+  background: #f7f8fa;
+  color: rgb(16 24 40 / 96%);
+}
+
+.dark .intro-hero-actions__btn--primary {
+  border-color: rgb(255 255 255 / 92%);
+  background: rgb(255 255 255 / 92%);
+  color: #111;
+}
+
+.dark .intro-hero-actions__btn--primary:hover {
+  background: #fff;
+  color: #111;
+}
+
+.dark .intro-hero-actions__btn--secondary {
+  border-color: rgb(255 255 255 / 14%);
+  background: #151517;
+  color: rgb(255 255 255 / 84%);
+}
+
+.dark .intro-hero-actions__btn--secondary:hover {
+  border-color: rgb(255 255 255 / 26%);
+  background: #1c1c20;
+  color: #fff;
+}
+
+/* Monochrome 1x3 Benchmark strip */
+
+.bench-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid rgb(16 24 40 / 10%);
+  border-radius: 10px;
+  background: rgb(16 24 40 / 10%);
+}
+
+.dark .bench-strip {
+  border-color: rgb(255 255 255 / 10%);
+  background: rgb(255 255 255 / 10%);
+}
+
+.bench-strip .bench-strip__item {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 20px;
+  background: #fff;
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 150ms ease;
+}
+
+.dark .bench-strip .bench-strip__item {
+  background: #151517;
+}
+
+.bench-strip .bench-strip__item:hover {
+  background: #f7f8fa;
+}
+
+.dark .bench-strip .bench-strip__item:hover {
+  background: #1c1c20;
+}
+
+.bench-strip__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bench-strip__top strong {
+  color: rgb(16 24 40 / 92%);
+  font-family: Inter, var(--rp-font-family-base, sans-serif);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 32px;
+}
+
+.dark .bench-strip__top strong {
+  color: rgb(255 255 255 / 92%);
+}
+
+.bench-strip__arrow {
+  color: rgb(16 24 40 / 45%);
+  opacity: 0;
+  transform: translate(-2px, 2px);
+  transition: opacity 150ms ease, transform 150ms ease, color 150ms ease;
+}
+
+.dark .bench-strip__arrow {
+  color: rgb(255 255 255 / 50%);
+}
+
+.bench-strip__item:hover .bench-strip__arrow {
+  color: rgb(16 24 40 / 90%);
+  opacity: 0.9;
+  transform: translate(0, 0);
+}
+
+.dark .bench-strip__item:hover .bench-strip__arrow {
+  color: rgb(255 255 255 / 92%);
+}
+
+.bench-strip__title {
+  color: rgb(16 24 40 / 88%);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.dark .bench-strip__title {
+  color: rgb(255 255 255 / 88%);
+}
+
+.bench-strip__meta {
+  color: rgb(16 24 40 / 50%);
+  font-family: "Chivo Mono", var(--rp-font-family-mono, monospace);
+  font-size: 11.5px;
+  line-height: 18px;
+}
+
+.dark .bench-strip__meta {
+  color: rgb(255 255 255 / 48%);
+}
+
+@container (max-width: 640px) {
+  .bench-strip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .introduction-block {
   margin-block: 0;
   padding-block: 0;

@@ -1,12 +1,12 @@
 .home-card-grid {
   --card-border: rgb(16 24 40 / 10%);
-  --card-bg: #fbfbfb;
-  --card-dot: rgb(16 24 40 / 8%);
-  --card-text: rgb(16 24 40 / 75%);
-  --card-strong: rgb(16 24 40 / 90%);
-  --card-link: #0555ff;
-  --card-hover-border: rgb(5 85 255 / 36%);
-  --card-hover-shadow: 0 14px 32px rgb(16 24 40 / 8%);
+  --card-bg: #fff;
+  --card-dot: rgb(16 24 40 / 7%);
+  --card-text: rgb(16 24 40 / 70%);
+  --card-strong: rgb(16 24 40 / 92%);
+  --card-link: rgb(16 24 40 / 82%);
+  --card-hover-border: rgb(16 24 40 / 22%);
+  --card-hover-shadow: 0 12px 28px rgb(16 24 40 / 6%);
 
   display: grid;
   gap: 20px;
@@ -14,12 +14,12 @@
 
 .dark .home-card-grid {
   --card-border: rgb(255 255 255 / 10%);
-  --card-bg: #111;
-  --card-dot: rgb(255 255 255 / 9%);
-  --card-text: rgb(255 255 255 / 72%);
-  --card-strong: rgb(255 255 255 / 90%);
-  --card-link: rgb(128 168 255);
-  --card-hover-border: rgb(128 168 255 / 42%);
+  --card-bg: #151517;
+  --card-dot: rgb(255 255 255 / 8%);
+  --card-text: rgb(255 255 255 / 66%);
+  --card-strong: rgb(255 255 255 / 92%);
+  --card-link: rgb(255 255 255 / 86%);
+  --card-hover-border: rgb(255 255 255 / 22%);
   --card-hover-shadow: 0 14px 32px rgb(0 0 0 / 28%);
 }
 
