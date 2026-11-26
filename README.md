@@ -1,7 +1,7 @@
 <p align="center">
   <img alt="Midscene.js" width="180" src="https://github.com/user-attachments/assets/f60de3c1-dd6f-4213-97a1-85bf7c6e79e4"><br />
-  <strong>See interfaces like a human. E2E testing in natural language.</strong><br />
-  Bring AI vision to E2E testing with a newly designed test framework for web, mobile, and desktop apps.
+  <strong>Use the UI like a user.</strong><br />
+  Vision-driven E2E testing in natural language — a GUI Agent and a newly designed test framework for web, mobile, and desktop apps.
 </p>
 
 <p align="center">
@@ -16,9 +16,15 @@
   <a href="https://trendshift.io/repositories/12524"><img src="https://img.shields.io/badge/GitHub_Trending-featured-00a8f0?style=flat-square&logo=github" alt="Featured on GitHub Trending" /></a>
 </p>
 
+## Back to the essence of E2E testing with vision
+
+E2E testing should verify the interface, not its code structure. Tests tied to UI code structure are inherently fragile — and even more importantly, they cannot tell whether a user can actually understand and use the interface, or whether the UI conveys the right information.
+
+In the AI-native era, vision models give us the ability to test closer to the essence of E2E — looking at the screen to act and judge like a user. With accuracy and cost now in balance, the next stage of E2E testing is already here.
+
 ## Write a test in natural language
 
-Midscene.js brings AI vision to E2E testing. Describe UI steps and expected results in natural language, then use the visual GUI Agent to carry them out and verify what users see. Organize tests with Midscene Test, or integrate the Agent APIs into your existing testing framework.
+Describe what a user wants to do and what they should see. You can organize tests in YAML with **Midscene Test**, or add the **GUI Agent** directly to your existing test suite.
 
 ### YAML test cases with Midscene Test
 
@@ -52,9 +58,9 @@ await agent.aiAssert('There are products in the search results, and each costs l
 
 For mobile and desktop apps, use the platform Agent with [Rstest](https://www.midscenejs.com/sdk/rstest) or [Vitest](https://www.midscenejs.com/sdk/vitest). Open the generated HTML report to inspect screenshots, element locations, the AI decision process, and action and assertion results.
 
-## 👁️ See, act, and verify like a human
+## 👁️ Operate and verify by vision alone
 
-E2E testing verifies complete workflows from the user's perspective, so Midscene tests the way a user does: **observe the screen, act on what you see, and verify the visible result**.
+Midscene reads screenshots rather than code, testing the interface the way a user uses it: **observe the screen, act on what is visible, and verify what the user actually sees**.
 
 ### Locate and act from screenshots
 
@@ -71,7 +77,7 @@ await agent.aiAssert('The error message is visible below the email field');
 
 ## 🌐 One API, across platforms
 
-Visual localization does not depend on the UI rendering stack, so the same Agent APIs work on every platform:
+Visual localization does not depend on the UI rendering stack or code structure, so the same Agent APIs work on every platform:
 
 | Platform | Integration |
 | --- | --- |
@@ -82,7 +88,9 @@ Visual localization does not depend on the UI rendering stack, so the same Agent
 | Desktop | [macOS, Windows, and Linux, with remote RDP support](https://www.midscenejs.com/platforms/desktop) |
 | Custom interfaces | [Provide screenshots and action capabilities](https://www.midscenejs.com/integrate-with-any-interface) |
 
-## 📊 Models, cost, and benchmarks
+## 📊 Reliability and cost in practice
+
+Today's vision models strike a strong balance between accuracy and price, making pure vision testing practical for everyday E2E runs.
 
 ### Choose models for your needs and budget
 
@@ -100,22 +108,25 @@ Midscene supports GPT, Qwen, Doubao Seed, DeepSeek, Gemini, Kimi, and more, incl
 
 Each report includes the run configuration and task results; see AndroidWorld's report for its environment and validator adjustments. Explore [cross-platform showcases](https://www.midscenejs.com/showcases), from web form validation to mobile workflows and community-built in-vehicle testing.
 
-## 🧩 Midscene Test: a natural-language E2E testing framework
+## 🧩 Midscene Test: what an E2E framework looks like when tests are pure intent
 
-[Midscene Test](https://www.midscenejs.com/midscene-test/overview) (`@midscene/test`) is a natural-language E2E testing framework. Describe actions and expectations in YAML, and keep logic that needs precise control in TypeScript.
+Through extensive practice, we found that once vision models handle UI interaction and verification, what remains in a test case is pure intent. At that point, traditional test frameworks built around hand-coded locators and page objects become unnecessary overhead.
 
-### Test cases maintained by people and AI
+[Midscene Test](https://www.midscenejs.com/midscene-test/overview) (`@midscene/test`) starts from that premise to rethink what an AI-native E2E framework should optimize for: expressing test cases as pure intent, encapsulating deterministic business operations as reusable capabilities, and letting engineers and AI agents maintain the same test suite together.
+
+### Separate intent from business logic, maintained by people and AI
 
 - **Describe test cases in YAML.** Combine UI actions, assertions, and business operations to express the flow and expected results.
 - **Reuse business capabilities through TypeScript Nodes.** Wrap data preparation, API calls, and cleanup in Nodes that different cases can share. A refund test can prepare an order through an API, request a refund through the UI, and verify the result in one workflow.
 - **Generate a Node Spec for developers and AI agents.** Export registered Nodes and their inputs as Markdown, so both can write cases without reading TypeScript.
 
-### Test framework capabilities
+### Engineering foundation built for visual agents
 
-- **Lifecycle hooks and cleanup:** `setup`, `fileSetup`, `beforeAll`, and `beforeEach` with matching cleanup hooks; cleanup still runs after timeouts or Ctrl+C.
-- **Retries and timeouts:** case retries, step timeouts, `continue-on-error`, and `bail`.
+- **Multi-project orchestration:** run web, Android, iOS, and desktop suites from one config with `--project` and tag filtering.
 - **Concurrency and isolation:** `maxConcurrentFiles`, with `fileSetup` giving each file its own page, Agent, or device.
-- **Step-level reports:** screenshots, inputs, outputs, and Agent replay for every step, `#runner-step=last-error` deep links, and `summary.json` for scripts and AI agents.
+- **Lifecycle hooks and cleanup:** `setup`, `fileSetup`, `beforeAll`, and `beforeEach` with reverse-order cleanup that still runs after timeouts or Ctrl+C.
+- **Retries and timeouts:** case retries after cleanup, step timeouts, `continue-on-error`, and `bail`.
+- **Visual reports & CI integration:** interactive HTML replay for every `Plan`, `Locate`, and action, official `midscene-action` for GitHub Actions with `#runner-step=last-error` deep links, live badges, `model verify`, and `summary.json` / `result.md` for scripts and AI agents.
 
 Start with [Create and use test projects](https://www.midscenejs.com/midscene-test/use), then learn how to [Develop custom Nodes](https://www.midscenejs.com/midscene-test/extend) and control [lifecycle and concurrency](https://www.midscenejs.com/midscene-test/execution).
 

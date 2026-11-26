@@ -1,4 +1,6 @@
-import { useI18n } from '../i18n';
+import { Link } from '@rspress/core/theme-original';
+import { ArrowRight } from 'lucide-react';
+import { useI18n, useI18nUrl } from '../i18n';
 import { SectionDivider } from './SectionDivider';
 
 const heroAssetBase =
@@ -49,6 +51,28 @@ export function Banner() {
 
       <SectionDivider className="home-hero__divider" />
     </section>
+  );
+}
+
+export function HeroActions() {
+  const t = useI18n();
+  const tUrl = useI18nUrl();
+  return (
+    <div className="intro-hero-actions">
+      <Link
+        className="intro-hero-actions__btn intro-hero-actions__btn--primary"
+        href={tUrl('/get-started')}
+      >
+        <span>{t('bottomCtaStart')}</span>
+        <ArrowRight size={14} strokeWidth={1.75} aria-hidden="true" />
+      </Link>
+      <Link
+        className="intro-hero-actions__btn intro-hero-actions__btn--secondary"
+        href={tUrl('/midscene-test/use')}
+      >
+        <span>{t('frameworkStartLink')}</span>
+      </Link>
+    </div>
   );
 }
 

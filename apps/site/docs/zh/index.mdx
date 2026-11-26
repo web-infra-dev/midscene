@@ -6,37 +6,45 @@ footer: true
 title: Midscene.js — GUI Agent 与 E2E 测试框架
 ---
 
-import { HeroStats, TestExample, AgentVisionDemo, AgentVisionSteps, AgentModels, AgentPlatforms, WhoIsUsing } from '@theme';
+import { HeroActions, HeroStats, TestExample, AgentVisionDemo, AgentVisionSteps, AgentModels, AgentBenchmarks, AgentPlatforms, WhoIsUsing } from '@theme';
 import TestPhilosophy from './common/test-philosophy.mdx';
 import TestWorkflow from './common/test-workflow.mdx';
 import TestCollaboration from './common/test-collaboration.mdx';
+import TestReportSection from './common/test-report.mdx';
 import TestExecutionSection from './common/test-execution.mdx';
 
-# 像人一样看懂界面<br />用自然语言完成 E2E 测试
+# 像用户一样使用界面<br />视觉驱动的自然语言 E2E 测试
 
 <div className="introduction-page">
 
-Midscene.js 提供基于视觉的 GUI Agent 和自然语言 E2E 测试框架，支持 Web、移动端和桌面应用。
+面向 Web、移动端和桌面应用的 GUI Agent 与 E2E 测试框架。
 
 <div className="rp-not-doc">
+  <HeroActions />
   <HeroStats />
 </div>
 
+## 用视觉回归 E2E 测试的本质 {#why-vision}
+
+E2E 测试要验证的是界面，不是代码结构。依赖 UI 代码结构的测试用例永远是脆弱的，更无法真正反映用户能不能顺利使用这个界面、界面的表达是否正确。
+
+在 AI-native 的时代，模型让我们有能力回归测试的本质——直接看屏幕，像用户一样操作和判断。随着视觉模型的准确率与成本达到平衡，E2E 测试的下一个阶段已经到来。
+
 ## 用自然语言描述步骤与预期 {#test-intent}
 
-按用户的操作意图写步骤，按用户看到的结果写预期。同一个测试意图，可以用 YAML 表达，也可以接入现有 JavaScript 测试。
+按用户的操作意图写步骤，按用户看到的结果写预期。同一个测试意图，可以用 Midscene Test 写成 YAML，也可以接入现有 JavaScript 测试。
 
 <div className="rp-not-doc introduction-block">
   <TestExample hideHeading />
 </div>
 
-## 为测试而生的 GUI Agent {#gui-agent}
+## 为视觉测试而生的 GUI Agent {#gui-agent}
 
-Midscene 的 GUI Agent 为已有的 JavaScript 测试提供视觉操作与断言能力。Web 场景推荐接入 [Playwright Test](./integrate-with-playwright)，移动端和桌面端推荐接入 [Rstest](./sdk/rstest) 或 [Vitest](./sdk/vitest)。
+如果你已有测试工程，Midscene 的 GUI Agent 可以直接为现有 JavaScript 测试提供视觉操作与断言能力。Web 场景推荐接入 [Playwright Test](./integrate-with-playwright)，移动端和桌面端推荐接入 [Rstest](./sdk/rstest) 或 [Vitest](./sdk/vitest)。
 
-### 像人一样观察、操作并验证结果 {#visual-capabilities}
+### 只靠视觉规划、操作并验证结果 {#visual-capabilities}
 
-E2E 测试的初衷是从用户视角验证完整流程，所以 Midscene 按用户的方式来测。
+Midscene 只看屏幕、不看代码，按真实用户的方式使用界面。
 
 <div className="agent-vision-intro">
 <div className="rp-not-doc">
@@ -51,7 +59,7 @@ E2E 测试的初衷是从用户视角验证完整流程，所以 Midscene 按用
 
 ### 一套 API，覆盖不同平台 {#platforms}
 
-视觉定位不依赖界面的渲染结构，同一套 API 可用于 Web、移动端、桌面端以及 canvas 等自定义界面。
+视觉定位不依赖界面渲染结构或底层代码，同一套 API 可用于 Web、移动端、桌面端以及 canvas 等自定义界面。
 
 <div className="rp-not-doc introduction-block">
   <AgentPlatforms hideHeading />
@@ -59,29 +67,35 @@ E2E 测试的初衷是从用户视角验证完整流程，所以 Midscene 按用
 
 ### 模型选择与成本 {#model-options}
 
+纯视觉方案无需向模型发送庞大的 DOM 树。随着视觉模型能力提升和价格下降，准确率和调用成本已经达到工程可用的平衡点。
+
 <div className="rp-not-doc introduction-block">
   <AgentModels hideHeading />
 </div>
 
 ### Benchmark 成绩 {#benchmarks}
 
-- **AndroidWorld**：Pass@1 为 93.1%，Pass@3 为 97.4%。[查看评测报告](./android-world-benchmark-report)
-- **MobileWorld**：Pass@1 为 78.6%，完成 117 项任务中的 92 项。[查看评测报告](./mobile-world-benchmark-report)
-- **AppControlBench**：Pass@1 为 96.7%，通过 60 项任务中的 58 项。[查看评测报告](./app-control-bench-report)
+<div className="rp-not-doc introduction-block">
+  <AgentBenchmarks hideHeading />
+</div>
 
-## 全新设计的自然语言 E2E 测试框架 {#midscene-test}
+## Midscene Test：当用例只剩下意图，测试框架应该长什么样 {#midscene-test}
 
 <TestPhilosophy />
 
-### AI 操作与业务操作写在同一个 YAML 里 {#ai-and-nodes}
+### 交互操作与业务操作写在同一个 YAML 里 {#ai-and-nodes}
 
 <TestWorkflow />
 
-### 让人和 AI 共同维护测试用例 {#nodes-and-spec}
+### 让意图与业务逻辑清晰分层，由人和 AI 共同维护 {#nodes-and-spec}
 
 <TestCollaboration />
 
-### 测试框架能力 {#framework-capabilities}
+### 在可视化报告中回放每一步操作细节 {#visual-reports}
+
+<TestReportSection />
+
+### 为视觉 Agent 重建的工程底座 {#framework-capabilities}
 
 <TestExecutionSection />
 

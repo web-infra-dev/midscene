@@ -6,37 +6,45 @@ footer: true
 title: Midscene.js — GUI Agent and E2E Testing Framework
 ---
 
-import { HeroStats, TestExample, AgentVisionDemo, AgentVisionSteps, AgentModels, AgentPlatforms, WhoIsUsing } from '@theme';
+import { HeroActions, HeroStats, TestExample, AgentVisionDemo, AgentVisionSteps, AgentModels, AgentBenchmarks, AgentPlatforms, WhoIsUsing } from '@theme';
 import TestPhilosophy from './common/test-philosophy.mdx';
 import TestWorkflow from './common/test-workflow.mdx';
 import TestCollaboration from './common/test-collaboration.mdx';
+import TestReportSection from './common/test-report.mdx';
 import TestExecutionSection from './common/test-execution.mdx';
 
-# See interfaces like a human<br />E2E testing in natural language
+# Use the UI like a user<br />Vision-driven E2E testing in natural language
 
 <div className="introduction-page">
 
-Midscene.js provides a vision-based GUI Agent and a natural-language E2E testing framework for web, mobile, and desktop apps.
+A GUI Agent and E2E testing framework for web, mobile, and desktop.
 
 <div className="rp-not-doc">
+  <HeroActions />
   <HeroStats />
 </div>
 
+## Back to the essence of E2E testing with vision {#why-vision}
+
+E2E testing should verify the interface, not its code structure. Tests tied to UI code structure are inherently fragile — and even more importantly, they cannot tell whether a user can actually understand and use the interface, or whether the UI conveys the right information.
+
+In the AI-native era, vision models give us the ability to test closer to the essence of E2E — looking at the screen to act and judge like a user. With accuracy and cost now in balance, the next stage of E2E testing is already here.
+
 ## Describe steps and expectations in natural language {#test-intent}
 
-Describe what a user wants to do and what they should see. Express the same intent in YAML or in your existing JavaScript tests.
+Describe what a user wants to do and what they should see. Express the same intent in YAML with Midscene Test, or in your existing JavaScript tests.
 
 <div className="rp-not-doc introduction-block">
   <TestExample hideHeading />
 </div>
 
-## A GUI Agent built for testing {#gui-agent}
+## A GUI Agent built for vision-driven testing {#gui-agent}
 
-Midscene’s GUI Agent brings visual actions and assertions to your existing JavaScript tests. We recommend [Playwright Test](./integrate-with-playwright) for web apps and [Rstest](./sdk/rstest) or [Vitest](./sdk/vitest) for mobile and desktop apps.
+If you already have a test suite, Midscene’s GUI Agent brings visual actions and assertions directly into it. We recommend [Playwright Test](./integrate-with-playwright) for web apps and [Rstest](./sdk/rstest) or [Vitest](./sdk/vitest) for mobile and desktop apps.
 
-### See, act, and verify like a human {#visual-capabilities}
+### Operate and verify by vision alone {#visual-capabilities}
 
-E2E testing verifies complete workflows from the user’s perspective, so Midscene tests the way a user does.
+Midscene reads screenshots rather than code, testing the interface the way a user uses it.
 
 <div className="agent-vision-intro">
 <div className="rp-not-doc">
@@ -51,7 +59,7 @@ E2E testing verifies complete workflows from the user’s perspective, so Midsce
 
 ### One API, across platforms {#platforms}
 
-Visual localization does not depend on the UI rendering stack, so the same API works on web, mobile, desktop, and canvas-based interfaces.
+Visual localization does not depend on the UI rendering stack or code structure, so the same API works on web, mobile, desktop, and canvas-based interfaces.
 
 <div className="rp-not-doc introduction-block">
   <AgentPlatforms hideHeading />
@@ -59,29 +67,35 @@ Visual localization does not depend on the UI rendering stack, so the same API w
 
 ### Model options and cost {#model-options}
 
+Pure vision testing avoids sending large DOM trees to the model. With today’s vision models, accuracy and API cost reach a practical balance for E2E testing.
+
 <div className="rp-not-doc introduction-block">
   <AgentModels hideHeading />
 </div>
 
 ### Benchmarks {#benchmarks}
 
-- **AndroidWorld**: Pass@1 of 93.1% and Pass@3 of 97.4%. [Read the benchmark report](./android-world-benchmark-report)
-- **MobileWorld**: Pass@1 of 78.6%, completing 92 of 117 tasks. [Read the benchmark report](./mobile-world-benchmark-report)
-- **AppControlBench**: Pass@1 of 96.7%, passing 58 of 60 tasks. [Read the benchmark report](./app-control-bench-report)
+<div className="rp-not-doc introduction-block">
+  <AgentBenchmarks hideHeading />
+</div>
 
-## A new E2E testing framework designed for natural language {#midscene-test}
+## Midscene Test: what an E2E framework looks like when tests are pure intent {#midscene-test}
 
 <TestPhilosophy />
 
-### AI and business operations in one YAML file {#ai-and-nodes}
+### Interactive and business operations in one YAML file {#ai-and-nodes}
 
 <TestWorkflow />
 
-### Test cases maintained by people and AI {#nodes-and-spec}
+### Separate intent from business logic, maintained by people and AI {#nodes-and-spec}
 
 <TestCollaboration />
 
-### Test framework capabilities {#framework-capabilities}
+### Replay every action in visual reports {#visual-reports}
+
+<TestReportSection />
+
+### Engineering foundation built for visual agents {#framework-capabilities}
 
 <TestExecutionSection />
 

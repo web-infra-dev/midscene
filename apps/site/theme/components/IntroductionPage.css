@@ -4,6 +4,15 @@
   min-width: 0;
 }
 
+.rp-doc-layout__doc:has(.introduction-page) h1 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: clamp(28px, 3.4vw, 40px);
+  line-height: 1.24;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
 /* The homepage turns the outline off, but Rspress still reserves its column
    with an empty placeholder. Drop the placeholder and let the content take
    that width, so the page ends where the outline would have. Pages that keep
@@ -27,23 +36,49 @@
   min-width: 0;
 }
 
+/* Hero lead paragraph paired tightly with the H1 above and stats below. */
+.introduction-page > p:first-of-type {
+  margin-top: 0;
+  margin-bottom: 24px;
+  color: rgb(16 24 40 / 72%);
+  font-size: 17px;
+  line-height: 1.65;
+}
+
+.dark .introduction-page > p:first-of-type {
+  color: rgb(255 255 255 / 72%);
+}
+
 /* Landing-page rhythm: visual blocks end each subsection, so headings need
    more room than the default doc spacing. */
 .introduction-page > h2 {
-  margin-top: 96px;
+  margin-top: 72px;
+  margin-bottom: 16px;
+  text-wrap: balance;
+}
+
+.rp-doc .introduction-page > h2:first-of-type {
+  margin-top: 36px;
+  padding-top: 32px;
 }
 
 .introduction-page > h3 {
-  margin-top: 64px;
+  margin-top: 56px;
+  margin-bottom: 12px;
+  text-wrap: balance;
 }
 
 @container (max-width: 640px) {
   .introduction-page > h2 {
-    margin-top: 64px;
+    margin-top: 56px;
+  }
+
+  .introduction-page > h2:first-of-type {
+    margin-top: 28px;
   }
 
   .introduction-page > h3 {
-    margin-top: 48px;
+    margin-top: 44px;
   }
 }
 
@@ -94,7 +129,191 @@
   margin: 0;
   padding: 0;
   flex-wrap: wrap;
-  gap: 24px 64px;
+  gap: 20px 56px;
+}
+
+.introduction-page .home-hero__stat strong {
+  line-height: 1.3;
+}
+
+/* Monochrome Hero CTA buttons */
+
+.intro-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 28px;
+}
+
+.intro-hero-actions__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid rgb(16 24 40 / 14%);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  text-decoration: none;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms
+    ease;
+}
+
+.intro-hero-actions__btn--primary {
+  border-color: rgb(16 24 40 / 92%);
+  background: rgb(16 24 40 / 92%);
+  color: #fff;
+}
+
+.intro-hero-actions__btn--primary:hover {
+  background: rgb(16 24 40 / 80%);
+  color: #fff;
+}
+
+.intro-hero-actions__btn--secondary {
+  background: #fff;
+  color: rgb(16 24 40 / 84%);
+}
+
+.intro-hero-actions__btn--secondary:hover {
+  border-color: rgb(16 24 40 / 28%);
+  background: #f7f8fa;
+  color: rgb(16 24 40 / 96%);
+}
+
+.dark .intro-hero-actions__btn--primary {
+  border-color: rgb(255 255 255 / 92%);
+  background: rgb(255 255 255 / 92%);
+  color: #111;
+}
+
+.dark .intro-hero-actions__btn--primary:hover {
+  background: #fff;
+  color: #111;
+}
+
+.dark .intro-hero-actions__btn--secondary {
+  border-color: rgb(255 255 255 / 14%);
+  background: #151517;
+  color: rgb(255 255 255 / 84%);
+}
+
+.dark .intro-hero-actions__btn--secondary:hover {
+  border-color: rgb(255 255 255 / 26%);
+  background: #1c1c20;
+  color: #fff;
+}
+
+/* Monochrome 1x3 Benchmark strip */
+
+.bench-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid rgb(16 24 40 / 10%);
+  border-radius: 10px;
+  background: rgb(16 24 40 / 10%);
+}
+
+.dark .bench-strip {
+  border-color: rgb(255 255 255 / 10%);
+  background: rgb(255 255 255 / 10%);
+}
+
+.bench-strip .bench-strip__item {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 20px;
+  background: #fff;
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 150ms ease;
+}
+
+.dark .bench-strip .bench-strip__item {
+  background: #151517;
+}
+
+.bench-strip .bench-strip__item:hover {
+  background: #f7f8fa;
+}
+
+.dark .bench-strip .bench-strip__item:hover {
+  background: #1c1c20;
+}
+
+.bench-strip__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bench-strip__top strong {
+  color: rgb(16 24 40 / 92%);
+  font-family: Inter, var(--rp-font-family-base, sans-serif);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 32px;
+}
+
+.dark .bench-strip__top strong {
+  color: rgb(255 255 255 / 92%);
+}
+
+.bench-strip__arrow {
+  color: rgb(16 24 40 / 45%);
+  opacity: 0;
+  transform: translate(-2px, 2px);
+  transition: opacity 150ms ease, transform 150ms ease, color 150ms ease;
+}
+
+.dark .bench-strip__arrow {
+  color: rgb(255 255 255 / 50%);
+}
+
+.bench-strip__item:hover .bench-strip__arrow {
+  color: rgb(16 24 40 / 90%);
+  opacity: 0.9;
+  transform: translate(0, 0);
+}
+
+.dark .bench-strip__item:hover .bench-strip__arrow {
+  color: rgb(255 255 255 / 92%);
+}
+
+.bench-strip__title {
+  color: rgb(16 24 40 / 88%);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.dark .bench-strip__title {
+  color: rgb(255 255 255 / 88%);
+}
+
+.bench-strip__meta {
+  color: rgb(16 24 40 / 50%);
+  font-family: "Chivo Mono", var(--rp-font-family-mono, monospace);
+  font-size: 11.5px;
+  line-height: 18px;
+}
+
+.dark .bench-strip__meta {
+  color: rgb(255 255 255 / 48%);
+}
+
+@container (max-width: 640px) {
+  .bench-strip {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .introduction-block {
@@ -112,13 +331,30 @@
 
 .agent-vision-intro {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: center;
-  gap: 32px;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid var(--vision-border, rgb(16 24 40 / 10%));
+  border-radius: 10px;
+  background: var(--vision-surface, #fff);
 }
 
 .agent-vision-intro > div {
   min-width: 0;
+}
+
+.agent-vision-intro > div:last-child {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  border-left: 1px solid var(--vision-border, rgb(16 24 40 / 10%));
+  background-color: var(--vision-canvas, #fbfbfb);
+  background-image: radial-gradient(
+    var(--vision-dot, rgb(16 24 40 / 7%)) 1px,
+    transparent 1px
+  );
+  background-size: 16px 16px;
 }
 
 .agent-vision-intro > div > p:first-child {
@@ -129,25 +365,15 @@
   margin-bottom: 0;
 }
 
-.agent-vision-demo__video {
-  display: block;
-  width: 100%;
-  border-radius: 12px;
-}
-
-.agent-vision-demo__video--dark,
-.dark .agent-vision-demo__video--light {
-  display: none;
-}
-
-.dark .agent-vision-demo__video--dark {
-  display: block;
-}
-
 @container (max-width: 640px) {
   .agent-vision-intro {
     grid-template-columns: minmax(0, 1fr);
-    gap: 24px;
+  }
+
+  .agent-vision-intro > div:last-child {
+    padding: 16px;
+    border-left: none;
+    border-top: 1px solid var(--vision-border, rgb(16 24 40 / 10%));
   }
 }
 

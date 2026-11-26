@@ -2,13 +2,13 @@ export const EN_US = {
   // Homepage chapters
   chapterAgent: 'GUI AGENT',
   chapterFramework: 'MIDSCENE TEST',
-  agentChapterHeading: 'A GUI Agent built for testing',
+  agentChapterHeading: 'A GUI Agent built for vision-driven testing',
   agentChapterDesc:
-    'E2E testing aims to verify complete workflows from the user’s perspective. Midscene uses vision to observe, act, and check results. Integrate through APIs or let AI coding agents use it through Skills.',
+    'E2E testing should use the interface the way a user does, without relying on DOM trees or selectors. Midscene uses vision to observe, act, and check results — integrate through APIs or let AI coding agents use it through Skills.',
   frameworkChapterHeading:
-    'A new E2E testing framework designed for natural language',
+    'What an E2E framework looks like when tests are pure intent',
   frameworkChapterDesc:
-    'Midscene Test is designed from the ground up for natural-language E2E testing. Write actions and assertions in YAML, extend test steps with TypeScript Nodes, and manage setup, cleanup, retries, and execution reports within one framework.',
+    'Once vision models handle UI interaction and verification, what remains in a test case is pure intent. Midscene Test rethinks the AI-native E2E framework around that premise: expressing intent in YAML, encapsulating deterministic business logic in TypeScript Nodes, and managing lifecycle, isolation, retries, and replay for visual agents.',
   exampleDesc:
     'Describe what a user wants to do and what they should see. Express the same intent in YAML or in your existing JavaScript tests.',
   agentIntegrationDesc:
@@ -42,6 +42,24 @@ export const EN_US = {
   executionConcurrencyRunning: 'Running',
   executionConcurrencyEnv: 'Own page + Agent',
   executionConcurrencyQueued: 'Queued',
+  executionProjectsHref: '/midscene-test/configuration',
+  executionProjectsTitle: 'Multi-project orchestration',
+  executionProjectsDesc:
+    'Run web, Android, iOS, and desktop suites from one config with --project and tag filtering.',
+  executionCiHref: '/midscene-test/running#run-in-github-actions',
+  executionCiTitle: 'CI & GitHub Actions',
+  executionCiDesc:
+    'Official midscene-action with PR summaries, #runner-step=last-error deep links, and live badges.',
+  executionAiOutputHref: '/midscene-test/running#output-and-exit-codes',
+  executionAiOutputTitle: 'AI-readable outputs & diagnostics',
+  executionAiOutputDesc:
+    'Emit summary.json and result.md for scripts and AI agents, with model verify and token tracking.',
+  executionLifecycleShortDesc:
+    'Project, file, and case hooks with reverse-order cleanup that still runs on timeout or Ctrl+C.',
+  executionRetryShortDesc:
+    'Rerun failed cases after cleanup, with step timeouts, continue-on-error, and bail.',
+  executionConcurrencyShortDesc:
+    'Run YAML files in parallel via maxConcurrentFiles, each with its own isolated page, Agent, or device.',
   executionReportHref: '/midscene-test/running#output-and-exit-codes',
   executionReportTitle: 'Step-level reports',
   executionReportDesc:
@@ -53,10 +71,26 @@ export const EN_US = {
   executionReportError: 'Error',
   executionReportMachine: 'For scripts and AI agents',
 
+  // Report replay schematic
+  reportReplayCase: 'Find headphones under $100',
+  reportReplayActShort: 'Search for headphones',
+  reportReplayWaitShort: 'Filtered results visible',
+  reportReplayAssertShort: 'Each item costs < $100',
+  reportReplayPrompt: 'Type "headphones" in the search box and click Search',
+  reportReplayQuery: 'headphones',
+  reportReplayIdle: 'Ready to search',
+  reportReplayFiltered: 'Showing 1 matching product',
+  reportReplayPageTitle: 'Midscene Shop',
+  reportReplayPlaceholder: 'Search products',
+  reportReplaySearchBtn: 'Search',
+  reportReplayItemName: 'Wireless Headphones',
+  reportReplayAddCart: 'Add to cart',
+
   // Banner - Title
-  heroTitle: 'See interfaces like a human\nE2E testing in natural language',
+  heroTitle:
+    'Use the UI like a user\nVision-driven E2E testing in natural language',
   heroSubtitle:
-    'Midscene.js provides a vision-based GUI Agent and a natural-language E2E testing framework for web, mobile, and desktop apps.',
+    'A GUI Agent and E2E testing framework for web, mobile, and desktop.',
 
   openSource: 'Fully open source',
 
@@ -89,10 +123,10 @@ export const EN_US = {
   platformDesktop: 'Desktop',
   platformsApiLabel: 'Same API',
   platformsApiPrompt: 'Search for headphones',
-  visionStepObserve: 'Observe',
-  visionStepObserveDesc: 'Read screenshots, not the DOM',
-  visionStepAct: 'Act',
-  visionStepActDesc: 'Find the target, then tap, type, or scroll',
+  visionStepObserve: 'Plan',
+  visionStepObserveDesc: 'Read screenshots and decide the next step',
+  visionStepAct: 'Locate & Act',
+  visionStepActDesc: 'Locate targets on screen and perform the UI action',
   visionStepVerify: 'Verify',
   visionStepVerifyDesc: 'Assert on what users actually see',
   visionShowcaseLink: 'See real-world examples',
@@ -126,13 +160,13 @@ export const EN_US = {
   modelCostTasks: '/ 60 tasks',
 
   // Test framework
-  frameworkHeading: 'AI and business operations\nin one YAML file',
+  frameworkHeading: 'Interactive and business operations\nin one YAML file',
   frameworkDesc:
-    'Each YAML step calls a Node: an AI operation, a platform operation, or a custom business operation. Compose these Nodes into test cases that people and AI agents can read, write, and review.',
-  frameworkAiTag: 'AI',
+    'Each YAML step calls a Node: an interactive UI operation, a platform operation, or a custom business operation. Compose these Nodes into test cases that people and AI agents can read, write, and review.',
+  frameworkAiTag: 'Interactive',
   frameworkNodeTag: 'Business',
   frameworkLegendLabel: 'Step types',
-  frameworkAiTitle: 'AI operations',
+  frameworkAiTitle: 'Interactive operations',
   frameworkAiDesc:
     'APIs such as aiAct and aiAssert read the screen and follow natural-language instructions.',
   frameworkNodeTitle: 'Business operations',

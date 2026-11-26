@@ -4,12 +4,12 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Homepage chapters
   chapterAgent: 'GUI Agent',
   chapterFramework: 'Midscene Test',
-  agentChapterHeading: '为测试而生的 GUI Agent',
+  agentChapterHeading: '为视觉测试而生的 GUI Agent',
   agentChapterDesc:
-    '从用户视角验证完整流程，是 E2E 测试的初衷。Midscene 通过视觉观察界面、执行操作并验证结果，可通过 API 接入已有工程，或通过 Skills 交给 AI 编程 Agent 使用。',
-  frameworkChapterHeading: '全新设计的自然语言 E2E 测试框架',
+    'E2E 测试要像用户一样使用界面，而不是依赖 DOM 和选择器。Midscene 只靠视觉观察界面、执行操作并验证结果，可通过 API 接入已有工程，或通过 Skills 交给 AI 编程 Agent 使用。',
+  frameworkChapterHeading: '当用例只剩下意图，测试框架应该长什么样',
   frameworkChapterDesc:
-    'Midscene Test 是为自然语言 E2E 测试全新设计的框架。在 YAML 中用自然语言描述操作与断言，通过 TypeScript Node 扩展测试步骤，并由框架统一管理数据准备、清理、重试与执行报告。',
+    '当界面操作和验证交给视觉模型，测试用例里真正剩下的就只有意图。Midscene Test 重新定义 AI-native 的 E2E 测试框架：用 YAML 表达纯粹的测试意图，通过 TypeScript Node 沉淀可复用的确定性业务能力，并围绕视觉 Agent 统一管理生命周期、隔离并发与执行回放。',
   exampleDesc:
     '按用户的操作意图写步骤，按用户看到的结果写预期。同一个测试意图，可以用 YAML 表达，也可以接入现有 JavaScript 测试。',
   agentIntegrationDesc:
@@ -42,6 +42,24 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   executionConcurrencyRunning: '运行中',
   executionConcurrencyEnv: '独立页面与 Agent',
   executionConcurrencyQueued: '排队中',
+  executionProjectsHref: '/midscene-test/configuration',
+  executionProjectsTitle: '多 Project 跨端编排',
+  executionProjectsDesc:
+    '一份配置管理 Web、Android、iOS 与桌面套件，支持 --project 与标签筛选。',
+  executionCiHref: '/midscene-test/running#在-github-actions-中运行',
+  executionCiTitle: 'CI 与 GitHub Actions 集成',
+  executionCiDesc:
+    '官方 midscene-action 支持 PR Summary、#runner-step=last-error 失败直达链接与实时 Badge。',
+  executionAiOutputHref: '/midscene-test/running#输出与退出码',
+  executionAiOutputTitle: 'AI 可读产物与模型诊断',
+  executionAiOutputDesc:
+    '输出 summary.json 与 result.md 供脚本和 Agent 消费，内置 model verify 预检与 Token 统计。',
+  executionLifecycleShortDesc:
+    '项目、文件与用例三级钩子，失败、超时或 Ctrl+C 时仍按逆序释放浏览器与设备资源。',
+  executionRetryShortDesc:
+    '失败用例清理后自动重试，支持步骤超时、continue-on-error 与 bail 提前终止。',
+  executionConcurrencyShortDesc:
+    '通过 maxConcurrentFiles 并发跑用例，每个文件独占页面、Agent 或设备，互不干扰。',
   executionReportHref: '/midscene-test/running#输出与退出码',
   executionReportTitle: '精确到步骤的报告',
   executionReportDesc:
@@ -53,10 +71,24 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   executionReportError: '错误',
   executionReportMachine: '供脚本和 AI Agent 读取',
 
+  // Report replay schematic
+  reportReplayCase: '筛选 100 美元以下的耳机',
+  reportReplayActShort: '搜索无线耳机',
+  reportReplayWaitShort: '筛选结果已显示',
+  reportReplayAssertShort: '商品价格均低于 100 美元',
+  reportReplayPrompt: '在输入框输入“无线耳机”，然后点击“搜索”按钮',
+  reportReplayQuery: '无线耳机',
+  reportReplayIdle: '尚未搜索',
+  reportReplayFiltered: '已匹配 1 件商品',
+  reportReplayPageTitle: 'Midscene 商品页',
+  reportReplayPlaceholder: '输入商品名称',
+  reportReplaySearchBtn: '搜索',
+  reportReplayItemName: '降噪耳机',
+  reportReplayAddCart: '加入购物车',
+
   // Banner - Title
-  heroTitle: '像人一样看懂界面\n用自然语言完成 E2E 测试',
-  heroSubtitle:
-    'Midscene.js 提供基于视觉的 GUI Agent 和自然语言 E2E 测试框架，支持 Web、移动端和桌面应用。',
+  heroTitle: '像用户一样使用界面\n视觉驱动的自然语言 E2E 测试',
+  heroSubtitle: '面向 Web、移动端和桌面应用的 GUI Agent 与 E2E 测试框架。',
 
   openSource: '完全开源',
 
@@ -87,11 +119,11 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   platformDesktop: '桌面',
   platformsApiLabel: '同一套 API',
   platformsApiPrompt: '搜索耳机',
-  visionStepObserve: '观察屏幕',
-  visionStepObserveDesc: '读取截图，不依赖 DOM',
-  visionStepAct: '执行操作',
-  visionStepActDesc: '定位目标元素，执行点击、输入或滚动',
-  visionStepVerify: '检查结果',
+  visionStepObserve: '规划步骤',
+  visionStepObserveDesc: '读取界面截图，规划下一步操作',
+  visionStepAct: '定位并操作',
+  visionStepActDesc: '在屏幕上定位目标并执行界面交互',
+  visionStepVerify: '验证结果',
   visionStepVerifyDesc: '断言用户实际看到的内容',
   visionShowcaseLink: '查看实际案例',
   platformCustom: '自定义界面',
@@ -124,13 +156,13 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   modelCostTasks: '/ 60 项任务',
 
   // Test framework
-  frameworkHeading: 'AI 操作与业务操作\n写在同一个 YAML 里',
+  frameworkHeading: '交互操作与业务操作\n写在同一个 YAML 里',
   frameworkDesc:
-    '每个 YAML 步骤都调用一个 Node，可以是 AI 操作、平台操作或自定义业务操作。将这些 Node 组合成人和 AI 都能读写、审阅的测试用例。',
-  frameworkAiTag: 'AI',
+    '每个 YAML 步骤都调用一个 Node，可以是交互操作、平台操作或自定义业务操作。将这些 Node 组合成人和 AI 都能读写、审阅的测试用例。',
+  frameworkAiTag: '交互',
   frameworkNodeTag: '业务',
   frameworkLegendLabel: '步骤类型',
-  frameworkAiTitle: 'AI 操作',
+  frameworkAiTitle: '交互操作',
   frameworkAiDesc:
     'aiAct、aiAssert 等接口读取界面截图，按自然语言指令操作和断言。',
   frameworkNodeTitle: '业务操作',

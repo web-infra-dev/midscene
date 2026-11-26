@@ -1,5 +1,5 @@
 import { Link } from '@rspress/core/theme-original';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useI18n, useI18nUrl } from '../i18n';
 import { FeatureCard, FeatureCardGrid, FeatureCardImage } from './FeatureCard';
@@ -10,7 +10,6 @@ import { TestExecution } from './TestExecution';
 import { TestFramework } from './TestFramework';
 import { TestProject } from './TestProject';
 import { TestingToolkit } from './TestingToolkit';
-import { TiltCard } from './TiltCard';
 
 interface FeatureSectionProps {
   hideHeading?: boolean;
@@ -96,21 +95,19 @@ function BenchmarkLinkCard({
   details,
 }: BenchmarkLinkCardProps) {
   return (
-    <TiltCard href={href} className="home-benchmark-card">
-      <div className="home-benchmark-card__visual">
-        <img
-          className="home-benchmark-card__mark"
-          src="/images/brand/midscene-icon.png"
-          alt=""
+    <Link href={href} className="bench-strip__item">
+      <div className="bench-strip__top">
+        <strong>{score}</strong>
+        <ArrowUpRight
+          className="bench-strip__arrow"
+          size={14}
+          strokeWidth={1.75}
           aria-hidden="true"
         />
-        <strong>{score}</strong>
-        <span>{details}</span>
       </div>
-      <div className="home-benchmark-card__content">
-        <h3>{title}</h3>
-      </div>
-    </TiltCard>
+      <div className="bench-strip__title">{title}</div>
+      <div className="bench-strip__meta">{details}</div>
+    </Link>
   );
 }
 
@@ -212,24 +209,24 @@ export function AgentBenchmarks({
       variant="benchmarks"
       hideHeading={hideHeading}
     >
-      <div className="home-benchmark-grid">
+      <div className="bench-strip">
         <BenchmarkLinkCard
           href={tUrl(t('featureBenchmarkLink'))}
           score="93.1%"
-          title="AndroidWorld Benchmark"
-          details={`${t('benchmark')} 93.1% · Pass@3 97.4%`}
+          title="AndroidWorld"
+          details={`${t('benchmark')} · Pass@3 97.4%`}
         />
         <BenchmarkLinkCard
           href={tUrl(t('featureMobileWorldBenchmarkLink'))}
           score="78.6%"
-          title="MobileWorld Benchmark"
-          details="78.6% · GUI-ONLY"
+          title="MobileWorld"
+          details="Pass@1 · 92 / 117 tasks"
         />
         <BenchmarkLinkCard
           href={tUrl(t('featureAppControlBenchLink'))}
           score="96.7%"
-          title="AppControlBench Benchmark"
-          details="Pass@1 96.7% · 58 PASS"
+          title="AppControlBench"
+          details="Pass@1 · 58 / 60 tasks"
         />
       </div>
     </FeatureSection>

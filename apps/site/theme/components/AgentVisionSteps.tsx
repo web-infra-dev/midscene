@@ -27,10 +27,13 @@ export function AgentVisionSteps() {
   return (
     <div className="agent-vision-steps">
       <ol>
-        {steps.map(({ icon: Icon, title, description }) => (
+        {steps.map(({ icon: Icon, title, description }, index) => (
           <li key={title}>
+            <span className="agent-vision-steps__index" aria-hidden="true">
+              0{index + 1}
+            </span>
             <span className="agent-vision-steps__icon" aria-hidden="true">
-              <Icon size={18} strokeWidth={1.75} />
+              <Icon size={16} strokeWidth={1.6} />
             </span>
             <span className="agent-vision-steps__text">
               <strong>{title}</strong>
@@ -40,8 +43,8 @@ export function AgentVisionSteps() {
         ))}
       </ol>
       <Link className="agent-vision-steps__link" href={tUrl('/showcases')}>
-        {t('visionShowcaseLink')}
-        <ArrowRight size={14} strokeWidth={1.5} />
+        <span>{t('visionShowcaseLink')}</span>
+        <ArrowRight size={14} strokeWidth={1.6} aria-hidden="true" />
       </Link>
     </div>
   );

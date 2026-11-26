@@ -1,7 +1,7 @@
 <p align="center">
   <img alt="Midscene.js" width="180" src="https://github.com/user-attachments/assets/f60de3c1-dd6f-4213-97a1-85bf7c6e79e4"><br />
-  <strong>像人一样看懂界面，用自然语言完成 E2E 测试</strong><br />
-  将 AI 视觉引入 E2E 测试，配套全新设计的测试框架，支持 Web、移动端和桌面应用。
+  <strong>像用户一样使用界面</strong><br />
+  视觉驱动的自然语言 E2E 测试，提供 GUI Agent 与全新设计的测试框架，支持 Web、移动端和桌面应用。
 </p>
 
 <p align="center">
@@ -16,9 +16,15 @@
   <a href="https://trendshift.io/repositories/12524"><img src="https://img.shields.io/badge/GitHub_Trending-featured-00a8f0?style=flat-square&logo=github" alt="Featured on GitHub Trending" /></a>
 </p>
 
+## 用视觉回归 E2E 测试的本质
+
+E2E 测试要验证的是界面，不是代码结构。依赖 UI 代码结构的测试用例永远是脆弱的，更无法真正反映用户能不能顺利使用这个界面、界面的表达是否正确。
+
+在 AI-native 的时代，模型让我们有能力回归测试的本质——直接看屏幕，像用户一样操作和判断。随着视觉模型的准确率与成本达到平衡，E2E 测试的下一个阶段已经到来。
+
 ## 用自然语言编写测试
 
-Midscene.js 将 AI 视觉引入 E2E 测试。用自然语言描述界面操作和预期结果，视觉 GUI Agent 会执行这些步骤，并验证用户看到的效果。你可以通过 Midscene Test 组织测试，也可以将 Agent API 接入现有测试框架。
+直接描述用户要做什么、界面应该呈现什么结果。你可以用 **Midscene Test** 组织 YAML 测试用例，也可以在已有测试工程中直接接入 **GUI Agent**。
 
 ### 使用 Midscene Test 编写 YAML 用例
 
@@ -52,9 +58,9 @@ await agent.aiAssert('搜索结果中有商品，且每件商品价格都低于 
 
 移动端和桌面端应用可以通过 [Rstest](https://www.midscenejs.com/zh/sdk/rstest) 或 [Vitest](https://www.midscenejs.com/zh/sdk/vitest) 使用对应平台的 Agent。打开生成的 HTML 报告，即可查看截图、元素定位、AI 决策过程，以及操作和断言结果。
 
-## 👁️ 像人一样观察、操作并验证结果
+## 👁️ 只靠视觉规划、操作并验证结果
 
-E2E 测试的初衷是从用户视角验证完整流程，所以 Midscene 按用户的方式来测：**观察屏幕，根据看到的内容操作，再验证界面呈现的结果**。
+Midscene 只看屏幕、不看代码，按真实用户的方式使用界面：**规划步骤，定位并操作，再验证界面实际呈现的结果**。
 
 ### 根据截图定位与操作
 
@@ -71,7 +77,7 @@ await agent.aiAssert('邮箱输入框下方显示了错误提示');
 
 ## 🌐 一套 API，覆盖不同平台
 
-视觉定位不依赖界面渲染结构，同一套 Agent API 可以用于各个平台：
+视觉定位不依赖界面渲染结构或底层代码，同一套 Agent API 可以用于各个平台：
 
 | 平台 | 接入方式 |
 | --- | --- |
@@ -82,7 +88,9 @@ await agent.aiAssert('邮箱输入框下方显示了错误提示');
 | 桌面 | [macOS、Windows、Linux，支持远程 RDP](https://www.midscenejs.com/zh/platforms/desktop) |
 | 自定义界面 | [提供截图与操作能力，即可接入](https://www.midscenejs.com/zh/integrate-with-any-interface) |
 
-## 📊 模型、成本与 Benchmark
+## 📊 可靠性与成本的平衡
+
+当下视觉模型已在准确率和调用成本之间取得很好的平衡，让纯视觉 E2E 能够直接落地到日常工程中。
 
 ### 按效果与预算选择模型
 
@@ -100,22 +108,25 @@ Midscene 支持豆包 Seed、千问 Qwen、DeepSeek、Gemini、GPT、Kimi 等模
 
 各报告包含运行配置与任务结果；AndroidWorld 报告还说明了环境与校验器的调整。查看[跨平台案例](https://www.midscenejs.com/zh/showcases)，了解 Web 表单校验、移动端操作流程，以及社区构建的车机测试方案。
 
-## 🧩 Midscene Test：面向自然语言的 E2E 测试框架
+## 🧩 Midscene Test：当用例只剩下意图，测试框架应该长什么样
 
-[Midscene Test](https://www.midscenejs.com/zh/midscene-test/overview)（`@midscene/test`）是面向自然语言的 E2E 测试框架。用 YAML 描述操作和预期，需要精确控制的逻辑交给 TypeScript。
+在大量实践之后我们发现：当界面操作和验证交给视觉模型，测试用例里真正剩下的就只有「意图」。此时，为手写定位代码而设计的传统测试框架已经显得冗余。
 
-### 让人和 AI 共同维护测试用例
+[Midscene Test](https://www.midscenejs.com/zh/midscene-test/overview)（`@midscene/test`）从这里出发，重新定义 AI-native 的 E2E 测试框架应该重视什么：让用例回归纯粹的意图表达，将确定性业务逻辑沉淀为可复用的能力，让人类工程师与 AI Agent 在同一套工程体系里共同维护测试。
+
+### 让意图与业务逻辑清晰分层，由人和 AI 共同维护
 
 - **用 YAML 描述测试用例**：组合界面操作、断言与业务操作，表达测试流程和预期结果。
 - **用 TypeScript Node 复用业务能力**：将数据准备、接口调用与清理封装为 Node，供不同用例复用。例如，一条退款用例可以先通过 API 准备订单，再通过 UI 申请退款并验证结果。
 - **为开发者和 AI Agent 生成 Node 说明书**：将已注册的 Node 及其参数导出为 Markdown，双方都无需阅读 TypeScript 就能编写用例。
 
-### 测试框架能力
+### 为视觉 Agent 重建的工程底座
 
-- **生命周期钩子与资源清理**：`setup`、`fileSetup`、`beforeAll`、`beforeEach` 及对应的清理钩子；超时或按下 Ctrl+C 后清理照常执行。
-- **失败重试与超时**：用例重试、步骤超时、`continue-on-error` 和 `bail`。
+- **多 Project 跨端编排**：一份配置管理 Web、Android、iOS 与桌面套件，支持 `--project` 与标签筛选。
 - **并发与隔离**：`maxConcurrentFiles` 控制并发，`fileSetup` 为每个文件准备独立的页面、Agent 或设备。
-- **精确到步骤的报告**：每个步骤的截图、输入、输出和 Agent 回放，`#runner-step=last-error` 深度链接，以及供脚本和 AI Agent 读取的 `summary.json`。
+- **生命周期钩子与资源清理**：`setup`、`fileSetup`、`beforeAll`、`beforeEach` 及对应的逆序清理；超时或按下 Ctrl+C 后清理照常执行。
+- **失败重试与超时**：清理后自动重试用例，支持步骤超时、`continue-on-error` 和 `bail`。
+- **可视化回放与 CI 集成**：可交互 HTML 报告逐帧回放 `Plan`、`Locate` 与界面截图，配套官方 `midscene-action`、`#runner-step=last-error` 失败直达链接、实时 Badge、`model verify` 预检，以及供脚本和 AI Agent 读取的 `summary.json` / `result.md`。
 
 从[创建和使用测试项目](https://www.midscenejs.com/zh/midscene-test/use)开始，再了解如何[编写自定义 Node](https://www.midscenejs.com/zh/midscene-test/extend)，以及如何控制[生命周期与并发](https://www.midscenejs.com/zh/midscene-test/execution)。
 
