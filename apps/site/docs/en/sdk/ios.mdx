@@ -66,6 +66,7 @@ Accepts all [shared Agent options](../reference/#agent-options), plus the follow
 
 - `wdaDisplayId?: number` — Selects the screen for screenshots and gestures. When you select a screen, Midscene enables WDA custom snapshots so taps account for the window offset in Split View.
   - On iPhone Duo, run `curl http://localhost:8100/wda/screens` to list the screens. Identify the target screen by its dimensions and note its `displayId`.
+  - On the iPhone Duo simulator used for testing, `1` selects the outer screen when folded and `3` selects the inner screen when unfolded. Both Split View windows share the inner screen ID. Use the IDs reported by your device.
   - Pass that ID when connecting. For example, if the target screen has ID `3`, call `agentFromWebDriverAgent({ wdaDisplayId: 3 })`.
 - `wdaPort?: number` — WebDriverAgent server port. Default: `8100`.
 - `wdaHost?: string` — WebDriverAgent server host. Default: `'localhost'`.
