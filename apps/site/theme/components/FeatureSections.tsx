@@ -83,21 +83,21 @@ function FeatureSection({
 
 interface BenchmarkLinkCardProps {
   href: string;
-  score: string;
+  value: string;
   title: string;
   details: string;
 }
 
 function BenchmarkLinkCard({
   href,
-  score,
+  value,
   title,
   details,
 }: BenchmarkLinkCardProps) {
   return (
     <Link href={href} className="bench-strip__item">
       <div className="bench-strip__top">
-        <strong>{score}</strong>
+        <strong>{value}</strong>
         <ArrowUpRight
           className="bench-strip__arrow"
           size={14}
@@ -211,20 +211,26 @@ export function AgentBenchmarks({
     >
       <div className="bench-strip">
         <BenchmarkLinkCard
+          href={tUrl('/grounding-benchmark')}
+          value="200"
+          title={t('groundingTestTitle')}
+          details={t('groundingTestDetails')}
+        />
+        <BenchmarkLinkCard
           href={tUrl(t('featureBenchmarkLink'))}
-          score="93.1%"
+          value="93.1%"
           title="AndroidWorld"
           details={`${t('benchmark')} · Pass@3 97.4%`}
         />
         <BenchmarkLinkCard
           href={tUrl(t('featureMobileWorldBenchmarkLink'))}
-          score="78.6%"
+          value="78.6%"
           title="MobileWorld"
           details="Pass@1 · 92 / 117 tasks"
         />
         <BenchmarkLinkCard
           href={tUrl(t('featureAppControlBenchLink'))}
-          score="96.7%"
+          value="96.7%"
           title="AppControlBench"
           details="Pass@1 · 58 / 60 tasks"
         />

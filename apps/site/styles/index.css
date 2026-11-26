@@ -1272,6 +1272,11 @@
   white-space: nowrap;
 }
 
+.grounding-family-table :is(th, td) {
+  text-align: center;
+  vertical-align: middle;
+}
+
 .home-feature--models .home-feature__header {
   display: block;
 }

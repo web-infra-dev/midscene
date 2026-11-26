@@ -1,5 +1,9 @@
 import { BenchmarkReportPreview } from './components/BenchmarkReportPreview';
 import { ChromeExtensionButton } from './components/ChromeExtensionButton';
+import {
+  GroundingBenchmarkPreview,
+  GroundingBenchmarkReportLink,
+} from './components/GroundingBenchmarkPreview';
 import { ModelConfigCard } from './components/ModelConfigCard';
 import { AppControlBenchComparison } from './components/app-control-bench-comparison';
 import { AppControlBenchReport } from './components/app-control-bench-report';
@@ -11,6 +15,8 @@ export {
   AppControlBenchReport,
   BenchmarkReportPreview,
   ChromeExtensionButton,
+  GroundingBenchmarkPreview,
+  GroundingBenchmarkReportLink,
   ModelConfigCard,
 };
 export * from '@rspress/core/theme-original';
@@ -32,6 +38,8 @@ export { CTAButtons } from './components/CTAButtons';
 
 export { AgentVisionDemo } from './components/AgentVisionDemo';
 export { AgentVisionSteps } from './components/AgentVisionSteps';
+export { GroundingFamilyTable } from './components/GroundingFamilyTable';
+export { GroundingMetricBadge } from './components/GroundingMetricBadge';
 
 export { ModelConfigSection } from './components/ModelConfigSection';
 

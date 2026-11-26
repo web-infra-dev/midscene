@@ -246,6 +246,8 @@ export const EN_US = {
   // Feature Sections - BENCHMARKS
   benchmarksTitle: 'EVALUATION',
   benchmarksHeading: 'Benchmarks',
+  groundingTestTitle: 'Grounding test',
+  groundingTestDetails: 'Web and mobile test cases',
 
   // Feature Cards
   featureRichAPIs: 'Rich APIs',

@@ -238,6 +238,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Feature Sections - BENCHMARKS
   benchmarksTitle: '评测',
   benchmarksHeading: 'Benchmark 成绩',
+  groundingTestTitle: 'Grounding 测试',
+  groundingTestDetails: '网页与移动端题目',
 
   // Feature Cards
   featureRichAPIs: '丰富的 API',

@@ -201,4 +201,4 @@ If Midscene is useful to you, please give it a star.
 
 ## 📝 License
 
-Midscene.js is [MIT licensed](https://github.com/web-infra-dev/midscene/blob/main/LICENSE).
+Midscene.js code is [MIT licensed](https://github.com/web-infra-dev/midscene/blob/main/LICENSE). The separately published `@midscene/benchmark-grounding` test set documents the licenses declared by its direct sources. See the [test set license and attribution](./packages/benchmark-grounding/LICENSE).
