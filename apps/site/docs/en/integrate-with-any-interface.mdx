@@ -2,6 +2,12 @@ import SetupEnv from './common/setup-env.mdx';
 
 # Integrate with any interface
 
+:::info Prefer Midscene Connect for connecting custom devices
+For new device integrations, use [Midscene Connect](./midscene-connect) (`@midscene/connect`). You can describe a device in one `.mjs` file, serve it over HTTP, and drive it from the Agent SDK, CLI, or Playground without implementing `AbstractInterface`.
+
+Implementing `AbstractInterface` directly is no longer the recommended path for connecting custom devices. This page remains available for maintaining existing `AbstractInterface` implementations and referencing low-level APIs such as `defineAction`.
+:::
+
 You can use Midscene Agent to control any interface—such as IoT devices, in-house apps, and in-vehicle displays—by implementing a UI operation class that conforms to `AbstractInterface`.
 
 After implementing the UI operation class, you get the full capabilities of Midscene Agent:
@@ -29,50 +35,6 @@ There are also some community projects that use this feature:
 ## Set up API keys for model
 
 <SetupEnv />
-
-## Connect a device without writing a class
-
-If the device only needs screenshots and input (for example a robot arm, a capture card with an HID module, or a remote machine), you can describe it in one `.mjs` file with [`@midscene/connect`](https://github.com/web-infra-dev/midscene/tree/main/packages/connect) and skip implementing `AbstractInterface`:
-
-```js
-// my-screen.mjs
-export default {
-  name: 'My Screen',
-  pointerType: 'touch', // required when `swipe` is provided
-  async connect() {
-    return {
-      screenshot: () => captureJpeg(), // PNG/JPEG Buffer or base64
-      actions: {
-        // Names match the built-in input primitives: tap, swipe, typeText, homeButton, ...
-        tap: (p) => hardware.tap(p.x, p.y),
-        swipe: (from, to) => hardware.swipe(from, to),
-      },
-    };
-  },
-};
-```
-
-Start the device service first. It keeps the device connected and serves an HTTP API with Swagger docs at `/api/docs/`:
-
-```bash
-npx @midscene/connect serve ./my-screen.mjs
-```
-
-Then drive it from the Agent SDK, the CLI, or the Playground:
-
-```ts
-import { agentOverConnectProtocol } from '@midscene/connect';
-
-const agent = await agentOverConnectProtocol({ url: 'http://127.0.0.1:5820' });
-await agent.aiAct('open the settings page');
-```
-
-```bash
-npx @midscene/connect act --prompt "open the settings page"
-npx @midscene/connect playground
-```
-
-Custom actions, device options, token authentication, and the HTTP API are described in the [package README](https://github.com/web-infra-dev/midscene/tree/main/packages/connect).
 
 ## Implement your own interface class
 

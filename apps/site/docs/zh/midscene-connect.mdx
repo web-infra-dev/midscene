@@ -1,0 +1,179 @@
+import SetupEnv from './common/setup-env.mdx';
+
+# 接入任意界面
+
+使用 [`@midscene/connect`](https://github.com/web-infra-dev/midscene/tree/main/packages/connect) 可以把任意屏幕或自定义硬件接入 Midscene，例如机械臂、采集卡加 HID 模块、车载显示器、IoT 设备或远程机器。
+
+只需在一个 `.mjs` 文件中描述设备并通过 HTTP 启动服务，就能直接使用 Agent SDK、CLI 或 Playground 操作设备，无需实现 `AbstractInterface` 类。
+
+## 真实案例
+
+[midscene-test-everything](https://github.com/web-infra-dev/midscene-test-everything) 仓库收录了多个基于 `@midscene/connect` 实现的真实硬件与平台接入案例：
+
+- **机械臂 × 物理触屏**（`mg400-service`、`arm-kit`、`robotics-vision`）：面向车机屏幕与工业面板的相机采集、ArUco 屏幕标定、坐标映射，以及基于 DOBOT MG400 的端到端参考实现。
+- **蓝牙 HID × iPhone 真机**（`ios-airlink`）：在 macOS 上通过蓝牙 HID 驱动物理 iPhone，配合 USB、AirPlay 或摄像头采集画面，无需越狱或开启开发者模式。
+
+## 配置 AI 模型服务
+
+<SetupEnv />
+
+## 1. 定义设备
+
+一个 `.mjs` 文件描述一类设备，`options` 用于选择具体实例。`actions` 中的键如果与内置输入操作同名，直接写函数即可；其他键则为自定义动作。
+
+```js
+// car-screen.mjs
+export default {
+  name: 'Car Screen',
+  description: 'In-car touchscreen driven by a robot arm', // 会加入 aiAct 上下文
+  pointerType: 'touch', // 提供 swipe 时必填：'touch' | 'mouse'
+  options: {
+    type: 'object',
+    properties: { armId: { type: 'string' } },
+    required: ['armId'],
+  },
+  async connect({ armId }) {
+    const arm = await openArm(armId);
+    return {
+      screenshot: () => camera.jpeg(), // PNG/JPEG Buffer、data URL 或 base64
+      actions: {
+        tap: (p) => arm.tap(p.x, p.y),
+        swipe: (from, to, opts) => arm.swipe(from, to, opts?.duration),
+        homeButton: () => arm.pressHome(),
+        wakeVoiceAssistant: {
+          description: 'Wake up the voice assistant with a phrase',
+          params: {
+            type: 'object',
+            properties: {
+              phrase: { type: 'string' },
+              button: { 'x-midscene-locate': true, description: 'The mic button' },
+            },
+            required: ['phrase'],
+          },
+          call: ({ phrase, button }) => arm.tapAndSay(button.center, phrase),
+        },
+      },
+      destroy: () => arm.close(),
+    };
+  },
+};
+```
+
+`import { defineDevice } from '@midscene/connect'` 可以提供编辑器类型提示，但不是必需的，直接默认导出普通对象即可。
+
+`connect()` 返回的对象中 `size()` 是可选的；省略时会默认读取当前截图的宽高。
+
+### 内置操作
+
+函数签名与 `@midscene/core` 的 `InputPrimitives` 一致，坐标单位为截图像素。
+
+| 分组 | 操作 | 约束 |
+| --- | --- | --- |
+| 指针 | `tap`、`doubleClick`、`rightClick`、`middleClick`、`hover`、`longPress`、`dragAndDrop` | 其他指针操作都需要同时提供 `tap` |
+| 滑动 | `swipe`、`pinch` | `swipe` 需要设置 `pointerType`（`mouse` 方式的 `swipe` 也需要 `tap`）；`pinch` 需要 `pointerType: 'touch'` 的 `swipe` |
+| 键盘 | `typeText`、`keyboardPress`、`clearInput`、`cursorMove` | `typeText`、`keyboardPress`、`clearInput` 必须一起提供 |
+| 滚动 | `scroll` | |
+| 系统 | `backButton`、`homeButton`、`recentAppsButton` | |
+
+### 参数 Schema
+
+自定义动作的 `params` 和设备的 `options` 使用一个精简的 JSON Schema 子集：
+
+- `string`（`enum`、`minLength`、`maxLength`）
+- `number` / `integer`（`minimum`、`maximum`）
+- `boolean`
+- `array`（`items`、`minItems`、`maxItems`）
+- `object`（`properties`、`required`）
+- `description`
+
+顶层属性标记 `{ "x-midscene-locate": true }` 表示这是一个由 AI 模型定位的元素，`call` 收到的是 `{ description, center, rect }`。
+
+`serve` 启动时会拒绝子集之外的关键字；请求体也会严格校验，出现未知字段即报错。
+
+## 2. 启动服务
+
+先启动设备服务。它会保持设备连接，并提供 HTTP 接口，接口文档（Swagger UI）位于 `/api/docs/`：
+
+```bash
+npx @midscene/connect serve ./car-screen.mjs --arm-id mg400-1
+# ✔ Car Screen is ready
+#   Connect URL: http://127.0.0.1:5820
+#   API docs:    http://127.0.0.1:5820/api/docs/
+```
+
+- 每个 `serve` 进程持有一台设备实例，要接入多台设备时通过 `--port` 启动多个服务。
+- 当 `--host` 不是本机回环地址时，服务端要求携带 bearer token：可以通过 `--token <token>` 指定，否则会在启动时自动生成并打印。
+
+## 3. 操作设备
+
+### Agent SDK
+
+使用 `agentOverConnectProtocol` 创建连接到该设备服务的 Agent：
+
+```ts
+import { agentOverConnectProtocol } from '@midscene/connect';
+
+const agent = await agentOverConnectProtocol({
+  url: 'http://127.0.0.1:5820',
+  // token: '...', // 或设置环境变量 MIDSCENE_CONNECT_TOKEN
+  // agentOptions: { ... }, // 通用 Agent 配置
+});
+
+await agent.aiAct('打开音乐 App，搜索“周杰伦”');
+await agent.aiAssert('搜索结果已显示');
+```
+
+- `url` 默认读取 `MIDSCENE_CONNECT_URL`，未设置时回退到 `http://127.0.0.1:5820`。
+- `token` 默认读取 `MIDSCENE_CONNECT_TOKEN`。
+- 如果设备定义了 `description` 且 `agentOptions` 未配置 `aiAct` 上下文，`description` 会自动加入 `aiContexts.aiAct`。
+
+### CLI 与 Playground
+
+CLI 的子命令会根据所连设备的动作空间动态生成：
+
+```bash
+export MIDSCENE_CONNECT_URL=http://127.0.0.1:5820   # 也可以传 --url / --token
+npx @midscene/connect act --prompt "打开音乐 App"
+npx @midscene/connect tap --locate "搜索框"
+npx @midscene/connect wakevoiceassistant --phrase "你好"
+npx @midscene/connect playground
+```
+
+`playground` 支持 `--url`、`--token`、`--port`（默认 `5800`）和 `--no-open` 参数。
+
+## 嵌入已有服务
+
+在已有的 Node HTTP 服务里挂载 Connect 协议：
+
+```js
+import http from 'node:http';
+import { createConnectHandler } from '@midscene/connect/server';
+
+const handler = createConnectHandler(
+  { name: 'Phone', screenshot, actions },
+  {
+    basePath: '/devices/phone-1/api',
+    token,
+  },
+);
+
+http.createServer((req, res) => handler.handle(req, res) || next(req, res));
+// 客户端使用 url: http://host:port/devices/phone-1
+```
+
+## HTTP API
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `GET` | `/api/info` | 协议版本、名称、描述、`pointerType`、内置操作和自定义动作 |
+| `GET` | `/api/screenshot` | 返回 `{ image: dataURL, width, height }` |
+| `GET` | `/api/size` | 返回 `{ width, height }` |
+| `POST` | `/api/primitives/{name}` | 执行内置操作 |
+| `POST` | `/api/actions/{name}` | 执行自定义动作，返回 `{ ok, result? }` |
+| `GET` | `/api/openapi.json`、`/api/docs/` | OpenAPI 规范和 Swagger UI |
+
+服务端一次只执行一个动作，出错时返回 `{ error, code }`。
+
+## 底层 `AbstractInterface` 集成
+
+如果你需要维护已有的自定义界面类，或查阅 `AbstractInterface` 与 `defineAction` 等底层 API，请参考[与任意界面集成](./integrate-with-any-interface)。

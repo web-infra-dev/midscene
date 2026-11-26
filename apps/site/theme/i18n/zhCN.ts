@@ -94,7 +94,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   visionStepVerify: '检查结果',
   visionStepVerifyDesc: '断言用户实际看到的内容',
   visionShowcaseLink: '查看实际案例',
-  platformCustom: '自定义界面',
+  platformCustom: '接入任意界面',
   platformCustomDoc: '扩展指南',
   platformBridgeDoc: 'Bridge 模式',
 

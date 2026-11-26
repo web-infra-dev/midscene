@@ -2,6 +2,12 @@ import SetupEnv from './common/setup-env.mdx';
 
 # 与任意界面集成
 
+:::info 接入自定义设备请优先使用 Midscene Connect
+新接入自定义设备推荐使用 [Midscene Connect](./midscene-connect)（`@midscene/connect`）：在一个 `.mjs` 文件中描述设备并通过 HTTP 启动服务，即可直接使用 Agent SDK、CLI 或 Playground 驱动，无需编写 `AbstractInterface` 类。
+
+直接实现 `AbstractInterface` 的方式已不再作为接入自定义设备的首选推荐。本页继续保留，供维护已有 `AbstractInterface` 实现以及查阅 `defineAction` 等底层 API 参考。
+:::
+
 你可以使用 Midscene 的 Agent 来控制任意界面，比如 IoT 设备、内部应用、车载显示器等，只需要实现一个符合 `AbstractInterface` 定义的 UI 操作类。
 
 在实现了 UI 操作类之后，你可以获得 Midscene Agent 的全部特性：
@@ -28,50 +34,6 @@ import SetupEnv from './common/setup-env.mdx';
 ## 配置 AI 模型服务
 
 <SetupEnv />
-
-## 无需编写类：用 Midscene Connect 接入设备
-
-如果设备只需要截图和输入（例如机械臂、采集卡加 HID 模块，或另一台机器上的屏幕），可以用 [`@midscene/connect`](https://github.com/web-infra-dev/midscene/tree/main/packages/connect) 在一个 `.mjs` 文件里描述设备，不必实现 `AbstractInterface`：
-
-```js
-// my-screen.mjs
-export default {
-  name: 'My Screen',
-  pointerType: 'touch', // 提供 swipe 时必填
-  async connect() {
-    return {
-      screenshot: () => captureJpeg(), // PNG/JPEG Buffer 或 base64
-      actions: {
-        // 名称与内置输入原语一致：tap、swipe、typeText、homeButton 等
-        tap: (p) => hardware.tap(p.x, p.y),
-        swipe: (from, to) => hardware.swipe(from, to),
-      },
-    };
-  },
-};
-```
-
-先启动设备服务。它会保持设备连接，并提供 HTTP 接口，接口文档（Swagger）位于 `/api/docs/`：
-
-```bash
-npx @midscene/connect serve ./my-screen.mjs
-```
-
-之后可以通过 Agent SDK、CLI 或 Playground 操作设备：
-
-```ts
-import { agentOverConnectProtocol } from '@midscene/connect';
-
-const agent = await agentOverConnectProtocol({ url: 'http://127.0.0.1:5820' });
-await agent.aiAct('打开设置页');
-```
-
-```bash
-npx @midscene/connect act --prompt "打开设置页"
-npx @midscene/connect playground
-```
-
-自定义动作、设备参数、Token 鉴权和 HTTP 接口说明见[包的 README](https://github.com/web-infra-dev/midscene/tree/main/packages/connect)。
 
 ## 实现你自己的界面类
 
