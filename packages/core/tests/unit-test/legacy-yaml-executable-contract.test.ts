@@ -119,10 +119,12 @@ const contracts: readonly LegacyFlowContract[] = [
     expected: {
       node: 'aiTap',
       input: {
-        prompt: 'button',
-        options: {
+        prompt: {
+          prompt: 'button',
           images: [{ name: 'reference', url: 'data:image/png;base64,fixture' }],
           convertHttpImage2Base64: false,
+        },
+        options: {
           deepLocate: true,
           xpath: '//button',
           fileChooserAccept: ['./fixture.txt'],
@@ -473,10 +475,12 @@ const frozenAgentCalls: Readonly<Record<string, FrozenAgentCall | null>> = {
   'tap-multimodal-options': {
     method: 'aiTap',
     args: [
-      'button',
       {
+        prompt: 'button',
         images: [{ name: 'reference', url: 'data:image/png;base64,fixture' }],
         convertHttpImage2Base64: false,
+      },
+      {
         deepLocate: true,
         xpath: '//button',
         fileChooserAccept: ['./fixture.txt'],
@@ -706,6 +710,56 @@ const frozenLegacySyntax = [
 ] as const;
 
 describe('executable legacy YAML flow contract', () => {
+  test('merges separate image fields while outer locate options take precedence', () => {
+    const images = [{ name: 'outer', url: 'data:image/png;base64,outer' }];
+    const step = compileLegacyFlowItem({
+      aiTap: {
+        locate: {
+          prompt: 'button',
+          images,
+          deepLocate: true,
+          cacheable: true,
+        },
+      },
+      convertHttpImage2Base64: false,
+      deepLocate: false,
+      cacheable: false,
+    } as unknown as MidsceneYamlFlowItem);
+    expect(step.input).toStrictEqual({
+      prompt: { prompt: 'button', images, convertHttpImage2Base64: false },
+      options: { deepLocate: false, cacheable: false },
+    });
+  });
+
+  test('compiles a flat image prompt without a conflict warning', () => {
+    const images = [{ name: 'button', url: 'data:image/png;base64,fixture' }];
+    const warn = rs.spyOn(console, 'warn');
+    try {
+      const step = compileLegacyFlowItem(
+        { aiHover: 'button', images },
+        actions,
+      );
+      expect(step.input).toMatchObject({
+        name: 'Hover',
+        params: { locate: { prompt: { prompt: 'button', images } } },
+      });
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  test('compiles an empty scroll target as undefined', () => {
+    const step = compileLegacyFlowItem({
+      aiScroll: null,
+      direction: 'down',
+    } as unknown as MidsceneYamlFlowItem);
+    expect(step.input).toStrictEqual({
+      prompt: undefined,
+      options: { direction: 'down' },
+    });
+  });
+
   test('freezes an independent Agent call expectation for every contract', () => {
     expect(Object.keys(frozenAgentCalls).sort()).toEqual(
       contracts.map(({ id }) => id).sort(),

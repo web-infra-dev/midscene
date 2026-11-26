@@ -1,3 +1,4 @@
+import { buildLocatePromptWithContext } from '@/agent/prompt-context';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TUserPrompt } from '../../../common';
@@ -25,9 +26,12 @@ const debugGrounding = getDebug('ai:grounding');
 export { userPromptToString as extraTextFromUserPrompt } from '../../../common';
 
 export async function AiLocateElement(
-  options: LocateOptions & { targetElementDescription: TUserPrompt },
+  options: LocateOptions & {
+    targetElementDescription: TUserPrompt;
+    context?: string;
+  },
 ): Promise<LocateResult> {
-  const { targetElementDescription, ...locateOptions } = options;
+  const { targetElementDescription, context, ...locateOptions } = options;
   assert(
     targetElementDescription,
     'cannot find the target element description',
@@ -40,7 +44,10 @@ export async function AiLocateElement(
     height: uiContext.shotSize.height,
   };
   const locateRequest: LocateRequest = {
-    targetElementDescription,
+    targetElementDescription: buildLocatePromptWithContext(
+      targetElementDescription,
+      context,
+    ),
     locateImage,
     options: locateOptions,
   };

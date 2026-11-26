@@ -1,3 +1,4 @@
+import { buildLocatePromptWithContext } from '@/agent/prompt-context';
 import type { RawAssistantOutput } from '@/types';
 import type { AIUsageInfo, Rect, UIContext } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
@@ -29,6 +30,7 @@ type SectionLocateRawResponse = Awaited<ReturnType<typeof callGenerativeAI>>;
 export async function AiLocateSection(options: {
   uiContext: UIContext;
   sectionDescription: TUserPrompt;
+  context?: string;
   modelRuntime: ModelRuntime;
   abortSignal?: AbortSignal;
 }): Promise<{
@@ -38,7 +40,11 @@ export async function AiLocateSection(options: {
   rawAssistantOutput?: RawAssistantOutput;
   usage?: AIUsageInfo;
 }> {
-  const { uiContext, sectionDescription } = options;
+  const { uiContext } = options;
+  const sectionDescription = buildLocatePromptWithContext(
+    options.sectionDescription,
+    options.context,
+  );
   const modelRuntime = options.modelRuntime;
   const { adapter } = modelRuntime;
   assert(

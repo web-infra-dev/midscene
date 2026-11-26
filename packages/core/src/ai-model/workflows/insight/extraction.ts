@@ -2,13 +2,19 @@ import type {
   ConversationSystemMessage,
   ConversationUserMessage,
 } from '@/ai-model/service-caller/types';
-import type { ServiceExtractOption, UIContext } from '@/types';
+import type {
+  AIDataExtractionResponse,
+  AIUsageInfo,
+  RawAssistantOutput,
+  ServiceExtractOption,
+  UIContext,
+} from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { renderAIContext } from '../../../agent/prompt-context';
-import type { TMultimodalPrompt } from '../../../common';
 import type { ModelRuntime } from '../../models';
 import {
   buildInsightSystemPrompt,
+  buildTypeQueryDemandValue,
   extractDataQueryPrompt,
 } from '../../prompt/insight';
 import {
@@ -20,8 +26,12 @@ import {
   withSemanticRetryFeedback,
 } from '../../service-caller/semantic-retry';
 import { multimodalPromptToMessages } from '../../shared/multimodal-prompt';
-import { extractBoolean } from './boolean';
 import { parseInsightResponse } from './insight-response-parser';
+import {
+  type InsightTaskType,
+  type QueryInput,
+  insightResultKey,
+} from './query-input';
 
 type InsightAIArgs = [ConversationSystemMessage, ...ConversationUserMessage[]];
 
@@ -29,9 +39,8 @@ const debugInsight = getDebug('ai:insight');
 
 export interface ExtractOptions {
   /** Explicit task type; never infer from query keys. */
-  taskType: 'boolean' | 'extract';
-  dataQuery: string | Record<string, string>;
-  multimodalPrompt?: TMultimodalPrompt;
+  type: InsightTaskType;
+  input: QueryInput;
   uiContext: UIContext;
   pageDescription?: string;
   extractOption?: ServiceExtractOption;
@@ -39,24 +48,45 @@ export interface ExtractOptions {
   abortSignal?: AbortSignal;
 }
 
-export async function AiExtractElementInfo<T>(options: ExtractOptions) {
+export async function AiExtractElementInfo<T>(
+  options: ExtractOptions,
+): Promise<{
+  parseResult: AIDataExtractionResponse<T>;
+  rawResponse: string;
+  usage?: AIUsageInfo;
+  rawAssistantOutput?: RawAssistantOutput;
+  reasoning_content?: string;
+}> {
+  const { type, input, uiContext, extractOption, modelRuntime } = options;
+  const demand =
+    type === 'Query'
+      ? input.demand
+      : {
+          [insightResultKey(type)]: buildTypeQueryDemandValue(
+            type,
+            input.demand,
+          ),
+        };
+
+  const { booleanFn, protocol: insightProtocol } = modelRuntime.adapter.insight;
   if (
-    options.taskType === 'boolean' &&
-    options.modelRuntime.adapter.insight.booleanFn
+    (type === 'Boolean' || type === 'Assert' || type === 'WaitFor') &&
+    booleanFn
   ) {
-    return extractBoolean<T>(options);
+    const { value, rawResponse, usage } = await booleanFn({
+      ...options,
+      input: { ...input, demand },
+    });
+    return {
+      parseResult: { data: { [insightResultKey(type)]: value } as T },
+      rawResponse,
+      usage,
+    };
   }
-  const {
-    dataQuery,
-    uiContext,
-    extractOption,
-    multimodalPrompt,
-    modelRuntime,
-  } = options;
-  const insightProtocol = modelRuntime.adapter.insight.protocol;
+
   const systemPrompt = buildInsightSystemPrompt({
     screenshotIncluded: extractOption?.screenshotIncluded !== false,
-    referenceImagesIncluded: !!multimodalPrompt?.images?.length,
+    referenceImagesIncluded: !!input.images?.length,
     insightProtocol,
   });
   const screenshotBase64 = uiContext.screenshot.base64;
@@ -64,7 +94,7 @@ export async function AiExtractElementInfo<T>(options: ExtractOptions) {
   const renderedContext = renderAIContext(extractOption?.context);
   const extractDataPromptText = extractDataQueryPrompt(
     options.pageDescription || '',
-    dataQuery,
+    demand,
     renderedContext,
   );
 
@@ -114,8 +144,8 @@ export async function AiExtractElementInfo<T>(options: ExtractOptions) {
     },
   ];
 
-  if (multimodalPrompt) {
-    const addOns = await multimodalPromptToMessages(multimodalPrompt);
+  if (input.images?.length) {
+    const addOns = await multimodalPromptToMessages(input);
     msgs.push(...addOns);
   }
 

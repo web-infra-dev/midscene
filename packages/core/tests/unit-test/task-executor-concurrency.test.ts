@@ -18,6 +18,8 @@ rs.mock('@midscene/shared/img', () => ({
   preProcessImageUrl: rs.fn(async (url: string) => `prepared:${url}`),
 }));
 
+import { buildLocateCacheKey } from '@/agent/prompt-context';
+import { TaskCache } from '@/agent/task-cache';
 import { TaskExecutor } from '@/agent/tasks';
 import { getMidsceneLocationSchema } from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
@@ -104,6 +106,90 @@ describe('TaskExecutor concurrency isolation', () => {
     rs.restoreAllMocks();
     rs.useRealTimers();
   });
+
+  it.each([
+    '订单',
+    {
+      prompt: '订单',
+      images: [{ name: 'reference', url: 'https://example.com/order.png' }],
+    },
+  ])(
+    'replaces only the consumed context-qualified cache after replanning: %j',
+    async (prompt) => {
+      const cache = new TaskCache('context-replan', true);
+      const context = '选择第二项';
+      const cacheKey = buildLocateCacheKey(prompt, context);
+      const otherContextKey = buildLocateCacheKey(prompt, '选择第一项');
+      cache.cache.caches = [
+        { type: 'locate', prompt, cache: { xpaths: ['plain'] } },
+        {
+          type: 'locate',
+          prompt: otherContextKey,
+          cache: { xpaths: ['first'] },
+        },
+        { type: 'locate', prompt: cacheKey, cache: { xpaths: ['wrong'] } },
+      ];
+      cache.cacheOriginalLength = 3;
+      // Consume the controls too: an incorrect stale key must not replace them.
+      cache.matchLocateCache(prompt);
+      cache.matchLocateCache(otherContextKey);
+      taskExecutor.taskCache = cache;
+      rs.mocked(standardPlan)
+        .mockResolvedValueOnce({
+          actions: [],
+          shouldContinuePlanning: true,
+        } as any)
+        .mockResolvedValueOnce({
+          actions: [],
+          shouldContinuePlanning: false,
+        } as any);
+      rs.mocked(taskExecutor.convertPlanToExecutable)
+        .mockResolvedValueOnce({
+          tasks: [
+            {
+              type: 'Planning',
+              subType: 'Locate',
+              param: { prompt, context },
+              executor: async ({ task }: ExecutorContext) => {
+                expect(
+                  cache.matchLocateCache(cacheKey)?.cacheContent.cache?.xpaths,
+                ).toEqual(['wrong']);
+                task.hitBy = { from: 'Cache', context: {} };
+              },
+            },
+          ],
+          yamlFlow: [],
+        } as any)
+        .mockResolvedValueOnce({
+          tasks: [
+            {
+              type: 'Planning',
+              subType: 'Locate',
+              param: { prompt, context },
+              executor: async () => {
+                expect(cache.matchLocateCache(cacheKey)).toBeUndefined();
+                cache.updateOrAppendCacheRecord({
+                  type: 'locate',
+                  prompt: cacheKey,
+                  cache: { xpaths: ['correct'] },
+                });
+              },
+            },
+          ],
+          yamlFlow: [],
+        } as any);
+      await taskExecutor.action('选择订单', planningModel(), defaultModel());
+      expect(cache.cache.caches).toEqual([
+        { type: 'locate', prompt, cache: { xpaths: ['plain'] } },
+        {
+          type: 'locate',
+          prompt: otherContextKey,
+          cache: { xpaths: ['first'] },
+        },
+        { type: 'locate', prompt: cacheKey, cache: { xpaths: ['correct'] } },
+      ]);
+    },
+  );
 
   it.each([
     { fails: false, limit: 1 },
@@ -517,7 +603,7 @@ describe('TaskExecutor concurrency isolation', () => {
     expect(standardPlan).toHaveBeenCalledWith(
       { text: 'prompt', referenceImages: [] },
       expect.objectContaining({
-        actionContext: '<CONTEXT>\nUse checkout rules.\n</CONTEXT>',
+        actionContext: 'Use checkout rules.',
       }),
     );
     expect(result.runner.tasks[0].param).toEqual(

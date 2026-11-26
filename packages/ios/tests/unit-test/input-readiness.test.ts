@@ -29,8 +29,8 @@ describe('iOS input focus readiness', () => {
       .mockResolvedValueOnce({ value: [] })
       .mockResolvedValueOnce({ value: [{ ELEMENT: 'switcher' }] });
     expect(await client.isKeyboardVisible()).toBe(true);
-    expect((request.mock.calls[1][2] as { value?: string }).value).toContain(
-      '下一个键盘',
+    expect(request.mock.calls[1][2]).toEqual(
+      expect.objectContaining({ value: expect.stringContaining('下一个键盘') }),
     );
   });
 
@@ -112,7 +112,17 @@ describe('iOS input focus readiness', () => {
         .mockResolvedValueOnce({ value: null }) // Open menu
         .mockResolvedValueOnce({ value: [] }) // First poll
         .mockImplementationOnce(async (_method, _path, _body, options) => {
-          const { timeout } = options as { timeout: number };
+          if (
+            typeof options !== 'object' ||
+            options === null ||
+            !('timeout' in options) ||
+            typeof options.timeout !== 'number'
+          ) {
+            throw new Error(
+              'Menu poll requests must include a numeric timeout',
+            );
+          }
+          const { timeout } = options;
           expect(timeout).toBe(1100);
           await new Promise((resolve) => setTimeout(resolve, timeout));
           throw new WebDriverRequestError(`Request timeout after ${timeout}ms`);
@@ -164,11 +174,13 @@ describe('iOS input focus readiness', () => {
       .mockResolvedValueOnce({ value: [{ ELEMENT: 'select-all' }] })
       .mockResolvedValueOnce({ value: null });
     expect(await client.selectAllFromMenu('field')).toBe(true);
-    expect(
-      request.mock.calls.map(
-        (call) => (call[3] as { timeout?: number } | undefined)?.timeout,
-      ),
-    ).toEqual([1200, undefined, 950, 500, undefined]);
+    expect(request.mock.calls.map((call) => call[3])).toEqual([
+      expect.objectContaining({ timeout: 1200 }),
+      undefined,
+      expect.objectContaining({ timeout: 950 }),
+      expect.objectContaining({ timeout: 500 }),
+      undefined,
+    ]);
   });
 
   it('propagates a WDA failure during menu discovery', async () => {

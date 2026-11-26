@@ -66,4 +66,25 @@ describe('AiJudgeOrderSensitive', () => {
       usage,
     });
   });
+  it('includes ordering constraints from context in the model request', async () => {
+    rs.mocked(callAIWithObjectResponse).mockResolvedValue({
+      content: { isOrderSensitive: true },
+      contentString: '{"isOrderSensitive":true}',
+    });
+    const runtime = getModelRuntime({
+      modelName: 'test-model',
+      modelDescription: 'test model',
+      intent: 'default',
+      slot: 'default',
+    });
+    await AiJudgeOrderSensitive('订单', runtime, '选择列表第二项');
+    const messages = rs.mocked(callAIWithObjectResponse).mock.calls[0][0];
+    expect(messages[1]).toEqual(
+      expect.objectContaining({
+        role: 'user',
+        content:
+          'Analyze this element description: "<CONTEXT>\n选择列表第二项\n</CONTEXT>\n\n<LOCATE_TARGET>\n订单\n</LOCATE_TARGET>"',
+      }),
+    );
+  });
 });

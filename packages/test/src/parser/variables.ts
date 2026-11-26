@@ -15,10 +15,17 @@ export interface ResolveWorkflowVariablesOptions {
   location: VariableResolutionLocation;
 }
 
-const interpolationExpression =
-  /\$\{\{([A-Za-z_][A-Za-z0-9_]*)\}\}|\$\{([^{}]+)\}/g;
-const exactEnvExpression = /^\$\{\{([A-Za-z_][A-Za-z0-9_]*)\}\}$/;
+const variableNamePattern = '[A-Za-z_][A-Za-z0-9_]*';
+
+const interpolationExpression = new RegExp(
+  `\\$\\{\\{\\s*(${variableNamePattern})\\s*\\}\\}|\\$\\{([^{}]+)\\}`,
+  'g',
+);
 const exactProjectExpression = /^\$\{([^{}]+)\}$/;
+const supportedEnvBody = new RegExp(`^\\s*(${variableNamePattern})\\s*$`);
+
+const supportedReferenceHint =
+  'Use "${{NAME}}" for environment variables or "${name}" for project variables.';
 
 const missingVariable = (
   kind: 'environment' | 'project',
@@ -68,12 +75,34 @@ const interpolationValue = (
   return String(value);
 };
 
+const assertSupportedEnvReferences = (
+  value: string,
+  options: ResolveWorkflowVariablesOptions,
+): void => {
+  let searchFrom = 0;
+  while (searchFrom < value.length) {
+    const start = value.indexOf('${{', searchFrom);
+    if (start === -1) return;
+
+    const end = value.indexOf('}}', start + 3);
+    if (end === -1 || !supportedEnvBody.test(value.slice(start + 3, end))) {
+      const reason = end === -1 ? 'Unterminated' : 'Unsupported';
+      throw new WorkflowParseError(
+        `${reason} variable reference at offset ${start} in ${options.location.sourcePath}. ${supportedReferenceHint}`,
+        { ...options.location, variableKind: 'environment', offset: start },
+      );
+    }
+
+    searchFrom = end + 2;
+  }
+};
+
 const resolveString = (
   value: string,
   options: ResolveWorkflowVariablesOptions,
 ): JsonValue => {
-  const exactEnv = exactEnvExpression.exec(value);
-  if (exactEnv) return environmentVariable(exactEnv[1], options);
+  assertSupportedEnvReferences(value, options);
+
   const exactProject = exactProjectExpression.exec(value);
   if (exactProject) return projectVariable(exactProject[1], options);
 

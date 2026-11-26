@@ -36,6 +36,23 @@ describe('commonContextParser orientation mismatch detection', () => {
     rs.clearAllMocks();
   });
 
+  it('uses the size paired with the captured frame after a viewport change', async () => {
+    const device = createMockInterface(1080, 2504);
+    const size = { width: 2224, height: 2496 };
+    device.captureScreenshotWithSize = rs.fn().mockResolvedValue({
+      screenshot: 'data:image/jpeg;base64,expanded',
+      size,
+    });
+    mockedImageInfo.mockResolvedValue(size);
+
+    const observation = await commonContextParser(device, {});
+
+    expect(observation.shrunkShotToLogicalRatio).toBe(1);
+    expect(device.captureScreenshotWithSize).toHaveBeenCalledTimes(1);
+    expect(device.size).not.toHaveBeenCalled();
+    expect(device.screenshotBase64).not.toHaveBeenCalled();
+  });
+
   it('should compute correct dpr when logical size and screenshot have same orientation (both portrait)', async () => {
     // Logical: 360x720 (portrait), Screenshot: 1080x2160 (portrait)
     // Expected dpr = 1080/360 = 3

@@ -1,6 +1,7 @@
 import type { TUserPrompt } from '@/ai-model/index';
 import type { ModelTaskType } from '@/ai-model/model-adapter/types';
 import type { ModelRuntime } from '@/ai-model/models';
+import { queryInputFromPrompt } from '@/ai-model/workflows/insight/query-input';
 import type {
   AgentAssertResult,
   AssertOptions,
@@ -11,7 +12,6 @@ import type {
 } from '@/types';
 import type { AiApiName } from '@midscene/shared/agent-tools/agent-context';
 import { TaskExecutionError, type TaskExecutor } from './tasks';
-import { parsePrompt } from './utils';
 
 const defaultQueryOptions: QueryOptions = {
   domIncluded: false,
@@ -81,21 +81,13 @@ export class Insight implements InsightAPI {
     const modelRuntime = this.resolveModelRuntime('extract');
     const executionOptions = this.executionOptions();
     const serviceOptions = this.withContext('aiQuery', options);
-    const { output } = executionOptions
-      ? await this.taskExecutor.createTypeQueryExecution(
-          'Query',
-          demand,
-          modelRuntime,
-          serviceOptions,
-          undefined,
-          executionOptions,
-        )
-      : await this.taskExecutor.createTypeQueryExecution(
-          'Query',
-          demand,
-          modelRuntime,
-          serviceOptions,
-        );
+    const { output } = await this.taskExecutor.createTypeQueryExecution(
+      'Query',
+      { demand },
+      modelRuntime,
+      serviceOptions,
+      executionOptions,
+    );
     return output as ReturnType;
   }
 
@@ -133,14 +125,12 @@ export class Insight implements InsightAPI {
     prompt: TUserPrompt,
     options: QueryOptions,
   ): Promise<ReturnType> {
-    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
     const serviceOptions = this.withContext(apiName, options);
     const { output } = await this.taskExecutor.createTypeQueryExecution(
       type,
-      textPrompt,
+      queryInputFromPrompt(prompt),
       this.resolveModelRuntime(type === 'Boolean' ? 'boolean' : 'extract'),
       serviceOptions,
-      multimodalPrompt,
       this.executionOptions(),
     );
     return output as ReturnType;
@@ -160,7 +150,6 @@ export class Insight implements InsightAPI {
         ? { context: contextOptions.context }
         : {}),
     };
-    const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
     const assertionText =
       typeof assertion === 'string' ? assertion : assertion.prompt;
 
@@ -168,10 +157,9 @@ export class Insight implements InsightAPI {
       const { output, thought } =
         await this.taskExecutor.createTypeQueryExecution<boolean>(
           'Assert',
-          textPrompt,
+          queryInputFromPrompt(assertion),
           this.resolveModelRuntime('boolean'),
           serviceOptions,
-          multimodalPrompt,
           this.executionOptions(options, true),
         );
 

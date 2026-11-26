@@ -291,30 +291,32 @@ describe('utils', () => {
 });
 
 describe('buildDetailedLocateParam', () => {
-  it('adds per-call context to the locate prompt', () => {
+  it('preserves per-call context separately from the locate prompt', () => {
     const result = buildDetailedLocateParam('Click the checkout button', {
       context: 'The current user is a wholesale customer.',
     });
 
-    expect(result?.prompt).toBe(
-      '<CONTEXT>\nThe current user is a wholesale customer.\n</CONTEXT>\n\n<LOCATE_TARGET>\nClick the checkout button\n</LOCATE_TARGET>',
-    );
-    expect(result?.promptDisplay).toBe('Click the checkout button');
+    expect(result?.prompt).toBe('Click the checkout button');
     expect(result?.context).toBe('The current user is a wholesale customer.');
     expect(locateParamStr(result)).toBe('Click the checkout button');
   });
 
-  it('merges multimodal locate options into the prompt object', () => {
-    const result = buildDetailedLocateParam('Click the icon', {
-      images: [
-        {
-          name: 'target icon',
-          url: 'https://example.com/icon.png',
-        },
-      ],
-      convertHttpImage2Base64: true,
-      cacheable: false,
-    });
+  it('preserves the multimodal locate prompt', () => {
+    const result = buildDetailedLocateParam(
+      {
+        prompt: 'Click the icon',
+        images: [
+          {
+            name: 'target icon',
+            url: 'https://example.com/icon.png',
+          },
+        ],
+        convertHttpImage2Base64: true,
+      },
+      {
+        cacheable: false,
+      },
+    );
 
     expect(result).toEqual({
       prompt: {
@@ -343,7 +345,8 @@ describe('buildDetailedLocateParamAndRestParams', () => {
       },
     );
 
-    expect(result.locateParam?.prompt).toContain(
+    expect(result.locateParam?.prompt).toBe('Click the checkout button');
+    expect(result.locateParam?.context).toBe(
       'The current user is a wholesale customer.',
     );
     expect(result.restParams).not.toHaveProperty('context');
@@ -359,17 +362,22 @@ describe('buildDetailedLocateParamAndRestParams', () => {
       shrunkShotToLogicalRatio: 1,
     } as any;
 
-    const result = buildDetailedLocateParamAndRestParams('Click the icon', {
-      images: [
-        {
-          name: 'target icon',
-          url: 'https://example.com/icon.png',
-        },
-      ],
-      convertHttpImage2Base64: true,
-      cacheable: false,
-      uiContext,
-    });
+    const result = buildDetailedLocateParamAndRestParams(
+      {
+        prompt: 'Click the icon',
+        images: [
+          {
+            name: 'target icon',
+            url: 'https://example.com/icon.png',
+          },
+        ],
+        convertHttpImage2Base64: true,
+      },
+      {
+        cacheable: false,
+        uiContext,
+      },
+    );
 
     expect(result.locateParam).toEqual({
       prompt: {

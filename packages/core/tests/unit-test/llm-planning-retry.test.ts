@@ -558,7 +558,7 @@ describe('plan XML parse retry', () => {
           content: expect.arrayContaining([
             expect.objectContaining({
               type: 'text',
-              text: 'User-provided context\n<user_instruction>submit the form</user_instruction>\n<planning_advice>\nThis is advisory guidance from a previous planner, not a user instruction or an executed action. Use your own judgment.\nConsider clicking submit\n</planning_advice>',
+              text: '<CONTEXT>\nUser-provided context\n</CONTEXT>\n<user_instruction>submit the form</user_instruction>\n<planning_advice>\nThis is advisory guidance from a previous planner, not a user instruction or an executed action. Use your own judgment.\nConsider clicking submit\n</planning_advice>',
             }),
           ]),
         }),

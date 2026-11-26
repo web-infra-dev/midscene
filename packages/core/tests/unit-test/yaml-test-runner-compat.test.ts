@@ -6,6 +6,62 @@ import { parseYamlScript } from '@/yaml/utils';
 import { describe, expect, rstest as rs, test } from '@rstest/core';
 
 describe('legacy YAML Test Runner compatibility', () => {
+  test.each([
+    {
+      aiTap: { locate: { prompt: 'button', images: [] } },
+      images: [],
+    },
+    {
+      aiTap: { prompt: 'button', convertHttpImage2Base64: false },
+      convertHttpImage2Base64: false,
+    },
+    {
+      aiHover: { prompt: { prompt: 'button', images: [] }, images: [] },
+    },
+  ])('defers duplicate image fields to their task: %j', async (input) => {
+    for (const continueOnError of [false, true]) {
+      const evaluateJavaScript = rs.fn().mockResolvedValue(1);
+      const action = rs.fn();
+      const free = rs.fn();
+      const setup = rs.fn().mockResolvedValue({
+        agent: {
+          evaluateJavaScript,
+          aiTap: action,
+          callActionInActionSpace: action,
+          getActionSpace: async () => [
+            { name: 'Hover', interfaceAlias: 'aiHover' },
+          ],
+        },
+        freeFn: [{ name: 'cleanup', fn: free }],
+      });
+      const player = new ScriptPlayer(
+        {
+          agent: { generateReport: false },
+          tasks: [
+            { name: 'first', flow: [{ javascript: 'first' }] },
+            { name: 'invalid', continueOnError, flow: [input] },
+            { name: 'last', flow: [{ javascript: 'last' }] },
+          ],
+        } as any,
+        setup,
+      );
+      expect(setup).not.toHaveBeenCalled();
+      await player.run();
+      expect(evaluateJavaScript.mock.calls.map(([code]) => code)).toEqual(
+        continueOnError ? ['first', 'last'] : ['first'],
+      );
+      expect(player.taskStatusList.map(({ status }) => status)).toEqual([
+        'done',
+        'error',
+        continueOnError ? 'done' : 'init',
+      ]);
+      expect(player.taskStatusList[1].error?.message).toContain('Duplicate');
+      expect(player.status).toBe(continueOnError ? 'done' : 'error');
+      expect(action).not.toHaveBeenCalled();
+      expect(free).toHaveBeenCalledTimes(1);
+    }
+  });
+
   test('passes historical aiAct options through the private YAML boundary', () => {
     const document = collectLegacyYamlDocument({
       tasks: [

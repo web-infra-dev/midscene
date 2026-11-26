@@ -2,13 +2,10 @@ import { assert } from '@midscene/shared/utils';
 import { callSystemOneAI } from '../../service-caller';
 import { systemOneResponseSchema } from '../../service-caller/system-one/schema';
 import type { BooleanFn } from '../../workflows/insight/boolean';
-import { prepareJevImage, prepareReferences } from './image';
+import { prepareJevImage, prepareJevReferences } from './image';
 
 export const jevBoolean: BooleanFn = async (options) => {
-  const references = await prepareReferences({
-    prompt: '',
-    ...options.multimodalPrompt,
-  });
+  const references = await prepareJevReferences(options.input);
   const frames =
     options.extractOption?.screenshotIncluded === false
       ? []
@@ -21,7 +18,7 @@ export const jevBoolean: BooleanFn = async (options) => {
   const result = await callSystemOneAI(
     {
       state: {
-        statement: options.dataQuery,
+        statement: options.input.demand,
         context: options.extractOption?.context,
         pageDescription: options.pageDescription,
         frames: screenshots.map((_, index) => `\`frame_${index}\``),
