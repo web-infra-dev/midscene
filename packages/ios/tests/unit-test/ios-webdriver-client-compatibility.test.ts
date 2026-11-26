@@ -18,6 +18,43 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
     rs.restoreAllMocks();
   });
 
+  it('selects the display with window-relative snapshot offsets and verifies the response', async () => {
+    const request = rs.spyOn(client as any, 'makeRequest');
+    const settings = { currentDisplayId: 3, enforceCustomSnapshots: true };
+    request.mockResolvedValueOnce({ value: settings });
+    await client.selectDisplay(3);
+    expect(request).toHaveBeenCalledWith(
+      'POST',
+      '/session/test-session-id/appium/settings',
+      { settings },
+    );
+    request.mockResolvedValueOnce({ value: { currentDisplayId: 1 } });
+    await expect(client.selectDisplay(3)).rejects.toThrow(
+      'did not apply display 3',
+    );
+  });
+
+  it('reads current geometry only for the requested display', async () => {
+    const request = rs.spyOn(client as any, 'makeRequest');
+    const screen = {
+      displayId: 3,
+      screenSize: { width: 951, height: 669 },
+      scale: 3,
+    };
+    request.mockResolvedValue({ value: screen });
+    await expect(client.getDisplaySize(3)).resolves.toEqual({
+      ...screen.screenSize,
+      scale: 3,
+    });
+    await expect(client.getDisplaySize(1)).rejects.toThrow(
+      'geometry for display 1',
+    );
+    request.mockResolvedValue({ value: { ...screen, scale: '3' } });
+    await expect(client.getDisplaySize(3)).rejects.toThrow(
+      'geometry for display 3',
+    );
+  });
+
   describe('tap() fallback logic', () => {
     it('should use new endpoint when it succeeds', async () => {
       const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');

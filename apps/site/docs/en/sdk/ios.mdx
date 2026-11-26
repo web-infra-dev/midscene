@@ -64,6 +64,7 @@ Accepts all [shared Agent options](../reference/#agent-options), plus the follow
 
 ### Device options
 
+- `wdaDisplayId?: number` — Selects the display for screenshots and gestures. On iPhone Duo, run `curl http://localhost:8100/wda/screens` and choose the panel by its bounds. Pass its `displayId` when connecting, for example `agentFromWebDriverAgent({ wdaDisplayId: 3 })`. IDs depend on the device. This enables WDA custom snapshots so taps use the window’s offset in Split View. Tested with WDA 17.1.4.
 - `wdaPort?: number` — WebDriverAgent server port. Default: `8100`.
 - `wdaHost?: string` — WebDriverAgent server host. Default: `'localhost'`.
 - `wdaBaseUrl?: string` — Full HTTP(S) base URL for the WDA API (including any gateway path prefix). Cannot be combined with `wdaHost` or `wdaPort`.

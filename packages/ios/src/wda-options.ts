@@ -3,9 +3,22 @@ import type { IOSDeviceOpt } from '@midscene/core/device';
 export function assertWdaConnectionOptions(
   options?: Pick<
     IOSDeviceOpt,
-    'wdaBaseUrl' | 'wdaHost' | 'wdaPort' | 'wdaMjpegUrl' | 'wdaMjpegPort'
+    | 'wdaDisplayId'
+    | 'wdaBaseUrl'
+    | 'wdaHost'
+    | 'wdaPort'
+    | 'wdaMjpegUrl'
+    | 'wdaMjpegPort'
   >,
 ): void {
+  if (
+    options?.wdaDisplayId !== undefined &&
+    (!Number.isSafeInteger(options.wdaDisplayId) || options.wdaDisplayId < 0)
+  ) {
+    throw new Error(
+      'wdaDisplayId must be a non-negative integer from /wda/screens.',
+    );
+  }
   if (
     options?.wdaBaseUrl !== undefined &&
     (options.wdaHost !== undefined || options.wdaPort !== undefined)

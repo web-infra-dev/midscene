@@ -126,6 +126,10 @@ export function resolveStudioRecorderTarget(
       };
     }
     case 'ios': {
+      const display: Record<string, number> =
+        typeof metadata.wdaDisplayId === 'number'
+          ? { wdaDisplayId: metadata.wdaDisplayId }
+          : {};
       const baseUrl = formValues['ios.baseUrl'] ?? formValues.baseUrl;
       const mjpegUrl = formValues['ios.mjpegUrl'] ?? formValues.mjpegUrl;
       const sessionId = formValues['ios.sessionId'] ?? formValues.sessionId;
@@ -146,6 +150,7 @@ export function resolveStudioRecorderTarget(
           deviceId: metadata.wdaGatewayId,
           label,
           values: {
+            ...display,
             wdaBaseUrl: '${WDA_BASE_URL}',
             ...(isNonEmptyString(mjpegUrl)
               ? { wdaMjpegUrl: '${WDA_MJPEG_URL}' }
@@ -172,6 +177,7 @@ export function resolveStudioRecorderTarget(
         deviceId: deviceId ?? `${host}:${port}`,
         label,
         values: {
+          ...display,
           wdaHost: host,
           wdaPort: port,
           ...(isNonEmptyString(mjpegUrl)
@@ -272,6 +278,7 @@ function createStudioRecorderHistoryTargetSignature(
         wdaPort: target.values.wdaPort ?? target.values.port,
         wdaMjpegUrl: target.values.wdaMjpegUrl,
         wdaMjpegPort: target.values.wdaMjpegPort,
+        wdaDisplayId: target.values.wdaDisplayId,
       });
     default:
       return createStudioRecorderTargetSignature(target);

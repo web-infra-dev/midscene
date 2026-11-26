@@ -426,6 +426,11 @@ export class IOSDevice implements AbstractInterface {
         await this.wdaBackend.createSession();
       }
 
+      const displayId = this.options?.wdaDisplayId;
+      if (displayId !== undefined) {
+        await this.wdaBackend.selectDisplay(displayId);
+      }
+
       // Try to get real device info from WebDriverAgent
       const deviceInfo = await this.wdaBackend.getDeviceInfo();
       if (deviceInfo?.udid) {
@@ -449,6 +454,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 `;
       debugDevice('iOS device connected successfully', this.description);
     } catch (e) {
+      if (!this.options?.sessionId) await this.wdaBackend.deleteSession();
       debugDevice(`Failed to connect to iOS device: ${e}`);
       throw new Error(`Unable to connect to iOS device ${this.deviceId}: ${e}`);
     }
@@ -553,6 +559,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     height: number;
     scale: number;
   }> {
+    if (this.options?.wdaDisplayId !== undefined) {
+      return this.wdaBackend.getDisplaySize(this.options.wdaDisplayId);
+    }
     // Ensure device pixel ratio is initialized
     await this.initializeDevicePixelRatio();
 
@@ -1114,7 +1123,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   async appSwitcher(): Promise<void> {
     this.invalidatePendingKeyboardFollowUp('app switcher');
-    await this.wdaBackend.appSwitcher();
+    await this.wdaBackend.appSwitcher(this.options?.wdaDisplayId);
   }
 
   /**

@@ -679,6 +679,7 @@ describe('buildDeviceSelectionFormValues', () => {
       'ios.mjpegUrl': null,
       'ios.mjpegPort': null,
       'ios.sessionId': null,
+      'ios.displayId': null,
     });
   });
 });

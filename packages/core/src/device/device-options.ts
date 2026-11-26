@@ -197,6 +197,8 @@ export type IOSDeviceOpt = {
   iOSDeviceClassOverride?: string;
   /** Custom device actions to register */
   customActions?: DeviceAction<any>[];
+  /** Display to capture and interact with, from WebDriverAgent /wda/screens. */
+  wdaDisplayId?: number;
   /** WebDriverAgent port (default: 8100) */
   wdaPort?: number;
   /** WebDriverAgent host (default: 'localhost') */

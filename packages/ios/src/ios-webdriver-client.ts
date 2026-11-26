@@ -112,11 +112,14 @@ export class IOSWebDriverClient extends WebDriverClient {
     }
   }
 
-  async appSwitcher(): Promise<void> {
+  async appSwitcher(displayId?: number): Promise<void> {
     this.ensureSession();
 
     try {
-      const windowSize = await this.getWindowSize();
+      const windowSize =
+        displayId === undefined
+          ? await this.getWindowSize()
+          : await this.getDisplaySize(displayId);
       const centerX = Math.round(windowSize.width / 2);
       const startY = Math.max(0, windowSize.height - 1);
       const endY = Math.round(windowSize.height * 0.5);
@@ -952,21 +955,58 @@ export class IOSWebDriverClient extends WebDriverClient {
     debugIOS(`Triple tapped at coordinates (${x}, ${y})`);
   }
 
+  async selectDisplay(displayId: number): Promise<void> {
+    // Standard XCTest snapshots can place the right Split View window at x=0.
+    const response = await this.executeRequest('POST', '/appium/settings', {
+      settings: { currentDisplayId: displayId, enforceCustomSnapshots: true },
+    });
+    if (
+      response?.value?.currentDisplayId !== displayId ||
+      response.value.enforceCustomSnapshots !== true
+    ) {
+      throw new Error(
+        `WebDriverAgent did not apply display ${displayId} and its snapshot settings`,
+      );
+    }
+  }
+
+  async getDisplaySize(
+    displayId: number,
+  ): Promise<{ width: number; height: number; scale: number }> {
+    const info = await this.getScreenInfo();
+    const size = info?.screenSize;
+    if (
+      info?.displayId !== displayId ||
+      !size ||
+      ![size.width, size.height, info.scale].every(
+        (value) => Number.isFinite(value) && value > 0,
+      )
+    ) {
+      throw new Error(
+        `WebDriverAgent did not return valid geometry for display ${displayId}`,
+      );
+    }
+    return { width: size.width, height: size.height, scale: info.scale };
+  }
+
+  private async getScreenInfo(): Promise<{
+    scale: number;
+    screenSize?: { width: number; height: number };
+    displayId?: number;
+  }> {
+    this.ensureSession();
+    const response = await this.makeRequest(
+      'GET',
+      `/session/${this.sessionId}/wda/screen`,
+    );
+    return response.value;
+  }
+
   async getScreenScale(): Promise<number | null> {
     this.ensureSession();
-
     try {
-      // Try GET /session/{id}/wda/screen (Python facebook-wda compatible)
-      const screenResponse = await this.makeRequest(
-        'GET',
-        `/session/${this.sessionId}/wda/screen`,
-      );
-      if (screenResponse?.value?.scale) {
-        debugIOS(
-          `Got screen scale from WDA screen endpoint: ${screenResponse.value.scale}`,
-        );
-        return screenResponse.value.scale;
-      }
+      const info = await this.getScreenInfo();
+      if (info?.scale) return info.scale;
     } catch (error) {
       debugIOS(`Failed to get screen scale from /wda/screen: ${error}`);
     }

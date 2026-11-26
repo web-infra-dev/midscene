@@ -64,6 +64,7 @@ const agent = new IOSAgent(device);
 
 ### Device 配置
 
+- `wdaDisplayId?: number` — 指定截图和手势使用的显示屏。使用 iPhone Duo 时，运行 `curl http://localhost:8100/wda/screens`，按屏幕尺寸找到目标屏，再用返回的 `displayId` 连接，例如 `agentFromWebDriverAgent({ wdaDisplayId: 3 })`。不同设备的 ID 可能不同。指定显示屏后，Midscene 会启用 WDA 的自定义快照，以便点击时计入分屏窗口的偏移。已在 WDA 17.1.4 验证。
 - `wdaPort?: number` —— WebDriverAgent 服务端口。默认值：`8100`。
 - `wdaHost?: string` —— WebDriverAgent 服务主机地址。默认值：`'localhost'`。
 - `wdaBaseUrl?: string` —— 完整的 HTTP(S) WDA API 基础地址（可包含网关路径前缀）。不能与 `wdaHost` 或 `wdaPort` 同时设置。

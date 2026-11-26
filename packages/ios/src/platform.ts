@@ -118,6 +118,12 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
               placeholder: '9100',
             },
             {
+              key: 'displayId',
+              label: 'WDA display ID (optional)',
+              type: 'number',
+              required: false,
+            },
+            {
               key: 'sessionId',
               label: 'WebDriverAgent session ID',
               type: 'text',
@@ -175,6 +181,10 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
             `Invalid WebDriverAgent port: ${String(input?.port)}`,
           );
         }
+        const displayId =
+          input?.displayId != null && String(input.displayId).trim() !== ''
+            ? Number(input.displayId)
+            : undefined;
         const sessionId =
           typeof input?.sessionId === 'string' && input.sessionId.trim()
             ? input.sessionId.trim()
@@ -188,6 +198,7 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
               : { wdaHost: host, wdaPort: port }),
             ...(mjpegUrl ? { wdaMjpegUrl: mjpegUrl } : {}),
             ...(mjpegPort !== undefined ? { wdaMjpegPort: mjpegPort } : {}),
+            ...(displayId !== undefined ? { wdaDisplayId: displayId } : {}),
             ...(sessionId ? { sessionId } : {}),
           };
           assertWdaConnectionOptions(agentOptions);
@@ -226,6 +237,7 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
                 )
               : port,
             ...(mjpegPort !== undefined ? { wdaMjpegPort: mjpegPort } : {}),
+            ...(displayId !== undefined ? { wdaDisplayId: displayId } : {}),
             ...(sessionId ? { sessionId } : {}),
             ...(deviceInfo ? { deviceInfo } : {}),
           },
