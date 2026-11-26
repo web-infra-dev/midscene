@@ -211,6 +211,8 @@ export interface ComputerInputPrimitives extends InputPrimitives {
 export abstract class AbstractInterface {
   abstract interfaceType: string;
 
+  /** Capture a screenshot and its logical coordinate size in one observation. */
+  captureScreenshotWithSize?(): Promise<{ screenshot: string; size: Size }>;
   abstract screenshotBase64(): Promise<string>;
   abstract size(): Promise<Size>;
   abstract actionSpace(): DeviceAction[];
