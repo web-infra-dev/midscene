@@ -227,6 +227,7 @@ steps:
 
 - `${name}` reads a value from the current Execution Project's `variables`. When the placeholder occupies the entire scalar, it preserves the original JSON type.
 - `${{ENV_NAME}}` reads an environment variable. The result is always a string.
+- `${{ NAME }}` may include spaces around the name, as in GitHub Actions. Any other `${{ ... }}` content, such as `${{ env.NAME }}`, fails during collection with a hint showing the supported forms.
 - An object or array variable can be used as a complete value, but it cannot be embedded in a longer string.
 - An undefined variable fails during collection. Variables are resolved only in Node input, not in `$`.
 
