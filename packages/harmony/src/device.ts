@@ -210,9 +210,6 @@ export class HarmonyDevice implements AbstractInterface {
   }
 
   public async getHdc(): Promise<HdcClient> {
-    // A command between size() and screenshotBase64() makes the saved frame
-    // stale (including actions invoked directly through inputPrimitives).
-    this.pendingScreenshot = null;
     if (this.destroyed) {
       throw new Error(
         `HarmonyDevice ${this.deviceId} has been destroyed and cannot execute HDC commands`,
@@ -343,29 +340,20 @@ export class HarmonyDevice implements AbstractInterface {
   }
 
   async size(): Promise<Size> {
-    // commonContextParser reads size before screenshotBase64. Derive both
-    // from one capture: RenderService can describe the physical panel rather
-    // than the active foldable viewport, and orientation can change at runtime.
-    this.pendingScreenshot = null;
-    this.pendingScreenshot = await this.captureScreenshot();
-    return { ...this.cachedScreenSize! };
+    return (await this.captureScreenshotWithSize()).size;
   }
-
-  private pendingScreenshot: string | null = null;
 
   private remoteScreenshotPath = '/data/local/tmp/ms_screen.jpeg';
   private localScreenshotPath: string | null = null;
 
   async screenshotBase64(): Promise<string> {
-    if (this.pendingScreenshot) {
-      const screenshot = this.pendingScreenshot;
-      this.pendingScreenshot = null;
-      return screenshot;
-    }
-    return this.captureScreenshot();
+    return (await this.captureScreenshotWithSize()).screenshot;
   }
 
-  private async captureScreenshot(): Promise<string> {
+  async captureScreenshotWithSize(): Promise<{
+    screenshot: string;
+    size: Size;
+  }> {
     debugDevice('screenshotBase64 begin');
     const hdc = await this.getHdc();
 
@@ -402,7 +390,7 @@ export class HarmonyDevice implements AbstractInterface {
           throw new Error('Invalid screenshot dimensions');
         }
         this.cachedScreenSize = { width, height };
-        return screenshot;
+        return { screenshot, size: this.cachedScreenSize };
       }
 
       debugDevice(
@@ -798,7 +786,6 @@ export class HarmonyDevice implements AbstractInterface {
 
     this.destroyed = true;
     this.cachedScreenSize = null;
-    this.pendingScreenshot = null;
     this.hdc = null;
     this.connecting = null;
   }

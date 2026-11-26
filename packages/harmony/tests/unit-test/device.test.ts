@@ -207,8 +207,10 @@ describe('HarmonyDevice', () => {
         height: 2232,
       } as Awaited<ReturnType<typeof imageInfoOfBase64>>);
       await device.connect();
-      expect(await device.size()).toEqual({ width: 1008, height: 2232 });
-      await device.screenshotBase64();
+      expect((await device.captureScreenshotWithSize()).size).toEqual({
+        width: 1008,
+        height: 2232,
+      });
       expect(mockHdc.screenshot).toHaveBeenCalledTimes(1);
     });
 
@@ -222,13 +224,14 @@ describe('HarmonyDevice', () => {
           viewport as Awaited<ReturnType<typeof imageInfoOfBase64>>,
         );
         const calls = mockHdc.screenshot.mock.calls.length;
-        expect(await device.size()).toEqual(viewport);
-        await device.screenshotBase64();
+        expect((await device.captureScreenshotWithSize()).size).toEqual(
+          viewport,
+        );
         expect(mockHdc.screenshot).toHaveBeenCalledTimes(calls + 1);
       }
     });
 
-    it('does not reuse a pending observation when size is requested again', async () => {
+    it('captures a fresh standalone screenshot after independent size requests', async () => {
       await device.size();
       rs.mocked(imageInfoOfBase64).mockResolvedValueOnce({
         width: 2232,
@@ -236,7 +239,7 @@ describe('HarmonyDevice', () => {
       } as Awaited<ReturnType<typeof imageInfoOfBase64>>);
       expect(await device.size()).toEqual({ width: 2232, height: 1008 });
       await device.screenshotBase64();
-      expect(mockHdc.screenshot).toHaveBeenCalledTimes(2);
+      expect(mockHdc.screenshot).toHaveBeenCalledTimes(3);
     });
 
     it('does not return a stale paired screenshot after a device action', async () => {
