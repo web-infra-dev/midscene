@@ -199,6 +199,8 @@ export type IOSDeviceOpt = {
   customActions?: DeviceAction<any>[];
   /** Display to capture and interact with, from WebDriverAgent /wda/screens. */
   wdaDisplayId?: number;
+  /** Preferred active app bundle ID for WDA, particularly in Split View. */
+  defaultActiveApplication?: string;
   /** WebDriverAgent port (default: 8100) */
   wdaPort?: number;
   /** WebDriverAgent host (default: 'localhost') */

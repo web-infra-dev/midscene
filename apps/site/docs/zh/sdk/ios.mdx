@@ -64,6 +64,7 @@ const agent = new IOSAgent(device);
 
 ### Device 配置
 
+- 如果展开内屏后 WDA 将 SpringBoard 识别为当前应用，请把 `defaultActiveApplication` 设为目标应用的 bundle ID。例如，要操作屏幕 3 上的 Safari，先打开 Safari，再使用 `agentFromWebDriverAgent({ wdaDisplayId: 3, defaultActiveApplication: "com.apple.mobilesafari" })` 连接。
 - `wdaDisplayId?: number` —— 指定截图和手势操作使用的屏幕。指定屏幕后，Midscene 会启用 WDA 自定义快照，按分屏窗口的偏移量计算点击位置。
   - 在 iPhone Duo 上，运行 `curl http://localhost:8100/wda/screens` 查看屏幕列表。根据屏幕尺寸找到目标屏幕，记下它的 `displayId`。
   - 在本次测试的 iPhone Duo 模拟器上，`1` 对应合拢时使用的外屏，`3` 对应展开后的内屏。内屏分屏时，左右窗口共用同一个 ID。请以当前设备返回的 ID 为准。

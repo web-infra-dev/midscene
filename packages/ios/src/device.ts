@@ -68,8 +68,6 @@ type PendingKeyboardFollowUp = {
 
 export class IOSDevice implements AbstractInterface {
   private deviceId: string;
-  private devicePixelRatio = 1;
-  private devicePixelRatioInitialized = false;
   private destroyed = false;
   private description: string | undefined;
   private customActions?: DeviceAction<any>[];
@@ -431,6 +429,12 @@ export class IOSDevice implements AbstractInterface {
         await this.wdaBackend.selectDisplay(displayId);
       }
 
+      if (this.options?.defaultActiveApplication) {
+        await this.wdaBackend.setDefaultActiveApplication(
+          this.options.defaultActiveApplication,
+        );
+      }
+
       // Try to get real device info from WebDriverAgent
       const deviceInfo = await this.wdaBackend.getDeviceInfo();
       if (deviceInfo?.udid) {
@@ -536,42 +540,8 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     };
   }
 
-  private async initializeDevicePixelRatio(): Promise<void> {
-    if (this.devicePixelRatioInitialized) {
-      return;
-    }
-
-    // Get real device pixel ratio from WebDriverAgent /wda/screen endpoint
-    const apiScale = await this.wdaBackend.getScreenScale();
-
-    assert(
-      apiScale && apiScale > 0,
-      'Failed to get device pixel ratio from WebDriverAgent API',
-    );
-
-    debugDevice(`Got screen scale from WebDriverAgent API: ${apiScale}`);
-    this.devicePixelRatio = apiScale;
-    this.devicePixelRatioInitialized = true;
-  }
-
-  async getScreenSize(): Promise<{
-    width: number;
-    height: number;
-    scale: number;
-  }> {
-    if (this.options?.wdaDisplayId !== undefined) {
-      return this.wdaBackend.getDisplaySize(this.options.wdaDisplayId);
-    }
-    // Ensure device pixel ratio is initialized
-    await this.initializeDevicePixelRatio();
-
-    const windowSize = await this.wdaBackend.getWindowSize();
-
-    return {
-      width: windowSize.width,
-      height: windowSize.height,
-      scale: this.devicePixelRatio,
-    };
+  async getScreenSize() {
+    return this.wdaBackend.getDisplaySize(this.options?.wdaDisplayId);
   }
 
   async size(): Promise<Size> {

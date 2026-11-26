@@ -19,6 +19,11 @@ import { assertWdaConnectionOptions } from './wda-options';
 const debug = getDebug('agent-tools:ios');
 
 const iosInitArgShape = {
+  defaultActiveApplication: z
+    .string()
+    .min(1)
+    .optional()
+    .describe('Preferred active application bundle ID for WebDriverAgent'),
   wdaDisplayId: z
     .number()
     .int()
@@ -61,6 +66,7 @@ type IOSInitArgs = AgentBehaviorInitArgs &
   Pick<
     IOSDeviceOpt,
     | 'wdaDisplayId'
+    | 'defaultActiveApplication'
     | 'wdaBaseUrl'
     | 'wdaHost'
     | 'wdaPort'

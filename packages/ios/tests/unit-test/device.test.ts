@@ -34,7 +34,11 @@ describe('IOSDevice', () => {
       setupExistingSession: rs.fn().mockResolvedValue(undefined),
       deleteSession: rs.fn().mockResolvedValue(undefined),
       selectDisplay: rs.fn(),
-      getDisplaySize: rs.fn(),
+      setDefaultActiveApplication: rs.fn(),
+      getDisplaySize: rs.fn(async () => ({
+        ...(await mockWdaClient.getWindowSize()),
+        scale: 2,
+      })),
       getWindowSize: rs.fn().mockResolvedValue({ width: 375, height: 812 }),
       takeScreenshot: rs.fn().mockResolvedValue('base64-screenshot'),
       tap: rs.fn().mockResolvedValue(undefined),
@@ -1050,6 +1054,7 @@ describe('IOSDevice', () => {
     it('uses display coordinates when a split window covers only part of the screenshot', async () => {
       const selected = new IOSDevice({
         wdaDisplayId: 3,
+        defaultActiveApplication: 'dev.midscene.duoprobe',
         sessionId: 'test-session',
       });
       mockWdaClient.getDisplaySize.mockResolvedValue({
@@ -1059,6 +1064,9 @@ describe('IOSDevice', () => {
       });
       await selected.connect();
       expect(mockWdaClient.selectDisplay).toHaveBeenCalledWith(3);
+      expect(mockWdaClient.setDefaultActiveApplication).toHaveBeenCalledWith(
+        'dev.midscene.duoprobe',
+      );
       await expect(selected.size()).resolves.toEqual({
         width: 951,
         height: 669,

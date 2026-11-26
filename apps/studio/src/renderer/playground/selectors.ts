@@ -167,6 +167,8 @@ function resolveConnectedSessionValues(
     case 'ios': {
       const connectedValues = {
         ...formValues,
+        'ios.defaultActiveApplication': metadata.defaultActiveApplication,
+        defaultActiveApplication: metadata.defaultActiveApplication,
         'ios.displayId': metadata.wdaDisplayId,
         displayId: metadata.wdaDisplayId,
       };
@@ -186,6 +188,9 @@ function resolveConnectedSessionValues(
       }
       return isString(metadata.wdaHost) && wdaPort !== undefined
         ? {
+            ...(isString(metadata.defaultActiveApplication)
+              ? { defaultActiveApplication: metadata.defaultActiveApplication }
+              : {}),
             ...(typeof metadata.wdaDisplayId === 'number'
               ? { displayId: metadata.wdaDisplayId }
               : {}),
@@ -370,6 +375,10 @@ function resolveSelectedSessionValues(
           ? { deviceId: formValues.deviceId }
           : undefined;
     case 'ios': {
+      const defaultActiveApplication = iosFormValue(
+        formValues,
+        'defaultActiveApplication',
+      );
       const displayId = formValues['ios.displayId'] ?? formValues.displayId;
       const display: Record<string, StudioSessionValue> =
         typeof displayId === 'number' || isString(displayId)
@@ -384,6 +393,7 @@ function resolveSelectedSessionValues(
       if (baseUrl) {
         return {
           ...display,
+          ...(defaultActiveApplication ? { defaultActiveApplication } : {}),
           baseUrl,
           ...(mjpegUrl ? { mjpegUrl } : {}),
           ...(mjpegPort !== undefined ? { mjpegPort } : {}),
@@ -399,6 +409,7 @@ function resolveSelectedSessionValues(
       return host && port !== undefined
         ? {
             ...display,
+            ...(defaultActiveApplication ? { defaultActiveApplication } : {}),
             host,
             port,
             ...(mjpegUrl ? { mjpegUrl } : {}),
@@ -426,6 +437,7 @@ export function buildDeviceSelectionFormValues(
         'ios.mjpegUrl': null,
         'ios.mjpegPort': null,
         'ios.displayId': null,
+        'ios.defaultActiveApplication': null,
         'ios.sessionId': null,
         ...prefixSessionValues(platform, device.sessionValues),
       };

@@ -55,6 +55,44 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
     );
   });
 
+  it('prefers screen geometry over split window dimensions without a display override', async () => {
+    const request = rs.spyOn(client as any, 'makeRequest');
+    const window = rs
+      .spyOn(client, 'getWindowSize')
+      .mockResolvedValue({ width: 678, height: 466 });
+    request.mockResolvedValueOnce({
+      value: { screenSize: { width: 951, height: 669 }, scale: 3 },
+    });
+    await expect(client.getDisplaySize()).resolves.toEqual({
+      width: 951,
+      height: 669,
+      scale: 3,
+    });
+    expect(window).not.toHaveBeenCalled();
+    request.mockResolvedValueOnce({ value: { scale: 2 } });
+    await expect(client.getDisplaySize()).resolves.toEqual({
+      width: 678,
+      height: 466,
+      scale: 2,
+    });
+  });
+
+  it('sets and verifies the preferred application', async () => {
+    const request = rs.spyOn(client as any, 'makeRequest');
+    const settings = { defaultActiveApplication: 'dev.midscene.duoprobe' };
+    request.mockResolvedValueOnce({ value: settings });
+    await client.setDefaultActiveApplication(settings.defaultActiveApplication);
+    expect(request).toHaveBeenCalledWith(
+      'POST',
+      '/session/test-session-id/appium/settings',
+      { settings },
+    );
+    request.mockResolvedValueOnce({ value: {} });
+    await expect(
+      client.setDefaultActiveApplication(settings.defaultActiveApplication),
+    ).rejects.toThrow('did not apply');
+  });
+
   describe('tap() fallback logic', () => {
     it('should use new endpoint when it succeeds', async () => {
       const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');

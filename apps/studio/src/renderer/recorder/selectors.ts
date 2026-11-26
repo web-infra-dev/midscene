@@ -151,6 +151,9 @@ export function resolveStudioRecorderTarget(
           label,
           values: {
             ...display,
+            ...(isNonEmptyString(metadata.defaultActiveApplication)
+              ? { defaultActiveApplication: metadata.defaultActiveApplication }
+              : {}),
             wdaBaseUrl: '${WDA_BASE_URL}',
             ...(isNonEmptyString(mjpegUrl)
               ? { wdaMjpegUrl: '${WDA_MJPEG_URL}' }
@@ -178,6 +181,9 @@ export function resolveStudioRecorderTarget(
         label,
         values: {
           ...display,
+          ...(isNonEmptyString(metadata.defaultActiveApplication)
+            ? { defaultActiveApplication: metadata.defaultActiveApplication }
+            : {}),
           wdaHost: host,
           wdaPort: port,
           ...(isNonEmptyString(mjpegUrl)
@@ -279,6 +285,7 @@ function createStudioRecorderHistoryTargetSignature(
         wdaMjpegUrl: target.values.wdaMjpegUrl,
         wdaMjpegPort: target.values.wdaMjpegPort,
         wdaDisplayId: target.values.wdaDisplayId,
+        defaultActiveApplication: target.values.defaultActiveApplication,
       });
     default:
       return createStudioRecorderTargetSignature(target);

@@ -105,6 +105,7 @@ describe('studio recorder selectors', () => {
         metadata: {
           wdaGatewayId: gatewayId,
           wdaDisplayId: 3,
+          defaultActiveApplication: 'com.apple.mobilesafari',
           wdaHost: 'gateway.example',
           wdaPort: 443,
           sessionDisplayName: 'iPhone',
@@ -117,6 +118,7 @@ describe('studio recorder selectors', () => {
       label: 'iPhone',
       values: {
         wdaDisplayId: 3,
+        defaultActiveApplication: 'com.apple.mobilesafari',
         wdaBaseUrl: '${WDA_BASE_URL}',
         wdaMjpegUrl: '${WDA_MJPEG_URL}',
         sessionId: '${WDA_SESSION_ID}',
@@ -148,6 +150,9 @@ describe('studio recorder selectors', () => {
     });
     expect(yaml).toContain('wdaBaseUrl: "${WDA_BASE_URL}"');
     expect(yaml).toContain('wdaDisplayId: 3');
+    expect(yaml).toContain(
+      'defaultActiveApplication: "com.apple.mobilesafari"',
+    );
     expect(yaml).toContain('wdaMjpegUrl: "${WDA_MJPEG_URL}"');
     expect(yaml).toContain('sessionId: "${WDA_SESSION_ID}"');
     expect(yaml).not.toContain('secret');

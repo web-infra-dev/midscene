@@ -46,6 +46,7 @@ describe('iosPlaygroundPlatform session manager', () => {
       { key: 'baseUrl', required: false },
       { key: 'mjpegUrl', required: false },
       { key: 'mjpegPort', required: false },
+      { key: 'defaultActiveApplication', required: false },
       { key: 'displayId', required: false },
       { key: 'sessionId', required: false },
     ]);
@@ -56,6 +57,7 @@ describe('iosPlaygroundPlatform session manager', () => {
       host: 'localhost',
       port: 8100,
       displayId: '3',
+      defaultActiveApplication: 'com.apple.mobilesafari',
       sessionId: 'external-session-id',
     });
 
@@ -64,12 +66,14 @@ describe('iosPlaygroundPlatform session manager', () => {
       wdaHost: 'localhost',
       wdaPort: 8100,
       wdaDisplayId: 3,
+      defaultActiveApplication: 'com.apple.mobilesafari',
       sessionId: 'external-session-id',
     });
     expect(agentFromWebDriverAgentMock).toHaveBeenCalledWith({
       wdaHost: 'localhost',
       wdaPort: 8100,
       wdaDisplayId: 3,
+      defaultActiveApplication: 'com.apple.mobilesafari',
       sessionId: 'external-session-id',
     });
   });

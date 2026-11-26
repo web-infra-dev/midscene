@@ -970,13 +970,40 @@ export class IOSWebDriverClient extends WebDriverClient {
     }
   }
 
+  async setDefaultActiveApplication(bundleId: string): Promise<void> {
+    const response = await this.executeRequest('POST', '/appium/settings', {
+      settings: { defaultActiveApplication: bundleId },
+    });
+    if (response?.value?.defaultActiveApplication !== bundleId) {
+      throw new Error(
+        `WebDriverAgent did not apply defaultActiveApplication: ${bundleId}`,
+      );
+    }
+  }
+
   async getDisplaySize(
-    displayId: number,
+    displayId?: number,
   ): Promise<{ width: number; height: number; scale: number }> {
-    const info = await this.getScreenInfo();
+    const info = await this.getScreenInfo().catch((error) => {
+      if (displayId !== undefined) throw error;
+      debugIOS(`Screen geometry unavailable: ${error}`);
+      return undefined;
+    });
     const size = info?.screenSize;
+    // Older WDA versions expose only scale, or lack /wda/screen altogether.
+    if (displayId === undefined && size === undefined) {
+      const window = await this.getWindowSize();
+      const scale = info?.scale ?? (await this.estimateScreenScale(window));
+      if (!scale || !Number.isFinite(scale) || scale <= 0) {
+        throw new Error(
+          'Failed to get device pixel ratio from WebDriverAgent API',
+        );
+      }
+      return { width: window.width, height: window.height, scale };
+    }
     if (
-      info?.displayId !== displayId ||
+      (displayId !== undefined && info?.displayId !== displayId) ||
+      !info ||
       !size ||
       ![size.width, size.height, info.scale].every(
         (value) => Number.isFinite(value) && value > 0,
@@ -1011,12 +1038,19 @@ export class IOSWebDriverClient extends WebDriverClient {
       debugIOS(`Failed to get screen scale from /wda/screen: ${error}`);
     }
 
+    return this.estimateScreenScale();
+  }
+
+  private async estimateScreenScale(window?: {
+    width: number;
+    height: number;
+  }): Promise<number | null> {
     // Fallback: Calculate scale from screenshot size / window size (Python facebook-wda compatible)
     try {
       debugIOS('Calculating screen scale from screenshot and window size');
       const [screenshotBase64, windowSize] = await Promise.all([
         this.takeScreenshot(),
-        this.getWindowSize(),
+        window ?? this.getWindowSize(),
       ]);
 
       // Get screenshot dimensions from base64

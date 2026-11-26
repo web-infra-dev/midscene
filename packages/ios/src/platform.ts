@@ -118,6 +118,12 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
               placeholder: '9100',
             },
             {
+              key: 'defaultActiveApplication',
+              label: 'Active application bundle ID (optional)',
+              type: 'text',
+              required: false,
+            },
+            {
               key: 'displayId',
               label: 'WDA display ID (optional)',
               type: 'number',
@@ -181,6 +187,10 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
             `Invalid WebDriverAgent port: ${String(input?.port)}`,
           );
         }
+        const defaultActiveApplication =
+          typeof input?.defaultActiveApplication === 'string'
+            ? input.defaultActiveApplication.trim()
+            : undefined;
         const displayId =
           input?.displayId != null && String(input.displayId).trim() !== ''
             ? Number(input.displayId)
@@ -198,6 +208,7 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
               : { wdaHost: host, wdaPort: port }),
             ...(mjpegUrl ? { wdaMjpegUrl: mjpegUrl } : {}),
             ...(mjpegPort !== undefined ? { wdaMjpegPort: mjpegPort } : {}),
+            ...(defaultActiveApplication ? { defaultActiveApplication } : {}),
             ...(displayId !== undefined ? { wdaDisplayId: displayId } : {}),
             ...(sessionId ? { sessionId } : {}),
           };
@@ -237,6 +248,7 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
                 )
               : port,
             ...(mjpegPort !== undefined ? { wdaMjpegPort: mjpegPort } : {}),
+            ...(defaultActiveApplication ? { defaultActiveApplication } : {}),
             ...(displayId !== undefined ? { wdaDisplayId: displayId } : {}),
             ...(sessionId ? { sessionId } : {}),
             ...(deviceInfo ? { deviceInfo } : {}),
