@@ -64,12 +64,10 @@ const agent = new IOSAgent(device);
 
 ### Device 配置
 
-- 如果展开内屏后 WDA 将 SpringBoard 识别为当前应用，请把 `defaultActiveApplication` 设为目标应用的 bundle ID。例如，要操作屏幕 3 上的 Safari，先打开 Safari，再使用 `agentFromWebDriverAgent({ wdaDisplayId: 3, defaultActiveApplication: "com.apple.mobilesafari" })` 连接。
-- `wdaDisplayId?: number` —— 指定截图和手势操作使用的屏幕。指定屏幕后，Midscene 会启用 WDA 自定义快照，按分屏窗口的偏移量计算点击位置。
-  - 在 iPhone Duo 上，运行 `curl http://localhost:8100/wda/screens` 查看屏幕列表。根据屏幕尺寸找到目标屏幕，记下它的 `displayId`。
-  - 在本次测试的 iPhone Duo 模拟器上，`1` 对应合拢时使用的外屏，`3` 对应展开后的内屏。内屏分屏时，左右窗口共用同一个 ID。请以当前设备返回的 ID 为准。
-  - 在这台模拟器上，CoreSimulator 还列出了编号为 `2` 的外接视频输出 `TVOut`（`external-0`）。测试时，WDA 的 `/wda/screens` 只返回了 `1` 和 `3`。
-  - 连接时传入这个 ID。例如，如果目标屏幕的 ID 是 `3`，调用 `agentFromWebDriverAgent({ wdaDisplayId: 3 })`。
+- `wdaDisplayId?: number` —— 选择截图和手势使用的屏幕。省略时，Midscene 沿用 WDA 当前选中的屏幕。WDA 默认使用 XCTest 主屏；复用已选屏的会话时，继续使用该会话选中的屏幕。
+  - 折叠或展开设备后，运行 `curl http://localhost:8100/wda/screens`，通过尺寸（`bounds`）找到目标屏幕。`isMain: true` 表示 XCTest 主屏。假设选中的条目为 `target`，传入 `agentFromWebDriverAgent({ wdaDisplayId: target.displayId })` 即可选屏。显式选屏还会启用自定义快照，以便 WDA 在分屏时计入窗口偏移。
+  - Midscene 使用 `/wda/screen` 返回的逻辑屏幕尺寸将截图位置转换为触点坐标。如果旧版 WDA 未返回 `screenSize`，且未指定屏幕，Midscene 会回退到应用窗口尺寸。分屏时截图覆盖整屏，窗口尺寸可能导致点击错位。
+- `defaultActiveApplication?: string` —— 如果应用可见，但 WDA 将 SpringBoard 识别为当前应用，请先打开目标应用，再传入它的 bundle ID。例如，操作 Safari 时使用 `agentFromWebDriverAgent({ wdaDisplayId: target.displayId, defaultActiveApplication: "com.apple.mobilesafari" })`。
 - `wdaPort?: number` —— WebDriverAgent 服务端口。默认值：`8100`。
 - `wdaHost?: string` —— WebDriverAgent 服务主机地址。默认值：`'localhost'`。
 - `wdaBaseUrl?: string` —— 完整的 HTTP(S) WDA API 基础地址（可包含网关路径前缀）。不能与 `wdaHost` 或 `wdaPort` 同时设置。

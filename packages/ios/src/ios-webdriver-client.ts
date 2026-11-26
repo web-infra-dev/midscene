@@ -116,13 +116,10 @@ export class IOSWebDriverClient extends WebDriverClient {
     this.ensureSession();
 
     try {
-      const windowSize =
-        displayId === undefined
-          ? await this.getWindowSize()
-          : await this.getDisplaySize(displayId);
-      const centerX = Math.round(windowSize.width / 2);
-      const startY = Math.max(0, windowSize.height - 1);
-      const endY = Math.round(windowSize.height * 0.5);
+      const { width, height } = await this.getDisplaySize(displayId);
+      const centerX = Math.round(width / 2);
+      const startY = Math.max(0, height - 1);
+      const endY = Math.round(height * 0.5);
 
       debugIOS('Triggering app switcher with native WDA drag gesture');
 

@@ -175,28 +175,30 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
   describe('appSwitcher()', () => {
     it('should use the native WDA drag endpoint with screen coordinates', async () => {
       rs.useFakeTimers();
-      const getWindowSizeSpy = rs
-        .spyOn(client, 'getWindowSize')
-        .mockResolvedValue({ width: 393, height: 852 });
       const makeRequestSpy = rs
         .spyOn(client as any, 'makeRequest')
-        .mockResolvedValue({ status: 0 });
+        .mockResolvedValueOnce({
+          value: { screenSize: { width: 951, height: 669 }, scale: 3 },
+        })
+        .mockResolvedValueOnce({ status: 0 });
 
       try {
         const appSwitcherPromise = client.appSwitcher();
         await rs.runAllTimersAsync();
         await appSwitcherPromise;
 
-        expect(getWindowSizeSpy).toHaveBeenCalledOnce();
-        expect(makeRequestSpy).toHaveBeenCalledOnce();
+        expect(makeRequestSpy).toHaveBeenCalledWith(
+          'GET',
+          '/session/test-session-id/wda/screen',
+        );
         expect(makeRequestSpy).toHaveBeenCalledWith(
           'POST',
           '/session/test-session-id/wda/dragfromtoforduration',
           {
-            fromX: 197,
-            fromY: 851,
-            toX: 197,
-            toY: 426,
+            fromX: 476,
+            fromY: 668,
+            toX: 476,
+            toY: 335,
             duration: 1,
           },
         );

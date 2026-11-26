@@ -64,12 +64,10 @@ Accepts all [shared Agent options](../reference/#agent-options), plus the follow
 
 ### Device options
 
-- Set `defaultActiveApplication` to the target app’s bundle ID when WDA reports SpringBoard as active on the unfolded display. For example, use `agentFromWebDriverAgent({ wdaDisplayId: 3, defaultActiveApplication: "com.apple.mobilesafari" })` for Safari on display 3. This setting selects the app for interaction. Launch the app first.
-- `wdaDisplayId?: number` — Selects the screen for screenshots and gestures. When you select a screen, Midscene enables WDA custom snapshots so taps account for the window offset in Split View.
-  - On iPhone Duo, run `curl http://localhost:8100/wda/screens` to list the screens. Identify the target screen by its dimensions and note its `displayId`.
-  - On the iPhone Duo simulator used for testing, `1` selects the outer screen when folded and `3` selects the inner screen when unfolded. Both Split View windows share the inner screen ID. Use the IDs reported by your device.
-  - On that simulator, CoreSimulator also lists ID `2` as `TVOut` (`external-0`), an external video output. WDA listed only `1` and `3` in `/wda/screens` during the test.
-  - Pass that ID when connecting. For example, if the target screen has ID `3`, call `agentFromWebDriverAgent({ wdaDisplayId: 3 })`.
+- `wdaDisplayId?: number` — Selects the screen for screenshots and gestures. If omitted, Midscene keeps WDA's current selection. WDA uses the XCTest main screen by default and retains a previously selected display when you reuse a session.
+  - Run `curl http://localhost:8100/wda/screens` after folding or unfolding the device. Identify the target by its dimensions (`bounds`). The entry with `isMain: true` is the XCTest main screen. To select a screen, pass its `displayId` as `agentFromWebDriverAgent({ wdaDisplayId: target.displayId })`, where `target` is the entry you chose. Explicit selection also enables custom snapshots to account for Split View window offsets.
+  - Midscene uses the logical screen dimensions from `/wda/screen` to map screenshots to touch coordinates. Older WDA versions that omit `screenSize` fall back to the app window size when no display is specified. In Split View this can misplace taps because the screenshot includes the entire screen.
+- `defaultActiveApplication?: string` — If WDA identifies SpringBoard as active while your app is visible, launch the target app and pass its bundle ID, for example `agentFromWebDriverAgent({ wdaDisplayId: target.displayId, defaultActiveApplication: "com.apple.mobilesafari" })` for Safari.
 - `wdaPort?: number` — WebDriverAgent server port. Default: `8100`.
 - `wdaHost?: string` — WebDriverAgent server host. Default: `'localhost'`.
 - `wdaBaseUrl?: string` — Full HTTP(S) base URL for the WDA API (including any gateway path prefix). Cannot be combined with `wdaHost` or `wdaPort`.
