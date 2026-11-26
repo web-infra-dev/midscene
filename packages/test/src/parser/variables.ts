@@ -21,9 +21,6 @@ const interpolationExpression = new RegExp(
   `\\$\\{\\{\\s*(${variableNamePattern})\\s*\\}\\}|\\$\\{([^{}]+)\\}`,
   'g',
 );
-const exactEnvExpression = new RegExp(
-  `^\\$\\{\\{\\s*(${variableNamePattern})\\s*\\}\\}$`,
-);
 const exactProjectExpression = /^\$\{([^{}]+)\}$/;
 const supportedEnvBody = new RegExp(`^\\s*(${variableNamePattern})\\s*$`);
 
@@ -88,22 +85,11 @@ const assertSupportedEnvReferences = (
     if (start === -1) return;
 
     const end = value.indexOf('}}', start + 3);
-    if (end === -1) {
+    if (end === -1 || !supportedEnvBody.test(value.slice(start + 3, end))) {
+      const reason = end === -1 ? 'Unterminated' : 'Unsupported';
       throw new WorkflowParseError(
-        `Unterminated variable reference "${value.slice(start)}" in ${options.location.sourcePath}. ${supportedReferenceHint}`,
-        { ...options.location },
-      );
-    }
-
-    const body = value.slice(start + 3, end);
-    if (!supportedEnvBody.test(body)) {
-      throw new WorkflowParseError(
-        `Unsupported variable reference "\${{${body}}}" in ${options.location.sourcePath}. ${supportedReferenceHint}`,
-        {
-          ...options.location,
-          variable: body.trim(),
-          variableKind: 'environment',
-        },
+        `${reason} variable reference at offset ${start} in ${options.location.sourcePath}. ${supportedReferenceHint}`,
+        { ...options.location, variableKind: 'environment', offset: start },
       );
     }
 
@@ -117,8 +103,6 @@ const resolveString = (
 ): JsonValue => {
   assertSupportedEnvReferences(value, options);
 
-  const exactEnv = exactEnvExpression.exec(value);
-  if (exactEnv) return environmentVariable(exactEnv[1], options);
   const exactProject = exactProjectExpression.exec(value);
   if (exactProject) return projectVariable(exactProject[1], options);
 

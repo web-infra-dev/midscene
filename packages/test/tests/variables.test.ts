@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from '@rstest/core';
+import { formatCliError } from '../src/cli/error-format';
 import { collectWorkflowDocument } from '../src/parser/collect';
 import { resolveWorkflowVariables } from '../src/parser/variables';
 
@@ -110,8 +111,33 @@ describe('workflow variables', () => {
         env: { BASE_URL: 'https://staging.example.com' },
         location,
       }),
-    ).toThrow('Unsupported variable reference "${{ env.BASE_URL }}"');
+    ).toThrow('Unsupported variable reference at offset 0');
   });
+
+  it.each([
+    ['prefix ${{ TARGET\nunrelated-body', 'Unterminated'],
+    ['prefix ${{ env.TARGET unrelated-body }}', 'Unsupported'],
+  ])(
+    'keeps malformed reference content out of CLI diagnostics',
+    (input, reason) => {
+      let failure: unknown;
+      try {
+        resolveWorkflowVariables(input, { location });
+      } catch (error) {
+        failure = error;
+      }
+      expect(failure).toMatchObject({
+        code: 'WORKFLOW_PARSE_ERROR',
+        details: location,
+      });
+      const diagnostic = formatCliError(failure);
+      expect(diagnostic).toContain(
+        `${reason} variable reference at offset 7 in cases/order.yaml`,
+      );
+      expect(diagnostic).toContain('Use "${{NAME}}"');
+      expect(diagnostic).not.toContain('unrelated-body');
+    },
+  );
 
   it('rejects object and array variables embedded in strings', () => {
     expect(() =>
