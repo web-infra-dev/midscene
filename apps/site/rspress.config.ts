@@ -261,6 +261,25 @@ export default defineConfig(async () => {
                 text: 'Desktop',
                 link: '/platforms/desktop',
               },
+              {
+                text: 'Universal Device',
+                collapsible: true,
+                collapsed: false,
+                items: [
+                  {
+                    text: 'Overview',
+                    link: '/universal-device/',
+                  },
+                  {
+                    text: 'Quick start',
+                    link: '/universal-device/quick-start',
+                  },
+                  {
+                    text: 'Protocol reference',
+                    link: '/universal-device/protocol',
+                  },
+                ],
+              },
             ],
           },
           {
@@ -365,6 +384,10 @@ export default defineConfig(async () => {
               {
                 text: 'Desktop',
                 link: '/sdk/desktop',
+              },
+              {
+                text: 'Universal Device',
+                link: '/sdk/universal-device',
               },
             ],
           },
@@ -536,6 +559,19 @@ export default defineConfig(async () => {
                 text: '桌面端',
                 link: '/zh/platforms/desktop',
               },
+              {
+                text: 'Universal Device',
+                collapsible: true,
+                collapsed: false,
+                items: [
+                  { text: '概览', link: '/zh/universal-device/' },
+                  {
+                    text: '快速开始',
+                    link: '/zh/universal-device/quick-start',
+                  },
+                  { text: '协议参考', link: '/zh/universal-device/protocol' },
+                ],
+              },
             ],
           },
           {
@@ -640,6 +676,10 @@ export default defineConfig(async () => {
               {
                 text: '桌面端',
                 link: '/zh/sdk/desktop',
+              },
+              {
+                text: 'Universal Device',
+                link: '/zh/sdk/universal-device',
               },
             ],
           },

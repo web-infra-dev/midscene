@@ -1,0 +1,102 @@
+# Universal Device JavaScript SDK
+
+`@midscene/universal-device` connects to hardware through a device service. `UniversalDeviceAgent` inherits the base `Agent` [AI methods](../reference/#interaction-methods).
+
+## Imports and API overview
+
+```ts
+import {
+  agentFromUniversalDevice,
+  listUniversalDevices,
+} from '@midscene/universal-device';
+```
+
+Use `agentFromUniversalDevice()` to connect a device and create an Agent in one step. Call `listUniversalDevices()` first if you need to inspect the available devices.
+
+See the [quick start](../universal-device/quick-start#sdk) for service setup and model configuration.
+
+## `agentFromUniversalDevice()`
+
+```ts
+agentFromUniversalDevice(
+  options: AgentFromUniversalDeviceOptions,
+): Promise<UniversalDeviceAgent>
+```
+
+Connects to the service, creates an exclusive control session for the target device, and returns an Agent. You can omit `deviceId` when the service has exactly one device. With multiple devices, you must specify an ID.
+
+```ts
+const agent = await agentFromUniversalDevice({
+  host: '<your-device-service-url>',
+  deviceId: '<your-device-id>',
+  agentOptions: {
+    generateReport: true,
+  },
+});
+
+try {
+  await agent.aiTap('Settings');
+  await agent.aiAssert('The settings page is visible');
+} finally {
+  await agent.destroy();
+}
+```
+
+### Configuration options
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `host` | `string` | Required. The device service HTTP(S) URL, with a scheme, host, and optional port. Do not include an API path, query parameters, or credentials. |
+| `token` | `string` | Access token. Defaults to the `MIDSCENE_UNIVERSAL_DEVICE_SERVICE_TOKEN` environment variable. |
+| `deviceId` | `string` | Target device ID from `listUniversalDevices()`. Optional when the service has exactly one device. |
+| `agentOptions` | `AgentOpt` | [Shared Agent options](../reference/#agent-options), including model, report, and execution settings. |
+
+Creating an Agent throws if the token is missing, the service has no devices, the specified device does not exist, or multiple devices exist without a specified ID.
+
+### Control a device
+
+The Agent provides shared methods such as `aiAct()`, `aiTap()`, `aiQuery()`, and `aiAssert()`. Available input actions, such as taps, swipes, or text input, depend on the capabilities declared by the device service. See the [shared Agent APIs](../reference/) for the full method reference.
+
+### Release a device
+
+An Agent created by this factory owns the device session and renews its lease through automatic heartbeats. Call `await agent.destroy()` when finished to release the session. Use a `finally` block so the device is released even when an operation fails.
+
+Each Agent uses its own Device instance. To operate the device again after destruction, call `agentFromUniversalDevice()` to create a new Agent.
+
+## `listUniversalDevices()`
+
+```ts
+listUniversalDevices(
+  options: UniversalDeviceOptions,
+): Promise<UniversalDeviceProfile[]>
+```
+
+Lists devices and their status without creating a control session. Both `host` and `token` are required. This function does not read the token environment variable automatically.
+
+```ts
+const token = process.env.MIDSCENE_UNIVERSAL_DEVICE_SERVICE_TOKEN;
+if (!token) throw new Error('Set MIDSCENE_UNIVERSAL_DEVICE_SERVICE_TOKEN.');
+
+const devices = await listUniversalDevices({
+  host: '<your-device-service-url>',
+  token,
+});
+
+console.log(devices);
+```
+
+Each device in the returned array contains:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `id` | `string` | Device ID used to connect. |
+| `name` | `string` | Device name. |
+| `status` | `'available' \| 'busy' \| 'offline'` | Whether the device is available, in use, or offline. |
+| `actions` | `InputAction['type'][]` | Supported input actions. |
+| `screenSource` | `'usb' \| 'camera' \| 'airplay'` | Optional screen source. |
+| `preview` | `'mjpeg'` | Optional. Indicates MJPEG preview support. |
+| `inputGuidance` | `string` | Optional device instructions added to the Agent’s action context by the factory. |
+
+An empty service returns an empty array. Add a device to the service before connecting.
+
+For custom service implementation, see the [quick start](../universal-device/quick-start#custom-device). For the complete HTTP API, see the [protocol reference](../universal-device/protocol).

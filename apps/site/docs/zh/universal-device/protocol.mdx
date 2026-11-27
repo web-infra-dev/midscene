@@ -1,0 +1,148 @@
+# Universal Device 协议参考
+
+设备服务通过 HTTP 提供设备发现、独占会话、截图和输入动作。请求使用 `Authorization: Bearer <token>` 鉴权，`/healthz` 无需鉴权。
+
+先列出设备，再创建会话；在租约到期前发送心跳，完成操作后释放会话。租约默认 30 秒，可设为 5～300 秒。下文的 `:id` 为创建会话时返回的 ID。
+
+运行中的服务提供 `/api/docs/`（Swagger UI）和 `/api/openapi.json`，可用于检查当前服务的完整接口定义。
+
+## `GET /healthz`
+
+免鉴权存活探针。
+
+```json title="200 OK"
+{ "ok": true }
+```
+
+## `GET /api/v1/devices`
+
+获取已配置设备、在线状态、画面来源及支持的动作列表。
+
+- `status: available | busy | offline`
+- `screenSource: usb | camera | airplay`
+
+```json title="200 OK"
+{
+  "devices": [
+    {
+      "id": "mg400-1",
+      "name": "DOBOT MG400",
+      "status": "available",
+      "screenSource": "camera",
+      "actions": ["tap", "doubleTap", "longPress", "swipe", "dragAndDrop"],
+      "preview": "mjpeg"
+    }
+  ]
+}
+```
+
+## `POST /api/v1/sessions`
+
+申请设备独占租约。
+
+- `deviceId: string`
+- `leaseMs?: 5000..300000`
+
+```json title="Request"
+{
+  "deviceId": "mg400-1",
+  "leaseMs": 30000
+}
+```
+
+```json title="Response · 201 Created"
+{
+  "id": "sess_01J9...",
+  "deviceId": "mg400-1",
+  "expiresInMs": 30000
+}
+```
+
+## `POST /api/v1/sessions/:id/heartbeat`
+
+在租约过期前刷新有效期。
+
+```json title="200 OK"
+{ "ok": true }
+```
+
+## `DELETE /api/v1/sessions/:id`
+
+主动释放会话租约，恢复设备为可用状态。
+
+```json title="200 OK"
+{ "ok": true }
+```
+
+## `GET /api/v1/sessions/:id/screenshot`
+
+获取当前帧。默认返回 JSON Base64；传入 `Accept: image/jpeg` 返回二进制流。
+
+- `Accept: application/json | image/jpeg`
+
+```json title="200 OK"
+{
+  "jpeg": "/9j/4AAQSkZJRgABAQ...",
+  "width": 1179,
+  "height": 2556,
+  "sequence": 42,
+  "receivedAt": 1731740000123
+}
+```
+
+## `GET /api/v1/sessions/:id/preview`
+
+输出实时 MJPEG 画面流，供 Playground 预览。
+
+```text title="200 Stream"
+Content-Type: multipart/x-mixed-replace; boundary=frame
+```
+
+## `POST /api/v1/sessions/:id/actions`
+
+执行单次 `InputAction`，坐标使用当前截图的像素坐标。
+
+- `Point: { x: number, y: number }`
+- `durationMs?: 0..5000`
+
+```json title="Request"
+{
+  "type": "tap",
+  "point": { "x": 448, "y": 316 }
+}
+```
+
+```json title="Response · 200 OK"
+{ "ok": true }
+```
+
+## 输入动作
+
+以设备发现接口返回的 `actions` 为准，选择设备支持的动作。
+
+| 动作类型 | 字段 | 行为 |
+| --- | --- | --- |
+| `tap / doubleTap` | `point` | 单击或双击像素坐标。 |
+| `longPress` | `point, durationMs?` | 长按（0～5000 ms）。 |
+| `swipe / dragAndDrop` | `from, to, durationMs?` | 两点间滑动或拖拽。 |
+| `scroll` | `direction: 'up' \| 'down', steps?, point?` | 方向滚动（steps 1～24）。 |
+| `typeText` | `text, replace?` | 输入文本（最长 8192 字符）。 |
+| `key` | `key` | 触发按键（1–128 字符）。 |
+| `home / back / clearInput` | `—` | 系统导航或清空输入框。 |
+
+## 错误码
+
+| 错误码 | HTTP 状态码 | 说明 |
+| --- | --- | --- |
+| `UNAUTHORIZED` | 401 | 缺少或无效的 Bearer Token。 |
+| `INVALID_REQUEST` | 400 | JSON 格式或参数校验失败。 |
+| `NOT_FOUND` | 404 | 路径不存在或未开启预览流。 |
+| `DEVICE_BUSY` | 409 | 设备已被其他会话占用。 |
+| `DEVICE_OFFLINE` | 409 | 硬件未连接或未完成标定。 |
+| `ACTION_IN_PROGRESS` | 409 | 上一条动作仍在执行。 |
+| `ACTION_FAILED` | 409 | 硬件执行失败或超时。 |
+| `SESSION_EXPIRED` | 410 | 会话租约已过期或释放。 |
+| `ACTION_UNSUPPORTED` | 422 | 设备未声明支持该动作。 |
+| `SERVICE_UNAVAILABLE` | 503 | 服务停止、更新中或后端不可用。 |
+
+服务启动、CLI 与 SDK 用法见[快速开始](./quick-start)。
