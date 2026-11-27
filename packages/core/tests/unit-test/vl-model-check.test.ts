@@ -119,7 +119,7 @@ describe('VL Model Check for Different Interface Types', () => {
     }).not.toThrow();
   });
 
-  it('should defer VL model check for android interface until getting UI context', async () => {
+  it('should validate the native model family before AI localization', async () => {
     const mockPage = createMockInterface('android');
 
     const agent = new Agent(mockPage, {
@@ -127,7 +127,7 @@ describe('VL Model Check for Different Interface Types', () => {
       modelConfig: mockedModelConfig,
     });
 
-    await expect(agent.getUIContext()).rejects.toThrow(
+    await expect(agent.aiLocate('button')).rejects.toThrow(
       /MIDSCENE_MODEL_FAMILY is not set/,
     );
   });

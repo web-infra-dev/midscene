@@ -31,6 +31,7 @@ export async function prepareJevPlanningContext(
     })),
   };
   return {
+    imagePreparation: image.preparation,
     state,
     images: {
       screenshot: image.imageBase64,

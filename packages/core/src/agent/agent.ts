@@ -16,6 +16,7 @@ import type { WorkflowExecutionRecord } from '../test-runner/execution-record';
 // index.ts -> agent/index.ts -> agent/agent.ts -> index.ts
 import {
   type AIUsageInfo,
+  type ActionExecutionOptions,
   type ActionParam,
   type ActionReturn,
   type AgentAIContextKey,
@@ -148,6 +149,10 @@ class AgentScopedModelConfigManager extends ModelConfigManager {
       ...this.baseManager.getModelConfig(intent),
       createOpenAIClient: this.createOpenAIClient,
     };
+  }
+
+  override getUploadTestServerUrl(): string | undefined {
+    return this.baseManager.getUploadTestServerUrl();
   }
 }
 
@@ -345,21 +350,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     return this.interface;
   }
 
-  /**
-   * Fails fast for non-web interfaces when the model family is missing.
-   *
-   * Early Midscene web usage allowed running without `modelFamily` and falling
-   * back to a default bbox parser. Non-web users do not have that compatibility
-   * path, so this check helps surface configuration problems before spending a
-   * model call.
-   *
-   * Web flows validate missing locate model family at workflow boundaries:
-   * `Service.locate` throws when aiTap/aiType fallback to the default model for
-   * direct locate, and generic planning throws when aiAct asks a planning model
-   * to return inline locate coordinates. Those checks are intentionally placed
-   * where Midscene knows which model role should provide coordinate parsing.
-   */
-  private assertModelFamilyForNonWebContext() {
+  /** Validate native model configuration at AI boundaries, not screenshot capture. */
+  private assertModelFamilyForNonWeb() {
     if (
       this.interface.interfaceType !== 'puppeteer' &&
       this.interface.interfaceType !== 'playwright' &&
@@ -390,6 +382,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       intent,
       taskType,
     );
+    this.assertModelFamilyForNonWeb();
     return {
       ...runtime,
       onUsage: (usage) => {
@@ -568,11 +561,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   }
 
   async getUIContext(action?: ServiceAction): Promise<UIContext> {
-    // Some non-web flows, such as Android, need an Agent instance before they
-    // can call device methods via ADB, so defer missing modelFamily errors
-    // until UI context is actually requested.
-    this.assertModelFamilyForNonWebContext();
-
+    // Screenshot capture also serves deterministic actions and does not need
+    // model configuration. AI paths validate it when resolving their runtime.
     // If page context is frozen, return the frozen context for all actions
     if (this.frozenUIContext) {
       debug('Using frozen page context for action:', action);
@@ -849,9 +839,15 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     type: string,
     opt?: T, // and all other action params
     abortSignal?: AbortSignal,
+    executionOptions?: ActionExecutionOptions,
   ) {
     return this.withReportOperation(() =>
-      this.executeActionInActionSpace<T>(type, opt, abortSignal),
+      this.executeActionInActionSpace<T>(
+        type,
+        opt,
+        abortSignal,
+        executionOptions,
+      ),
     );
   }
 
@@ -859,6 +855,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     type: string,
     opt?: T,
     abortSignal?: AbortSignal,
+    executionOptions?: ActionExecutionOptions,
   ) {
     debug('callActionInActionSpace', type, ',', opt);
 
@@ -885,16 +882,20 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       locateParamStr((opt as any)?.locate || {}),
     );
 
-    // assume all operation in action space is related to locating
-    const locateModel = this.resolveModelRuntime('locate', 'locate');
-    const planningModel = this.resolveModelRuntime('planning', 'planning');
-
+    const locate = () => this.resolveModelRuntime('locate', 'locate');
+    const planning = () => this.resolveModelRuntime('planning', 'planning');
+    const deferModels = executionOptions?.deferModelResolution;
+    const locateModel = deferModels ? locate : locate();
+    const planningModel = deferModels ? planning : planning();
     const { output } = await this.taskExecutor.runPlans(
       title,
       plans,
       planningModel,
       locateModel,
-      { abortSignal: abortSignal ?? currentYamlSignal(this) },
+      {
+        abortSignal: abortSignal ?? currentYamlSignal(this),
+        skipDefaultWait: executionOptions?.skipDefaultWait,
+      },
     );
     return output;
   }
@@ -1553,11 +1554,18 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
    * when available; otherwise, generate an approximate 8x8 compatibility box.
    * Do not rely on rect for strict element boundaries. Prefer center for the target.
    */
-  async aiLocate(prompt: TUserPrompt, opt?: LocateOption) {
+  async aiLocate(
+    prompt: TUserPrompt,
+    opt?: LocateOption & { abortSignal?: AbortSignal },
+  ) {
     return this.withReportOperation(() => this.executeLocate(prompt, opt));
   }
 
-  private async executeLocate(prompt: TUserPrompt, opt?: LocateOption) {
+  private async executeLocate(
+    prompt: TUserPrompt,
+    opt?: LocateOption & { abortSignal?: AbortSignal },
+  ) {
+    opt?.abortSignal?.throwIfAborted();
     const locateParam = buildDetailedLocateParam(
       prompt,
       this.withContext('aiLocate', opt),
@@ -1573,7 +1581,9 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       plans,
       planningModel,
       locateModel,
-      opt?.uiContext ? { uiContext: opt.uiContext } : undefined,
+      opt?.uiContext || opt?.abortSignal
+        ? { uiContext: opt.uiContext, abortSignal: opt.abortSignal }
+        : undefined,
     );
 
     const { element } = output;

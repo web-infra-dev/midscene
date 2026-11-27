@@ -125,7 +125,7 @@ jobs:
       # otherwise valid publishes with duplicate-entry 409s, which blocks the
       # Studio artifact packaging jobs.
       env:
-        RELEASE_VERSION_INPUT: ${{ github.event.inputs.version }}
+        RELEASE_VERSION_INPUT: ${{ inputs.version }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         if [[ "$RELEASE_VERSION_INPUT" == pre* ]]; then
