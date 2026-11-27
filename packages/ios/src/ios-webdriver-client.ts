@@ -982,21 +982,48 @@ export class IOSWebDriverClient extends WebDriverClient {
     displayId?: number,
   ): Promise<{ width: number; height: number; scale: number }> {
     const info = await this.getScreenInfo().catch((error) => {
-      if (displayId !== undefined) throw error;
-      debugIOS(`Screen geometry unavailable: ${error}`);
+      if (
+        displayId !== undefined ||
+        !(error instanceof WebDriverRequestError && error.isUnsupportedCommand)
+      ) {
+        throw error;
+      }
       return undefined;
     });
     const size = info?.screenSize;
-    // Older WDA versions expose only scale, or lack /wda/screen altogether.
     if (displayId === undefined && size === undefined) {
-      const window = await this.getWindowSize();
-      const scale = info?.scale ?? (await this.estimateScreenScale(window));
-      if (!scale || !Number.isFinite(scale) || scale <= 0) {
+      // Only consult the version when the screen response would require a fallback.
+      const status = (await this.makeRequest('GET', '/status'))?.value;
+      if (
+        !status ||
+        typeof status !== 'object' ||
+        Array.isArray(status) ||
+        status.error
+      ) {
+        throw new Error('Invalid WebDriverAgent /status response');
+      }
+      const version = status.build?.version;
+      const release =
+        typeof version === 'string' &&
+        /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.exec(version);
+      if (
+        release &&
+        (Number(release[1]) > 8 ||
+          (Number(release[1]) === 8 && Number(release[2]) >= 4))
+      ) {
         throw new Error(
-          'Failed to get device pixel ratio from WebDriverAgent API',
+          `WebDriverAgent ${version} must return screenSize from /wda/screen`,
         );
       }
-      return { width: window.width, height: window.height, scale };
+      if (info && (!Number.isFinite(info.scale) || info.scale <= 0)) {
+        throw new Error('Invalid scale from WebDriverAgent /wda/screen');
+      }
+      const window = await this.getWindowSize();
+      const scale = info?.scale ?? (await this.estimateScreenScale(window));
+      if (!Number.isFinite(scale) || scale <= 0) {
+        throw new Error('Invalid WebDriverAgent screen scale');
+      }
+      return { ...window, scale };
     }
     if (
       (displayId !== undefined && info?.displayId !== displayId) ||
@@ -1007,7 +1034,7 @@ export class IOSWebDriverClient extends WebDriverClient {
       )
     ) {
       throw new Error(
-        `WebDriverAgent did not return valid geometry for display ${displayId}`,
+        `WebDriverAgent did not return valid geometry for display ${displayId ?? 'selected by WDA'}`,
       );
     }
     return { width: size.width, height: size.height, scale: info.scale };
@@ -1023,6 +1050,14 @@ export class IOSWebDriverClient extends WebDriverClient {
       'GET',
       `/session/${this.sessionId}/wda/screen`,
     );
+    if (
+      !response?.value ||
+      typeof response.value !== 'object' ||
+      Array.isArray(response.value) ||
+      response.value.error
+    ) {
+      throw new Error('Invalid WebDriverAgent /wda/screen response');
+    }
     return response.value;
   }
 
@@ -1035,42 +1070,40 @@ export class IOSWebDriverClient extends WebDriverClient {
       debugIOS(`Failed to get screen scale from /wda/screen: ${error}`);
     }
 
-    return this.estimateScreenScale();
+    try {
+      return await this.estimateScreenScale();
+    } catch (error) {
+      debugIOS(`Failed to calculate screen scale: ${error}`);
+      return null;
+    }
   }
 
   private async estimateScreenScale(window?: {
     width: number;
     height: number;
-  }): Promise<number | null> {
+  }): Promise<number> {
     // Fallback: Calculate scale from screenshot size / window size (Python facebook-wda compatible)
-    try {
-      debugIOS('Calculating screen scale from screenshot and window size');
-      const [screenshotBase64, windowSize] = await Promise.all([
-        this.takeScreenshot(),
-        window ?? this.getWindowSize(),
-      ]);
+    debugIOS('Calculating screen scale from screenshot and window size');
+    const [screenshotBase64, windowSize] = await Promise.all([
+      this.takeScreenshot(),
+      window ?? this.getWindowSize(),
+    ]);
 
-      // Get screenshot dimensions from base64
-      const { imageInfoOfBase64 } = await import('@midscene/shared/img');
-      const { width: screenshotWidth, height: screenshotHeight } =
-        await imageInfoOfBase64(screenshotBase64);
+    // Get screenshot dimensions from base64
+    const { imageInfoOfBase64 } = await import('@midscene/shared/img');
+    const { width: screenshotWidth, height: screenshotHeight } =
+      await imageInfoOfBase64(screenshotBase64);
 
-      // Calculate scale: max(screenshot.size) / max(window.size)
-      const scale =
-        Math.max(screenshotWidth, screenshotHeight) /
-        Math.max(windowSize.width, windowSize.height);
+    // Calculate scale: max(screenshot.size) / max(window.size)
+    const scale =
+      Math.max(screenshotWidth, screenshotHeight) /
+      Math.max(windowSize.width, windowSize.height);
 
-      const roundedScale = Math.round(scale);
-      debugIOS(
-        `Calculated screen scale: ${roundedScale} (screenshot: ${screenshotWidth}x${screenshotHeight}, window: ${windowSize.width}x${windowSize.height})`,
-      );
-      return roundedScale;
-    } catch (error) {
-      debugIOS(`Failed to calculate screen scale: ${error}`);
-    }
-
-    debugIOS('No screen scale found');
-    return null;
+    const roundedScale = Math.round(scale);
+    debugIOS(
+      `Calculated screen scale: ${roundedScale} (screenshot: ${screenshotWidth}x${screenshotHeight}, window: ${windowSize.width}x${windowSize.height})`,
+    );
+    return roundedScale;
   }
 
   async createSession(capabilities?: any): Promise<any> {

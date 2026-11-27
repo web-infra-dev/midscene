@@ -1,4 +1,5 @@
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
+import { WebDriverRequestError } from '@midscene/webdriver';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { IOSWebDriverClient } from '../../src/ios-webdriver-client';
 
@@ -69,12 +70,101 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
       scale: 3,
     });
     expect(window).not.toHaveBeenCalled();
-    request.mockResolvedValueOnce({ value: { scale: 2 } });
+    request
+      .mockResolvedValueOnce({ value: { scale: 2 } })
+      .mockResolvedValueOnce({ value: { build: { version: '8.3.0' } } });
     await expect(client.getDisplaySize()).resolves.toEqual({
       width: 678,
       height: 466,
       scale: 2,
     });
+  });
+
+  describe('screen geometry compatibility', () => {
+    const unsupported = new WebDriverRequestError('HTTP 404', 404, {
+      value: { error: 'unknown command' },
+    });
+    it.each(['8.4.0', '17.1.4'])(
+      'rejects missing or unsupported screen geometry on %s',
+      async (version) => {
+        const request = rs.spyOn(client as any, 'makeRequest');
+        for (const missing of [true, false]) {
+          if (missing) request.mockResolvedValueOnce({ value: { scale: 3 } });
+          else request.mockRejectedValueOnce(unsupported);
+          request.mockResolvedValueOnce({ value: { build: { version } } });
+          await expect(client.getDisplaySize()).rejects.toThrow(
+            'must return screenSize',
+          );
+        }
+        expect(request).toHaveBeenCalledTimes(4);
+      },
+    );
+
+    it.each([undefined, 'custom-build'])(
+      'detects legacy capabilities with version %s',
+      async (version) => {
+        const request = rs
+          .spyOn(client as any, 'makeRequest')
+          .mockResolvedValueOnce({ value: { scale: 2 } })
+          .mockResolvedValueOnce({ value: { build: { version } } })
+          .mockResolvedValueOnce({ value: { width: 320, height: 480 } });
+        await expect(client.getDisplaySize()).resolves.toEqual({
+          width: 320,
+          height: 480,
+          scale: 2,
+        });
+        expect(request).toHaveBeenCalledWith('GET', '/status');
+      },
+    );
+
+    it('allows explicit unknown-command errors on a versionless server and preserves screenshot failures', async () => {
+      const failure = new Error('screenshot timeout');
+      rs.spyOn(client as any, 'makeRequest')
+        .mockRejectedValueOnce(unsupported)
+        .mockResolvedValueOnce({ value: { build: {} } })
+        .mockRejectedValueOnce(unsupported)
+        .mockResolvedValueOnce({ value: { width: 320, height: 480 } })
+        .mockRejectedValueOnce(failure);
+      await expect(client.getDisplaySize()).rejects.toBe(failure);
+    });
+
+    it.each([
+      new Error('network error'),
+      new WebDriverRequestError('timeout'),
+      new WebDriverRequestError('HTTP 404', 404, {
+        value: { error: 'invalid session id' },
+      }),
+      new WebDriverRequestError('HTTP 404', 404, 'gateway route not found'),
+      new WebDriverRequestError('HTTP 500', 500, {
+        value: { error: 'unknown error' },
+      }),
+    ])(
+      'propagates %s from screen, status or legacy window requests',
+      async (failure) => {
+        for (const step of [0, 1, 2]) {
+          const request = rs.spyOn(client as any, 'makeRequest');
+          if (step >= 1) request.mockResolvedValueOnce({ value: { scale: 2 } });
+          if (step === 2)
+            request.mockResolvedValueOnce({
+              value: { build: { version: '8.3.0' } },
+            });
+          request.mockRejectedValueOnce(failure);
+          await expect(client.getDisplaySize()).rejects.toBe(failure);
+          expect(request).toHaveBeenCalledTimes(step + 1);
+          request.mockRestore();
+        }
+      },
+    );
+    it.each([null, {}, { width: 0, height: 667 }])(
+      'rejects malformed screenSize %s',
+      async (screenSize) => {
+        const request = rs
+          .spyOn(client as any, 'makeRequest')
+          .mockResolvedValueOnce({ value: { screenSize, scale: 2 } });
+        await expect(client.getDisplaySize()).rejects.toThrow('geometry');
+        expect(request).toHaveBeenCalledOnce();
+      },
+    );
   });
 
   it('sets and verifies the preferred application', async () => {
