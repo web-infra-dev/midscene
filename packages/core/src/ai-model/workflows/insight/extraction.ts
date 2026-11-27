@@ -40,6 +40,7 @@ const debugInsight = getDebug('ai:insight');
 export interface ExtractOptions {
   /** Explicit task type; never infer from query keys. */
   type: InsightTaskType;
+  checkNumberLoading?: boolean;
   input: QueryInput;
   uiContext: UIContext;
   pageDescription?: string;
@@ -59,14 +60,20 @@ export async function AiExtractElementInfo<T>(
 }> {
   const { type, input, uiContext, extractOption, modelRuntime } = options;
   const demand =
-    type === 'Query'
-      ? input.demand
-      : {
-          [insightResultKey(type)]: buildTypeQueryDemandValue(
-            type,
-            input.demand,
-          ),
-        };
+    type === 'Number' && options.checkNumberLoading
+      ? {
+          Number: `${buildTypeQueryDemandValue('Number', input.demand)}. Use the visible evidence to answer the question, including counting or calculating when requested. Return null if the evidence needed to answer is missing; do not guess or substitute an unrelated number.`,
+          valueIsLoading:
+            'Boolean. True only when the evidence needed to answer is missing and the UI shows that this content is loading. A finished empty list, missing content alone, or unrelated background activity does not qualify.',
+        }
+      : type === 'Query'
+        ? input.demand
+        : {
+            [insightResultKey(type)]: buildTypeQueryDemandValue(
+              type,
+              input.demand,
+            ),
+          };
 
   const { booleanFn, protocol: insightProtocol } = modelRuntime.adapter.insight;
   if (

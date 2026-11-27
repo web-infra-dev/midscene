@@ -72,6 +72,9 @@ import { descriptionOfTree } from '@midscene/shared/extractor';
 import { type TaskTitleType, taskTitleStr } from './ui-utils';
 import { withUsageIntent } from './usage-intent';
 
+// Space fast observations across the same 15 s window as the default aiWaitFor.
+const numberObservationOffsetsMs = [0, 3_000, 15_000] as const;
+
 interface ExecutionResult<OutputType = any> {
   output: OutputType;
   thought?: string;
@@ -1036,6 +1039,7 @@ export class TaskExecutor {
     opt?: ServiceExtractOption,
     executionOptions?: {
       abortSignal?: AbortSignal;
+      onNumberLoading?: () => void;
     },
   ) {
     const { demand, ...referenceOptions } = input;
@@ -1093,7 +1097,9 @@ export class TaskExecutor {
             extraPageDescription,
             uiContext,
             {
-              ...executionOptions,
+              ...(executionOptions?.onNumberLoading
+                ? { checkNumberLoading: true }
+                : {}),
               abortSignal: executionOptions?.abortSignal ?? taskContext.signal,
             },
           );
@@ -1112,7 +1118,15 @@ export class TaskExecutor {
         applyDump(dump);
 
         let outputResult = data;
-        if (type !== 'Query') {
+        if (
+          executionOptions?.onNumberLoading &&
+          data?.valueIsLoading === true &&
+          data.Number == null &&
+          data.result == null
+        ) {
+          executionOptions.onNumberLoading();
+          outputResult = null;
+        } else if (type !== 'Query') {
           const keyOfResult = insightResultKey(type);
           // If AI returned a plain string instead of structured format, use it directly
           if (typeof data === 'string') {
@@ -1183,29 +1197,50 @@ export class TaskExecutor {
 
     const runner = session.getRunner();
     const executionModelRuntime = { ...modelRuntime, executionId: runner.id };
-    const queryTask = await this.createTypeQueryTask(
-      type,
-      input,
-      executionModelRuntime,
-      opt,
-      { ...executionOptions, abortSignal },
-    );
-
-    const result = await session.appendAndRun(queryTask);
-
+    let numberIsLoading = false;
+    let observations = 0;
+    const started = Date.now();
+    // A saved observation or reference image cannot become ready on a later read.
+    const isLiveNumber =
+      type === 'Number' &&
+      !executionOptions?.uiContext &&
+      !input.images?.length;
+    const onNumberLoading = isLiveNumber
+      ? () => {
+          if (observations === numberObservationOffsetsMs.length) {
+            throw new Error(
+              'The requested number is still loading after three observations.',
+            );
+          }
+          numberIsLoading = true;
+        }
+      : undefined;
+    let result;
+    do {
+      abortSignal?.throwIfAborted();
+      observations++;
+      numberIsLoading = false;
+      const queryTask = this.createTypeQueryTask(
+        type,
+        input,
+        executionModelRuntime,
+        opt,
+        { abortSignal, onNumberLoading },
+      );
+      result = await session.appendAndRun(queryTask);
+      if (numberIsLoading) {
+        const delayMs =
+          started + numberObservationOffsetsMs[observations] - Date.now();
+        if (delayMs > 0)
+          await defineActionSleep(abortSignal).call({ timeMs: delayMs });
+      }
+    } while (numberIsLoading);
     if (!result) {
       throw new Error(
         'result of taskExecutor.flush() is undefined in function createTypeQueryTask',
       );
     }
-
-    const { output, thought } = result;
-
-    return {
-      output,
-      thought,
-      runner,
-    };
+    return { ...result, runner };
   }
 
   async waitFor(

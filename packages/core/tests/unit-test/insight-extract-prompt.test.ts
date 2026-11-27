@@ -98,6 +98,26 @@ describe('insight extraction prompt assembly', () => {
     expect(result.data).toEqual({ StatementIsTruthy: true });
   });
 
+  it.each([true, false])(
+    'requests a loading signal only for tracked numeric reads (%s)',
+    async (checkNumberLoading) => {
+      await AiExtractElementInfo({
+        type: 'Number',
+        input: { demand: 'account balance' },
+        checkNumberLoading,
+        uiContext: createFakeContext(),
+        modelRuntime: getModelRuntime(modelConfig),
+      });
+      const user = rs.mocked(callGenerativeAI).mock.calls[0]?.[0]?.[1];
+      const rendered = JSON.stringify(user);
+      expect(rendered).toContain('account balance');
+      expect(rendered.includes('valueIsLoading')).toBe(checkNumberLoading);
+      expect(
+        rendered.includes('including counting or calculating when requested'),
+      ).toBe(checkNumberLoading);
+    },
+  );
+
   it('displays the whole structured query even when its fields are named demand and images', () => {
     const dataDemand = { demand: 'Order title', images: 'Image count' };
     expect(extractInsightParam({ dataDemand }).content).toBe(

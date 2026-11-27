@@ -339,6 +339,7 @@ export default class Service {
     uiContext?: UIContext,
     executionOptions?: {
       abortSignal?: AbortSignal;
+      checkNumberLoading?: boolean;
     },
   ): Promise<ServiceExtractResult<T>> {
     const dataDemand = input.demand;
@@ -367,6 +368,7 @@ export default class Service {
         modelRuntime,
         pageDescription,
         abortSignal: executionOptions?.abortSignal,
+        checkNumberLoading: executionOptions?.checkNumberLoading,
       });
       parseResult = result.parseResult;
       rawResponse = result.rawResponse;
