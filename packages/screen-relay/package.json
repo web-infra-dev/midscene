@@ -1,6 +1,6 @@
 {
   "name": "@midscene/screen-relay",
-  "version": "1.18.2",
+  "version": "1.18.3",
   "description": "Midscene.js Remote Desktop Automation via screen-relay",
   "license": "MIT",
   "repository": {
