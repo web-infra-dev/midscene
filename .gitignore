@@ -114,6 +114,9 @@ midscene_run
 midscene_run/report
 midscene_run/dump
 
+# Local Midscene validation and scratch exports
+/.midscene/
+
 local-benchmark
 
 *.ignore.png
