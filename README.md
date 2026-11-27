@@ -85,7 +85,7 @@ Visual localization does not depend on the UI rendering stack or code structure,
 | Android | [Devices and emulators through ADB](https://www.midscenejs.com/platforms/android) |
 | iOS | [Devices and simulators through WebDriverAgent](https://www.midscenejs.com/platforms/ios) |
 | HarmonyOS | [HarmonyOS NEXT through HDC](https://www.midscenejs.com/platforms/harmonyos) |
-| Desktop | [macOS, Windows, and Linux, with remote RDP support](https://www.midscenejs.com/platforms/desktop) |
+| Desktop | [macOS, Windows, and Linux, with remote RDP support](https://www.midscenejs.com/platforms/desktop) or [Screen Relay](https://www.midscenejs.com/platforms/screen-relay) |
 | Custom interfaces | [Provide screenshots and action capabilities](https://www.midscenejs.com/integrate-with-any-interface) |
 
 ## 📊 Reliability and cost in practice
@@ -176,6 +176,7 @@ We would like to thank the following projects:
 - [appium-webdriveragent](https://github.com/appium/WebDriverAgent) for controlling XCTest from JavaScript.
 - [YADB](https://github.com/ysbing/YADB) for improving text input performance.
 - [libnut-core](https://github.com/nut-tree/libnut-core) for cross-platform native keyboard and mouse control.
+- [screen-relay](https://github.com/vercel-labs/screen-relay) for HTTP/WebSocket remote desktop streaming and input control.
 - [Puppeteer](https://github.com/puppeteer/puppeteer) for browser automation and control.
 - [Playwright](https://github.com/microsoft/playwright) for browser automation, control, and testing.
 

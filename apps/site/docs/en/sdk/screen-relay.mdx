@@ -1,0 +1,110 @@
+# Screen Relay JavaScript SDK
+
+`@midscene/screen-relay` provides `ScreenRelayDevice` and `ScreenRelayAgent` for automating desktops exposed via [`screen-relay`](https://github.com/vercel-labs/screen-relay). `ScreenRelayAgent` inherits all [AI methods](../reference/#interaction-methods) from the base `Agent`. See [Screen Relay environment setup](../platforms/screen-relay) to start `screen-relay`.
+
+## Imports
+
+```typescript
+import {
+  ScreenRelayAgent,
+  ScreenRelayDevice,
+  agentForScreenRelay,
+} from '@midscene/screen-relay';
+```
+
+## `agentForScreenRelay()`
+
+```typescript
+agentForScreenRelay(options?: AgentForScreenRelayOpt): Promise<ScreenRelayAgent>
+```
+
+Creates and connects a `ScreenRelayDevice`, then returns a `ScreenRelayAgent`. `options` accepts both [shared Agent options](../reference/#agent-options) and `ScreenRelayDevice` options. Passing the full Viewer URL with `#token=...` in `url` extracts the token automatically.
+
+```typescript
+import { agentForScreenRelay } from '@midscene/screen-relay';
+
+const agent = await agentForScreenRelay({
+  url: 'http://127.0.0.1:8080/#token=<your-token>',
+});
+
+try {
+  await agent.aiAct('Open a terminal and run echo hello');
+  await agent.aiAssert('The terminal displays hello');
+} finally {
+  await agent.destroy();
+}
+```
+
+## `ScreenRelayDevice` / `ScreenRelayAgent`
+
+```typescript
+new ScreenRelayDevice(options?: ScreenRelayDeviceOpt)
+new ScreenRelayAgent(device, options?)
+```
+
+When constructing them separately, call `await device.connect()` before creating `ScreenRelayAgent`:
+
+```typescript
+const device = new ScreenRelayDevice({
+  url: 'http://127.0.0.1:8080',
+  token: process.env.MIDSCENE_SCREEN_RELAY_TOKEN,
+});
+await device.connect();
+
+const agent = new ScreenRelayAgent(device);
+```
+
+## Configuration options
+
+Both `agentForScreenRelay()` and `new ScreenRelayDevice()` accept:
+
+- `url?: string` — Server URL or full Viewer URL (supports `#token=` and `?token=`). Default: `process.env.MIDSCENE_SCREEN_RELAY_URL` or `'http://127.0.0.1:8080'`.
+- `token?: string` — Session token (overrides any token embedded in `url`). Default: token parsed from `url`, or `process.env.MIDSCENE_SCREEN_RELAY_TOKEN`.
+- `timeoutMs?: number` — Per-request timeout in milliseconds (finite positive number). Default: `15000`.
+- `customActions?: DeviceAction<any>[]` — Custom actions registered for the Agent planner. See [Integrate with any interface](../integrate-with-any-interface).
+
+## `device.getCapabilities()`
+
+```typescript
+device.getCapabilities(): ScreenRelayCapabilities | undefined
+```
+
+Returns the capability descriptor fetched during `connect()` (backend name, screen size, clipboard, IME, and supported input types). `ScreenRelayDevice` automatically prunes unsupported actions from `actionSpace()` based on these flags.
+
+## CLI
+
+Run `--help` offline to list all commands. Pass `--help --url <viewer-url>` to list the commands supported by that desktop. Use `status` (with `--url` or `MIDSCENE_SCREEN_RELAY_URL`) to read the engine's capabilities and metrics in the same JSON format as `screen-relay status --json`.
+
+```bash
+export MIDSCENE_SCREEN_RELAY_URL="http://127.0.0.1:8080"
+export MIDSCENE_SCREEN_RELAY_TOKEN="<your-token>"
+
+npx @midscene/screen-relay --help
+npx @midscene/screen-relay --help --url "$MIDSCENE_SCREEN_RELAY_URL"
+npx @midscene/screen-relay status
+npx @midscene/screen-relay act --prompt "Click the Search box and type hello"
+npx @midscene/screen-relay take_screenshot
+```
+
+Pass the token via `MIDSCENE_SCREEN_RELAY_TOKEN` to keep it out of shell history and process arguments; `--token` and `#token=` passed on the command line are redacted from CLI debug logs.
+
+### Playground
+
+Open the Midscene Playground in your browser to view and operate the desktop through `ScreenRelayAgent`. The command reads `MIDSCENE_SCREEN_RELAY_URL` and `MIDSCENE_SCREEN_RELAY_TOKEN` from the environment or the current directory’s `.env`. You can also pass a Viewer URL or supply `--url` and `--token` separately.
+
+```bash
+npx @midscene/screen-relay playground
+npx @midscene/screen-relay playground --url 'http://127.0.0.1:18081/#token=<token>'
+```
+
+The Playground opens automatically. Use `--port` to change its local port, `--no-open` to print the address without opening a browser, and Ctrl+C to stop it.
+
+## Lifecycle
+
+```typescript
+agent.destroy(): Promise<void>
+```
+
+Each `ScreenRelayDevice` instance belongs to a single `Agent`. Do not share one `ScreenRelayDevice` across multiple Agents or reuse it after `destroy()`.
+
+Calling `await agent.destroy()` invokes `device.destroy()` and finalizes the execution report. It only clears local client state and does not stop the remote `screen-relay` daemon or desktop applications. To reconnect, call `agentForScreenRelay()` again or create a new `ScreenRelayDevice`.

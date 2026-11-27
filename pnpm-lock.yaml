@@ -1377,6 +1377,37 @@ importers:
         specifier: ^5.8.3
         version: 5.9.3
 
+  packages/screen-relay:
+    dependencies:
+      '@midscene/core':
+        specifier: workspace:*
+        version: link:../core
+      '@midscene/playground':
+        specifier: workspace:*
+        version: link:../playground
+      '@midscene/shared':
+        specifier: workspace:*
+        version: link:../shared
+      screen-relay:
+        specifier: 0.1.5
+        version: 0.1.5
+    devDependencies:
+      '@rslib/core':
+        specifier: ~0.19.6
+        version: 0.19.6(@microsoft/api-extractor@7.60.1(@types/node@18.19.130))(typescript@5.9.3)
+      '@rstest/core':
+        specifier: 0.12.0
+        version: 0.12.0(core-js@3.51.0)(jsdom@29.0.2(@noble/hashes@1.8.0))
+      '@types/node':
+        specifier: ^18.0.0
+        version: 18.19.130
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.6.1
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
   packages/shared:
     dependencies:
       '@silvia-odwyer/photon':
@@ -1983,8 +2014,16 @@ packages:
     resolution: {integrity: sha512-/kr3UWNtdJfxZtPgDqUOmG2pvwlmcLGheex5yiZKdwbzZJxhV+HMNR9QNmyY5cGwTNV6LrR7Jtp+KjhUAP1qBQ==}
     engines: {node: '>= 20.12.0'}
 
+  '@clack/core@1.6.0':
+    resolution: {integrity: sha512-4GZynIB2IIe431odxesswvWTCP6orvqd6e2b07b3VFWBQRqUqIHc/EPIZwFoKS692QBp+ooPuXKaJV8g4kXuYA==}
+    engines: {node: '>= 20.12.0'}
+
   '@clack/prompts@1.7.0':
     resolution: {integrity: sha512-y7/yvZ2TPAnR9+jnc00klvNNLkJiXFFrQA/hlLCcxA9a2A4zQIOimyFQ9XfwYKiGD1fb5GY8vbKIIgO8d5Tb2A==}
+    engines: {node: '>= 20.12.0'}
+
+  '@clack/prompts@1.9.0':
+    resolution: {integrity: sha512-tEj8X2No2A1c9NDnZECxiiJ8TP3vmFlN9tLlLeSaMqVW4tUmVG2R4qpv/eP4zymWxnymYLkLcIYVV0VcWj3RCQ==}
     engines: {node: '>= 20.12.0'}
 
   '@cloudflare/kv-asset-handler@0.5.0':
@@ -2119,19 +2158,16 @@ packages:
   '@computer-use/libnut-darwin@2.7.1':
     resolution: {integrity: sha512-7B/aPcIYS4a4S7D3IYIHSpZ4B4m8Z3CjlYq0efTr+/JYmEu+LlO67ZhPvisLKifhagxf7goqEfnphg1F4jq5jw==}
     engines: {node: '>=10.15.3'}
-    cpu: [x64, arm64]
     os: [darwin, linux, win32]
 
   '@computer-use/libnut-linux@2.7.1':
     resolution: {integrity: sha512-QJD5URTFJ/2+JwBwRyajRF2BB+3eXpd4+t5btGeRVeiRQLKQ4lgorbMHySo6IrfAbSfnU1OVOrxAUygGxj0cFg==}
     engines: {node: '>=10.15.3'}
-    cpu: [x64, arm64]
     os: [darwin, linux, win32]
 
   '@computer-use/libnut-win32@2.7.1':
     resolution: {integrity: sha512-nDvH5kP1zoO2cBtFYWV0om9xtTu523cc1LIk8r/wizqPrIAm0wCizTU+odF3Fi42zcKJWT6J+Pguy8fKrZyIuA==}
     engines: {node: '>=10.15.3'}
-    cpu: [x64, arm64]
     os: [darwin, linux, win32]
 
   '@computer-use/libnut@4.2.0':
@@ -4435,6 +4471,10 @@ packages:
     resolution: {integrity: sha512-KmcYksDjlLozL0fxUjIDwH/0k6+Lg2HWHLUPlkRW8Gl08hdB1AbLB5iU9QxFvkaT8p0Q4dFEqZWnz3g6RMeiRA==}
     peerDependencies:
       react: '>=18.3.1'
+
+  '@vercel/detect-agent@1.2.7':
+    resolution: {integrity: sha512-5tWaC9V+u4SHcSMKBz9FQb3Dhl/1A2lQ6QqHovu8uQeb8dTyjEevpJMANm/uQEn/usYB63fpdjWYjkJ8/bGtjA==}
+    engines: {node: '>=14'}
 
   '@xmldom/xmldom@0.8.15':
     resolution: {integrity: sha512-/5NV/vDALVFDXgLmfsy9TRCBlKwO2LNBFzpzvb9iIj+jR+eSc6DLYYvVOdivT/jm7MtU6TebYuRmzEOI7w40UA==}
@@ -7713,6 +7753,7 @@ packages:
 
   node-abort-controller@3.1.1:
     resolution: {integrity: sha512-AGK2yQKIjRuqnc6VkX2Xj5d+QW8xZ87pa1UK6yA6ouUyuxfHuMP6umE5QK7UmTeOAymo+Zx1Fxiuw9rVx8taHQ==}
+    deprecated: This package is no longer needed on supported Node.js versions. Node.js 16+ includes AbortController and AbortSignal as built-in globals. All Node.js versions requiring this polyfill are end-of-life. Use the built-in globals instead.
 
   node-addon-api@5.0.0:
     resolution: {integrity: sha512-CvkDw2OEnme7ybCykJpVcKH+uAOLV2qLqiyla128dN9TkEWfrYmxG6C2boDe5KcNQqZF3orkqzGgOMvZ/JNekA==}
@@ -9003,6 +9044,11 @@ packages:
   scheduler@0.28.0:
     resolution: {integrity: sha512-juorfCmIkIw8tT+p5BXSm6PJjQF/ycEYmKyzURCIt/RaZIhL+PulbQ9Yu2z1HdOJDdqDTlxA1+xKBmHXJsczAw==}
 
+  screen-relay@0.1.5:
+    resolution: {integrity: sha512-g0ovySxoYBe6beHO1WiJkx5rKDPl7UdDf2FnQfh1oVjRxsHakEl9HVzQ6VU7FBZMjVuquteZEOU6KnIbYP3s4Q==}
+    engines: {node: '>=22'}
+    hasBin: true
+
   screenshot-desktop@1.15.8:
     resolution: {integrity: sha512-jJdAPgNokf2/KBMGsqQTGoC1if5CjAjDzm5FnJH9aAesYXO9s/6QoN6I8R5umihJsDDBPw50CdbAtdgaZqdmfw==}
 
@@ -9142,6 +9188,10 @@ packages:
 
   sisteransi@1.0.5:
     resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
+
+  sisteransi@2.0.0:
+    resolution: {integrity: sha512-2WCqLdt12eN6ehLI50S2/ZxoowXU3DD1KVPRyVP0WEsFahrGZZmCdq1K59qjJljMRIDTwx1D9YaRK+hDneBUMg==}
+    engines: {node: '>=20'}
 
   slash@4.0.0:
     resolution: {integrity: sha512-3dOsAHXXUkQTpOYcoAxLIorMTp4gIQr5IW3iVb7A7lFIp0VHhnynm9izx6TssdrIcVIESAlVjtnO2K8bg+Coew==}
@@ -10457,12 +10507,25 @@ snapshots:
       fast-wrap-ansi: 0.2.0
       sisteransi: 1.0.5
 
+  '@clack/core@1.6.0':
+    dependencies:
+      fast-string-width: 3.0.2
+      fast-wrap-ansi: 0.2.0
+      sisteransi: 2.0.0
+
   '@clack/prompts@1.7.0':
     dependencies:
       '@clack/core': 1.4.3
       fast-string-width: 3.0.2
       fast-wrap-ansi: 0.2.0
       sisteransi: 1.0.5
+
+  '@clack/prompts@1.9.0':
+    dependencies:
+      '@clack/core': 1.6.0
+      fast-string-width: 3.0.2
+      fast-wrap-ansi: 0.2.0
+      sisteransi: 2.0.0
 
   '@cloudflare/kv-asset-handler@0.5.0': {}
 
@@ -13237,6 +13300,8 @@ snapshots:
     dependencies:
       react: 19.3.1
       unhead: 2.1.17
+
+  '@vercel/detect-agent@1.2.7': {}
 
   '@xmldom/xmldom@0.8.15': {}
 
@@ -18864,6 +18929,12 @@ snapshots:
 
   scheduler@0.28.0: {}
 
+  screen-relay@0.1.5:
+    dependencies:
+      '@clack/prompts': 1.9.0
+      '@vercel/detect-agent': 1.2.7
+      yaml: 2.9.1
+
   screenshot-desktop@1.15.8: {}
 
   scroll-into-view-if-needed@3.1.0:
@@ -19042,6 +19113,8 @@ snapshots:
       totalist: 3.0.1
 
   sisteransi@1.0.5: {}
+
+  sisteransi@2.0.0: {}
 
   slash@4.0.0: {}
 

@@ -20,6 +20,10 @@ To automate a remote Windows desktop over RDP, install FreeRDP on the machine ru
 
 Playground controls local displays only. To connect to a remote Windows session in code, see [RDP options in the Desktop JavaScript SDK](../sdk/desktop#rdp-options).
 
+:::info
+In addition to RDP, Midscene supports remote desktop control over Screen Relay for Linux, macOS, Windows, and containers. See [Remote desktop (Screen Relay) environment setup](./screen-relay).
+:::
+
 ## Verify {#verify}
 
 When you grant the permissions and install the dependencies above, verify the environment in Playground. Open [Get started](../get-started?platform=desktop&scene=playground), where Desktop and Playground are already selected, choose how to connect a model, and follow the steps to run one `aiAct` action and one `aiAssert` assertion. A passing assertion confirms that screen capture, mouse and keyboard input, and model calls work together.

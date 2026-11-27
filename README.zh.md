@@ -85,7 +85,7 @@ await agent.aiAssert('邮箱输入框下方显示了错误提示');
 | Android | [通过 ADB 连接真机或模拟器](https://www.midscenejs.com/zh/platforms/android) |
 | iOS | [通过 WebDriverAgent 连接真机或模拟器](https://www.midscenejs.com/zh/platforms/ios) |
 | HarmonyOS | [通过 HDC 连接 HarmonyOS NEXT](https://www.midscenejs.com/zh/platforms/harmonyos) |
-| 桌面 | [macOS、Windows、Linux，支持远程 RDP](https://www.midscenejs.com/zh/platforms/desktop) |
+| 桌面 | [macOS、Windows、Linux，支持远程 RDP](https://www.midscenejs.com/zh/platforms/desktop) 或 [Screen Relay](https://www.midscenejs.com/zh/platforms/screen-relay) |
 | 自定义界面 | [提供截图与操作能力，即可接入](https://www.midscenejs.com/zh/integrate-with-any-interface) |
 
 ## 📊 可靠性与成本的平衡
@@ -176,6 +176,7 @@ Midscene 支持豆包 Seed、千问 Qwen、DeepSeek、Gemini、GPT、Kimi 等模
 - [appium-webdriveragent](https://github.com/appium/WebDriverAgent) 提供 JavaScript 操作 XCTest 能力。
 - [YADB](https://github.com/ysbing/YADB) 提供 yadb 工具以提升文本输入性能。
 - [libnut-core](https://github.com/nut-tree/libnut-core) 提供跨平台原生键鼠控制。
+- [screen-relay](https://github.com/vercel-labs/screen-relay) 提供基于 HTTP / WebSocket 的远程桌面画面传输与键鼠控制能力。
 - [Puppeteer](https://github.com/puppeteer/puppeteer) 提供浏览器自动化与控制能力。
 - [Playwright](https://github.com/microsoft/playwright) 提供浏览器自动化、控制与测试能力。
 

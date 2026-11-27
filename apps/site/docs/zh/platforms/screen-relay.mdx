@@ -1,0 +1,70 @@
+# 远程桌面（Screen Relay）环境配置
+
+`@midscene/screen-relay` 通过 [`screen-relay`](https://github.com/vercel-labs/screen-relay) 的 HTTP / WebSocket 协议连接桌面，支持自动化控制本机、远程机器及 Docker 容器中的桌面环境。屏幕采集与键鼠注入均在被控端完成，运行 Midscene 的机器无需安装系统原生键鼠库。
+
+与通过本机原生键鼠驱动（及 Windows RDP）控制桌面的 [`@midscene/computer`](./desktop) 不同，`@midscene/screen-relay` 通过统一的网络协议与被控端通信，适合跨系统远程控制 macOS / Linux / Windows、自动化 Docker 或 CI 容器桌面，以及不希望在控制端安装原生键鼠依赖的场景。
+
+被控端支持的操作系统（Windows、macOS、Linux）及各显示后端说明，请参阅 [`screen-relay` 文档](https://github.com/vercel-labs/screen-relay)。本文介绍如何启动 `screen-relay` 并验证连接。
+
+## 准备被控桌面 {#connect-device}
+
+在要控制的机器或容器上安装 `screen-relay`（需要 Node.js 22 及以上版本）：
+
+```bash
+npm install -g screen-relay
+```
+
+### 带图形桌面的机器（macOS、Windows 或 Linux 桌面）
+
+```bash
+screen-relay install --yes
+screen-relay up -d
+```
+
+### 无头 Linux 服务器或 Docker 容器
+
+如果不需要安装完整桌面环境，可仅启动 X11 虚拟显示后端：
+
+```bash
+screen-relay install --backend x11 --desktop none --yes
+screen-relay up --backend x11 --desktop none -d
+```
+
+`screen-relay up` 启动后会输出 Viewer URL（默认 `http://127.0.0.1:8080`）。开启非本机回环访问或 `--allow-origin` 时，URL 会附带 `#token=<session-token>`，保留完整 URL 或 `token` 供 Midscene 连接使用。
+
+:::warning
+请勿将 `screen-relay` 直接暴露在不可信网络中。建议通过 SSH 端口转发或防火墙限制访问来源，并妥善保管会话 `token`。
+:::
+
+### macOS 权限配置
+
+在 macOS 上运行 `screen-relay` 时，需在该 Mac 的「系统设置 > 隐私与安全性」中，为运行 `screen-relay` 的终端或服务同时开启「录屏与系统录音」和「辅助功能」权限，修改后重启服务。
+
+## 验证 {#verify}
+
+在运行 Midscene 的机器上验证连接和截图：
+
+```bash
+export MIDSCENE_SCREEN_RELAY_URL="http://127.0.0.1:8080"
+export MIDSCENE_SCREEN_RELAY_TOKEN="<your-token>" # 本机无 token 模式可省略
+
+npx @midscene/screen-relay status
+npx @midscene/screen-relay --help --url "$MIDSCENE_SCREEN_RELAY_URL"
+npx @midscene/screen-relay take_screenshot
+```
+
+确认 `status` 显示引擎已就绪且 `take_screenshot` 正常出图后，即可参考[使用模型 API Key](../model-api-setup) 配置模型，并在 [Screen Relay JavaScript SDK](../sdk/screen-relay) 中编写脚本。
+
+## 常见问题 {#faq}
+
+### 点击浏览器预览页「Take control」后脚本报错
+
+在 `screen-relay` 浏览器页面点击 **Take control** 后，服务端会拒绝自动化输入（返回 `control_taken` 或 `busy`），防止人工操作与 Agent 指令冲突。在预览页释放控制权即可恢复执行。
+
+### macOS：截图黑屏或键鼠无响应
+
+检查运行 `screen-relay` 的 Mac「系统设置 > 隐私与安全性」中的「录屏与系统录音」与「辅助功能」，确认对应进程已授权，然后执行 `screen-relay down && screen-relay up -d` 重启。
+
+### Linux X11：输入中文或非 ASCII 文本
+
+当远端 X11 后端报告 `ime: false` 且 `clipboard: true` 时，`@midscene/screen-relay` 会自动通过远端剪贴板粘贴非 Latin-1 字符，并在粘贴后恢复原有剪贴板文本。请确认运行 `screen-relay` 的 Linux 环境已安装 `xclip` 或 `xsel`（`screen-relay install` 会自动安装）。
