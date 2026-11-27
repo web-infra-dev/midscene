@@ -1,6 +1,7 @@
 import { assert } from '@midscene/shared/utils';
 import { callSystemOneAI } from '../../service-caller';
 import { systemOneResponseSchema } from '../../service-caller/system-one/schema';
+import { DREX_MAX_IMAGES } from '../../service-caller/system-one/utils';
 import type { BooleanFn } from '../../workflows/insight/boolean';
 import { prepareJevImage, prepareJevReferences } from './image';
 
@@ -12,8 +13,16 @@ export const jevBoolean: BooleanFn = async (options) => {
       : options.uiContext.screenshotSequence?.length
         ? options.uiContext.screenshotSequence
         : [options.uiContext.screenshot];
+  // Drex accepts at most DREX_MAX_IMAGES images per request, shared by frames
+  // and reference images, so keep the most recent frames that fit.
+  const usableFrames =
+    options.modelRuntime.config.modelFamily === 'drex'
+      ? frames.slice(
+          -Math.max(1, DREX_MAX_IMAGES - Object.keys(references.images).length),
+        )
+      : frames;
   const screenshots = await Promise.all(
-    frames.map((frame) => prepareJevImage(frame.base64)),
+    usableFrames.map((frame) => prepareJevImage(frame.base64)),
   );
   const result = await callSystemOneAI(
     {
