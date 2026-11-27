@@ -1,17 +1,13 @@
 import { createReportCliCommands } from '@midscene/core';
 import { reportCLIError, runToolsCLI } from '@midscene/shared/cli';
-import {
-  ScreenRelayMidsceneTools,
-  normalizeScreenRelayHelpArgv,
-} from './agent-tools';
+import { ScreenRelayMidsceneTools } from './agent-tools';
 import { sanitizeScreenRelayCliArgs } from './target';
 
 declare const __VERSION__: string;
 
-const { sanitizedArgv, extractedToken } = sanitizeScreenRelayCliArgs(
+const { sanitizedArgv: argv, extractedToken } = sanitizeScreenRelayCliArgs(
   process.argv.slice(2),
 );
-const argv = normalizeScreenRelayHelpArgv(sanitizedArgv);
 const tools = new ScreenRelayMidsceneTools(argv, extractedToken);
 runToolsCLI(tools, 'midscene-screen-relay', {
   argv,

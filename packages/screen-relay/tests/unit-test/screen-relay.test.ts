@@ -210,6 +210,24 @@ describe('target parsing and helpers', () => {
       ],
       extractedToken: 'flag-tok',
     });
+
+    expect(
+      sanitizeScreenRelayCliArgs([
+        'playground',
+        '--token=flag=tok',
+        '--url',
+        'http://127.0.0.1:8080/#token=url=tok',
+        '--no-open',
+      ]),
+    ).toEqual({
+      sanitizedArgv: [
+        'playground',
+        '--url',
+        'http://127.0.0.1:8080',
+        '--no-open',
+      ],
+      extractedToken: 'flag=tok',
+    });
   });
 });
 

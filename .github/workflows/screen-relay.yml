@@ -134,6 +134,8 @@ jobs:
       run: |
         set -euo pipefail
         node packages/screen-relay/bin/midscene-screen-relay --help
+        node packages/screen-relay/bin/midscene-screen-relay status
+        node packages/screen-relay/bin/midscene-screen-relay --help --url "$MIDSCENE_SCREEN_RELAY_URL"
         node packages/screen-relay/bin/midscene-screen-relay take_screenshot
       timeout-minutes: 3
 

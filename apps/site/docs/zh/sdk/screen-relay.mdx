@@ -73,13 +73,15 @@ device.getCapabilities(): ScreenRelayCapabilities | undefined
 
 ## CLI
 
-执行命令时会自动连接。离线运行 `--help` 可查看全部命令；传入 `--url`（或设置 `MIDSCENE_SCREEN_RELAY_URL`）时，`--help` 会按该桌面实际支持的输入能力过滤命令。
+离线运行 `--help` 可查看全部命令。使用 `--help --url <viewer-url>` 可查看指定桌面支持的命令。`status` 会读取 `--url` 或 `MIDSCENE_SCREEN_RELAY_URL`，返回引擎的能力和指标，JSON 格式与 `screen-relay status --json` 一致。
 
 ```bash
 export MIDSCENE_SCREEN_RELAY_URL="http://127.0.0.1:8080"
 export MIDSCENE_SCREEN_RELAY_TOKEN="<your-token>"
 
 npx @midscene/screen-relay --help
+npx @midscene/screen-relay --help --url "$MIDSCENE_SCREEN_RELAY_URL"
+npx @midscene/screen-relay status
 npx @midscene/screen-relay act --prompt "点击搜索框并输入 hello"
 npx @midscene/screen-relay take_screenshot
 ```

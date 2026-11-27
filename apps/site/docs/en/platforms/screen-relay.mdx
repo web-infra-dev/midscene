@@ -48,11 +48,12 @@ Check connectivity and screen capture from the machine running Midscene:
 export MIDSCENE_SCREEN_RELAY_URL="http://127.0.0.1:8080"
 export MIDSCENE_SCREEN_RELAY_TOKEN="<your-token>" # omit if token auth is disabled on localhost
 
-npx @midscene/screen-relay --help
+npx @midscene/screen-relay status
+npx @midscene/screen-relay --help --url "$MIDSCENE_SCREEN_RELAY_URL"
 npx @midscene/screen-relay take_screenshot
 ```
 
-Once `--help` lists the desktop actions and `take_screenshot` succeeds, configure a model in [Use a model API Key](../model-api-setup) and continue with the [Screen Relay JavaScript SDK](../sdk/screen-relay).
+Once `status` reports the engine is ready and `take_screenshot` succeeds, configure a model in [Use a model API Key](../model-api-setup) and continue with the [Screen Relay JavaScript SDK](../sdk/screen-relay).
 
 ## FAQ {#faq}
 

@@ -73,13 +73,15 @@ Returns the capability descriptor fetched during `connect()` (backend name, scre
 
 ## CLI
 
-Each command connects automatically. Run `--help` offline to list all commands, or pass `--url` (or set `MIDSCENE_SCREEN_RELAY_URL`) to filter `--help` to the input actions supported by that desktop.
+Run `--help` offline to list all commands. Pass `--help --url <viewer-url>` to list the commands supported by that desktop. Use `status` (with `--url` or `MIDSCENE_SCREEN_RELAY_URL`) to read the engine's capabilities and metrics in the same JSON format as `screen-relay status --json`.
 
 ```bash
 export MIDSCENE_SCREEN_RELAY_URL="http://127.0.0.1:8080"
 export MIDSCENE_SCREEN_RELAY_TOKEN="<your-token>"
 
 npx @midscene/screen-relay --help
+npx @midscene/screen-relay --help --url "$MIDSCENE_SCREEN_RELAY_URL"
+npx @midscene/screen-relay status
 npx @midscene/screen-relay act --prompt "Click the Search box and type hello"
 npx @midscene/screen-relay take_screenshot
 ```

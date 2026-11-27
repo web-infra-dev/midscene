@@ -3,6 +3,7 @@ import type { Size } from '@midscene/core';
 export const MIDSCENE_SCREEN_RELAY_URL = 'MIDSCENE_SCREEN_RELAY_URL';
 export const MIDSCENE_SCREEN_RELAY_TOKEN = 'MIDSCENE_SCREEN_RELAY_TOKEN';
 export const DEFAULT_SCREEN_RELAY_URL = 'http://127.0.0.1:8080';
+export const DEFAULT_SCREEN_RELAY_TIMEOUT_MS = 15_000;
 
 export interface ResolvedScreenRelayTarget {
   /** Clean origin URL with any path, query, or `#token=` stripped. */
@@ -67,7 +68,7 @@ export function parseScreenRelayTarget(opts?: {
 /**
  * Strip `--token` and any `#token=` / `?token=` embedded in `--url` from CLI
  * arguments before `runToolsCLI` logs them, returning the extracted token
- * separately so callers can pass it via env without leaking it to logs.
+ * separately so the CLI can use it for authentication without logging it.
  */
 export function sanitizeScreenRelayCliArgs(argv: readonly string[]): {
   sanitizedArgv: string[];
@@ -77,11 +78,10 @@ export function sanitizeScreenRelayCliArgs(argv: readonly string[]): {
   let extractedToken: string | undefined;
 
   const stripUrlToken = (raw: string): string => {
+    if (!raw.trim()) return raw;
     try {
       const parsed = parseScreenRelayTarget({ url: raw });
-      if (parsed.token && !extractedToken) {
-        extractedToken = parsed.token;
-      }
+      extractedToken ??= parsed.token;
       return parsed.url;
     } catch {
       return raw;
@@ -90,43 +90,32 @@ export function sanitizeScreenRelayCliArgs(argv: readonly string[]): {
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
-    if (arg === '--token' || arg === '--screen-relay-token') {
-      const next = argv[i + 1];
-      if (next !== undefined && !next.startsWith('-')) {
-        extractedToken = next.trim() || extractedToken;
-        i += 1;
-      }
+    const option = /^(--url|--token)(?:=(.*))?$/s.exec(arg);
+    if (!option) {
+      sanitizedArgv.push(arg);
       continue;
     }
-    if (arg.startsWith('--token=')) {
-      extractedToken = arg.slice('--token='.length).trim() || extractedToken;
+
+    const [, flag, inlineValue] = option;
+    const next = argv[i + 1];
+    let value = inlineValue;
+    if (value === undefined && next !== undefined && !next.startsWith('-')) {
+      value = next;
+      i += 1;
+    }
+
+    if (flag === '--token') {
+      extractedToken = value?.trim() || extractedToken;
       continue;
     }
-    if (arg.startsWith('--screen-relay-token=')) {
-      extractedToken =
-        arg.slice('--screen-relay-token='.length).trim() || extractedToken;
-      continue;
+
+    if (value === undefined) {
+      sanitizedArgv.push(flag);
+    } else if (inlineValue === undefined) {
+      sanitizedArgv.push(flag, stripUrlToken(value));
+    } else {
+      sanitizedArgv.push(`${flag}=${stripUrlToken(value)}`);
     }
-    if (arg === '--url' || arg === '--screen-relay-url') {
-      sanitizedArgv.push('--url');
-      const next = argv[i + 1];
-      if (next !== undefined && !next.startsWith('-')) {
-        sanitizedArgv.push(stripUrlToken(next));
-        i += 1;
-      }
-      continue;
-    }
-    if (arg.startsWith('--url=')) {
-      sanitizedArgv.push(`--url=${stripUrlToken(arg.slice('--url='.length))}`);
-      continue;
-    }
-    if (arg.startsWith('--screen-relay-url=')) {
-      sanitizedArgv.push(
-        `--url=${stripUrlToken(arg.slice('--screen-relay-url='.length))}`,
-      );
-      continue;
-    }
-    sanitizedArgv.push(arg);
   }
 
   return { sanitizedArgv, extractedToken };

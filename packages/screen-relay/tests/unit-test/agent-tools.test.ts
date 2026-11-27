@@ -4,11 +4,9 @@ import {
   ScreenRelayAgent,
   type ScreenRelayCapabilities,
   ScreenRelayDevice,
+  sanitizeScreenRelayCliArgs,
 } from '../../src';
-import {
-  ScreenRelayMidsceneTools,
-  normalizeScreenRelayHelpArgv,
-} from '../../src/agent-tools';
+import { ScreenRelayMidsceneTools } from '../../src/agent-tools';
 import * as clientModule from '../../src/client';
 import type { ScreenRelayClient } from '../../src/client';
 
@@ -62,11 +60,12 @@ function makeFakeClient(backend = 'x11'): ScreenRelayClient {
   };
 }
 
-describe('screen-relay CLI command discovery', () => {
+describe('screen-relay CLI', () => {
   const url = 'http://127.0.0.1:18081';
   function run(rawArgv: string[]) {
-    const argv = normalizeScreenRelayHelpArgv(rawArgv);
-    const tools = new ScreenRelayMidsceneTools(argv);
+    const { sanitizedArgv: argv, extractedToken } =
+      sanitizeScreenRelayCliArgs(rawArgv);
+    const tools = new ScreenRelayMidsceneTools(argv, extractedToken);
     return runToolsCLI(tools, 'midscene-screen-relay', {
       argv,
       version: 'test',
@@ -78,25 +77,55 @@ describe('screen-relay CLI command discovery', () => {
     rs.unstubAllEnvs();
   });
 
-  it('prints offline help, subcommand help, and version without network calls when no URL is set', async () => {
-    rs.stubEnv('MIDSCENE_SCREEN_RELAY_URL', '');
+  it('prints offline help, subcommand help, and version without creating a client', async () => {
+    rs.stubEnv('MIDSCENE_SCREEN_RELAY_URL', url);
     const client = makeFakeClient();
-    rs.spyOn(clientModule, 'createDefaultScreenRelayClient').mockReturnValue(
-      client,
-    );
+    const createClient = rs
+      .spyOn(clientModule, 'createDefaultScreenRelayClient')
+      .mockReturnValue(client);
     const output = rs.spyOn(console, 'log').mockImplementation(() => {});
 
-    for (const argv of [[], ['-h'], ['--help'], ['tap', '--help']]) {
+    for (const argv of [[], ['-h'], ['--help']]) {
       output.mockClear();
       await run(argv);
       const text = output.mock.calls.flat().join('\n');
       expect(text).toContain('Usage: midscene-screen-relay');
+      expect(text).toMatch(/^ {2}scroll /m);
+      expect(text).toMatch(/^ {2}status /m);
     }
 
-    rs.stubEnv('MIDSCENE_SCREEN_RELAY_URL', url);
     await run(['--version']);
     await run(['tap', '--help']);
-    expect(client.capabilities).not.toHaveBeenCalled();
+    await run(['status', '--help']);
+    expect(createClient).not.toHaveBeenCalled();
+  });
+
+  it('filters root help for an explicit URL using relay capabilities', async () => {
+    const client = makeFakeClient();
+    const capabilities = await client.capabilities();
+    capabilities.input.buttons = false;
+    capabilities.input.wheel = false;
+    const createClient = rs
+      .spyOn(clientModule, 'createDefaultScreenRelayClient')
+      .mockReturnValue(client);
+    const connect = rs.spyOn(ScreenRelayDevice.prototype, 'connect');
+    const output = rs.spyOn(console, 'log').mockImplementation(() => {});
+
+    await run(['--verbose', '--help', '--url', `${url}/#token=viewer-token`]);
+
+    expect(createClient).toHaveBeenCalledExactlyOnceWith({
+      url,
+      token: 'viewer-token',
+      timeout: 15_000,
+    });
+    expect(client.capabilities).toHaveBeenCalledTimes(2);
+    expect(connect).not.toHaveBeenCalled();
+    expect(client.status).not.toHaveBeenCalled();
+    const help = output.mock.calls.flat().join('\n');
+    expect(help).toMatch(/^ {2}hover /m);
+    expect(help).toMatch(/^ {2}status /m);
+    expect(help).toMatch(/^ {2}playground /m);
+    expect(help).not.toMatch(/^ {2}(tap|scroll) /m);
   });
 
   it('connects the Playground factory to the requested relay and surfaces connection errors', async () => {
@@ -119,7 +148,7 @@ describe('screen-relay CLI command discovery', () => {
     );
   });
 
-  it('reuses the discovered device to dispatch supported actions and cleans up on validation failure', async () => {
+  it('validates options before connecting and connects once to dispatch an action', async () => {
     const client = makeFakeClient();
     rs.spyOn(clientModule, 'createDefaultScreenRelayClient').mockReturnValue(
       client,
@@ -129,57 +158,96 @@ describe('screen-relay CLI command discovery', () => {
       .spyOn(ScreenRelayAgent.prototype, 'callActionInActionSpace')
       .mockResolvedValue(undefined);
 
+    await expect(run(['tap', '--unknown-flag', '--url', url])).rejects.toThrow(
+      /Unknown option/,
+    );
+    expect(client.capabilities).not.toHaveBeenCalled();
+
+    destroySpy.mockClear();
     await run(['keyboardpress', '--key-name', 'Enter', '--url', url]);
     expect(dispatch).toHaveBeenCalledWith('KeyboardPress', {
       keyName: 'Enter',
     });
     expect(client.capabilities).toHaveBeenCalledTimes(1);
 
-    destroySpy.mockClear();
-    await expect(run(['tap', '--unknown-flag', '--url', url])).rejects.toThrow(
-      /Unknown option/,
-    );
-    expect(destroySpy).toHaveBeenCalled();
+    expect(destroySpy).toHaveBeenCalledTimes(1);
   });
 
-  it('uses live capabilities for help regardless of flag order and rejects unavailable actions before execution', async () => {
+  it('refuses unsupported actions at execution time without invoking the input endpoint', async () => {
     const client = makeFakeClient();
     const caps = await client.capabilities();
     caps.input.wheel = false;
+    rs.spyOn(clientModule, 'createDefaultScreenRelayClient').mockReturnValue(
+      client,
+    );
+    const output = rs.spyOn(console, 'log').mockImplementation(() => {});
+    const errOutput = rs.spyOn(console, 'error').mockImplementation(() => {});
+
+    await run(['scroll', '--direction', 'down', '--url', url]);
+    expect(client.scroll).not.toHaveBeenCalled();
+    expect(output.mock.calls.flat().join('\n')).toContain(
+      "Action type 'Scroll' is not in the current action space",
+    );
+    expect(errOutput).toHaveBeenCalled();
+  });
+
+  it('resolves status URL from --url or MIDSCENE_SCREEN_RELAY_URL and outputs the upstream status structure', async () => {
+    const client = makeFakeClient();
+    const caps = await client.capabilities();
+    caps.screenshot = '';
+    const metrics = { frames_encoded: 42 };
+    rs.spyOn(client, 'status').mockResolvedValue(metrics);
     const factory = rs
       .spyOn(clientModule, 'createDefaultScreenRelayClient')
       .mockReturnValue(client);
-    const destroySpy = rs.spyOn(ScreenRelayDevice.prototype, 'destroy');
     const output = rs.spyOn(console, 'log').mockImplementation(() => {});
 
-    for (const argv of [
-      [
-        '--verbose',
-        '--deep-locate',
-        '--help',
-        '--url',
-        url,
-        '--timeout-ms',
-        '2345',
-      ],
-      ['--url', url, '--timeout-ms', '2345', '--help'],
-    ]) {
-      output.mockClear();
-      destroySpy.mockClear();
-      await run(argv);
-      expect(factory).toHaveBeenLastCalledWith(
-        expect.objectContaining({ url, timeout: 2345 }),
-      );
-      const help = output.mock.calls.flat().join('\n');
-      expect(help).toMatch(/^ {2}tap /m);
-      expect(help).not.toMatch(/^ {2}(scroll|capabilities) /m);
-      expect(destroySpy).toHaveBeenCalled();
+    rs.stubEnv('MIDSCENE_SCREEN_RELAY_URL', '');
+    for (const argv of [['status'], ['status', '--url=']]) {
+      await expect(run(argv)).rejects.toThrow('Missing required option: --url');
     }
+    expect(factory).not.toHaveBeenCalled();
 
-    rs.stubEnv('MIDSCENE_SCREEN_RELAY_URL', url);
-    await expect(run(['scroll', '--direction', 'down'])).rejects.toThrow(
-      'does not support "scroll"',
+    rs.stubEnv('MIDSCENE_SCREEN_RELAY_URL', 'http://localhost:8080');
+    rs.stubEnv('MIDSCENE_SCREEN_RELAY_TOKEN', 'env-token');
+    await expect(run(['status', '--url='])).rejects.toThrow(
+      'Missing required option: --url',
     );
+    expect(factory).not.toHaveBeenCalled();
+
+    await run(['status']);
+    expect(factory).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        url: 'http://localhost:8080',
+        token: 'env-token',
+        timeout: 15_000,
+      }),
+    );
+    expect(JSON.parse(output.mock.calls.flat().join('\n'))).toEqual({
+      session: {
+        url: 'http://localhost:8080',
+        state: 'ready',
+        capabilities: caps,
+        metrics,
+      },
+    });
+
+    output.mockClear();
+    await run([
+      'status',
+      '--url',
+      `${url}/#token=viewer-token`,
+      '--timeout-ms',
+      '2345',
+    ]);
+    expect(factory).toHaveBeenLastCalledWith(
+      expect.objectContaining({ url, token: 'viewer-token', timeout: 2345 }),
+    );
+    expect(JSON.parse(output.mock.calls.flat().join('\n'))).toEqual({
+      session: { url, state: 'ready', capabilities: caps, metrics },
+    });
+    expect(client.capabilities).toHaveBeenCalledTimes(3);
+    expect(client.status).toHaveBeenCalledTimes(2);
     expect(client.screenshot).not.toHaveBeenCalled();
     expect(client.scroll).not.toHaveBeenCalled();
   });

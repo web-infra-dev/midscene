@@ -24,15 +24,15 @@ import {
   isRelayError,
 } from './client';
 import {
+  DEFAULT_SCREEN_RELAY_TIMEOUT_MS,
   type ResolvedScreenRelayTarget,
   normalizeScreenRelayKey,
   parseScreenRelayTarget,
   readPngDimensions,
 } from './target';
 
-const debug = getDebug('screen-relay:device');
+const debug = getDebug('screen-relay');
 
-const DEFAULT_TIMEOUT_MS = 15_000;
 const DOUBLE_CLICK_GAP_MS = 80;
 const FOCUS_SETTLE_MS = 150;
 const DRAG_STEPS = 12;
@@ -67,6 +67,10 @@ export interface ScreenRelayDeviceOpt {
 function clamp01(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.min(1, Math.max(0, value));
+}
+
+function canClick(input?: ScreenRelayCapabilities['input']): boolean {
+  return !input || (input.pointer && input.buttons);
 }
 
 function isMacBackend(backend: string | undefined): boolean {
@@ -121,7 +125,7 @@ export class ScreenRelayDevice implements AbstractInterface {
         `Invalid timeoutMs "${options.timeoutMs}". Expected a finite positive number.`,
       );
     }
-    this.timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    this.timeoutMs = options?.timeoutMs ?? DEFAULT_SCREEN_RELAY_TIMEOUT_MS;
     this.customActions = options?.customActions ?? [];
     this.client = createDefaultScreenRelayClient({
       url: this.target.url,
@@ -140,6 +144,7 @@ export class ScreenRelayDevice implements AbstractInterface {
       );
     }
 
+    const startedAt = performance.now();
     let caps: ScreenRelayCapabilities;
     try {
       caps = await this.client.capabilities();
@@ -159,8 +164,9 @@ export class ScreenRelayDevice implements AbstractInterface {
     }
     this.connected = true;
     debug(
-      'Connected to screen-relay %s (backend=%s, %dx%d, input=%o)',
+      'Connected to screen-relay %s in %d ms (backend=%s, %dx%d, input=%o)',
       this.target.url,
+      Math.round(performance.now() - startedAt),
       caps.backend,
       caps.width,
       caps.height,
@@ -199,12 +205,18 @@ export class ScreenRelayDevice implements AbstractInterface {
 
   async screenshotBase64(): Promise<string> {
     this.assertReady();
+    const startedAt = performance.now();
     let bytes: Uint8Array;
     try {
       bytes = await this.client.screenshot();
     } catch (error) {
       throw formatScreenRelayError('screenshot', error);
     }
+    debug(
+      'Received screenshot in %d ms (%d PNG bytes)',
+      Math.round(performance.now() - startedAt),
+      bytes.byteLength,
+    );
 
     const dims = readPngDimensions(bytes);
     if (dims) {
@@ -217,31 +229,47 @@ export class ScreenRelayDevice implements AbstractInterface {
     );
   }
 
+  /** Build the CLI action catalog without creating or connecting a device. */
+  static actionCatalog(inputCaps?: ScreenRelayCapabilities['input']) {
+    return ScreenRelayDevice.defineActions(inputCaps, () => {
+      throw new Error('Screen relay action requires a device.');
+    });
+  }
+
   actionSpace(): DeviceAction<any>[] {
-    const inputCaps = this.capabilities?.input;
-    const allowPointer = inputCaps ? inputCaps.pointer : true;
-    const allowButtons = inputCaps ? inputCaps.buttons : true;
+    return [
+      ...ScreenRelayDevice.defineActions(this.capabilities?.input, () => this),
+      ...this.customActions,
+    ];
+  }
+
+  private static defineActions(
+    inputCaps: ScreenRelayCapabilities['input'] | undefined,
+    getDevice: () => ScreenRelayDevice,
+  ): DeviceAction<any>[] {
+    const allowClick = canClick(inputCaps);
     const allowKeyboard = inputCaps ? inputCaps.keyboard : true;
     const allowWheel = inputCaps ? inputCaps.wheel : true;
+    const hover = (point: PointerPoint) => getDevice().moveTo(point);
 
     const primitives: InputPrimitives = {};
 
-    if (allowPointer && allowButtons) {
+    if (allowClick) {
       primitives.pointer = {
-        tap: (point) => this.clickAt(point, 'left'),
+        tap: (point) => getDevice().clickAt(point, 'left'),
         doubleClick: async (point) => {
-          await this.clickAt(point, 'left');
+          await getDevice().clickAt(point, 'left');
           await sleep(DOUBLE_CLICK_GAP_MS);
-          await this.clickAt(point, 'left');
+          await getDevice().clickAt(point, 'left');
         },
-        rightClick: (point) => this.clickAt(point, 'right'),
-        middleClick: (point) => this.clickAt(point, 'middle'),
-        hover: (point) => this.moveTo(point),
-        dragAndDrop: (from, to) => this.dragFromTo(from, to),
+        rightClick: (point) => getDevice().clickAt(point, 'right'),
+        middleClick: (point) => getDevice().clickAt(point, 'middle'),
+        hover,
+        dragAndDrop: (from, to) => getDevice().dragFromTo(from, to),
         swipe: async (from, to, opts) => {
           const repeat = Math.max(1, opts?.repeat ?? 1);
           for (let i = 0; i < repeat; i++) {
-            await this.dragFromTo(from, to, opts?.duration);
+            await getDevice().dragFromTo(from, to, opts?.duration);
           }
         },
       };
@@ -250,41 +278,40 @@ export class ScreenRelayDevice implements AbstractInterface {
     if (allowKeyboard) {
       primitives.keyboard = {
         keyboardPress: async (keyName, opts) => {
-          await this.focusTarget(opts?.target);
-          await this.pressKey(keyName);
+          const target = getDevice();
+          await target.focusTarget(opts?.target);
+          await target.pressKey(keyName);
         },
         typeText: async (value, opts) => {
-          await this.focusTarget(opts?.target);
+          const target = getDevice();
+          await target.focusTarget(opts?.target);
           if (opts?.replace) {
-            await this.clearActiveInput();
+            await target.clearActiveInput();
           }
           if (value.length > 0) {
-            await this.insertText(value);
+            await target.insertText(value);
           }
         },
         clearInput: async (target) => {
-          await this.focusTarget(target);
-          await this.clearActiveInput();
+          const device = getDevice();
+          await device.focusTarget(target);
+          await device.clearActiveInput();
         },
       };
     }
 
     if (allowWheel) {
       primitives.scroll = {
-        scroll: (param) => this.scrollScreen(param),
+        scroll: (param) => getDevice().scrollScreen(param),
       };
     }
 
     const actions = defineActionsFromInputPrimitives(primitives, {
-      size: () => this.size(),
+      size: () => getDevice().size(),
     });
 
-    if (allowPointer && !allowButtons) {
-      actions.push(defineActionHover((point) => this.moveTo(point)));
-    }
-
-    if (this.customActions.length > 0) {
-      actions.push(...this.customActions);
+    if (inputCaps?.pointer && !allowClick) {
+      actions.push(defineActionHover(hover));
     }
 
     return actions;
@@ -306,14 +333,9 @@ export class ScreenRelayDevice implements AbstractInterface {
     }
   }
 
-  private canClick(): boolean {
-    const inputCaps = this.capabilities?.input;
-    return !inputCaps || (inputCaps.pointer && inputCaps.buttons);
-  }
-
   private async focusTarget(target: unknown): Promise<void> {
     const point = extractTargetPoint(target);
-    if (!point || !this.canClick()) return;
+    if (!point || !canClick(this.capabilities?.input)) return;
     await this.clickAt(point, 'left');
     await sleep(FOCUS_SETTLE_MS);
   }
@@ -371,6 +393,9 @@ export class ScreenRelayDevice implements AbstractInterface {
     const session = openSession
       ? await this.runInput('drag:connect', () => openSession())
       : undefined;
+    if (session) {
+      debug('Opened /control session for drag');
+    }
 
     const sendEvent = (op: string, event: ScreenRelayInputEvent) =>
       this.runInput(op, async () => {
@@ -427,7 +452,10 @@ export class ScreenRelayDevice implements AbstractInterface {
       } catch (error) {
         releaseError = error;
       } finally {
-        session?.close();
+        if (session) {
+          session.close();
+          debug('Closed /control session for drag');
+        }
       }
     }
 
@@ -455,6 +483,7 @@ export class ScreenRelayDevice implements AbstractInterface {
       Boolean(this.capabilities?.clipboard);
 
     if (!preferClipboard) {
+      debug('Sending text via screen-relay type');
       try {
         await this.client.type(value);
         return;
@@ -469,6 +498,10 @@ export class ScreenRelayDevice implements AbstractInterface {
       }
     }
 
+    debug(
+      'Sending text via clipboard paste (%s)',
+      preferClipboard ? 'non-Latin-1 text without IME' : 'unsupported_input',
+    );
     const pasteCombo = isMacBackend(this.capabilities?.backend)
       ? 'Meta+v'
       : 'Control+v';
