@@ -10,11 +10,11 @@ import type {
 const buildAntLingChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
-  const { baseURL, midsceneDefaults, userConfig } = input;
+  const { baseURL, provider, midsceneDefaults, userConfig } = input;
   const { reasoningEnabled = false } = userConfig;
   const reasoningConfig: Record<string, unknown> = {};
 
-  if (isOpenRouter(baseURL)) {
+  if (isOpenRouter(baseURL, provider)) {
     Object.assign(reasoningConfig, buildOpenRouterReasoningParams(userConfig));
   } else {
     if (reasoningEnabled !== 'default') {

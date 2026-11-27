@@ -10,7 +10,7 @@ import type {
 const buildMimoChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
-  const { baseURL, midsceneDefaults, userConfig } = input;
+  const { baseURL, provider, midsceneDefaults, userConfig } = input;
   const { reasoningEnabled = false } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
 
@@ -28,7 +28,7 @@ const buildMimoChatCompletionParams = (
   }
 
   const modelSpecificConfig: Record<string, unknown> = {};
-  if (isOpenRouter(baseURL)) {
+  if (isOpenRouter(baseURL, provider)) {
     Object.assign(
       modelSpecificConfig,
       buildOpenRouterReasoningParams(userConfig),

@@ -110,7 +110,7 @@ export function parseDoubaoRawLocateValue(input: unknown): LocateResultValue {
 const buildDoubaoChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
-  const { baseURL, midsceneDefaults, userConfig } = input;
+  const { baseURL, provider, midsceneDefaults, userConfig } = input;
   const { reasoningEnabled = false, reasoningEffort } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
 
@@ -129,7 +129,7 @@ const buildDoubaoChatCompletionParams = (
 
   const modelSpecificConfig: Record<string, unknown> = {};
 
-  if (isOpenRouter(baseURL)) {
+  if (isOpenRouter(baseURL, provider)) {
     Object.assign(
       modelSpecificConfig,
       buildOpenRouterReasoningParams(userConfig),
