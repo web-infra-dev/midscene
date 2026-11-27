@@ -54,8 +54,8 @@ export function PlatformHub() {
     },
     {
       name: t('platformCustom'),
-      packageName: '@midscene/core',
-      href: '/integrate-with-any-interface',
+      packageName: '@midscene/connect',
+      href: '/midscene-connect',
       icon: Blocks,
     },
   ];

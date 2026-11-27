@@ -2,6 +2,12 @@ import SetupEnv from './common/setup-env.mdx';
 
 # 与任意界面集成
 
+:::info 接入自定义设备请优先使用 Midscene Connect
+新接入自定义设备推荐使用 [Midscene Connect](./midscene-connect)（`@midscene/connect`）：在一个 `.mjs` 文件中描述设备并通过 HTTP 启动服务，即可直接使用 Agent SDK、CLI 或 Playground 驱动，无需编写 `AbstractInterface` 类。
+
+直接实现 `AbstractInterface` 的方式已不再作为接入自定义设备的首选推荐。本页继续保留，供维护已有 `AbstractInterface` 实现以及查阅 `defineAction` 等底层 API 参考。
+:::
+
 你可以使用 Midscene 的 Agent 来控制任意界面，比如 IoT 设备、内部应用、车载显示器等，只需要实现一个符合 `AbstractInterface` 定义的 UI 操作类。
 
 在实现了 UI 操作类之后，你可以获得 Midscene Agent 的全部特性：

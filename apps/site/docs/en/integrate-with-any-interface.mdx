@@ -2,6 +2,12 @@ import SetupEnv from './common/setup-env.mdx';
 
 # Integrate with any interface
 
+:::info Prefer Midscene Connect for connecting custom devices
+For new device integrations, use [Midscene Connect](./midscene-connect) (`@midscene/connect`). You can describe a device in one `.mjs` file, serve it over HTTP, and drive it from the Agent SDK, CLI, or Playground without implementing `AbstractInterface`.
+
+Implementing `AbstractInterface` directly is no longer the recommended path for connecting custom devices. This page remains available for maintaining existing `AbstractInterface` implementations and referencing low-level APIs such as `defineAction`.
+:::
+
 You can use Midscene Agent to control any interface—such as IoT devices, in-house apps, and in-vehicle displays—by implementing a UI operation class that conforms to `AbstractInterface`.
 
 After implementing the UI operation class, you get the full capabilities of Midscene Agent:

@@ -130,7 +130,7 @@ export const EN_US = {
   visionStepVerify: 'Verify',
   visionStepVerifyDesc: 'Assert on what users actually see',
   visionShowcaseLink: 'See real-world examples',
-  platformCustom: 'Custom interfaces',
+  platformCustom: 'Connect any UI',
   platformCustomDoc: 'Extension guide',
   platformBridgeDoc: 'Bridge Mode',
 

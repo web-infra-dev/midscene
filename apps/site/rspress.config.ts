@@ -196,7 +196,7 @@ export default defineConfig(async () => {
             link: '/get-started',
           },
           {
-            text: 'Control any platform with Skills',
+            text: 'Control with Skills',
             link: '/skills',
           },
           {
@@ -376,16 +376,16 @@ export default defineConfig(async () => {
             link: '/provide-application-knowledge-to-gui-agent',
           },
           {
+            text: 'Connect any UI',
+            link: '/midscene-connect',
+          },
+          {
             text: 'Process report files',
             link: '/consume-report-file',
           },
           {
             text: 'Write BDD scripts with Gherkin',
             link: '/advanced/bdd-style-scripts-with-gherkin',
-          },
-          {
-            text: 'Integrate with any interface',
-            link: '/integrate-with-any-interface',
           },
           {
             text: 'Cache AI plans & DOM locators',
@@ -471,7 +471,7 @@ export default defineConfig(async () => {
             link: '/zh/get-started',
           },
           {
-            text: '使用 Skills 控制任意平台',
+            text: '使用 Skills 控制',
             link: '/zh/skills',
           },
           {
@@ -651,16 +651,16 @@ export default defineConfig(async () => {
             link: '/zh/provide-application-knowledge-to-gui-agent',
           },
           {
+            text: '接入任意界面',
+            link: '/zh/midscene-connect',
+          },
+          {
             text: '处理报告文件',
             link: '/zh/consume-report-file',
           },
           {
             text: '使用 Gherkin 编写 BDD 脚本',
             link: '/zh/advanced/bdd-style-scripts-with-gherkin',
-          },
-          {
-            text: '与任意界面集成',
-            link: '/zh/integrate-with-any-interface',
           },
           {
             text: '缓存 AI 规划与 DOM 定位',

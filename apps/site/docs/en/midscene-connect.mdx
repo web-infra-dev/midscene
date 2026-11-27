@@ -1,0 +1,179 @@
+import SetupEnv from './common/setup-env.mdx';
+
+# Connect any UI
+
+Use [`@midscene/connect`](https://github.com/web-infra-dev/midscene/tree/main/packages/connect) to connect any screen or custom hardware to Midscene—such as robotic arms, capture cards with HID modules, in-vehicle displays, IoT devices, or remote machines.
+
+Describe the device in one `.mjs` file, serve it over HTTP, and drive it with the Agent SDK, the CLI, or the Playground without writing an `AbstractInterface` class.
+
+## Real-world examples
+
+See the [midscene-test-everything](https://github.com/web-infra-dev/midscene-test-everything) repository for real-world hardware and platform integrations built on `@midscene/connect`:
+
+- **Robot arm × physical touchscreen** (`mg400-service`, `arm-kit`, `robotics-vision`): camera capture, ArUco screen calibration, coordinate mapping, and a DOBOT MG400 reference setup for car screens and industrial panels.
+- **Bluetooth HID × physical iPhone** (`ios-airlink`): driving physical iPhones from macOS over Bluetooth HID with USB, AirPlay, or camera screen capture, without jailbreaking or enabling Developer Mode.
+
+## Set up API keys for model
+
+<SetupEnv />
+
+## 1. Define a device
+
+One `.mjs` file describes one kind of device, and `options` selects a concrete instance. Keys in `actions` that match a built-in input primitive are plain functions; any other key is a custom action.
+
+```js
+// car-screen.mjs
+export default {
+  name: 'Car Screen',
+  description: 'In-car touchscreen driven by a robot arm', // added to aiAct context
+  pointerType: 'touch', // required with `swipe`: 'touch' | 'mouse'
+  options: {
+    type: 'object',
+    properties: { armId: { type: 'string' } },
+    required: ['armId'],
+  },
+  async connect({ armId }) {
+    const arm = await openArm(armId);
+    return {
+      screenshot: () => camera.jpeg(), // PNG/JPEG Buffer, data URL, or base64
+      actions: {
+        tap: (p) => arm.tap(p.x, p.y),
+        swipe: (from, to, opts) => arm.swipe(from, to, opts?.duration),
+        homeButton: () => arm.pressHome(),
+        wakeVoiceAssistant: {
+          description: 'Wake up the voice assistant with a phrase',
+          params: {
+            type: 'object',
+            properties: {
+              phrase: { type: 'string' },
+              button: { 'x-midscene-locate': true, description: 'The mic button' },
+            },
+            required: ['phrase'],
+          },
+          call: ({ phrase, button }) => arm.tapAndSay(button.center, phrase),
+        },
+      },
+      destroy: () => arm.close(),
+    };
+  },
+};
+```
+
+`import { defineDevice } from '@midscene/connect'` adds editor type hints, but a plain default export works without it.
+
+`size()` is optional in the object returned by `connect()`. When omitted, screen dimensions are read from the current screenshot.
+
+### Built-in primitives
+
+The function signatures match `@midscene/core`'s `InputPrimitives`. Coordinates are in screenshot pixels.
+
+| Group | Primitives | Rule |
+| --- | --- | --- |
+| Pointer | `tap`, `doubleClick`, `rightClick`, `middleClick`, `hover`, `longPress`, `dragAndDrop` | Every other pointer primitive requires `tap` |
+| Swipe | `swipe`, `pinch` | `swipe` requires `pointerType` (a `mouse` swipe also requires `tap`); `pinch` requires `swipe` with `pointerType: 'touch'` |
+| Keyboard | `typeText`, `keyboardPress`, `clearInput`, `cursorMove` | `typeText`, `keyboardPress`, and `clearInput` must be provided together |
+| Scroll | `scroll` | |
+| System | `backButton`, `homeButton`, `recentAppsButton` | |
+
+### Parameter schemas
+
+Custom action `params` and device `options` use a JSON Schema subset:
+
+- `string` (`enum`, `minLength`, `maxLength`)
+- `number` / `integer` (`minimum`, `maximum`)
+- `boolean`
+- `array` (`items`, `minItems`, `maxItems`)
+- `object` (`properties`, `required`)
+- `description`
+
+A top-level property marked `{ "x-midscene-locate": true }` is an element located by the AI model. Your `call` function receives `{ description, center, rect }`.
+
+`serve` rejects any keyword outside this subset at startup. Request bodies are validated strictly, so unknown keys fail.
+
+## 2. Serve the device
+
+Start the device service first. It keeps the device connected and exposes an HTTP API with Swagger UI at `/api/docs/`:
+
+```bash
+npx @midscene/connect serve ./car-screen.mjs --arm-id mg400-1
+# ✔ Car Screen is ready
+#   Connect URL: http://127.0.0.1:5820
+#   API docs:    http://127.0.0.1:5820/api/docs/
+```
+
+- Each `serve` process holds one device instance. Pass `--port` to serve additional devices.
+- When `--host` is not a loopback address, the server requires bearer token authentication. Pass `--token <token>`, or use the token generated and printed at startup.
+
+## 3. Drive the device
+
+### Agent SDK
+
+Create an Agent connected to the served device with `agentOverConnectProtocol`:
+
+```ts
+import { agentOverConnectProtocol } from '@midscene/connect';
+
+const agent = await agentOverConnectProtocol({
+  url: 'http://127.0.0.1:5820',
+  // token: '...', // or set MIDSCENE_CONNECT_TOKEN
+  // agentOptions: { ... }, // standard Agent options
+});
+
+await agent.aiAct('Open the music app and search for "Jay Chou"');
+await agent.aiAssert('Search results are visible');
+```
+
+- `url` defaults to `MIDSCENE_CONNECT_URL`, then `http://127.0.0.1:5820`.
+- `token` defaults to `MIDSCENE_CONNECT_TOKEN`.
+- If the device defines `description` and `agentOptions` does not set an `aiAct` context, `description` is automatically added to `aiContexts.aiAct`.
+
+### CLI and Playground
+
+The CLI builds its subcommands dynamically from the served device's action space:
+
+```bash
+export MIDSCENE_CONNECT_URL=http://127.0.0.1:5820   # or pass --url / --token
+npx @midscene/connect act --prompt "Open the music app"
+npx @midscene/connect tap --locate "the search box"
+npx @midscene/connect wakevoiceassistant --phrase "hello"
+npx @midscene/connect playground
+```
+
+`playground` supports `--url`, `--token`, `--port` (default `5800`), and `--no-open`.
+
+## Embed in an existing server
+
+To mount the Connect protocol inside an existing Node HTTP server:
+
+```js
+import http from 'node:http';
+import { createConnectHandler } from '@midscene/connect/server';
+
+const handler = createConnectHandler(
+  { name: 'Phone', screenshot, actions },
+  {
+    basePath: '/devices/phone-1/api',
+    token,
+  },
+);
+
+http.createServer((req, res) => handler.handle(req, res) || next(req, res));
+// Clients connect with url: http://host:port/devices/phone-1
+```
+
+## HTTP API
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/api/info` | Protocol version, name, description, `pointerType`, primitives, and custom actions |
+| `GET` | `/api/screenshot` | Returns `{ image: dataURL, width, height }` |
+| `GET` | `/api/size` | Returns `{ width, height }` |
+| `POST` | `/api/primitives/{name}` | Runs a built-in primitive |
+| `POST` | `/api/actions/{name}` | Runs a custom action and returns `{ ok, result? }` |
+| `GET` | `/api/openapi.json`, `/api/docs/` | OpenAPI specification and Swagger UI |
+
+The server executes actions one at a time. Errors return `{ error, code }`.
+
+## Low-level `AbstractInterface` integration
+
+If you maintain an existing custom interface class or need the low-level `AbstractInterface` and `defineAction` reference, see [Integrate with any interface](./integrate-with-any-interface).

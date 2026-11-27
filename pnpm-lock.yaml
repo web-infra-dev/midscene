@@ -1042,6 +1042,37 @@ importers:
         specifier: ^5.8.3
         version: 5.9.3
 
+  packages/connect:
+    dependencies:
+      '@midscene/core':
+        specifier: workspace:*
+        version: link:../core
+      '@midscene/playground':
+        specifier: workspace:*
+        version: link:../playground
+      '@midscene/shared':
+        specifier: workspace:*
+        version: link:../shared
+      swagger-ui-dist:
+        specifier: ^5.32.0
+        version: 5.36.0
+      zod:
+        specifier: ^3.25.1
+        version: 3.25.76
+    devDependencies:
+      '@rslib/core':
+        specifier: ~0.19.6
+        version: 0.19.6(@microsoft/api-extractor@7.60.1(@types/node@18.19.130))(typescript@5.9.3)
+      '@rstest/core':
+        specifier: 0.12.0
+        version: 0.12.0(core-js@3.51.0)(jsdom@29.0.2(@noble/hashes@1.8.0))
+      '@types/node':
+        specifier: ^18.0.0
+        version: 18.19.130
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
   packages/core:
     dependencies:
       '@midscene/shared':
@@ -3994,6 +4025,9 @@ packages:
   '@rushstack/ts-command-line@5.3.18':
     resolution: {integrity: sha512-acP68tGx/DJEIQgTqj/xStBRaghN7axV+uAjNasDjVXgHgHaLQ1f16/bbXtw6mNLjURhTORD4fdfbOZM7kyWcw==}
     engines: {node: '>=20.9.0'}
+
+  '@scarf/scarf@1.4.0':
+    resolution: {integrity: sha512-xxeapPiUXdZAE3che6f3xogoJPeZgig6omHEy1rIY5WVsB3H2BHNnZH+gHG6x91SCWyQCzWGsuL2Hh3ClO5/qQ==}
 
   '@sec-ant/readable-stream@0.4.1':
     resolution: {integrity: sha512-831qok9r2t8AlxLko40y2ebgSDhenenCatLVeW/uBtnHPyhHOvG0C7TvfgecV+wHzIm5KUICgzmVpWS+IMEAeg==}
@@ -9399,6 +9433,9 @@ packages:
     engines: {node: '>=14.0.0'}
     hasBin: true
 
+  swagger-ui-dist@5.36.0:
+    resolution: {integrity: sha512-Lt6/Kb0gXmLdiabLhvso4VdJP9V7qJWB0zh0gzeXUV3+CMOTzMmvpJRSXN7EAjfwixwmoi9ezDbLHiexC7lA9A==}
+
   swc-plugin-coverage-instrument@0.0.33:
     resolution: {integrity: sha512-zM17DgG3jURPNOrEHye0MtrkrsZ9BtCMf3W5osQTHAtlNolfDUtZl7740wdx7XhUSL322qdph//DgHzZe62wHg==}
 
@@ -12784,6 +12821,8 @@ snapshots:
       string-argv: 0.3.2
     transitivePeerDependencies:
       - '@types/node'
+
+  '@scarf/scarf@1.4.0': {}
 
   '@sec-ant/readable-stream@0.4.1': {}
 
@@ -19328,6 +19367,10 @@ snapshots:
       csso: 5.0.5
       picocolors: 1.1.1
       sax: 1.6.1
+
+  swagger-ui-dist@5.36.0:
+    dependencies:
+      '@scarf/scarf': 1.4.0
 
   swc-plugin-coverage-instrument@0.0.33: {}
 
