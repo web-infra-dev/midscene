@@ -1,0 +1,195 @@
+.model-scatter-plot :focus:not(:focus-visible) {
+  outline: none;
+}
+
+.model-scatter-plot {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+}
+.model-scatter-plot .recharts-wrapper,
+.model-scatter-plot .recharts-surface {
+  overflow: visible;
+}
+.scatter-model-link {
+  cursor: pointer;
+  transition: opacity 400ms ease;
+}
+.scatter-model-link:hover {
+  text-decoration: none;
+}
+.scatter-model-link[aria-disabled="true"] {
+  pointer-events: none;
+}
+.scatter-model-link[data-matches-filters="false"] {
+  opacity: 0.2;
+}
+.scatter-model-label-inner > rect {
+  transition: fill 400ms ease;
+}
+.scatter-model-dot {
+  transition: fill 400ms ease, r 150ms ease;
+}
+.scatter-model-connector {
+  transition: stroke 400ms ease, stroke-width 150ms ease;
+}
+.scatter-model-label-inner {
+  transform-origin: 0 0;
+  transition: transform 150ms ease;
+}
+.scatter-model-label-inner[data-active="true"] {
+  transform: scale(1.12);
+}
+.scatter-model-link image {
+  filter: grayscale(0);
+  transition: filter 400ms ease;
+}
+.scatter-model-link[data-matches-filters="false"] image {
+  filter: grayscale(1);
+}
+
+.performance-hidden-message {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  margin: 0;
+  padding: 24px;
+  color: var(--muted);
+  font-size: 12px;
+  pointer-events: none;
+}
+.performance-tooltip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  pointer-events: none;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 6px 24px #17233218;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.performance-tooltip strong {
+  font-size: 13px;
+}
+.performance-tooltip dl {
+  display: grid;
+  gap: 9px;
+  margin: 14px 0;
+}
+.performance-tooltip dl > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+}
+.performance-tooltip dt {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.performance-tooltip dt,
+.performance-tooltip dd span {
+  color: var(--muted);
+  font-weight: 400;
+}
+.performance-tooltip dd {
+  flex: 1 1 5em;
+  min-width: 0;
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.model-metric-help {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  margin-inline-start: 4px;
+  vertical-align: -0.125em;
+  line-height: 0;
+}
+.performance-axis-title,
+.accuracy-axis-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  /* Center the label text by balancing the help icon and its gap. */
+  padding-inline-start: 18px;
+  color: #526176;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.model-metric-help-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #718097;
+  font: inherit;
+  line-height: 0;
+  cursor: default;
+}
+.model-metric-help-trigger > svg {
+  display: block;
+}
+.accuracy-axis-title .model-metric-help-trigger > svg {
+  transform: rotate(90deg);
+}
+
+.model-metric-help-trigger:hover,
+.model-metric-help-trigger:focus-visible {
+  color: var(--accent);
+}
+.model-metric-help-tooltip[popover] {
+  position: fixed;
+  inset: auto;
+  display: none;
+  width: 320px;
+  max-width: min(320px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  margin: 0;
+  padding: 12px 14px;
+  overflow: auto;
+  border: 1px solid #dbe3ee;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 24px #1723321a;
+  color: #526176;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+.model-metric-help-tooltip[popover]:popover-open {
+  display: grid;
+  pointer-events: auto;
+}
+.model-metric-help-tooltip > span {
+  display: block;
+}
+.model-metric-help-tooltip > span + span {
+  margin-top: 8px;
+}
+.model-metric-help-formula {
+  padding: 7px 8px;
+  border-radius: 4px;
+  background: #f4f7fb;
+  color: #25354b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+}

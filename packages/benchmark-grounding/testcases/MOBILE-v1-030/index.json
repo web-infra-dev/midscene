@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-030",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task tests identifying the route-planning control that performs the requested waypoint-adding function."
+  },
+  "instruction": {
+    "en": "Add a waypoint.",
+    "zh": "添加途经点。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [196.0, 812.0, 248.0, 760.0],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "b648fc726e91ec31d701607b6de1589946412f9aac32b8a7724fb94419be4576"
+    },
+    "patch": null,
+    "collectedAt": 1795082201923
+  }
+}

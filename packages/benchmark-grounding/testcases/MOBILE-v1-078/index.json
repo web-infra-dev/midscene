@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-078",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The task requires identifying Line 1 stations by their map badges and comparing their positions relative to the current-location marker."
+  },
+  "instruction": {
+    "en": "On the map, find the Line 1 metro station closest to my current location.",
+    "zh": "在地图上找到离我最近的 1 号线地铁站。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [874.0, 621.0, 1000.0, 359.0],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "dfb38948902031bc4dcf29ae85378d747ab6a414a30e8305e37e60176afd7fa4"
+    },
+    "patch": null,
+    "collectedAt": 1795082201943
+  }
+}

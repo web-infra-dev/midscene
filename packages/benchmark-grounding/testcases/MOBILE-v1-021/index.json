@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-021",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The task requires identifying the control that hides the on-screen keyboard by its function."
+  },
+  "instruction": {
+    "en": "Hide the on-screen keyboard.",
+    "zh": "收起屏幕键盘。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1554, 1049, 1652, 894],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L2102",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#175",
+    "image": {
+      "format": "jpeg",
+      "sha256": "0a20c53cfa0f541449821a2778ee63d8151120967c21fa2047d17130b7598bcd"
+    },
+    "patch": "Rephrased the original English instruction “fold input method” as “Hide the on-screen keyboard” for natural wording. Added instruction.zh by translating the revised English instruction. Removed 24 bytes of trailing data after the JPEG end-of-image marker. The encoded image is unchanged.",
+    "collectedAt": 1793763122996
+  }
+}

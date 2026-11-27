@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-022",
+  "platform": "web",
+  "category": {
+    "item": "Color Recognition",
+    "reason": "The task requires recognizing the purple keyboard among keyboard designs with different colors."
+  },
+  "instruction": {
+    "en": "Select the purple keyboard.",
+    "zh": "选择紫色系的键盘。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [373.0, 923.0, 630.0, 755.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00003-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1581",
+    "image": {
+      "format": "png",
+      "sha256": "017dec681e38ce93e3e52d0ac1895910a0ea8ca7a92a6df434af4b6acb4ea6f5"
+    },
+    "patch": "Replaced the original instruction “Navigate to home page” with an instruction to select the purple keyboard and added instruction.zh by translating the revised English instruction. Changed groundTruth from [30.0, 254.0, 74.0, 78.0] to [373.0, 923.0, 630.0, 755.0] in [top, right, bottom, left] pixel coordinates, moving the target from the home navigation entry to the GRAPE keyboard card. Updated category.item and category.reason to reflect the color-based selection.",
+    "collectedAt": 1793776824833
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-005",
+  "platform": "web",
+  "category": {
+    "item": "Small Target",
+    "reason": "The close icon on the travel advertisement is a small target that requires precise localization."
+  },
+  "instruction": {
+    "en": "Close the travel-related advertisement.",
+    "zh": "关闭关于旅行的广告。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1343.0, 2518.0, 1367.0, 2494.0],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "47c89383c7d08c8359d572b6e868924b2fab96e8222872d34bec91d28a3b5cee"
+    },
+    "patch": null,
+    "collectedAt": 1795404216615
+  }
+}

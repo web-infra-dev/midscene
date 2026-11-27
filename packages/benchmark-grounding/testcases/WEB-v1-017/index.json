@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-017",
+  "platform": "web",
+  "category": {
+    "item": "Refusal",
+    "reason": "The requested Forest Steel variant is not among the options visible in the screenshot, so there is no matching target to select."
+  },
+  "instruction": {
+    "zh": "选择“Forest Steel”款式。",
+    "en": "Select the “Forest Steel” variant."
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-18K/resolve/f061eba2b7e3fffcf511694f15ad3ca38898ab9e/data/train-00008-of-00019.parquet",
+    "dataset": "GroundUI-18K",
+    "recordId": "data/train-00008-of-00019.parquet#682",
+    "image": {
+      "format": "png",
+      "sha256": "24cc7e58755633f0cfb22c6264c6191e4eccc590b3170d2e7439fb401560585a"
+    },
+    "patch": "Replaced the original instruction “Click on the 'Forest Green' circle.” with a request to select the Forest Steel variant and added a corresponding Chinese instruction. Changed groundTruth from [769, 1395, 843, 1235] to REFUSAL because Forest Steel is not among the visible variants. Changed category.item from Color Recognition to Refusal and updated category.reason accordingly.",
+    "collectedAt": 1792485870672
+  }
+}

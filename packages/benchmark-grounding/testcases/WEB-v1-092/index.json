@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-092",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the image showing a seated woman wearing jeans."
+  },
+  "instruction": {
+    "en": "Find the image of a seated woman wearing jeans.",
+    "zh": "找到穿着牛仔裤的坐姿女子图片。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [271.0, 769.0, 407.0, 660.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/661",
+    "image": {
+      "format": "png",
+      "sha256": "2409034d0ca1d512d08dfe2f374fe0240cd378069f166fa3f2c8e9fb3a764d11"
+    },
+    "patch": "Replaced the original instruction to navigate to the Women's section with an instruction to find the image of a seated woman wearing jeans, and added instruction.zh by translating the revised English instruction. Changed groundTruth from [46.0, 289.2, 136.0, 234.4] to [271.0, 769.0, 407.0, 660.0] in [top, right, bottom, left] pixel coordinates, moving the target from the Women navigation tab to the corresponding image in the denim collage. Updated category.item to Basic Element and category.reason to identify the image of the seated woman wearing jeans.",
+    "collectedAt": 1793776824833
+  }
+}

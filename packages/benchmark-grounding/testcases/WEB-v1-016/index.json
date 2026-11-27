@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-016",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The correct shoe variant must be distinguished from the other options by matching its appearance to the shoe worn by the model in the preview image."
+  },
+  "instruction": {
+    "zh": "选择与预览图中模特穿的相同的鞋子款式。",
+    "en": "Select the shoe variant matching the one worn by the model in the preview image."
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [765, 2099, 924, 1940],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L30916",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "L2_annotations.json#1627",
+    "image": {
+      "format": "png",
+      "sha256": "5fb4f06b0c8d9f3e22a9ae14a00fe633db7a52da22c4e65e08324b69c5075b87"
+    },
+    "patch": "Replaced the original instruction describing a yellow Adidas Grand Court Base 00S sneaker with a request to select the shoe variant matching the model’s shoe in the preview image and added a corresponding Chinese instruction. Changed groundTruth from [762.7, 1921.3, 923.8, 1759.2] to [765, 2099, 924, 1940] in [top, right, bottom, left] pixel coordinates, moving the target from the yellow shoe option to the matching gray shoe option. Changed category.item from Color Recognition to Reasoning and updated category.reason to explain visual matching between the preview and the options.",
+    "collectedAt": 1792485870665
+  }
+}

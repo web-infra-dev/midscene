@@ -1,0 +1,155 @@
+# Midscene Grounding Benchmark 测试报告
+
+import {
+  GroundingBenchmarkPreview,
+  GroundingBenchmarkReportLink,
+  GroundingFamilyTable,
+  GroundingMetricBadge,
+} from '@theme';
+
+Midscene grounding benchmark 测试了在常见的 E2E 场景下，不同模型能否根据 Midscene 的自然语言定位指令准确地在界面中找到目标元素，并估算和对比了各模型在这一过程中的平均耗时和费用。
+
+与业界常见的对模型极限智能的测试不同，Midscene grounding benchmark 力求贴近 E2E 场景下用户对模型定位表现的实际体感，以帮助 Midscene 的用户为自己的测试场景选择最合适的定位模型。
+
+## 测试结果
+
+> 本轮测试于 2026 年 11 月 23 日启动，使用 **200 道测试题**，覆盖 **35 个模型**。<GroundingBenchmarkReportLink><strong>查看完整报告。</strong></GroundingBenchmarkReportLink>
+
+<GroundingBenchmarkPreview title="Midscene Grounding Benchmark 测试结果" />
+
+### 指标含义
+
+| 指标                                                                                           | 含义                                                                                                                                                                                                        |
+| ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <strong><GroundingMetricBadge metric="accuracy">Accuracy</GroundingMetricBadge></strong>       | 模型答对的题目数百分比，反映模型在 E2E 测试中处理定位指令的准确度。                                                                                                                                         |
+| <strong><GroundingMetricBadge metric="performance">Performance</GroundingMetricBadge></strong> | 模型**从接收到定位指令到输出定位结果**的平均估算耗时，数值越低表示定位越快。根据 token 用量、模型延迟和吞吐速率估算，旨在尽量排除网络、测试线程调度等不确定性因素的影响，提供可稳定复现的模型定位速度参考。 |
+| <strong><GroundingMetricBadge metric="economy">Economy</GroundingMetricBadge></strong>         | 平均每 **1 美元**可运行的题数，根据 token 用量和供应商参考单价估算。数值越高，模型越经济适用，相同预算下可覆盖的题目越多。                                                                                  |
+| <strong><GroundingMetricBadge metric="balance">Balance</GroundingMetricBadge></strong>         | 模型 Accuracy、Performance 和 Economy 的整体均衡性，根据模型三个指标归一化雷达图的相对面积计算（各模型雷达图详见<GroundingBenchmarkReportLink><strong>完整报告</strong></GroundingBenchmarkReportLink>）。  |
+
+## 题目构成
+
+Midscene grounding benchmark 覆盖了网页和移动端常见的 E2E 定位场景，两端各 **100 道题**。题目的难度、场景、考点各异，从最简单的按钮识别，到在复杂的地图或者图表中根据页面状态和组合逻辑条件寻找微小的半透明元素。
+
+其中 **167 道题**收录并改编自公开数据，来源包括 [**VenusBench-GD**](https://huggingface.co/datasets/inclusionAI/VenusBench-GD)、[**ScreenSpot-v2**](https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2)、[**MMBench-GUI L2**](https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json)、[**UI-I2E-Bench**](https://huggingface.co/datasets/vaundys/I2E-Bench)、[**WebClick**](https://huggingface.co/datasets/Hcompany/WebClick)、[**OSWorld-G**](https://github.com/xlang-ai/OSWorld-G/tree/main/benchmark)、[**GroundUI-1K**](https://huggingface.co/datasets/agent-studio/GroundUI-1K)、[**GroundUI-18K**](https://huggingface.co/datasets/agent-studio/GroundUI-18K) 和 [**Wikimedia Commons**](https://commons.wikimedia.org/wiki/Main_Page)。其余 **33 道题**由 Midscene 团队按照常见测试场景和大量用户反馈原创编写。[**题集来源和归属声明**](https://github.com/web-infra-dev/midscene/blob/main/packages/benchmark-grounding/LICENSE)。
+
+| 类别                  | 题数 | 难度       | 考察内容                                             |
+| --------------------- | :--- | :--------- | ---------------------------------------------------- |
+| **Basic Element**     | 33   | ⭐️         | 根据对界面元素的直接描述寻找目标元素。               |
+| **Color Recognition** | 11   | ⭐️⭐️       | 根据颜色区分候选元素。                               |
+| **Functional**        | 41   | ⭐️⭐️       | 根据对期望的功能用途的描述寻找目标元素。             |
+| **Reasoning**         | 70   | ⭐️⭐️⭐️⭐️   | 根据页面状态和组合逻辑条件寻找目标元素。             |
+| **Refusal**           | 15   | ⭐️⭐️⭐️⭐️⭐️ | 界面上实际没有符合条件的元素，考察模型是否如实报告。 |
+| **Relative Position** | 9    | ⭐️⭐️⭐️     | 根据一个元素与另一个元素的位置关系进行定位。         |
+| **Small Target**      | 21   | ⭐️⭐️⭐️     | 在尺寸较小的控件上选出准确的坐标。                   |
+
+## 选型指南
+
+### 复杂页面
+
+如果你需要测试的页面非常复杂，例如涉及细小的交互控件、标注非常密集的地图、数据量庞大的表格、逻辑复杂的交互流程等，在预算等条件允许的情况下，建议优先考虑 Accuracy 高于 P50 的模型，例如 `gemini-4` 系列、`gpt-6.2` 系列、`qwen3.8-max` 和 `kimi-k3` 等。这样可以防止你陷入到反复调试提示词、补充上下文的尴尬境地，最终轻松稳定地取得理想的 E2E 测试效果。
+
+### 有限预算
+
+如果你期望使用少量的固定预算覆盖尽可能多的用例，例如期望大批量地跑固定的发版前回归测试用例，建议优先考虑 Economy 最高的 `deepseek-v4.1-flash`，也可以考虑 `hy4-flash`、`seed-2.0-mini` 等 Economy 较高的模型。
+
+### 速度优先
+
+如果你需要在每次提交后尽快拿到回归结果，或要在界面状态变化前完成操作，脚本往往要等当前步骤定位完成才能继续，连续几步的等待会累加。
+
+目标明确、误点后容易恢复时，选本轮 Performance 数值最低的 `jev-1.14`。如果既要缩短定位等待，又要在相同预算内覆盖更多题目，选 Performance 紧随其后、Economy 最高的 `deepseek-v4.1-flash`。如果点错一次就得重跑整条用例，可以选 `kimi-k3`，它的预估耗时仍位居前列，Accuracy 高于前两款。
+
+### 限定家族
+
+如果你受相关法律法规、安全风控、公司政策、地域限制或上下游基础设施等条件约束，只能使用特定的模型家族，可通过下表比较可用家族中各模型的各项指标 top1，从而找到最合适的模型。更多详细数据见<GroundingBenchmarkReportLink><strong>完整报告</strong></GroundingBenchmarkReportLink>。
+
+<GroundingFamilyTable locale="zh" />
+
+## 测试进阶
+
+### 测试原理
+
+测试对每张固定截图直接调用 `agent.aiLocate()`，根据自然语言指令获取目标坐标。`aiTap()`、`aiInput()` 和 `aiHover()` 在按提示词操作元素时，也依赖同一套定位能力来找按钮、输入框或悬停目标。中心点落在标注框内即判为正确。对于目标不存在的题，模型需要准确报告没有匹配的元素。
+
+### 模型自测
+
+如果你准备试用供应商提供的新模型，可以在同一套题上对比新模型和报告中已有模型的定位准确率、预估耗时和每美元可运行的题目数，判断它是否适合你的测试场景。通过 Midscene CLI，你可以查看官方 **200 道题**、用这套题测试新模型，并把结果合并到上方的完整报告中。
+
+**0. 查看/下载题集**
+
+Viewer 会在需要时自动下载与 CLI 同版本的题集，并打开页面展示截图、指令和标注。
+
+```sh
+pnpm dlx @midscene/cli model benchmark-grounding viewer
+```
+
+**1. 配置模型**
+
+模型自测需要三类数据。
+
+- **模型接入信息**用于调用模型。沿用 Midscene 模型配置中的 Base URL、API Key、模型名称和 Model family。为自测模型取一个官方报告中尚未使用的显示名称，合并后就能并列比较。各服务商的配置示例见[使用模型 API Key](./model-api-setup)。
+- **价格数据**用于结合累计 token 用量计算 Economy。提供未缓存的输入和输出单价，单位为美元/token。
+- **性能数据**用于计算 Performance 指标。提供首 token 延迟（毫秒）和输出吞吐量（token/秒），优先采用 P50。能关闭思考时使用关闭思考的数据，否则使用最低思考档位的数据。
+
+价格和性能应来自同一模型、同一接入渠道，并注明来源、链接和采集时间。可复用同名的内置预设。缺少必需的接入信息或可用的参考数据时，CLI 会在调用模型前报错。
+
+<details>
+<summary>查看 .env 范本</summary>
+
+将示例中的接入参数和参考数据换成所测模型的实际值。
+
+```dotenv
+MIDSCENE_GROUNDING_EVALUATION_CONFIG='{
+  "models": [
+    {
+      "baseUrl": "https://api.example.com/v1",
+      "apiKey": "YOUR_API_KEY",
+      "name": "YOUR_PROVIDER_MODEL_ID",
+      "family": "YOUR_MIDSCENE_MODEL_FAMILY",
+      "displayName": "your-freaking-awesome-model"
+    }
+  ],
+  "meta": {
+    "models": {
+      "your-freaking-awesome-model": {
+        "reference": {
+          "source": "YOUR_REFERENCE_SOURCE",
+          "url": "https://example.com/model-reference",
+          "observedAt": "YYYY-MM-DD",
+          "pricing": { "inputPerToken": 0.000001, "outputPerToken": 0.000004 },
+          "performance": { "timeToFirstTokenMs": 300, "outputTokensPerSecond": 100 }
+        }
+      }
+    }
+  }
+}'
+```
+
+</details>
+
+**2. 运行测试**
+
+先试跑一道题检查连通性。
+
+```sh
+pnpm dlx @midscene/cli model benchmark-grounding run --models your-freaking-awesome-model --names WEB-v1-001
+```
+
+确认模型成功返回结果后，再运行全部 200 道题。
+
+```sh
+pnpm dlx @midscene/cli model benchmark-grounding run --models your-freaking-awesome-model
+```
+
+**3. 合并报告**
+
+```sh
+pnpm dlx @midscene/cli model benchmark-grounding merge '<官方报告 URL>' '<本地报告路径>' --output ./comparison-report
+```
+
+## 开源许可与免责声明
+
+Midscene 原创题目在 Midscene 权利范围内采用 MIT 许可。收录和改编的题目沿用来源许可，包括 MIT 和 Apache-2.0。复用题目或截图时，可在报告的 **Licenses** 页查看许可和归属，并在题目详情查看来源和修改记录。截图中的第三方界面、商标或图片可能还有各自的使用条款。[**题集许可与归属声明**](https://github.com/web-infra-dev/midscene/blob/main/packages/benchmark-grounding/LICENSE)
+
+如果你是相关内容的权利人或其授权代表，并认为题目或截图涉及未经授权的使用，请联系 Midscene 团队，提供题目编号、相关内容链接和简要的权利说明。团队会核实并处理。[通过 GitHub Issues 提交反馈](https://github.com/web-infra-dev/midscene/issues)
+
+报告反映各模型在本轮题集和配置下的表现。生产环境里的定位准确率、响应速度和固定预算能覆盖的题目数会随页面、供应商和接入方式变化。

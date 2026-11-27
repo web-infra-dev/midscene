@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-007",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires identifying two numbered routes and tracing them on the map to locate their shared transfer station."
+  },
+  "instruction": {
+    "en": "Find the transfer station where metro lines 2 and 19 intersect.",
+    "zh": "找到地铁 2 号线和 19 号线交汇处的换乘站。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1591.0, 1486.0, 1652.0, 1334.0],
+  "reference": {
+    "url": "https://commons.wikimedia.org/wiki/File:Hangzhou_Metro_Network.png",
+    "dataset": "Wikimedia Commons",
+    "recordId": "File:Hangzhou Metro Network.png",
+    "image": {
+      "format": "png",
+      "sha256": "70e44e5e28408dedf135151b730928799fef3bbc20a94ac9597d8a04b348b4d2"
+    },
+    "patch": "Replaced the original metro screenshot with Alan Fan Pei's full Hangzhou Metro Network map. Rewrote both instructions to ask for the transfer station between lines 2 and 19, which requires tracing the two numbered routes. Redrew the ground truth around the entire Shentangqiao transfer marker.",
+    "collectedAt": 1795072043433
+  }
+}

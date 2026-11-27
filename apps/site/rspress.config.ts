@@ -14,6 +14,8 @@ const FAVICON_URL = `${SITE_URL}/favicon.png`;
 // Bump this version when browsers need to refresh their cached site icon.
 const FAVICON_LINK_URL = `${FAVICON_URL}?v=20260929`;
 const OG_IMAGE_URL = `${SITE_URL}/og-image.png`;
+const GROUNDING_REPORT_BASE_URL =
+  'https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/benchmark/Grounding/report-1795427046466';
 
 const SEARCH_IDENTITY_JSON_LD = JSON.stringify({
   '@context': 'https://schema.org',
@@ -435,6 +437,10 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Benchmark',
           },
           {
+            text: 'Grounding benchmark',
+            link: '/grounding-benchmark',
+          },
+          {
             text: 'AndroidWorld benchmark',
             link: '/android-world-benchmark-report',
           },
@@ -710,6 +716,10 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Benchmark',
           },
           {
+            text: 'Grounding benchmark',
+            link: '/zh/grounding-benchmark',
+          },
+          {
             text: 'AndroidWorld benchmark',
             link: '/zh/android-world-benchmark-report',
           },
@@ -749,6 +759,14 @@ export default defineConfig(async () => {
         preEntry: ['./theme/tailwind.css'],
         define: {
           __MIDSCENE_GITHUB_STARS__: JSON.stringify(githubStars),
+          __MIDSCENE_GROUNDING_BRIEF_URL__: JSON.stringify(
+            process.env.MIDSCENE_GROUNDING_BRIEF_URL ??
+              `${GROUNDING_REPORT_BASE_URL}/brief.html`,
+          ),
+          __MIDSCENE_GROUNDING_REPORT_URL__: JSON.stringify(
+            process.env.MIDSCENE_GROUNDING_REPORT_URL ??
+              `${GROUNDING_REPORT_BASE_URL}/index.html#/overview`,
+          ),
         },
       },
       html: {

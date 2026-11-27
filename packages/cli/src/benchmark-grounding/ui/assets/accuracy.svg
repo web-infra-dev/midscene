@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-label="Highest accuracy">
+  <circle cx="12" cy="12" r="11" fill="#FDE9B4" stroke="#fff" stroke-width="1.5"/>
+  <path d="M12 7.4C10.7 5.6 7.6 6 7.4 8.4C5.6 8.9 5.2 11 6.2 12.4C5.3 14.3 6.5 16.3 8.4 16.5C8.6 18.3 11 18.7 12 17.2C13 18.7 15.4 18.3 15.6 16.5C17.5 16.3 18.7 14.3 17.8 12.4C18.8 11 18.4 8.9 16.6 8.4C16.4 6 13.3 5.6 12 7.4Zm0 0v9.8M7.4 8.4c0 1.2.9 2.1 2.1 2.2m-3.3 1.8c1.1-.1 2 .5 2.3 1.5m8.1-5.5c0 1.2-.9 2.1-2.1 2.2m3.3 1.8c-1.1-.1-2 .5-2.3 1.5" fill="none" stroke="#6D3D10" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

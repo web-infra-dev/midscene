@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-033",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires distinguishing book cards by the absence of a rating rather than matching a named title."
+  },
+  "instruction": {
+    "en": "Among the newly published print books, find books without star ratings and click to view details.",
+    "zh": "在刚出版的纸质书中，找到没有星级评分的书籍，点击查看详情。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [895.0, 1976.0, 1360.0, 1703.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L12490",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#892",
+    "image": {
+      "format": "png",
+      "sha256": "ed9e10aafa289b5b9a4d4f4ae609cc423b9373473ac1ba017b92b851e949f676"
+    },
+    "patch": "Reworded the English instruction to refer to newly published print books without changing the requested target. Extended the ground truth's lower edge from 1300.0 to 1360.0 to cover the complete book item, including its Hardcover label, to the same height as neighboring items.",
+    "collectedAt": 1792485870731
+  }
+}

@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { defineConfig } from '@rstest/core';
 import dotenv from 'dotenv';
 import { createCoverageConfig } from '../../scripts/rstest-coverage';
@@ -18,22 +19,55 @@ const include = enableAiTest
     : basicTest;
 
 export default defineConfig({
-  name: '@midscene/cli',
   coverage: createCoverageConfig(__dirname),
-  include,
-  testTimeout: 3 * 60 * 1000, // Global timeout set to 3 minutes
-  retry: enableCliE2eTest ? 0 : process.env.CI ? 1 : 0,
   ...(enableCliE2eTest
     ? { pool: { maxWorkers: 1 } }
     : enableAiTest && process.env.CI
       ? { pool: { maxWorkers: 2 } }
       : {}),
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'src'),
+  projects: [
+    {
+      name: '@midscene/cli',
+      root: __dirname,
+      include,
+      exclude: ['tests/unit-test/benchmark-grounding/**'],
+      testTimeout: 3 * 60 * 1000,
+      retry: enableCliE2eTest ? 0 : process.env.CI ? 1 : 0,
+      resolve: {
+        alias: { '@': path.resolve(__dirname, 'src') },
+      },
+      output: { externals: photonExternal },
     },
-  },
-  output: {
-    externals: photonExternal,
-  },
+    ...(!enableAiTest && !enableCliE2eTest
+      ? [
+          {
+            name: '@midscene/cli/benchmark-grounding',
+            root: __dirname,
+            include: ['tests/unit-test/benchmark-grounding/**/*.test.ts'],
+            testTimeout: 15000,
+            source: {
+              define: {
+                'import.meta.url': JSON.stringify(
+                  pathToFileURL(
+                    path.resolve(__dirname, 'src/benchmark-grounding/index.ts'),
+                  ).href,
+                ),
+              },
+            },
+            resolve: {
+              alias: { '@': path.resolve(__dirname, 'src') },
+            },
+            output: {
+              externals: [
+                photonExternal,
+                '@midscene/core',
+                '@midscene/shared/img',
+                '@midscene/shared/env',
+                '@midscene/shared/logger',
+              ],
+            },
+          },
+        ]
+      : []),
+  ],
 });

@@ -40,8 +40,24 @@ Promise.resolve(
 
     if (firstArg === 'model') {
       const exitCode = await runModelCommand(rawArgs);
+      if (exitCode === undefined) return; // The benchmark viewer stays open.
+      if (rawArgs[1] === 'benchmark-grounding' && rawArgs[2] === 'run') {
+        // Let the native model recorder finish its queued writes.
+        process.exitCode = exitCode;
+        return;
+      }
+      if (rawArgs[1] === 'benchmark-grounding') {
+        // Flush benchmark progress before exiting.
+        await Promise.all([
+          new Promise<void>((resolve) =>
+            process.stdout.write('', () => resolve()),
+          ),
+          new Promise<void>((resolve) =>
+            process.stderr.write('', () => resolve()),
+          ),
+        ]);
+      }
       process.exit(exitCode);
-      return;
     }
 
     const { options, path, files: cmdFiles } = await parseProcessArgs();

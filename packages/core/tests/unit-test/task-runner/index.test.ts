@@ -741,5 +741,68 @@ describe(
       expect(caughtError?.task?.thought).toMatch(/… \[truncated\]$/);
       expect(caughtError?.task?.errorMessage).toMatch(/… \[truncated\]$/);
     });
+
+    it.each([
+      {
+        taskType: 'Planning',
+        subType: 'Locate',
+        outcome: 'not-found',
+        expected: 'not-found',
+      },
+      {
+        taskType: 'Planning',
+        subType: 'Locate',
+        outcome: undefined,
+        expected: undefined,
+      },
+      {
+        taskType: 'Planning',
+        subType: 'Locate',
+        outcome: 'parse-error',
+        expected: undefined,
+      },
+      {
+        taskType: 'Action Space',
+        subType: 'Tap',
+        outcome: 'not-found',
+        expected: undefined,
+      },
+    ])(
+      'exposes only explicit locate refusal from protocol metadata: $taskType/$subType/$outcome',
+      async ({ taskType, subType, outcome, expected }) => {
+        const runner = new TaskRunner(
+          'locate-outcome-test',
+          fakeUIContextBuilder,
+        );
+        await runner.append({
+          type: taskType,
+          subType,
+          executor: async ({ task }) => {
+            task.log = {
+              dump: {
+                type: 'locate',
+                taskInfo: {
+                  formatResponse: { outcome },
+                  rawResponse: '{"bbox":[],"error":"target absent"}',
+                },
+              },
+            };
+            throw new Error('Element not found');
+          },
+        } as ExecutionTaskApply);
+
+        let caughtError: TaskExecutionError | undefined;
+        try {
+          await runner.flush();
+        } catch (error) {
+          caughtError = error as TaskExecutionError;
+        }
+        expect(caughtError).toBeInstanceOf(TaskExecutionError);
+        expect(caughtError?.locateOutcome).toBe(expected);
+        expect(caughtError?.toJSON()).not.toHaveProperty('locateOutcome');
+        expect(caughtError).not.toHaveProperty('locateRawResponse');
+        expect(JSON.stringify(caughtError)).not.toContain('target absent');
+      },
+    );
   },
 );

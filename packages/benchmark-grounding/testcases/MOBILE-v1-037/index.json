@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-037",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The Nearby button initiates sharing with nearby devices."
+  },
+  "instruction": {
+    "en": "Click to share with nearby devices.",
+    "zh": "点击以与附近设备分享。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [402, 785, 486, 545],
+  "reference": {
+    "url": "https://huggingface.co/datasets/vaundys/I2E-Bench/blob/ecfcc016d92c87ce6c194dba1b3faffabf7db51d/I2E-bench-annotation.jsonl#L939",
+    "dataset": "UI-I2E-Bench",
+    "recordId": "I2E-bench-annotation.jsonl#939",
+    "image": {
+      "format": "png",
+      "sha256": "59c7e0b5a762efd1f8fa3924b8c9862558d84e594f0f603926383692432eea15"
+    },
+    "patch": "Added a final period to the original English instruction and added instruction.zh by translating it.",
+    "collectedAt": 1794194768435
+  }
+}

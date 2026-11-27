@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-072",
+  "platform": "mobile",
+  "category": {
+    "item": "Refusal",
+    "reason": "No displayed app is currently downloading at more than 49%. The only nonzero download is at exactly 49%, and the app marked as installing is past the download stage."
+  },
+  "instruction": {
+    "en": "Find the app that is currently downloading and is more than 49% downloaded.",
+    "zh": "找到正在下载中且下载进度大于 49% 的 App。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "jpeg",
+      "sha256": "86018012366d07d64f0e07dca971ab15fcda3c782e9a79a2cbea2e5640d8f9cd"
+    },
+    "patch": null,
+    "collectedAt": 1795399284200
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-070",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires applying both service criteria to the distance-ordered search results and matching the closest qualifying station to its numbered marker on the map."
+  },
+  "instruction": {
+    "en": "On the map, find the gas station closest to me that has both restrooms and quick auto repair services.",
+    "zh": "在地图上找到距离我最近的有洗手间和简易汽修服务的加油站。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [722.0, 763.0, 754.0, 731.0],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "3ddd91b2b40e9c767acef66d2c992247c8b65bbbbe115c0b9a09a9d6acafdb5b"
+    },
+    "patch": null,
+    "collectedAt": 1795082162189
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-081",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target is the visible A-and-pencil icon in the message composer, whose appearance is specified directly in the instruction."
+  },
+  "instruction": {
+    "en": "An icon with the letter \"A\" and a pencil symbol, indicating a text formatting function.",
+    "zh": "一个带有字母“A”和铅笔符号的图标，表示文本格式设置功能。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [745.0, 346.0, 799.0, 293.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L25026",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "1317",
+    "image": {
+      "format": "png",
+      "sha256": "0d94a39232da0d07aff89cabe7f265ac8c329ec731a4771e87bfa7aa7c8f43cc"
+    },
+    "patch": "Revised the original English instruction to remove the unsupported square-shape description and specify text formatting as the icon's function; added the corresponding Chinese instruction. Updated category.reason to identify the A-and-pencil icon in the message composer. The ground-truth box is unchanged.",
+    "collectedAt": 1792485870457
+  }
+}

@@ -1,0 +1,155 @@
+# Midscene Grounding Benchmark Test Report
+
+import {
+  GroundingBenchmarkPreview,
+  GroundingBenchmarkReportLink,
+  GroundingFamilyTable,
+  GroundingMetricBadge,
+} from '@theme';
+
+The Midscene Grounding Benchmark tests whether models can accurately locate target UI elements in common end-to-end (E2E) scenarios by following Midscene's natural-language grounding instructions. It also estimates and compares each model's average grounding time and cost.
+
+General-purpose model benchmarks often probe the limits of model intelligence. The Midscene Grounding Benchmark aims to reflect how users experience a model's grounding performance in E2E scenarios, helping Midscene users choose the grounding model that best fits their testing scenarios.
+
+## Test results
+
+> Testing began on November 23, 2026. It covered **200 test cases** and **35 models**. <GroundingBenchmarkReportLink><strong>View the full report.</strong></GroundingBenchmarkReportLink>
+
+<GroundingBenchmarkPreview title="Midscene Grounding Benchmark test results" />
+
+### Metrics
+
+| Metric                                                                                         | Meaning                                                                                                                                                                                                                                                                                                                                                                            |
+| ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <strong><GroundingMetricBadge metric="accuracy">Accuracy</GroundingMetricBadge></strong>       | The percentage of test cases the model answers correctly, reflecting how accurately it follows grounding instructions in E2E tests.                                                                                                                                                                                                                                                |
+| <strong><GroundingMetricBadge metric="performance">Performance</GroundingMetricBadge></strong> | The estimated average time **from receiving a grounding instruction to returning a grounding result**. A lower value means faster grounding. The estimate uses token usage, model latency, and throughput to provide a reproducible basis for comparing model grounding speed and aims to minimize variability from factors such as network conditions and test runner scheduling. |
+| <strong><GroundingMetricBadge metric="economy">Economy</GroundingMetricBadge></strong>         | The average number of test cases that can be run per **US dollar**, estimated from token usage and provider reference prices. A higher value indicates a more economical model that can cover more test cases on the same budget.                                                                                                                                                  |
+| <strong><GroundingMetricBadge metric="balance">Balance</GroundingMetricBadge></strong>         | A model's overall balance across Accuracy, Performance, and Economy, calculated as the area of its normalized radar triangle relative to the full-scale triangle. See the <GroundingBenchmarkReportLink><strong>full report</strong></GroundingBenchmarkReportLink> for each model's radar chart.                                                                                  |
+
+## Test cases
+
+The Midscene Grounding Benchmark covers common E2E grounding scenarios on web and mobile, with **100 test cases per platform**. The test cases vary in difficulty, context, and the grounding skills they assess. Tasks range from basic button recognition to locating tiny, semitransparent elements in complex maps or charts based on the current UI state and a combination of logical conditions.
+
+Of these, **167 test cases** were collected and adapted from publicly available data. External sources include [**VenusBench-GD**](https://huggingface.co/datasets/inclusionAI/VenusBench-GD), [**ScreenSpot-v2**](https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2), [**MMBench-GUI L2**](https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json), [**UI-I2E-Bench**](https://huggingface.co/datasets/vaundys/I2E-Bench), [**WebClick**](https://huggingface.co/datasets/Hcompany/WebClick), [**OSWorld-G**](https://github.com/xlang-ai/OSWorld-G/tree/main/benchmark), [**GroundUI-1K**](https://huggingface.co/datasets/agent-studio/GroundUI-1K), [**GroundUI-18K**](https://huggingface.co/datasets/agent-studio/GroundUI-18K), and [**Wikimedia Commons**](https://commons.wikimedia.org/wiki/Main_Page). The Midscene team wrote the remaining **33 test cases** based on common testing scenarios and extensive user feedback. [**Test set sources and attribution**](https://github.com/web-infra-dev/midscene/blob/main/packages/benchmark-grounding/LICENSE).
+
+| Category          | Cases | Difficulty | What it tests                                                                 |
+| ----------------- | :---- | :--------- | ----------------------------------------------------------------------------- |
+| Basic Element     | 33    | ⭐️         | Locate an element from a direct description.                                  |
+| Color Recognition | 11    | ⭐️⭐️       | Distinguish candidate elements by color.                                      |
+| Functional        | 41    | ⭐️⭐️       | Locate an element from a description of its intended function.                |
+| Reasoning         | 70    | ⭐️⭐️⭐️⭐️   | Locate an element using the current UI state and a combination of conditions. |
+| Refusal           | 15    | ⭐️⭐️⭐️⭐️⭐️ | Correctly report that the screenshot contains no matching element.            |
+| Relative Position | 9     | ⭐️⭐️⭐️     | Locate an element by its position relative to another element.                |
+| Small Target      | 21    | ⭐️⭐️⭐️     | Identify a precise location on a small control.                               |
+
+## Selection guide
+
+### Complex pages
+
+If you need to test especially complex pages with small interactive controls, densely annotated maps, large tables, or intricate interaction flows, prioritize models with Accuracy above P50 (the median Accuracy) when your budget and other constraints allow. Examples include models in the `gemini-4` and `gpt-6.2` series, as well as `qwen3.8-max` and `kimi-k3`. These models can reduce the need for repeated prompt tuning and additional context, making it easier to achieve reliable E2E test results.
+
+### Limited budget
+
+If you want to cover as many test cases as possible on a small, fixed budget, such as when running a large suite of prerelease regression tests, prioritize `deepseek-v4.1-flash`, which had the highest Economy in this benchmark. Other models with high Economy values include `hy4-flash` and `seed-2.0-mini`.
+
+### Latency-sensitive tests
+
+For regression tests that must return results promptly after each commit, or tests that must act before the UI changes, latency accumulates across sequential grounding steps.
+
+For clearly defined targets where an incorrect click is easy to recover from, consider `jev-1.14`, which had the lowest Performance value in this run. If you also need to cover more test cases within a fixed budget, `deepseek-v4.1-flash` had the second-lowest Performance value and the highest Economy. For workflows in which an incorrect click requires restarting the test, consider `kimi-k3`. It ranked among the fastest models and achieved higher Accuracy than the preceding two options.
+
+### Family restrictions
+
+If laws and regulations, security controls, company policies, regional restrictions, upstream or downstream infrastructure, or similar constraints limit which model families you can use, the table below shows the top model for each metric in each available family to help you choose the model that best fits your needs. See the <GroundingBenchmarkReportLink><strong>full report</strong></GroundingBenchmarkReportLink> for detailed results.
+
+<GroundingFamilyTable locale="en" />
+
+## Advanced testing
+
+### Test methodology
+
+For each test case, the benchmark calls `agent.aiLocate()` against a fixed screenshot using a natural-language instruction. `aiTap()`, `aiInput()`, and `aiHover()` use the same grounding capability to identify the target specified in an instruction. The test checks whether the model's returned center coordinates fall within the annotated box. When the screenshot contains no matching element, the model must correctly report that the target is absent.
+
+### Test your own model
+
+To determine whether a model from a provider meets your testing requirements, compare its grounding accuracy, estimated duration, and estimated test cases per US dollar with the results reported for existing models on the same test cases. Use the Midscene CLI to view the **200 official test cases**, test the new model, and merge its results into the full report above.
+
+**0. View or download the test set**
+
+The viewer downloads the test set that matches the CLI version when needed and opens a page containing the screenshots, instructions, and annotations.
+
+```sh
+pnpm dlx @midscene/cli model benchmark-grounding viewer
+```
+
+**1. Configure a model**
+
+Provide connection settings, pricing, and performance information for the model.
+
+- **Connection settings** allow Midscene to call the model. Use the Base URL, API Key, model name, and model family from your Midscene configuration. Choose a display name that is absent from the official report to add a separate entry to the merged report. See the provider examples in [Use a model API key](./model-api-setup).
+- **Pricing** is applied to cumulative token usage to calculate Economy. Provide uncached input and output prices in US dollars per token.
+- **Performance data** supplies the reference values for the Performance metric. Specify the time to first token in milliseconds and output throughput in tokens per second, preferably as P50 values. Use measurements taken with reasoning disabled where supported, or at the lowest available reasoning effort.
+
+Use pricing and performance data for the same model and provider configuration. Include the source, its URL, and the date of observation. You can reuse a built-in preset if it matches the model's display name. If required connection settings or usable reference data are missing, the CLI reports an error before calling the model.
+
+<details>
+<summary>View the .env template</summary>
+
+Replace the example connection settings and reference data with values for the model you want to test.
+
+```dotenv
+MIDSCENE_GROUNDING_EVALUATION_CONFIG='{
+  "models": [
+    {
+      "baseUrl": "https://api.example.com/v1",
+      "apiKey": "YOUR_API_KEY",
+      "name": "YOUR_PROVIDER_MODEL_ID",
+      "family": "YOUR_MIDSCENE_MODEL_FAMILY",
+      "displayName": "your-freaking-awesome-model"
+    }
+  ],
+  "meta": {
+    "models": {
+      "your-freaking-awesome-model": {
+        "reference": {
+          "source": "YOUR_REFERENCE_SOURCE",
+          "url": "https://example.com/model-reference",
+          "observedAt": "YYYY-MM-DD",
+          "pricing": { "inputPerToken": 0.000001, "outputPerToken": 0.000004 },
+          "performance": { "timeToFirstTokenMs": 300, "outputTokensPerSecond": 100 }
+        }
+      }
+    }
+  }
+}'
+```
+
+</details>
+
+**2. Run the test**
+
+Run one test case first to verify the connection.
+
+```sh
+pnpm dlx @midscene/cli model benchmark-grounding run --models your-freaking-awesome-model --names WEB-v1-001
+```
+
+Once the model returns a result, run all 200 test cases.
+
+```sh
+pnpm dlx @midscene/cli model benchmark-grounding run --models your-freaking-awesome-model
+```
+
+**3. Merge reports**
+
+```sh
+pnpm dlx @midscene/cli model benchmark-grounding merge '<official-report-url>' '<local-report-path>' --output ./comparison-report
+```
+
+## Licenses and scope
+
+Test cases created by Midscene are available under the MIT license to the extent of Midscene's rights. Test cases collected or adapted from other sources retain their source licenses, including MIT and Apache-2.0. To reuse test cases or screenshots, consult **Licenses** in the report for the applicable terms and attribution. The individual test cases record their sources and any modifications. Third-party interfaces, trademarks, or images in screenshots may be subject to separate terms. [**Test set license and attribution**](https://github.com/web-infra-dev/midscene/blob/main/packages/benchmark-grounding/LICENSE)
+
+If you are a rights holder or an authorized representative and believe that content in a test case or screenshot was used without permission, contact the Midscene team with the test case ID, a link to the relevant content, and a brief description of the rights at issue. The team will review your report. [Submit a report through GitHub Issues](https://github.com/web-infra-dev/midscene/issues)
+
+The report reflects performance on this test set under the tested model configurations. In production, grounding accuracy, response time, and the number of test cases covered by a fixed budget may vary with the interfaces under test, the model provider, and the connection configuration.

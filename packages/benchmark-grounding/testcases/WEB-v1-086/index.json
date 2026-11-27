@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-086",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The task requires filtering the results for garages that can be booked online, matching those results to their map markers, and comparing their distances to a named landmark."
+  },
+  "instruction": {
+    "en": "In the search results, find the parking garage closest to “Plymouth Café” that can be booked online, and book it.",
+    "zh": "在搜索结果中找到距离 “Plymouth Café” 最近的可预订停车场，并进行预订。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [559.0, 493.0, 698.0, 25.0],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "1626ded81cb651341c52b4d0e3cf1f53c81623e2088e526de32fc90941748857"
+    },
+    "patch": null,
+    "collectedAt": 1795082162041
+  }
+}

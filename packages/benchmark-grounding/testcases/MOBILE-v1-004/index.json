@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-004",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The correct favorite control must be distinguished from the other category controls by the clown on its cover."
+  },
+  "instruction": {
+    "en": "Add the category whose cover shows a clown to favorites.",
+    "zh": "收藏封面图是小丑的类目。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [871, 575, 907, 539],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "4248d97dd947da180207c718feea6a8cd5b94bca766c9fc292a20a034d46342e"
+    },
+    "patch": null,
+    "collectedAt": 1795056741872
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "MOBILE-v1-073",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The calculator key is directly identified by the decimal point symbol."
+  },
+  "instruction": {
+    "en": "Locate the decimal point button.",
+    "zh": "定位小数点按钮。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [1111, 2410, 1220, 2068],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "jpeg",
+      "sha256": "320f35a246522e245fca8abc10125cad2059cf70e779d31a68212dac7b119e89"
+    },
+    "patch": null,
+    "collectedAt": 1795056233452
+  }
+}

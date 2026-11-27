@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "WEB-v1-075",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The full asset filename is explicitly supplied, allowing direct text matching among download items."
+  },
+  "instruction": {
+    "en": "Select “midscene-studio-beta-v1.17.7-darwin-arm64.zip” from the assets list.",
+    "zh": "在资产列表中选择“midscene-studio-beta-v1.17.7-darwin-arm64.zip”。"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [934.0, 1275.0, 970.0, 610.0],
+  "reference": {
+    "url": "",
+    "dataset": "",
+    "recordId": "",
+    "image": {
+      "format": "png",
+      "sha256": "754a271aab0b44f5afd7cbfef313112894557acbabe780833f2ab9303c913d54"
+    },
+    "patch": null,
+    "collectedAt": 1792485870970
+  }
+}
