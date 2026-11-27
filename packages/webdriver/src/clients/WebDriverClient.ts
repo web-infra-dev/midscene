@@ -1,7 +1,7 @@
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
 import { normalizeWebDriverBaseUrl } from '../utils/base-url';
-import { makeWebDriverRequest } from '../utils/request';
+import { WebDriverRequestError, makeWebDriverRequest } from '../utils/request';
 import type {
   DeviceInfo,
   Size,
@@ -114,43 +114,26 @@ export class WebDriverClient {
   async getWindowSize(): Promise<Size> {
     this.ensureSession();
 
-    // Try the newer /window/rect endpoint first (returns x,y,width,height).
-    // If it fails (older WDA / WebDriver implementations), fall back to
-    // the older /window/size endpoint which returns width/height.
-    try {
-      const response = await this.makeRequest(
-        'GET',
-        `/session/${this.sessionId}/window/rect`,
-      );
-      const rect = response.value || response;
-
-      return {
-        width: rect.width,
-        height: rect.height,
-      };
-    } catch (err) {
-      debugClient(
-        `Failed to get window rect: ${err}. Falling back to /window/size`,
-      );
-
-      // Fallback to legacy size endpoint
-      try {
-        const response = await this.makeRequest(
-          'GET',
-          `/session/${this.sessionId}/window/size`,
-        );
-        const size = response.value || response;
-
-        return {
-          width: size.width,
-          height: size.height,
-        };
-      } catch (err2) {
-        debugClient(`Failed to get window size fallback: ${err2}`);
-        // Re-throw the original fallback error (or the new one) so callers know it failed
-        throw err2;
-      }
+    const base = `/session/${this.sessionId}/window`;
+    const response = await this.makeRequest('GET', `${base}/rect`).catch(
+      (error) => {
+        if (
+          !(
+            error instanceof WebDriverRequestError && error.isUnsupportedCommand
+          )
+        ) {
+          throw error;
+        }
+        return this.makeRequest('GET', `${base}/size`);
+      },
+    );
+    const { width, height } = response.value ?? response;
+    if (
+      ![width, height].every((value) => Number.isFinite(value) && value > 0)
+    ) {
+      throw new Error('WebDriver returned an invalid window size');
     }
+    return { width, height };
   }
 
   async getDeviceInfo(): Promise<DeviceInfo | null> {

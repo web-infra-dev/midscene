@@ -1,4 +1,5 @@
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
+import { WebDriverRequestError } from '@midscene/webdriver';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { IOSWebDriverClient } from '../../src/ios-webdriver-client';
 
@@ -16,6 +17,170 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
 
   afterEach(() => {
     rs.restoreAllMocks();
+  });
+
+  it('selects the display with window-relative snapshot offsets and verifies the response', async () => {
+    const request = rs.spyOn(client as any, 'makeRequest');
+    const settings = { currentDisplayId: 3, enforceCustomSnapshots: true };
+    request.mockResolvedValueOnce({ value: settings });
+    await client.selectDisplay(3);
+    expect(request).toHaveBeenCalledWith(
+      'POST',
+      '/session/test-session-id/appium/settings',
+      { settings },
+    );
+    request.mockResolvedValueOnce({ value: { currentDisplayId: 1 } });
+    await expect(client.selectDisplay(3)).rejects.toThrow(
+      'did not apply display 3',
+    );
+  });
+
+  it('reads current geometry only for the requested display', async () => {
+    const request = rs.spyOn(client as any, 'makeRequest');
+    const screen = {
+      displayId: 3,
+      screenSize: { width: 951, height: 669 },
+      scale: 3,
+    };
+    request.mockResolvedValue({ value: screen });
+    await expect(client.getDisplaySize(3)).resolves.toEqual({
+      ...screen.screenSize,
+      scale: 3,
+    });
+    await expect(client.getDisplaySize(1)).rejects.toThrow(
+      'geometry for display 1',
+    );
+    request.mockResolvedValue({ value: { ...screen, scale: '3' } });
+    await expect(client.getDisplaySize(3)).rejects.toThrow(
+      'geometry for display 3',
+    );
+  });
+
+  it('prefers screen geometry over split window dimensions without a display override', async () => {
+    const request = rs.spyOn(client as any, 'makeRequest');
+    const window = rs
+      .spyOn(client, 'getWindowSize')
+      .mockResolvedValue({ width: 678, height: 466 });
+    request.mockResolvedValueOnce({
+      value: { screenSize: { width: 951, height: 669 }, scale: 3 },
+    });
+    await expect(client.getDisplaySize()).resolves.toEqual({
+      width: 951,
+      height: 669,
+      scale: 3,
+    });
+    expect(window).not.toHaveBeenCalled();
+    request
+      .mockResolvedValueOnce({ value: { scale: 2 } })
+      .mockResolvedValueOnce({ value: { build: { version: '8.3.0' } } });
+    await expect(client.getDisplaySize()).resolves.toEqual({
+      width: 678,
+      height: 466,
+      scale: 2,
+    });
+  });
+
+  describe('screen geometry compatibility', () => {
+    const unsupported = new WebDriverRequestError('HTTP 404', 404, {
+      value: { error: 'unknown command' },
+    });
+    it.each(['8.4.0', '17.1.4'])(
+      'rejects missing or unsupported screen geometry on %s',
+      async (version) => {
+        const request = rs.spyOn(client as any, 'makeRequest');
+        for (const missing of [true, false]) {
+          if (missing) request.mockResolvedValueOnce({ value: { scale: 3 } });
+          else request.mockRejectedValueOnce(unsupported);
+          request.mockResolvedValueOnce({ value: { build: { version } } });
+          await expect(client.getDisplaySize()).rejects.toThrow(
+            'must return screenSize',
+          );
+        }
+        expect(request).toHaveBeenCalledTimes(4);
+      },
+    );
+
+    it.each([undefined, 'custom-build'])(
+      'detects legacy capabilities with version %s',
+      async (version) => {
+        const request = rs
+          .spyOn(client as any, 'makeRequest')
+          .mockResolvedValueOnce({ value: { scale: 2 } })
+          .mockResolvedValueOnce({ value: { build: { version } } })
+          .mockResolvedValueOnce({ value: { width: 320, height: 480 } });
+        await expect(client.getDisplaySize()).resolves.toEqual({
+          width: 320,
+          height: 480,
+          scale: 2,
+        });
+        expect(request).toHaveBeenCalledWith('GET', '/status');
+      },
+    );
+
+    it('allows explicit unknown-command errors on a versionless server and preserves screenshot failures', async () => {
+      const failure = new Error('screenshot timeout');
+      rs.spyOn(client as any, 'makeRequest')
+        .mockRejectedValueOnce(unsupported)
+        .mockResolvedValueOnce({ value: { build: {} } })
+        .mockRejectedValueOnce(unsupported)
+        .mockResolvedValueOnce({ value: { width: 320, height: 480 } })
+        .mockRejectedValueOnce(failure);
+      await expect(client.getDisplaySize()).rejects.toBe(failure);
+    });
+
+    it.each([
+      new Error('network error'),
+      new WebDriverRequestError('timeout'),
+      new WebDriverRequestError('HTTP 404', 404, {
+        value: { error: 'invalid session id' },
+      }),
+      new WebDriverRequestError('HTTP 404', 404, 'gateway route not found'),
+      new WebDriverRequestError('HTTP 500', 500, {
+        value: { error: 'unknown error' },
+      }),
+    ])(
+      'propagates %s from screen, status or legacy window requests',
+      async (failure) => {
+        for (const step of [0, 1, 2]) {
+          const request = rs.spyOn(client as any, 'makeRequest');
+          if (step >= 1) request.mockResolvedValueOnce({ value: { scale: 2 } });
+          if (step === 2)
+            request.mockResolvedValueOnce({
+              value: { build: { version: '8.3.0' } },
+            });
+          request.mockRejectedValueOnce(failure);
+          await expect(client.getDisplaySize()).rejects.toBe(failure);
+          expect(request).toHaveBeenCalledTimes(step + 1);
+          request.mockRestore();
+        }
+      },
+    );
+    it.each([null, {}, { width: 0, height: 667 }])(
+      'rejects malformed screenSize %s',
+      async (screenSize) => {
+        const request = rs
+          .spyOn(client as any, 'makeRequest')
+          .mockResolvedValueOnce({ value: { screenSize, scale: 2 } });
+        await expect(client.getDisplaySize()).rejects.toThrow('geometry');
+        expect(request).toHaveBeenCalledOnce();
+      },
+    );
+  });
+
+  it('sets and verifies the preferred application', async () => {
+    const request = rs.spyOn(client as any, 'makeRequest');
+    const settings = { defaultActiveApplication: 'dev.midscene.duoprobe' };
+    request.mockResolvedValueOnce({ value: settings });
+    await client.setDefaultActiveApplication(settings.defaultActiveApplication);
+    expect(request).toHaveBeenCalledWith(
+      'POST',
+      '/session/test-session-id/appium/settings',
+      { settings },
+    );
+    request.mockResolvedValueOnce({ value: {} });
+    await expect(
+      client.setDefaultActiveApplication(settings.defaultActiveApplication),
+    ).rejects.toThrow('did not apply');
   });
 
   describe('tap() fallback logic', () => {
@@ -100,28 +265,30 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
   describe('appSwitcher()', () => {
     it('should use the native WDA drag endpoint with screen coordinates', async () => {
       rs.useFakeTimers();
-      const getWindowSizeSpy = rs
-        .spyOn(client, 'getWindowSize')
-        .mockResolvedValue({ width: 393, height: 852 });
       const makeRequestSpy = rs
         .spyOn(client as any, 'makeRequest')
-        .mockResolvedValue({ status: 0 });
+        .mockResolvedValueOnce({
+          value: { screenSize: { width: 951, height: 669 }, scale: 3 },
+        })
+        .mockResolvedValueOnce({ status: 0 });
 
       try {
         const appSwitcherPromise = client.appSwitcher();
         await rs.runAllTimersAsync();
         await appSwitcherPromise;
 
-        expect(getWindowSizeSpy).toHaveBeenCalledOnce();
-        expect(makeRequestSpy).toHaveBeenCalledOnce();
+        expect(makeRequestSpy).toHaveBeenCalledWith(
+          'GET',
+          '/session/test-session-id/wda/screen',
+        );
         expect(makeRequestSpy).toHaveBeenCalledWith(
           'POST',
           '/session/test-session-id/wda/dragfromtoforduration',
           {
-            fromX: 197,
-            fromY: 851,
-            toX: 197,
-            toY: 426,
+            fromX: 476,
+            fromY: 668,
+            toX: 476,
+            toY: 335,
             duration: 1,
           },
         );

@@ -18,6 +18,15 @@ export class WebDriverRequestError extends Error {
     super(message);
     this.name = 'WebDriverRequestError';
   }
+
+  get isUnsupportedCommand(): boolean {
+    const code = this.response?.value?.error;
+    return (
+      (this.status === 404 && code === 'unknown command') ||
+      ((this.status === 500 || this.status === 501 || this.status === 405) &&
+        code === 'unsupported operation')
+    );
+  }
 }
 
 export async function makeWebDriverRequest(

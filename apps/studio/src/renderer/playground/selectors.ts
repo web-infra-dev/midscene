@@ -165,9 +165,16 @@ function resolveConnectedSessionValues(
           }
         : undefined;
     case 'ios': {
+      const connectedValues = {
+        ...formValues,
+        'ios.defaultActiveApplication': metadata.defaultActiveApplication,
+        defaultActiveApplication: metadata.defaultActiveApplication,
+        'ios.displayId': metadata.wdaDisplayId,
+        displayId: metadata.wdaDisplayId,
+      };
       if (isString(metadata.wdaGatewayId)) {
         return resolveSelectedIosGatewayId(formValues) === metadata.wdaGatewayId
-          ? resolveSelectedSessionValues('ios', formValues)
+          ? resolveSelectedSessionValues('ios', connectedValues)
           : undefined;
       }
       const wdaPort = normalizePort(metadata.wdaPort);
@@ -177,10 +184,16 @@ function resolveConnectedSessionValues(
         resolveSelectedDeviceId({ ...formValues, platformId: 'ios' }) ===
           buildHostPortId(metadata.wdaHost, wdaPort)
       ) {
-        return resolveSelectedSessionValues('ios', formValues);
+        return resolveSelectedSessionValues('ios', connectedValues);
       }
       return isString(metadata.wdaHost) && wdaPort !== undefined
         ? {
+            ...(isString(metadata.defaultActiveApplication)
+              ? { defaultActiveApplication: metadata.defaultActiveApplication }
+              : {}),
+            ...(typeof metadata.wdaDisplayId === 'number'
+              ? { displayId: metadata.wdaDisplayId }
+              : {}),
             host: metadata.wdaHost,
             port: wdaPort,
           }
@@ -362,6 +375,15 @@ function resolveSelectedSessionValues(
           ? { deviceId: formValues.deviceId }
           : undefined;
     case 'ios': {
+      const defaultActiveApplication = iosFormValue(
+        formValues,
+        'defaultActiveApplication',
+      );
+      const displayId = formValues['ios.displayId'] ?? formValues.displayId;
+      const display: Record<string, StudioSessionValue> =
+        typeof displayId === 'number' || isString(displayId)
+          ? { displayId }
+          : {};
       const baseUrl = iosFormValue(formValues, 'baseUrl');
       const mjpegUrl = iosFormValue(formValues, 'mjpegUrl');
       const sessionId = iosFormValue(formValues, 'sessionId');
@@ -370,6 +392,8 @@ function resolveSelectedSessionValues(
       );
       if (baseUrl) {
         return {
+          ...display,
+          ...(defaultActiveApplication ? { defaultActiveApplication } : {}),
           baseUrl,
           ...(mjpegUrl ? { mjpegUrl } : {}),
           ...(mjpegPort !== undefined ? { mjpegPort } : {}),
@@ -384,6 +408,8 @@ function resolveSelectedSessionValues(
       const port = normalizePort(formValues['ios.port'] ?? formValues.port);
       return host && port !== undefined
         ? {
+            ...display,
+            ...(defaultActiveApplication ? { defaultActiveApplication } : {}),
             host,
             port,
             ...(mjpegUrl ? { mjpegUrl } : {}),
@@ -410,6 +436,8 @@ export function buildDeviceSelectionFormValues(
         'ios.baseUrl': null,
         'ios.mjpegUrl': null,
         'ios.mjpegPort': null,
+        'ios.displayId': null,
+        'ios.defaultActiveApplication': null,
         'ios.sessionId': null,
         ...prefixSessionValues(platform, device.sessionValues),
       };

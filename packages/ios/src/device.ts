@@ -68,8 +68,6 @@ type PendingKeyboardFollowUp = {
 
 export class IOSDevice implements AbstractInterface {
   private deviceId: string;
-  private devicePixelRatio = 1;
-  private devicePixelRatioInitialized = false;
   private destroyed = false;
   private description: string | undefined;
   private customActions?: DeviceAction<any>[];
@@ -426,6 +424,17 @@ export class IOSDevice implements AbstractInterface {
         await this.wdaBackend.createSession();
       }
 
+      const displayId = this.options?.wdaDisplayId;
+      if (displayId !== undefined) {
+        await this.wdaBackend.selectDisplay(displayId);
+      }
+
+      if (this.options?.defaultActiveApplication) {
+        await this.wdaBackend.setDefaultActiveApplication(
+          this.options.defaultActiveApplication,
+        );
+      }
+
       // Try to get real device info from WebDriverAgent
       const deviceInfo = await this.wdaBackend.getDeviceInfo();
       if (deviceInfo?.udid) {
@@ -449,6 +458,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 `;
       debugDevice('iOS device connected successfully', this.description);
     } catch (e) {
+      if (!this.options?.sessionId) await this.wdaBackend.deleteSession();
       debugDevice(`Failed to connect to iOS device: ${e}`);
       throw new Error(`Unable to connect to iOS device ${this.deviceId}: ${e}`);
     }
@@ -530,39 +540,8 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     };
   }
 
-  private async initializeDevicePixelRatio(): Promise<void> {
-    if (this.devicePixelRatioInitialized) {
-      return;
-    }
-
-    // Get real device pixel ratio from WebDriverAgent /wda/screen endpoint
-    const apiScale = await this.wdaBackend.getScreenScale();
-
-    assert(
-      apiScale && apiScale > 0,
-      'Failed to get device pixel ratio from WebDriverAgent API',
-    );
-
-    debugDevice(`Got screen scale from WebDriverAgent API: ${apiScale}`);
-    this.devicePixelRatio = apiScale;
-    this.devicePixelRatioInitialized = true;
-  }
-
-  async getScreenSize(): Promise<{
-    width: number;
-    height: number;
-    scale: number;
-  }> {
-    // Ensure device pixel ratio is initialized
-    await this.initializeDevicePixelRatio();
-
-    const windowSize = await this.wdaBackend.getWindowSize();
-
-    return {
-      width: windowSize.width,
-      height: windowSize.height,
-      scale: this.devicePixelRatio,
-    };
+  async getScreenSize() {
+    return this.wdaBackend.getDisplaySize(this.options?.wdaDisplayId);
   }
 
   async size(): Promise<Size> {
@@ -1114,7 +1093,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   async appSwitcher(): Promise<void> {
     this.invalidatePendingKeyboardFollowUp('app switcher');
-    await this.wdaBackend.appSwitcher();
+    await this.wdaBackend.appSwitcher(this.options?.wdaDisplayId);
   }
 
   /**
