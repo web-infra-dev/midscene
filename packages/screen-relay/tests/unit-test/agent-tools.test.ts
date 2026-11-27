@@ -174,6 +174,10 @@ describe('screen-relay CLI', () => {
   });
 
   it('refuses unsupported actions at execution time without invoking the input endpoint', async () => {
+    rs.stubEnv('MIDSCENE_MODEL_NAME', 'test-model');
+    rs.stubEnv('MIDSCENE_MODEL_API_KEY', 'test-key');
+    rs.stubEnv('MIDSCENE_MODEL_BASE_URL', 'http://127.0.0.1:1/v1');
+    rs.stubEnv('MIDSCENE_MODEL_FAMILY', 'qwen3-vl');
     const client = makeFakeClient();
     const caps = await client.capabilities();
     caps.input.wheel = false;
