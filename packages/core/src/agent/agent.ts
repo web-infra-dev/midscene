@@ -350,21 +350,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     return this.interface;
   }
 
-  /**
-   * Fails fast for non-web interfaces when the model family is missing.
-   *
-   * Early Midscene web usage allowed running without `modelFamily` and falling
-   * back to a default bbox parser. Non-web users do not have that compatibility
-   * path, so this check helps surface configuration problems before spending a
-   * model call.
-   *
-   * Web flows validate missing locate model family at workflow boundaries:
-   * `Service.locate` throws when aiTap/aiType fallback to the default model for
-   * direct locate, and generic planning throws when aiAct asks a planning model
-   * to return inline locate coordinates. Those checks are intentionally placed
-   * where Midscene knows which model role should provide coordinate parsing.
-   */
-  private assertModelFamilyForNonWebContext() {
+  /** Validate native model configuration at AI boundaries, not screenshot capture. */
+  private assertModelFamilyForNonWeb() {
     if (
       this.interface.interfaceType !== 'puppeteer' &&
       this.interface.interfaceType !== 'playwright' &&
@@ -395,6 +382,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       intent,
       taskType,
     );
+    this.assertModelFamilyForNonWeb();
     return {
       ...runtime,
       onUsage: (usage) => {
@@ -573,11 +561,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   }
 
   async getUIContext(action?: ServiceAction): Promise<UIContext> {
-    // Some non-web flows, such as Android, need an Agent instance before they
-    // can call device methods via ADB, so defer missing modelFamily errors
-    // until UI context is actually requested.
-    this.assertModelFamilyForNonWebContext();
-
+    // Screenshot capture also serves deterministic actions and does not need
+    // model configuration. AI paths validate it when resolving their runtime.
     // If page context is frozen, return the frozen context for all actions
     if (this.frozenUIContext) {
       debug('Using frozen page context for action:', action);

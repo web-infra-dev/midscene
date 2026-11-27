@@ -100,48 +100,57 @@ function seedPlan(agent: Agent) {
 }
 
 describe('Agent action readiness', () => {
-  it('dispatches explicit coordinates and non-locating actions without resolving models', async () => {
-    const { agent, call } = setup({ modelConfig: {} }, 'playwright');
-    const resolve = rs.spyOn(agent as any, 'resolveModelRuntime');
-    rs.mocked(commonContextParser).mockResolvedValue(uiContext);
-    await agent.callActionInActionSpace(
-      'Tap',
-      {
-        locate: { locatedPixelResult: { center: [30, 40] }, cacheable: false },
-      },
-      undefined,
-      { skipDefaultWait: true, deferModelResolution: true },
-    );
-    await agent.callActionInActionSpace('Submit', {}, undefined, {
-      skipDefaultWait: true,
-      deferModelResolution: true,
-    });
-    await agent.callActionInActionSpace(
-      'KeyboardPress',
-      { keyName: 'Enter' },
-      undefined,
-      { skipDefaultWait: true, deferModelResolution: true },
-    );
-    expect(call).toHaveBeenCalledTimes(3);
-    expect(resolve).not.toHaveBeenCalled();
-    await agent.destroy();
-  });
-
-  it('still reports missing model configuration when a target needs AI', async () => {
-    const { agent, device, call } = setup({ modelConfig: {} }, 'playwright');
-    rs.mocked(commonContextParser).mockResolvedValue(uiContext);
-    device.rectMatchesCacheFeature.mockResolvedValue(undefined as never);
-    await expect(
-      agent.callActionInActionSpace(
+  it.each(['playwright', 'android', 'ios', 'computer', 'harmony'])(
+    'dispatches deterministic actions without models on %s',
+    async (interfaceType) => {
+      const { agent, call } = setup({ modelConfig: {} }, interfaceType);
+      const resolve = rs.spyOn(agent as any, 'resolveModelRuntime');
+      rs.mocked(commonContextParser).mockResolvedValue(uiContext);
+      await agent.callActionInActionSpace(
         'Tap',
-        { locate: { prompt: 'unknown button', cacheable: false } },
+        {
+          locate: {
+            locatedPixelResult: { center: [30, 40] },
+            cacheable: false,
+          },
+        },
         undefined,
-        { deferModelResolution: true },
-      ),
-    ).rejects.toThrow('MIDSCENE_MODEL_NAME');
-    expect(call).not.toHaveBeenCalled();
-    await agent.destroy();
-  });
+        { skipDefaultWait: true, deferModelResolution: true },
+      );
+      await agent.callActionInActionSpace('Submit', {}, undefined, {
+        skipDefaultWait: true,
+        deferModelResolution: true,
+      });
+      await agent.callActionInActionSpace(
+        'KeyboardPress',
+        { keyName: 'Enter' },
+        undefined,
+        { skipDefaultWait: true, deferModelResolution: true },
+      );
+      expect(call).toHaveBeenCalledTimes(3);
+      expect(resolve).not.toHaveBeenCalled();
+      await agent.destroy();
+    },
+  );
+
+  it.each(['playwright', 'android'])(
+    'still reports missing model configuration when a target needs AI on %s',
+    async (interfaceType) => {
+      const { agent, device, call } = setup({ modelConfig: {} }, interfaceType);
+      rs.mocked(commonContextParser).mockResolvedValue(uiContext);
+      device.rectMatchesCacheFeature.mockResolvedValue(undefined as never);
+      await expect(
+        agent.callActionInActionSpace(
+          'Tap',
+          { locate: { prompt: 'unknown button', cacheable: false } },
+          undefined,
+          { deferModelResolution: true },
+        ),
+      ).rejects.toThrow('MIDSCENE_MODEL_NAME');
+      expect(call).not.toHaveBeenCalled();
+      await agent.destroy();
+    },
+  );
 
   beforeEach(() => {
     rs.mocked(commonContextParser).mockResolvedValue(uiContext);
