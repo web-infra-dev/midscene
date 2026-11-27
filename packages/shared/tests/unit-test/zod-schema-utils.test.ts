@@ -78,6 +78,11 @@ describe('zod-schema-utils', () => {
       expect(getZodTypeName(z.object({ foo: z.string() }))).toBe('object');
     });
 
+    it('should return "object" for ZodRecord', () => {
+      expect(getZodTypeName(z.record(z.unknown()))).toBe('object');
+      expect(getZodTypeName(z.record(z.unknown()).default({}))).toBe('object');
+    });
+
     it('should return enum type for ZodEnum', () => {
       const result = getZodTypeName(z.enum(['a', 'b', 'c']));
       expect(result).toBe("enum('a', 'b', 'c')");

@@ -52,6 +52,8 @@ export type WebPageOpt = {
   beforeInvokeAction?: (actionName: string, param: any) => Promise<void>;
   afterInvokeAction?: (actionName: string, param: any) => Promise<void>;
   customActions?: DeviceAction<any>[];
+  /** Let aiAct use WebMCP tools exposed by the current page. Default false. */
+  enableWebMCP?: boolean;
 };
 
 export class WebElementInfoImpl implements WebElementInfo {

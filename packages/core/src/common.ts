@@ -4,6 +4,8 @@ import type {
   PlanningAction,
 } from '@/types';
 import { isPlainObject } from '@midscene/shared/utils';
+import Ajv from 'ajv';
+import Ajv2020 from 'ajv/dist/2020';
 import { z } from 'zod';
 import type { DistanceUnit } from './distance-schema';
 import { findDistanceFields } from './distance-schema';
@@ -316,6 +318,30 @@ export const dumpActionParam = (
  * are transformed from screenshot space to logical space.
  * Model distances use the same ratio. Explicit API distances are already logical.
  */
+const DRAFT_07_SCHEMA_RE = /^https?:\/\/json-schema\.org\/draft-07\/schema#?$/;
+const ajvDraft07 = new Ajv({ allErrors: true, strict: false });
+const ajv2020 = new Ajv2020({ allErrors: true, strict: false });
+
+export function validateJsonSchemaParam(
+  rawParam: unknown,
+  jsonSchema: Record<string, unknown>,
+): Record<string, unknown> {
+  const input = rawParam ?? {};
+  const validator =
+    typeof jsonSchema.$schema === 'string' &&
+    DRAFT_07_SCHEMA_RE.test(jsonSchema.$schema)
+      ? ajvDraft07
+      : ajv2020;
+  const validate = validator.compile(jsonSchema);
+  if (!validate(input)) {
+    const details = (validate.errors ?? [])
+      .map((err) => `${err.instancePath || 'param'}: ${err.message}`)
+      .join('; ');
+    throw new Error(details || 'JSON Schema validation failed');
+  }
+  return input as Record<string, unknown>;
+}
+
 export const parseActionParam = (
   rawParam: Record<string, any> | undefined,
   zodSchema?: z.ZodType<any>,

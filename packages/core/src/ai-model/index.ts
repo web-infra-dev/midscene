@@ -73,6 +73,7 @@ export {
   findAllMidsceneLocatorField,
   dumpActionParam,
   parseActionParam,
+  validateJsonSchemaParam,
 } from '../common';
 
 export {

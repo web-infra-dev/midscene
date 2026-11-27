@@ -62,6 +62,10 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 
 此处还支持传入 `waitAfterAction`、`modelConfig` 等其他 Agent 选项；而 `testId`、`reportFileName`、`groupName`、`groupDescription` 等测试与报告元数据会根据当前用例信息自动生成，无需手动配置。平台参数见 [Playwright SDK 配置](./sdk/playwright#web-options)，共享参数见[通用 Agent 配置](./reference/#agent-options)。
 
+### 使用 WebMCP 工具
+
+如果通过 Midscene 的 Playwright fixture 编写测试，在 `fixture.ts` 中设置 `PlaywrightAiFixture({ enableWebMCP: true })`。fixture 首次为页面创建 Agent 时会传入该选项。浏览器要求见 [WebMCP 工具支持](./sdk/playwright#webmcp-tools)。
+
 ### 操作指定页面
 
 fixture 注入的 AI 方法默认作用于 Playwright 提供的 `page`。如果需要在同一测试中操作其他 `Page` 实例（例如通过 `context.newPage()` 新建的页面），可以使用 `agentForPage` 获取该页面对应的 Agent：

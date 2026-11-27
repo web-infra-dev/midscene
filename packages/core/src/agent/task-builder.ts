@@ -6,6 +6,7 @@ import {
   findActionInActionSpaceOrThrow,
   userPromptToMultimodalPrompt,
   userPromptToString,
+  validateJsonSchemaParam,
   validateRequiredLocateFields,
 } from '@/common';
 import { type AbstractInterface, defineActionSleep } from '@/device';
@@ -112,6 +113,7 @@ interface LocateCacheLookup {
 }
 
 interface BuildOptions {
+  actionSpace?: DeviceAction[];
   distanceUnit?: DistanceUnit;
   cacheable?: boolean;
   multimodalPrompt?: TMultimodalPrompt;
@@ -120,6 +122,7 @@ interface BuildOptions {
 }
 
 interface PlanBuildContext {
+  actionSpace?: DeviceAction[];
   distanceUnit?: DistanceUnit;
   tasks: ExecutionTaskApply[];
   planningModel: ModelRuntime;
@@ -174,6 +177,7 @@ export class TaskBuilder {
     const cacheable = options?.cacheable;
 
     const context: PlanBuildContext = {
+      actionSpace: options?.actionSpace,
       distanceUnit: options?.distanceUnit,
       tasks,
       planningModel,
@@ -239,7 +243,7 @@ export class TaskBuilder {
     context: PlanBuildContext,
   ): Promise<void> {
     const planType = plan.type;
-    const actionSpace = this.actionSpace;
+    const actionSpace = context.actionSpace ?? this.actionSpace;
     const action = findActionInActionSpaceOrThrow(planType, actionSpace);
     const param = plan.param;
 
@@ -307,12 +311,14 @@ export class TaskBuilder {
           );
         }
         const parsedParam = (() => {
-          if (!action.paramSchema) return param;
+          if (!action.paramSchema && !action.paramJsonSchema) return param;
           try {
-            return parseActionParam(param, action.paramSchema, {
-              shrunkShotToLogicalRatio,
-              distanceUnit: context.distanceUnit,
-            });
+            return action.paramSchema
+              ? parseActionParam(param, action.paramSchema, {
+                  shrunkShotToLogicalRatio,
+                  distanceUnit: context.distanceUnit,
+                })
+              : validateJsonSchemaParam(param, action.paramJsonSchema!);
           } catch (error: any) {
             throw new Error(
               `Invalid parameters for action ${action.name}: ${error.message}\nParameters: ${JSON.stringify(param)}`,

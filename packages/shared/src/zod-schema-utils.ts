@@ -65,7 +65,9 @@ export function getZodTypeName(field: unknown): string {
   if (fieldTypeName === 'ZodNumber') return 'number';
   if (fieldTypeName === 'ZodBoolean') return 'boolean';
   if (fieldTypeName === 'ZodArray') return 'array';
-  if (fieldTypeName === 'ZodObject') return 'object';
+  if (fieldTypeName === 'ZodObject' || fieldTypeName === 'ZodRecord') {
+    return 'object';
+  }
   if (fieldTypeName === 'ZodEnum') {
     const values =
       (actualField._def?.values as unknown[] | undefined)
