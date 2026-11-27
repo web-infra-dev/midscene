@@ -1,5 +1,5 @@
 import type { TMultimodalPrompt, TUserPrompt } from '@/common';
-import type { ServiceExtractParam } from '@/types';
+import type { ServiceExtractOption, ServiceExtractParam } from '@/types';
 
 /** Keep a query's demand and reference images together until message assembly. */
 export type QueryInput = { demand: ServiceExtractParam } & TMultimodalPrompt;
@@ -23,3 +23,9 @@ export function queryInputFromPrompt(prompt: TUserPrompt): QueryInput {
   const { prompt: demand, ...multimodalPrompt } = prompt;
   return { demand, ...multimodalPrompt };
 }
+
+/** Internal options after resolving the public context option. */
+export type InsightOptions = Pick<
+  ServiceExtractOption,
+  'domIncluded' | 'screenshotIncluded'
+> & { userContext?: string };

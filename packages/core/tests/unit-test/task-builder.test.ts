@@ -102,7 +102,7 @@ describe('TaskBuilder', () => {
         [
           locatePlanForLocate({
             prompt,
-            context: '选择列表第二项',
+            userContext: '选择列表第二项',
             cacheable: true,
             ...(hasCoordinates
               ? { locatedPixelResult: { center: [20, 20] } }
@@ -124,7 +124,7 @@ describe('TaskBuilder', () => {
           [20, 20],
           expect.objectContaining({
             targetDescription: prompt,
-            context: '选择列表第二项',
+            userContext: '选择列表第二项',
           }),
         );
       }
@@ -415,7 +415,7 @@ describe('TaskBuilder', () => {
           param: {
             locate: {
               prompt: 'orange',
-              context: 'favorite fruit rule',
+              userContext: 'favorite fruit rule',
             },
           },
         },
@@ -447,7 +447,7 @@ describe('TaskBuilder', () => {
       expect(insightService.locate).toHaveBeenCalledWith(
         expect.objectContaining({
           prompt: 'orange',
-          context: 'favorite fruit rule',
+          userContext: 'favorite fruit rule',
         }),
         expect.any(Object),
         mockModelRuntime,

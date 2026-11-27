@@ -89,14 +89,14 @@ describe('service.locate deepLocate routing', () => {
       convertHttpImage2Base64: true,
     };
     await service.locate(
-      { prompt, context: '  Use the main panel.  ' },
+      { prompt, userContext: '  Use the main panel.  ' },
       {},
       modelRuntime,
     );
     expect(AiLocateElement).toHaveBeenCalledWith(
       expect.objectContaining({
         targetElementDescription: prompt,
-        context: '  Use the main panel.  ',
+        userContext: '  Use the main panel.  ',
       }),
     );
     expect(prompt.prompt).toBe('target');
@@ -180,7 +180,11 @@ describe('service.locate deepLocate routing', () => {
     const service = new Service(createFakeContext());
 
     await service.locate(
-      { prompt: 'target', context: 'Use the main panel.', deepLocate: true },
+      {
+        prompt: 'target',
+        userContext: 'Use the main panel.',
+        deepLocate: true,
+      },
       {},
       modelRuntime,
     );
@@ -188,7 +192,7 @@ describe('service.locate deepLocate routing', () => {
     expect(AiLocateSection).toHaveBeenCalledWith(
       expect.objectContaining({
         sectionDescription: 'target',
-        context: 'Use the main panel.',
+        userContext: 'Use the main panel.',
       }),
     );
     expect(AiLocateElement).toHaveBeenCalledTimes(1);

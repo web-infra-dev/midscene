@@ -297,7 +297,9 @@ describe('buildDetailedLocateParam', () => {
     });
 
     expect(result?.prompt).toBe('Click the checkout button');
-    expect(result?.context).toBe('The current user is a wholesale customer.');
+    expect(result?.userContext).toBe(
+      'The current user is a wholesale customer.',
+    );
     expect(locateParamStr(result)).toBe('Click the checkout button');
   });
 
@@ -346,7 +348,7 @@ describe('buildDetailedLocateParamAndRestParams', () => {
     );
 
     expect(result.locateParam?.prompt).toBe('Click the checkout button');
-    expect(result.locateParam?.context).toBe(
+    expect(result.locateParam?.userContext).toBe(
       'The current user is a wholesale customer.',
     );
     expect(result.restParams).not.toHaveProperty('context');

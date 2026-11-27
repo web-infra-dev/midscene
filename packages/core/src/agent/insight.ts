@@ -1,7 +1,10 @@
 import type { TUserPrompt } from '@/ai-model/index';
 import type { ModelTaskType } from '@/ai-model/model-adapter/types';
 import type { ModelRuntime } from '@/ai-model/models';
-import { queryInputFromPrompt } from '@/ai-model/workflows/insight/query-input';
+import {
+  type InsightOptions,
+  queryInputFromPrompt,
+} from '@/ai-model/workflows/insight/query-input';
 import type {
   AgentAssertResult,
   AssertOptions,
@@ -20,7 +23,7 @@ const defaultQueryOptions: QueryOptions = {
 
 type InsightTaskExecutor = Pick<TaskExecutor, 'createTypeQueryExecution'>;
 
-type InsightContextOptions = { context?: string };
+type PublicContextOptions = { context?: string };
 
 /** Execute read-only AI operations against either live or fixed UI context. */
 export class Insight implements InsightAPI {
@@ -29,32 +32,29 @@ export class Insight implements InsightAPI {
     private readonly resolveModelRuntime: (
       taskType: ModelTaskType,
     ) => ModelRuntime,
-    private readonly resolveAgentContext: (
+    private readonly resolveAgentUserContext: (
       apiName: AiApiName,
-      callContext?: string,
+      callUserContext?: string,
     ) => string | undefined,
     private readonly getUIContext?: () => UIContext,
   ) {}
 
-  private resolveContext(
+  private resolveUserContext(
     apiName: AiApiName,
-    options?: InsightContextOptions,
+    options?: PublicContextOptions,
   ): string | undefined {
-    return this.resolveAgentContext(apiName, options?.context);
+    return this.resolveAgentUserContext(apiName, options?.context);
   }
 
-  private withContext<T extends InsightContextOptions>(
+  private withUserContext<T extends PublicContextOptions>(
     apiName: AiApiName,
     options: T,
-  ): T {
-    const resolvedContext = this.resolveContext(apiName, options);
-    if (resolvedContext === undefined) {
-      return options;
-    }
-
+  ): Omit<T, 'context'> & { userContext?: string } {
+    const userContext = this.resolveUserContext(apiName, options);
+    const { context: _context, ...restOptions } = options;
     return {
-      ...options,
-      context: resolvedContext,
+      ...restOptions,
+      ...(userContext !== undefined ? { userContext } : {}),
     };
   }
 
@@ -80,7 +80,7 @@ export class Insight implements InsightAPI {
   ): Promise<ReturnType> {
     const modelRuntime = this.resolveModelRuntime('extract');
     const executionOptions = this.executionOptions();
-    const serviceOptions = this.withContext('aiQuery', options);
+    const serviceOptions = this.withUserContext('aiQuery', options);
     const { output } = await this.taskExecutor.createTypeQueryExecution(
       'Query',
       { demand },
@@ -125,7 +125,7 @@ export class Insight implements InsightAPI {
     prompt: TUserPrompt,
     options: QueryOptions,
   ): Promise<ReturnType> {
-    const serviceOptions = this.withContext(apiName, options);
+    const serviceOptions = this.withUserContext(apiName, options);
     const { output } = await this.taskExecutor.createTypeQueryExecution(
       type,
       queryInputFromPrompt(prompt),
@@ -141,13 +141,13 @@ export class Insight implements InsightAPI {
     message?: string,
     options?: AssertOptions,
   ): Promise<AgentAssertResult | undefined> {
-    const contextOptions = this.withContext('aiAssert', options ?? {});
-    const serviceOptions: QueryOptions = {
+    const userContextOptions = this.withUserContext('aiAssert', options ?? {});
+    const serviceOptions: InsightOptions = {
       domIncluded: options?.domIncluded ?? defaultQueryOptions.domIncluded,
       screenshotIncluded:
         options?.screenshotIncluded ?? defaultQueryOptions.screenshotIncluded,
-      ...(contextOptions.context !== undefined
-        ? { context: contextOptions.context }
+      ...(userContextOptions.userContext !== undefined
+        ? { userContext: userContextOptions.userContext }
         : {}),
     };
     const assertionText =

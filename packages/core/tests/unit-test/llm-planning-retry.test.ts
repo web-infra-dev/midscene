@@ -544,7 +544,7 @@ describe('plan XML parse retry', () => {
     await standardPlan('submit the form', {
       uiContext: mockContext(),
       actionSpace: mockActionSpace(),
-      actionContext: 'User-provided context',
+      userContext: 'User-provided context',
       planningAdvice: 'Consider clicking submit',
       modelRuntime: getModelRuntime(mockModelConfig()),
       conversationHistory: new ConversationHistory(),

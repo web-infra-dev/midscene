@@ -625,8 +625,8 @@ function renderExecution(
 
   lines.push('', `- Execution start: ${formatTime(execution.logTime)}`);
   lines.push(`- Task count: ${execution.tasks.length}`);
-  if (execution.aiActContext) {
-    appendTextSection(lines, 'AI Action Context', execution.aiActContext);
+  if (execution.userContext) {
+    appendTextSection(lines, 'Context', execution.userContext);
   }
 
   execution.tasks.forEach((task, taskIndex) => {

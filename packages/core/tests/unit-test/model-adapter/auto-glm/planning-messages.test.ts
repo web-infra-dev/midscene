@@ -126,7 +126,7 @@ describe('createAutoGlmPlanner messages', () => {
         ],
       },
       createPlanOptions({
-        actionContext: 'prefer the primary submit button',
+        userContext: 'prefer the primary submit button',
         conversationHistory,
         abortSignal: abortController.signal,
       }),

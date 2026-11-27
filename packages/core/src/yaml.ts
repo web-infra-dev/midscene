@@ -41,7 +41,7 @@ export interface DetailedLocateParam
   extends Omit<LocateOption, 'context' | 'deepThink'> {
   prompt: TUserPrompt;
   /** Per-call AI guidance recorded in user-facing reports. */
-  context?: string;
+  userContext?: string;
 }
 
 export type ScrollType =

@@ -1,4 +1,4 @@
-import { renderAIContext } from '@/agent/prompt-context';
+import { renderUserContext } from '@/agent/prompt-context';
 import type { PlanFn, PlanOptions } from '../../workflows/planning/types';
 import { prepareJevImage } from './image';
 
@@ -17,7 +17,7 @@ export async function prepareJevPlanningContext(
   );
   const state = {
     goal: instruction.text,
-    context: renderAIContext(options.actionContext),
+    context: renderUserContext(options.userContext),
     history: history.historicalLogsToText(),
     memory: history.memoriesToText(),
     feedback: history.pendingFeedbackMessage,

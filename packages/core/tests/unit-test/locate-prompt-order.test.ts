@@ -56,7 +56,7 @@ describe('locate prompt order', () => {
     const result = await AiLocateElement({
       uiContext: createFakeContext(),
       targetElementDescription: { prompt: 'the Submit button' },
-      context: 'Use the main panel.',
+      userContext: 'Use the main panel.',
       modelRuntime,
     });
 
@@ -77,7 +77,7 @@ describe('locate prompt order', () => {
     await AiLocateSection({
       uiContext: createFakeContext(),
       sectionDescription: 'the row containing Apollo',
-      context: 'Use the main panel.',
+      userContext: 'Use the main panel.',
       modelRuntime,
     });
 

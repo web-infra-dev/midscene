@@ -586,7 +586,7 @@ export class TaskBuilder {
 
           const cacheKey = buildLocateCacheKey(
             locateParam.prompt,
-            locateParam.context,
+            locateParam.userContext,
           );
           return {
             cacheKey,
@@ -689,7 +689,7 @@ export class TaskBuilder {
               const feature = await this.interface.cacheFeatureForPoint(
                 pointForCache,
                 {
-                  context: locateParam.context,
+                  userContext: locateParam.userContext,
                   targetDescription:
                     typeof locateParam.prompt === 'string'
                       ? locateParam.prompt

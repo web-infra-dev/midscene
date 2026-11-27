@@ -1,4 +1,4 @@
-import { renderAIContext } from '@/agent/prompt-context';
+import { renderUserContext } from '@/agent/prompt-context';
 import type { PlanningAIResponse, PlanningAction } from '@/types';
 import { ScreenshotItem } from '../../../screenshot-item';
 import type {
@@ -19,11 +19,8 @@ import {
 import { normalizePlanningActionFields } from './locate-normalization';
 import type { PlanOptions } from './types';
 
-function appendActionContext(
-  systemPrompt: string,
-  actionContext?: string,
-): string {
-  return systemPrompt + (actionContext ? `${actionContext}\n` : '');
+function appendUserContext(systemPrompt: string, userContext?: string): string {
+  return systemPrompt + (userContext ? `${userContext}\n` : '');
 }
 
 export function buildCustomPlanningMessages<TParsed>(
@@ -32,9 +29,9 @@ export function buildCustomPlanningMessages<TParsed>(
 ): ModelCallMessages {
   const { options } = input;
   const { conversationHistory, uiContext } = options;
-  const systemPrompt = appendActionContext(
+  const systemPrompt = appendUserContext(
     config.buildSystemPrompt(),
-    renderAIContext(options.actionContext),
+    renderUserContext(options.userContext),
   );
   const userInstructionText = input.userInstruction.text;
   const userInstruction = config.buildUserInstruction

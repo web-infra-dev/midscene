@@ -738,13 +738,13 @@ describe('TaskExecutor - Null Data Handling', () => {
         { demand: 'Extract the price' },
         getModelRuntime(mockModelConfig),
         {
-          context: 'Use wholesale pricing rules.',
+          userContext: 'Use wholesale pricing rules.',
           domIncluded: true,
         },
       );
 
       expect(queryTask.param).toEqual({
-        context: 'Use wholesale pricing rules.',
+        userContext: 'Use wholesale pricing rules.',
         domIncluded: true,
         dataDemand: 'Extract the price',
       });

@@ -12,7 +12,7 @@ export interface PlanOptions {
   uiContext: UIContext;
   actionSpace: DeviceAction<any>[];
   /** Raw supplemental user context; rendered when assembling model messages. */
-  actionContext?: string;
+  userContext?: string;
   /** Advisory guidance from a previous planner, not a user instruction. */
   planningAdvice?: string;
   modelRuntime: ModelRuntime;

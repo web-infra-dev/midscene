@@ -16,6 +16,7 @@ import { mergeSearchAreaResults } from '@/ai-model/workflows/grounding/search-ar
 import type { SearchAreaConfig } from '@/ai-model/workflows/grounding/types';
 import { AiExtractElementInfo } from '@/ai-model/workflows/insight';
 import type {
+  InsightOptions,
   InsightTaskType,
   QueryInput,
 } from '@/ai-model/workflows/insight/query-input';
@@ -28,7 +29,6 @@ import type {
   LocateResultWithDump,
   PartialServiceDumpFromSDK,
   Rect,
-  ServiceExtractOption,
   ServiceExtractResult,
   ServiceTaskInfo,
   UIContext,
@@ -109,7 +109,7 @@ export default class Service {
     abortSignal?: AbortSignal,
   ): Promise<LocateResultWithDump> {
     const { config: modelConfig } = modelRuntime;
-    const { prompt, context } = query;
+    const { prompt, userContext } = query;
     assert(prompt, 'query is required for locate');
 
     if (!modelConfig.modelFamily) {
@@ -158,7 +158,7 @@ export default class Service {
     } = await AiLocateElement({
       uiContext,
       targetElementDescription: prompt,
-      context,
+      userContext,
       searchConfig: searchArea.config,
       modelRuntime,
       abortSignal,
@@ -264,7 +264,7 @@ export default class Service {
       const searchAreaResponse = await AiLocateSection({
         uiContext,
         sectionDescription: query.prompt,
-        context: query.context,
+        userContext: query.userContext,
         modelRuntime,
         abortSignal,
       });
@@ -294,7 +294,7 @@ export default class Service {
     const firstPassLocateResult = await AiLocateElement({
       uiContext,
       targetElementDescription: query.prompt,
-      context: query.context,
+      userContext: query.userContext,
       modelRuntime,
       abortSignal,
     });
@@ -334,7 +334,7 @@ export default class Service {
     input: QueryInput,
     modelRuntime: ModelRuntime,
     type: InsightTaskType,
-    opt?: ServiceExtractOption,
+    opt?: InsightOptions,
     pageDescription?: string,
     uiContext?: UIContext,
     executionOptions?: {

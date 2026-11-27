@@ -21,21 +21,23 @@ export function buildTypeQueryDemandValue(
 export const extractDataQueryPrompt = (
   pageDescription: string,
   dataQuery: string | Record<string, string>,
-  context?: string,
+  userContext?: string,
 ) => {
   const dataQueryText =
     typeof dataQuery === 'string'
       ? dataQuery
       : JSON.stringify(dataQuery, null, 2);
 
-  const trimmedContext = context?.trim();
-  const contextSection = trimmedContext ? `\n${trimmedContext}\n` : '';
+  const trimmedUserContext = userContext?.trim();
+  const userContextSection = trimmedUserContext
+    ? `\n${trimmedUserContext}\n`
+    : '';
 
   return `
 <PageDescription>
 ${pageDescription}
 </PageDescription>
-${contextSection}
+${userContextSection}
 <DATA_DEMAND>
 ${dataQueryText}
 </DATA_DEMAND>

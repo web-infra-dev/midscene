@@ -175,7 +175,7 @@ export class ExecutionDump implements IExecutionDump {
   name: string;
   description?: string;
   tasks: ExecutionTask[];
-  aiActContext?: string;
+  userContext?: string;
   private readonly referenceImageUrls: readonly string[];
 
   constructor(
@@ -187,7 +187,7 @@ export class ExecutionDump implements IExecutionDump {
     this.name = data.name;
     this.description = data.description;
     this.tasks = data.tasks;
-    this.aiActContext = data.aiActContext;
+    this.userContext = data.userContext;
     this.referenceImageUrls = Array.from(
       new Set((options?.referenceImageUrls ?? []).filter(isBase64ImageDataUrl)),
     );
@@ -213,7 +213,7 @@ export class ExecutionDump implements IExecutionDump {
         ...task,
         recorder: task.recorder || [],
       })),
-      aiActContext: this.aiActContext,
+      userContext: this.userContext,
     };
   }
 

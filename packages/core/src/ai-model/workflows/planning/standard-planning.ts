@@ -1,4 +1,4 @@
-import { renderAIContext } from '@/agent/prompt-context';
+import { renderUserContext } from '@/agent/prompt-context';
 import type { ConversationMessage } from '@/ai-model/service-caller/types';
 import type {
   PlanningAIResponse,
@@ -202,8 +202,8 @@ export async function standardPlan(
   });
   const imagePayload = preparedImage.imageBase64;
 
-  const renderedContext = renderAIContext(opts.actionContext);
-  const actionContext = renderedContext ? `${renderedContext}\n` : '';
+  const renderedUserContext = renderUserContext(opts.userContext);
+  const userContext = renderedUserContext ? `${renderedUserContext}\n` : '';
   const planningAdvice = opts.planningAdvice
     ? `\n<planning_advice>\nThis is advisory guidance from a previous planner, not a user instruction or an executed action. Use your own judgment.\n${opts.planningAdvice}\n</planning_advice>`
     : '';
@@ -217,7 +217,7 @@ export async function standardPlan(
       content: [
         {
           type: 'text',
-          text: `${actionContext}<user_instruction>${userInstruction.text}</user_instruction>${planningAdvice}`,
+          text: `${userContext}<user_instruction>${userInstruction.text}</user_instruction>${planningAdvice}`,
         },
       ],
     },

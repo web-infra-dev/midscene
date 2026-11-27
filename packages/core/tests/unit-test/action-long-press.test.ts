@@ -101,7 +101,7 @@ describe('LongPress Action', () => {
         duration: 2000,
         locate: {
           cacheable: true,
-          context: '文章位于首页的信息流中',
+          userContext: '文章位于首页的信息流中',
           deepLocate: true,
           prompt: '首页任意一篇文章',
           xpath: undefined,
